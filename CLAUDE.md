@@ -25,9 +25,10 @@ Cada función nueva debe funcionar con ratón y con dedo: arrastrar = mover cám
 ## Cómo trabaja cada sesión automática
 
 1. Lee `docs/FEEDBACK.md`, `docs/PROGRESO.md` y `docs/ROADMAP.md`.
-2. Elige UNA tarea: primero los puntos pendientes de `FEEDBACK.md`, después la siguiente tarea sin marcar de la fase actual del roadmap. Si una tarea es grande, pártela y haz solo la primera parte.
+   Procesa la cola del botón 🐞: `gh api "repos/MikelJka/OxidoGame/issues?labels=feedback&state=open&sort=created&direction=asc"` (usa `gh api`, no `gh issue`: GraphQL está bloqueado). Por cada incidencia, añádela a «Pendiente» de `FEEDBACK.md` (con el número `#N`), comenta en ella qué se hará y ciérrala (`gh api -X PATCH repos/MikelJka/OxidoGame/issues/N -f state=closed`). Los bugs van antes que el resto.
+2. Elige UNA tarea: primero los puntos pendientes de `FEEDBACK.md` (bugs primero), después la siguiente tarea sin marcar de la fase actual del roadmap. Si una tarea es grande, pártela y haz solo la primera parte.
 3. Impleméntala con tests cuando toque `src/sim/`.
-4. Ejecuta `npm test` y `npm run build`. No subas nada que falle.
+4. Ejecuta `npm test` y `npm run build`. No subas nada que falle. Si npm no puede descargar paquetes en el entorno, sube primero una rama `sesion/AAAA-MM-DD-tema`: el workflow «Probar rama» la prueba; cuando pase, llévala a `main`.
 5. Marca la tarea en `ROADMAP.md` (y el punto de `FEEDBACK.md` como hecho) y añade una entrada al principio de `PROGRESO.md`: fecha, qué se hizo, qué probar, qué sigue.
 6. Haz commit y push a `main` con un mensaje en español que diga qué cambia para el jugador.
 

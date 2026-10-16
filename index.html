@@ -18,6 +18,7 @@
         <button type="button" data-speed="2" title="Velocidad x2 (2)">▶▶</button>
         <button type="button" data-speed="3" title="Velocidad x3 (3)">▶▶▶</button>
       </div>
+      <button id="report-btn" type="button" title="Informar de un bug, petición o cambio">🐞</button>
       <button id="menu-btn" type="button" title="Menú">☰</button>
     </header>
 
@@ -31,6 +32,35 @@
         PC: clic derecho también da la orden · Espacio, 1, 2, 3: velocidad · Esc: deseleccionar
       </p>
     </div>
+
+    <section id="report" class="panel" hidden aria-label="Informar">
+      <div class="rp-head">
+        <strong>Informar</strong>
+        <button id="rp-close" type="button" title="Cerrar">✕</button>
+      </div>
+      <div class="rp-kinds" role="group" aria-label="Tipo">
+        <button type="button" data-kind="bug">🐞 Bug</button>
+        <button type="button" data-kind="peticion">💡 Petición</button>
+        <button type="button" data-kind="cambio">🔧 Cambio</button>
+      </div>
+      <textarea id="rp-text" rows="4"></textarea>
+      <label class="rp-attach"><input id="rp-attach" type="checkbox" /> <span id="rp-attach-label"></span></label>
+      <div class="rp-actions">
+        <button id="rp-send" type="button" class="primary">Enviar a la cola</button>
+        <button id="rp-save" type="button">Guardar para luego</button>
+      </div>
+      <p id="rp-status" class="muted"></p>
+      <details>
+        <summary>Cola de este navegador</summary>
+        <div id="rp-queue"></div>
+        <button id="rp-copy" type="button">Copiar pendientes</button>
+      </details>
+      <details>
+        <summary>Errores detectados</summary>
+        <div id="rp-errors"></div>
+        <button id="rp-clear-errors" type="button">Borrar registro</button>
+      </details>
+    </section>
 
     <div id="tile" class="panel"></div>
     <div id="toast" class="panel" hidden></div>

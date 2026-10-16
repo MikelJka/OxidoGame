@@ -4,7 +4,12 @@ import { seedFromString } from './sim/rng';
 import { Colonist, activityLabel } from './sim/colonist';
 import { SKILLS, SKILL_NAMES } from './data/colonists';
 import type { GameSpeed } from './sim/world';
+import { checkWorld, ProgressMark } from './sim/diagnostics';
+import { installErrorCapture, mountReportPanel, onNewError, recordError } from './ui/bugReport';
 import './style.css';
+
+// Primero de todo: cualquier fallo a partir de aquí queda registrado.
+installErrorCapture();
 
 function initialSeed(): number {
   const param = new URLSearchParams(window.location.search).get('seed');
@@ -46,7 +51,10 @@ game.events.on('clock', (label: string, speed: GameSpeed) => {
 
 // --- Menú --------------------------------------------------------------------
 const menu = $('menu');
-$('menu-btn').addEventListener('click', () => (menu.hidden = !menu.hidden));
+$('menu-btn').addEventListener('click', () => {
+  menu.hidden = !menu.hidden;
+  if (!menu.hidden) report.hidden = true;
+});
 $('new-map').addEventListener('click', () => {
   seed = Math.floor(Math.random() * 1_000_000);
   menu.hidden = true;
@@ -68,12 +76,60 @@ game.events.on('tile-info', (text: string) => (tile.textContent = text));
 
 const toast = $('toast');
 let toastTimer = 0;
-game.events.on('toast', (text: string) => {
+function showToast(text: string, ms = 1600): void {
   toast.textContent = text;
   toast.hidden = false;
   window.clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => (toast.hidden = true), 1600);
+  toastTimer = window.setTimeout(() => (toast.hidden = true), ms);
+}
+game.events.on('toast', (text: string) => showToast(text));
+
+// --- Informar de bugs, peticiones y cambios ----------------------------------
+const report = $('report');
+const reportBtn = $<HTMLButtonElement>('report-btn');
+reportBtn.addEventListener('click', () => (menu.hidden = true));
+mountReportPanel({
+  button: reportBtn,
+  panel: report,
+  getContext: () => {
+    let clockLabel = 'sin partida';
+    try {
+      clockLabel = scene().world.clockLabel();
+    } catch {
+      // La escena aún no existe.
+    }
+    return {
+      url: window.location.href,
+      clock: clockLabel,
+      userAgent: navigator.userAgent,
+      viewport: `${window.innerWidth}×${window.innerHeight} @${window.devicePixelRatio}x`,
+    };
+  },
 });
+onNewError(() => showToast('⚠️ Se ha detectado un error. Toca 🐞 para enviarlo.', 3500));
+
+// Comprobación periódica del estado de la simulación (colonos atascados, fuera del mapa…).
+let diagProgress = new Map<number, ProgressMark>();
+let diagWorld: unknown = null;
+const reportedProblems = new Set<string>();
+window.setInterval(() => {
+  const s = game.scene.getScene('world') as WorldScene | null;
+  if (!s || !s.world) return;
+  if (diagWorld !== s.world) {
+    diagWorld = s.world;
+    diagProgress = new Map();
+    reportedProblems.clear();
+  }
+  try {
+    for (const p of checkWorld(s.world, diagProgress)) {
+      if (reportedProblems.has(p.key)) continue;
+      reportedProblems.add(p.key);
+      recordError('simulación', `${p.message} · semilla ${seed} · ${s.world.clockLabel()}`);
+    }
+  } catch (err) {
+    recordError('simulación', `La comprobación falló: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}, 2000);
 
 // --- Lista de colonos ----------------------------------------------------------
 const roster = $('roster');

@@ -83,6 +83,7 @@ button.active { border-color: var(--accent); color: var(--accent); }
 #tile:empty { display: none; }
 
 #toast {
+  z-index: 6;
   top: 40%;
   left: 50%;
   transform: translateX(-50%);
@@ -126,4 +127,71 @@ button.active { border-color: var(--accent); color: var(--accent); }
   #colonist-panel { max-height: 34vh; padding: 8px; }
   .skill { line-height: 1.45; font-size: 12px; }
   #cp-name { font-size: 14px; }
+}
+
+/* --- Informar: bugs, peticiones y cambios ----------------------------------- */
+#clock { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+#report-btn { position: relative; padding: 4px 6px; }
+#report-btn .badge:empty { display: none; }
+#report-btn .badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--muted);
+  color: var(--bg);
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+}
+#report-btn .badge.error { background: #d43c2c; color: #fff; }
+
+#report {
+  top: calc(62px + env(safe-area-inset-top));
+  right: 8px;
+  width: min(380px, calc(100% - 16px));
+  max-height: calc(100% - 140px);
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 5;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.rp-head { display: flex; justify-content: space-between; align-items: center; }
+.rp-head strong { color: var(--accent); }
+.rp-kinds { display: flex; gap: 4px; }
+.rp-kinds button { flex: 1; padding: 4px 4px; }
+#rp-text {
+  font: inherit;
+  color: var(--text);
+  background: #1c1814;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 6px;
+  resize: vertical;
+  font-size: 16px; /* evita el zoom automático de iOS al escribir */
+}
+.rp-attach { display: flex; align-items: center; gap: 6px; min-height: 36px; color: var(--muted); }
+.rp-attach input { width: 20px; height: 20px; }
+.rp-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.rp-actions button { flex: 1; }
+button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.muted { color: var(--muted); margin: 0; font-size: 12px; }
+#rp-status:empty { display: none; }
+#report details { border-top: 1px solid var(--border); padding-top: 6px; }
+#report summary { cursor: pointer; min-height: 36px; line-height: 36px; color: var(--muted); }
+#rp-queue, #rp-errors { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 8px; }
+.rp-item { display: flex; align-items: center; gap: 4px; }
+.rp-item span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-error { font-size: 11px; color: #e8a090; word-break: break-word; }
+
+@media (max-width: 420px) {
+  .brand { display: none; }
+  #topbar { gap: 6px; }
 }
