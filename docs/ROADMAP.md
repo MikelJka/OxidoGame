@@ -1,0 +1,76 @@
+# Roadmap de Óxido
+
+Cada sesión toma la primera tarea sin marcar de la fase actual. Una fase solo termina cuando se cumple su criterio de "terminado".
+
+## Fase 0 — Base del proyecto
+
+Terminado: la URL pública muestra el mapa generado y se puede mover y hacer zoom en móvil y PC.
+
+- [x] Proyecto Vite + Phaser 3 + TypeScript estricto
+- [x] Tests con Vitest y publicación automática en GitHub Pages
+- [x] Generador de mapas con semilla: lagos, ríos, colinas, roca, bosque muerto, ruinas, zonas irradiadas, manantiales, agua contaminada
+- [x] Dibujado pixel art del mapa y cámara (arrastrar, rueda, pellizco, teclado)
+- [x] Indicador de terreno al tocar o pasar el ratón; botón "Nuevo mapa"; semilla en la URL
+- [ ] Comprobar en la URL pública que funciona en móvil y PC (lo confirma Mikel en FEEDBACK.md)
+
+## Fase 1 — Mapa y colonos
+
+Terminado: puedo mover la cámara y ver a 3 colonos caminar por el mapa; el tiempo se pausa y acelera.
+
+- [ ] Bucle de simulación por ticks independiente del dibujado (`src/sim/world.ts`), con velocidades pausa/x1/x2/x3
+- [ ] Botones de velocidad en el HUD (táctiles) y teclas espacio/1/2/3
+- [ ] Modelo de colono: nombre, posición, habilidades 0–20, rasgos (datos en `src/data/`)
+- [ ] Pathfinding A* sobre el mapa respetando `walkable` y `moveCost`, con tests
+- [ ] 3 colonos que aparecen en el inicio y deambulan por destinos aleatorios alcanzables
+- [ ] Sprites pixel art provisionales de colonos (generados por código) y animación de paso
+- [ ] Seleccionar un colono tocándolo y ver su ficha en un panel adaptable a móvil
+- [ ] Ordenar a un colono seleccionado que vaya a una casilla (control directo)
+- [ ] Más geografía: acantilados (bordes de roca entre niveles), pasos estrechos, mesetas; tests de variedad
+
+## Fase 2 — Trabajos y recursos
+
+Terminado: marco árboles y los colonos los talan y guardan la madera solos.
+
+- [ ] Recursos en el mapa: árboles muertos (madera), rocas (piedra), chatarra en ruinas
+- [ ] Inventario de la colonia y objetos en el suelo
+- [ ] Herramienta de designación: talar, minar, saquear (arrastrar un área; en móvil, modo selección)
+- [ ] Sistema de trabajos: cola, reserva de tareas, prioridades por colono
+- [ ] Zonas de almacén y transporte
+- [ ] Panel de prioridades de trabajo
+- [ ] Agua: recoger agua de ríos/manantiales; el agua contaminada necesita filtrado
+- [ ] Guardado manual y automático en el navegador, exportar/importar archivo
+
+## Fase 3 — Construcción
+
+Terminado: diseño un refugio cerrado y los colonos lo construyen con recursos.
+
+- [ ] Definiciones de edificios en JSON (coste, tiempo, terreno permitido)
+- [ ] Planos: colocar, rotar, cancelar (ratón y táctil)
+- [ ] Muros, puertas, suelos, camas, almacén, banco de trabajo
+- [ ] Construcción como trabajo que consume recursos
+- [ ] Habitaciones cerradas detectadas (para ánimo y temperatura futura)
+
+## Fase 4 — Necesidades y raids (primera versión jugable)
+
+Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed o por un raid.
+
+- [ ] Hambre, sed, sueño, ánimo; colonos que comen, beben y duermen solos
+- [ ] Cultivos y cocina
+- [ ] Salud: heridas localizadas, tratamiento, infecciones
+- [ ] Dificultad configurable al empezar (días sin raids, dureza)
+- [ ] Raids de saqueadores y mutantes que escalan con la riqueza
+- [ ] Combate: armas cuerpo a cuerpo y a distancia, cobertura con bonificaciones, control directo
+- [ ] Muerte permanente y fin de partida
+
+## Fase 5 — Investigación y máquinas
+
+- [ ] Banco de investigación y árbol tecnológico en JSON
+- [ ] Puentes, torretas, cañones, filtros de agua, pozos, generadores de combustible
+- [ ] Enemigos máquina y drones
+
+## Fase 6 — Facciones y economía
+
+- [ ] Facciones con relaciones y diplomacia
+- [ ] Caravanas y trueque por valor
+- [ ] Mercado global simulado con oferta y demanda
+- [ ] Eventos, arte definitivo y equilibrio

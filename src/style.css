@@ -1,0 +1,52 @@
+:root {
+  --bg: #141210;
+  --panel: rgba(20, 18, 16, 0.82);
+  --text: #f0d7b0;
+  --muted: #b39c7c;
+  --accent: #d96c2c;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+#game { position: fixed; inset: 0; }
+#hud {
+  position: fixed;
+  top: calc(8px + env(safe-area-inset-top));
+  left: 8px;
+  right: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 8px 10px;
+  background: var(--panel);
+  border: 1px solid #3a322a;
+  border-radius: 4px;
+  font-size: 13px;
+  pointer-events: none;
+}
+.hud-title strong { color: var(--accent); letter-spacing: 2px; }
+#seed, #tile { color: var(--muted); }
+#tile { flex: 1 1 180px; }
+#new-map {
+  pointer-events: auto;
+  font: inherit;
+  color: var(--text);
+  background: #2c241d;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  padding: 6px 12px;
+  min-height: 36px;
+  cursor: pointer;
+}
+#new-map:active { background: var(--accent); color: var(--bg); }
