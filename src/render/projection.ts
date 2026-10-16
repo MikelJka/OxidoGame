@@ -3,6 +3,11 @@
 import { GameMap, inBounds, isWater, MAX_LEVEL, Terrain } from '../sim/map';
 
 export const TILE = 16;
+/**
+ * Alto en pantalla de una casilla. Menor que TILE: el suelo se ve inclinado (desde un lado),
+ * mientras que paredes, objetos y colonos se dibujan de pie con su tamaño normal.
+ */
+export const TILE_H = 12;
 /** Píxeles (del mundo) que sube cada nivel de altura. */
 export const LIFT = 12;
 /** Margen superior de las texturas del mapa para que la primera fila elevada no se corte. */
@@ -22,7 +27,12 @@ export function liftOf(map: GameMap, x: number, y: number): number {
 
 /** Y del mundo donde se dibuja el borde superior de una casilla. */
 export function tileTop(map: GameMap, x: number, y: number): number {
-  return y * TILE - liftOf(map, x, y);
+  return y * TILE_H - liftOf(map, x, y);
+}
+
+/** Y del mundo de una posición continua en casillas (sin contar la altura). */
+export function rowY(y: number): number {
+  return y * TILE_H;
 }
 
 /**
@@ -33,13 +43,13 @@ export function tileTop(map: GameMap, x: number, y: number): number {
 export function pickTile(map: GameMap, wx: number, wy: number): { x: number; y: number } | null {
   const tx = Math.floor(wx / TILE);
   if (tx < 0 || tx >= map.width) return null;
-  const last = Math.min(map.height - 1, Math.floor((wy + TOP_MARGIN) / TILE));
-  const first = Math.max(0, Math.floor(wy / TILE) - 1);
+  const last = Math.min(map.height - 1, Math.floor((wy + TOP_MARGIN) / TILE_H));
+  const first = Math.max(0, Math.floor(wy / TILE_H) - 1);
   for (let ty = last; ty >= first; ty--) {
     const top = tileTop(map, tx, ty);
     const below = ty + 1 < map.height ? renderLevel(map, tx, ty + 1) : 0;
-    const wallBottom = (ty + 1) * TILE - below * LIFT;
-    if (wy >= top && wy < Math.max(top + TILE, wallBottom)) return { x: tx, y: ty };
+    const wallBottom = (ty + 1) * TILE_H - below * LIFT;
+    if (wy >= top && wy < Math.max(top + TILE_H, wallBottom)) return { x: tx, y: ty };
   }
   return null;
 }

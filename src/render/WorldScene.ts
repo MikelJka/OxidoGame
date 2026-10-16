@@ -4,7 +4,7 @@ import { Colonist } from '../sim/colonist';
 import { isWalkable } from '../sim/pathfinding';
 import { GameSpeed, World } from '../sim/world';
 import { canvasPropRasterizer, paintGround, TILE } from './mapArt';
-import { liftOf, occludedFraction, pickTile, TOP_MARGIN } from './projection';
+import { liftOf, occludedFraction, pickTile, rowY, TILE_H, TOP_MARGIN } from './projection';
 
 export { TILE };
 const MAP_TEXTURE = 'world-map';
@@ -56,11 +56,11 @@ export class WorldScene extends Phaser.Scene {
 
     const cam = this.cameras.main;
     const worldW = this.map.width * TILE;
-    const worldH = this.map.height * TILE;
+    const worldH = this.map.height * TILE_H;
     cam.setBounds(0, -TOP_MARGIN, worldW, worldH + TOP_MARGIN);
     cam.setBackgroundColor('#141210');
     cam.setZoom(this.clampZoom(Math.max(this.minZoom(), 1.5)));
-    cam.centerOn((this.map.start.x + 0.5) * TILE, (this.map.start.y + 0.5) * TILE - liftOf(this.map, this.map.start.x, this.map.start.y));
+    cam.centerOn((this.map.start.x + 0.5) * TILE, rowY(this.map.start.y + 0.5) - liftOf(this.map, this.map.start.x, this.map.start.y));
 
     this.setupInput();
     this.scale.on('resize', this.onResize, this);
@@ -94,7 +94,7 @@ export class WorldScene extends Phaser.Scene {
   private drawMap(): void {
     if (this.textures.exists(MAP_TEXTURE)) this.textures.remove(MAP_TEXTURE);
     const w = this.map.width * TILE;
-    const h = this.map.height * TILE + TOP_MARGIN;
+    const h = this.map.height * TILE_H + TOP_MARGIN;
 
     const ground = this.textures.createCanvas(MAP_TEXTURE, w, h);
     if (!ground) throw new Error('No se pudo crear la textura del mapa');
@@ -213,7 +213,7 @@ export class WorldScene extends Phaser.Scene {
 
   private minZoom(): number {
     const { width, height } = this.scale.gameSize;
-    return Math.max(width / (this.map.width * TILE), height / (this.map.height * TILE + TOP_MARGIN));
+    return Math.max(width / (this.map.width * TILE), height / (this.map.height * TILE_H + TOP_MARGIN));
   }
 
   private clampZoom(z: number): number {
@@ -238,7 +238,7 @@ export class WorldScene extends Phaser.Scene {
   /** Centra la cámara en un colono. */
   focus(id: number): void {
     const c = this.world.colonists.find((k) => k.id === id);
-    if (c) this.cameras.main.pan(c.pos.x * TILE, c.pos.y * TILE - this.colonistLift(c), 300, 'Sine.easeInOut');
+    if (c) this.cameras.main.pan(c.pos.x * TILE, rowY(c.pos.y) - this.colonistLift(c), 300, 'Sine.easeInOut');
   }
 
   private selected(): Colonist | null {
@@ -276,7 +276,7 @@ export class WorldScene extends Phaser.Scene {
   private flashTarget(tx: number, ty: number): void {
     const g = this.add.graphics().setDepth(COLONIST_DEPTH + 1);
     g.lineStyle(2, 0xf0d7b0, 1);
-    g.strokeRect(tx * TILE + 2, ty * TILE - liftOf(this.map, tx, ty) + 2, TILE - 4, TILE - 4);
+    g.strokeRect(tx * TILE + 2, ty * TILE_H - liftOf(this.map, tx, ty) + 2, TILE - 4, TILE_H - 4);
     this.tweens.add({ targets: g, alpha: 0, duration: 600, onComplete: () => g.destroy() });
   }
 
@@ -286,7 +286,7 @@ export class WorldScene extends Phaser.Scene {
       if (!this.textures.exists(key)) drawColonistTexture(this, key, c);
       const lift = liftOf(this.map, c.tile.x, c.tile.y);
       this.spriteLift.set(c.id, lift);
-      const img = this.add.image(c.pos.x * TILE, c.pos.y * TILE - lift, key).setDepth(COLONIST_DEPTH).setOrigin(0.5, 0.75);
+      const img = this.add.image(c.pos.x * TILE, rowY(c.pos.y) - lift, key).setDepth(COLONIST_DEPTH).setOrigin(0.5, 0.75);
       this.sprites.set(c.id, img);
     }
   }
@@ -303,7 +303,7 @@ export class WorldScene extends Phaser.Scene {
       const prev = this.spriteLift.get(c.id) ?? target;
       const lift = Math.abs(target - prev) < 0.3 ? target : prev + (target - prev) * 0.25;
       this.spriteLift.set(c.id, lift);
-      const footY = c.pos.y * TILE - lift;
+      const footY = rowY(c.pos.y) - lift;
       img.setPosition(c.pos.x * TILE, footY + bob);
       img.setFlipX(c.facing < 0);
       // Detrás de una meseta o pared: se ve como silueta translúcida para no perderlo.
@@ -324,14 +324,14 @@ export class WorldScene extends Phaser.Scene {
     if (c.path.length > 0) {
       g.lineStyle(1.5, 0xf0d7b0, 0.6);
       g.beginPath();
-      g.moveTo(c.pos.x * TILE, c.pos.y * TILE - lift);
-      for (const p of c.path) g.lineTo((p.x + 0.5) * TILE, (p.y + 0.5) * TILE - liftOf(this.map, p.x, p.y));
+      g.moveTo(c.pos.x * TILE, rowY(c.pos.y) - lift);
+      for (const p of c.path) g.lineTo((p.x + 0.5) * TILE, rowY(p.y + 0.5) - liftOf(this.map, p.x, p.y));
       g.strokePath();
       const end = c.path[c.path.length - 1];
-      g.strokeRect(end.x * TILE + 3, end.y * TILE - liftOf(this.map, end.x, end.y) + 3, TILE - 6, TILE - 6);
+      g.strokeRect(end.x * TILE + 3, end.y * TILE_H - liftOf(this.map, end.x, end.y) + 2, TILE - 6, TILE_H - 4);
     }
     g.lineStyle(2, 0xd96c2c, 1);
-    g.strokeEllipse(c.pos.x * TILE, c.pos.y * TILE - lift + 3, TILE * 0.95, TILE * 0.45);
+    g.strokeEllipse(c.pos.x * TILE, rowY(c.pos.y) - lift + 2, TILE * 0.95, TILE_H * 0.45);
   }
 
   private reportTile(p: Phaser.Input.Pointer): void {
@@ -352,7 +352,7 @@ export class WorldScene extends Phaser.Scene {
     let bestDist = TILE * 0.9;
     for (const c of this.world.colonists) {
       // Centro del cuerpo: el sprite se ancla en los pies.
-      const d = Math.hypot(c.pos.x * TILE - wx, c.pos.y * TILE - this.colonistLift(c) - 3 - wy);
+      const d = Math.hypot(c.pos.x * TILE - wx, rowY(c.pos.y) - this.colonistLift(c) - 4 - wy);
       if (d <= bestDist) {
         best = c;
         bestDist = d;

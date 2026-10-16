@@ -1,7 +1,7 @@
 import { GameMap, Prop, Terrain, isWater, RADIATION_THRESHOLD } from '../sim/map';
 import { ValueNoise } from '../sim/noise';
 import { Rng } from '../sim/rng';
-import { LIFT, renderLevel, TILE, TOP_MARGIN } from './projection';
+import { LIFT, renderLevel, TILE, TILE_H, TOP_MARGIN } from './projection';
 
 export { TILE };
 
@@ -102,7 +102,7 @@ export function paintGround(map: GameMap, img: ImageData, rasterizeProp?: PropRa
   };
 
   const out = img.data;
-  const H = map.height * TILE + TOP_MARGIN;
+  const H = map.height * TILE_H + TOP_MARGIN;
   const put = (x: number, y: number, c: RGB) => {
     if (y < 0 || y >= H) return;
     const o = (y * w + x) * 4;
@@ -137,10 +137,12 @@ export function paintGround(map: GameMap, img: ImageData, rasterizeProp?: PropRa
 
   // Se pinta fila a fila de norte a sur: lo de delante tapa a lo de detrás.
   for (let ty = 0; ty < map.height; ty++) {
-    for (let py = ty * TILE; py < (ty + 1) * TILE; py++) {
+    // La casilla se pinta en 16×16 y se aplasta a 16×TILE_H para inclinar el suelo.
+    for (let r = 0; r < TILE_H; r++) {
+      const py = ty * TILE + Math.floor(((r + 0.5) * TILE) / TILE_H);
       for (let pxl = 0; pxl < w; pxl++) {
         const tx = Math.floor(pxl / TILE);
-        put(pxl, py + TOP_MARGIN - renderLevel(map, tx, ty) * LIFT, surfaceColor(pxl, py));
+        put(pxl, ty * TILE_H + r + TOP_MARGIN - renderLevel(map, tx, ty) * LIFT, surfaceColor(pxl, py));
       }
     }
     // Paredes en la cara sur de las casillas más altas que su vecina de abajo.
@@ -149,8 +151,8 @@ export function paintGround(map: GameMap, img: ImageData, rasterizeProp?: PropRa
       const below = ty + 1 < map.height ? renderLevel(map, tx, ty + 1) : 0;
       if (l <= below) continue;
       const i = ty * map.width + tx;
-      const top = (ty + 1) * TILE + TOP_MARGIN - l * LIFT;
-      const bottom = (ty + 1) * TILE + TOP_MARGIN - below * LIFT;
+      const top = (ty + 1) * TILE_H + TOP_MARGIN - l * LIFT;
+      const bottom = (ty + 1) * TILE_H + TOP_MARGIN - below * LIFT;
       const kind: WallKind = map.cliff[i] || map.terrain[i] === Terrain.Rock ? 'rock'
         : map.slope[i] ? 'slope' : 'bank';
       for (let y = top; y < bottom; y++) {
@@ -167,8 +169,9 @@ export function paintGround(map: GameMap, img: ImageData, rasterizeProp?: PropRa
         if (p === Prop.None) continue;
         const sprite = rasterizeProp(p, propRng);
         if (!sprite) continue;
-        const tileTopY = ty * TILE + TOP_MARGIN - renderLevel(map, tx, ty) * LIFT;
-        blendProp(sprite, tx * TILE, tileTopY - sprite.anchorY);
+        // El objeto está dibujado para una casilla de 16×16: su base se apoya en el pie de la casilla.
+        const tileBottomY = (ty + 1) * TILE_H + TOP_MARGIN - renderLevel(map, tx, ty) * LIFT;
+        blendProp(sprite, tx * TILE, tileBottomY - TILE - sprite.anchorY);
       }
     }
   }
