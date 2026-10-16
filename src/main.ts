@@ -20,6 +20,28 @@ function initialSeed(): number {
 
 let seed = initialSeed();
 
+/**
+ * Espera a que la ventana tenga tamaño: si Phaser arranca con 0×0 (pestaña o panel oculto,
+ * algunos navegadores integrados) falla al crear el lienzo WebGL y el juego no carga.
+ */
+function waitForSize(): Promise<void> {
+  const ready = () => window.innerWidth > 0 && window.innerHeight > 0;
+  if (ready()) return Promise.resolve();
+  return new Promise((resolve) => {
+    const check = () => {
+      if (!ready()) return;
+      window.removeEventListener('resize', check);
+      document.removeEventListener('visibilitychange', check);
+      window.clearInterval(timer);
+      resolve();
+    };
+    window.addEventListener('resize', check);
+    document.addEventListener('visibilitychange', check);
+    const timer = window.setInterval(check, 250);
+  });
+}
+await waitForSize();
+
 const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
@@ -27,8 +49,8 @@ const game = new Phaser.Game({
   backgroundColor: '#141210',
   scale: {
     mode: Phaser.Scale.RESIZE,
-    width: window.innerWidth,
-    height: window.innerHeight,
+    width: Math.max(1, window.innerWidth),
+    height: Math.max(1, window.innerHeight),
   },
   input: { activePointers: 3 },
   scene: [],
