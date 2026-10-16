@@ -6,6 +6,7 @@ import { SKILLS, SKILL_NAMES } from './data/colonists';
 import type { GameSpeed } from './sim/world';
 import { checkWorld, ProgressMark } from './sim/diagnostics';
 import { installErrorCapture, mountReportPanel, onNewError, recordError } from './ui/bugReport';
+import { mountDevPanel } from './ui/devPanel';
 import './style.css';
 
 // Primero de todo: cualquier fallo a partir de aquí queda registrado.
@@ -55,6 +56,12 @@ $('menu-btn').addEventListener('click', () => {
   menu.hidden = !menu.hidden;
   if (!menu.hidden) report.hidden = true;
 });
+const devPanel = $('dev-panel');
+$('dev-btn').addEventListener('click', () => {
+  menu.hidden = true;
+  report.hidden = true;
+});
+mountDevPanel(devPanel, $('dev-btn'));
 $('new-map').addEventListener('click', () => {
   seed = Math.floor(Math.random() * 1_000_000);
   menu.hidden = true;
@@ -87,7 +94,10 @@ game.events.on('toast', (text: string) => showToast(text));
 // --- Informar de bugs, peticiones y cambios ----------------------------------
 const report = $('report');
 const reportBtn = $<HTMLButtonElement>('report-btn');
-reportBtn.addEventListener('click', () => (menu.hidden = true));
+reportBtn.addEventListener('click', () => {
+  menu.hidden = true;
+  devPanel.hidden = true;
+});
 mountReportPanel({
   button: reportBtn,
   panel: report,

@@ -24,6 +24,7 @@
 
     <div id="menu" class="panel" hidden>
       <div id="seed"></div>
+      <button id="dev-btn" type="button">📋 Progreso del desarrollo</button>
       <button id="new-map" type="button">Nuevo mapa</button>
       <p class="help">
         <strong>Controles</strong><br />
@@ -60,6 +61,14 @@
         <div id="rp-errors"></div>
         <button id="rp-clear-errors" type="button">Borrar registro</button>
       </details>
+    </section>
+
+    <section id="dev-panel" class="panel" hidden aria-label="Progreso del desarrollo">
+      <div class="rp-head">
+        <strong>Progreso del desarrollo</strong>
+        <button id="dp-close" type="button" title="Cerrar">✕</button>
+      </div>
+      <div id="dp-body"></div>
     </section>
 
     <div id="tile" class="panel"></div>

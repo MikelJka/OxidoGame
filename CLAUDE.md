@@ -32,6 +32,8 @@ Cada función nueva debe funcionar con ratón y con dedo: arrastrar = mover cám
 5. Marca la tarea en `ROADMAP.md` (y el punto de `FEEDBACK.md` como hecho) y añade una entrada al principio de `PROGRESO.md`: fecha, qué se hizo, qué probar, qué sigue.
 6. Haz commit y push a `main` con un mensaje en español que diga qué cambia para el jugador.
 
+El panel «📋 Progreso del desarrollo» del juego se genera de `ROADMAP.md`, `PROGRESO.md` y `FEEDBACK.md`: mantén su formato (fases con `## `, tareas con `- [ ]`/`- [x]`, entradas del diario con `## fecha — título` y viñetas). Si cambia el horario de la sesión programada, actualiza `SESSION_HOURS` en `src/ui/devPanel.ts`.
+
 Límites para no gastar la suscripción: una o dos tareas por sesión, como máximo unos 45 minutos de trabajo. Si algo se atasca tras dos intentos, anótalo en `PROGRESO.md` como bloqueo y para.
 
 No pases a la fase siguiente hasta que el criterio de "terminado" de la fase actual se cumpla y esté anotado en `PROGRESO.md`.

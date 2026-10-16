@@ -27,6 +27,7 @@ Terminado: puedo mover la cámara y ver a 3 colonos caminar por el mapa; el tiem
 - [x] Ordenar a un colono seleccionado que vaya a una casilla (control directo)
 - [x] Suelo continuo con transiciones suaves y variedad mediante objetos (árboles secos, matorrales, rocas, chatarra, coches, muros, barriles tóxicos, charcos radiactivos, manantiales, huesos, neumáticos); carreteras viejas con ruinas; vados en los ríos
 - [x] Más geografía: terrazas de altura (llano bajo, llano, loma, meseta), acantilados, pendientes, pasos estrechos y vados garantizados; tests de variedad y conectividad
+- [ ] Comprobar en la URL pública que los colonos caminan, se seleccionan y se mueven en móvil y PC (lo confirma Mikel)
 
 ## Fase 2 — Trabajos y recursos
 

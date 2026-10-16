@@ -1,8 +1,9 @@
 import { GameMap, Prop, Terrain, isWater, RADIATION_THRESHOLD } from '../sim/map';
 import { ValueNoise } from '../sim/noise';
 import { Rng } from '../sim/rng';
+import { LIFT, renderLevel, TILE, TOP_MARGIN } from './projection';
 
-export const TILE = 16;
+export { TILE };
 
 type RGB = [number, number, number];
 
@@ -45,7 +46,6 @@ function sampleField(map: GameMap, field: Float32Array, fx: number, fy: number):
  */
 export function paintGround(map: GameMap, img: ImageData): void {
   const w = map.width * TILE;
-  const px = img.data;
   const rng = new Rng(map.seed ^ 0x9e3779b9);
   const warp = new ValueNoise(rng);
   const grain = new ValueNoise(rng);
@@ -68,115 +68,160 @@ export function paintGround(map: GameMap, img: ImageData): void {
     return { t, hx, hy };
   };
 
-  for (let py = 0; py < map.height * TILE; py++) {
-    for (let pxl = 0; pxl < w; pxl++) {
-      const fx = (pxl + 0.5) / TILE;
-      const fy = (py + 0.5) / TILE;
-      const { t, hx, hy } = groundAt(pxl, py);
-      let c: RGB = [...GROUND[t]];
-      const g = grain.sample(pxl / 3, py / 3);
+  const out = img.data;
+  const H = map.height * TILE + TOP_MARGIN;
+  const put = (x: number, y: number, c: RGB) => {
+    if (y < 0 || y >= H) return;
+    const o = (y * w + x) * 4;
+    out[o] = clamp(c[0]);
+    out[o + 1] = clamp(c[1]);
+    out[o + 2] = clamp(c[2]);
+    out[o + 3] = 255;
+  };
+  // Fondo bajo el mapa (lo que asoma por el borde inferior si la última fila está elevada).
+  for (let o = 0; o < out.length; o += 4) {
+    out[o] = 20; out[o + 1] = 18; out[o + 2] = 16; out[o + 3] = 255;
+  }
 
-      if (isWater(t)) {
-        if (map.contaminated[hy * map.width + hx]) c = mix(c, CONTAMINATED, 0.45);
-        // Reflejos suaves.
-        if ((py + Math.floor(pxl / 5)) % 7 === 0 && g > 0.6) c = mix(c, [150, 170, 170], 0.25);
-      } else {
-        const m = sampleField(map, map.moisture, fx, fy);
-        if (t === Terrain.Soil || t === Terrain.Gravel) c = mix(c, MOIST, Math.max(0, (m - 0.45) * 0.9));
-        const rad = sampleField(map, map.radiation, fx, fy);
-        const radStart = RADIATION_THRESHOLD - 0.12;
-        if (rad > radStart) c = mix(c, IRRADIATED, Math.min(0.4, (rad - radStart) * 1.6));
-        if (t === Terrain.Concrete) {
-          // Grietas en el asfalto.
-          if (Math.abs(grain.fbm(pxl / 11, py / 11, 2, 0.5) - 0.5) < 0.02) c = mix(c, [50, 48, 46], 0.7);
-        } else if (t === Terrain.Rock) {
-          // Afloramiento en relieve: borde superior iluminado y sombra abajo.
-          const h = grain.fbm(pxl / 6, py / 6, 3, 0.5);
-          c = mix(c, h > 0.55 ? [120, 114, 106] : [60, 56, 54], Math.abs(h - 0.5) * 1.2);
-          if (groundAt(pxl, py - 3).t !== Terrain.Rock) c = mix(c, [150, 142, 130], 0.55);
-          else if (groundAt(pxl, py + 4).t !== Terrain.Rock) c = mix(c, [40, 36, 34], 0.6);
-        }
-        c = shadeRelief(map, c, pxl, py, g);
-        // Grano del suelo.
-        const shade = (g - 0.5) * 18 + (rng.next() < 0.04 ? -14 : 0);
-        c = [c[0] + shade, c[1] + shade, c[2] + shade];
+  // Se pinta fila a fila de norte a sur: lo de delante tapa a lo de detrás.
+  for (let ty = 0; ty < map.height; ty++) {
+    for (let py = ty * TILE; py < (ty + 1) * TILE; py++) {
+      for (let pxl = 0; pxl < w; pxl++) {
+        const tx = Math.floor(pxl / TILE);
+        put(pxl, py + TOP_MARGIN - renderLevel(map, tx, ty) * LIFT, surfaceColor(pxl, py));
       }
-      const o = (py * w + pxl) * 4;
-      px[o] = clamp(c[0]);
-      px[o + 1] = clamp(c[1]);
-      px[o + 2] = clamp(c[2]);
-      px[o + 3] = 255;
     }
+    // Paredes en la cara sur de las casillas más altas que su vecina de abajo.
+    for (let tx = 0; tx < map.width; tx++) {
+      const l = renderLevel(map, tx, ty);
+      const below = ty + 1 < map.height ? renderLevel(map, tx, ty + 1) : 0;
+      if (l <= below) continue;
+      const i = ty * map.width + tx;
+      const top = (ty + 1) * TILE + TOP_MARGIN - l * LIFT;
+      const bottom = (ty + 1) * TILE + TOP_MARGIN - below * LIFT;
+      const kind: WallKind = map.cliff[i] || map.terrain[i] === Terrain.Rock ? 'rock'
+        : map.slope[i] ? 'slope' : 'bank';
+      for (let y = top; y < bottom; y++) {
+        for (let lx = 0; lx < TILE; lx++) {
+          const pxl = tx * TILE + lx;
+          put(pxl, y, wallColor(kind, pxl, y, (y - top) / Math.max(1, bottom - top - 1), grain.sample(pxl / 3, y / 3)));
+        }
+      }
+    }
+  }
+
+  function surfaceColor(pxl: number, py: number): RGB {
+    const fx = (pxl + 0.5) / TILE;
+    const fy = (py + 0.5) / TILE;
+    const ground = groundAt(pxl, py);
+    let { t } = ground;
+    const { hx, hy } = ground;
+    // Con el relieve elevado, un borde deformado no puede mezclar suelo de otra altura.
+    const ax = Math.floor(pxl / TILE);
+    const ay = Math.floor(py / TILE);
+    const actual = map.terrain[ay * map.width + ax] as Terrain;
+    if (isWater(actual) !== isWater(t) || renderLevel(map, hx, hy) !== renderLevel(map, ax, ay)) t = actual;
+    let c: RGB = [...GROUND[t]];
+    const g = grain.sample(pxl / 3, py / 3);
+
+    if (isWater(t)) {
+      if (map.contaminated[hy * map.width + hx]) c = mix(c, CONTAMINATED, 0.45);
+      // Reflejos suaves.
+      if ((py + Math.floor(pxl / 5)) % 7 === 0 && g > 0.6) c = mix(c, [150, 170, 170], 0.25);
+    } else {
+      const m = sampleField(map, map.moisture, fx, fy);
+      if (t === Terrain.Soil || t === Terrain.Gravel) c = mix(c, MOIST, Math.max(0, (m - 0.45) * 0.9));
+      const rad = sampleField(map, map.radiation, fx, fy);
+      const radStart = RADIATION_THRESHOLD - 0.12;
+      if (rad > radStart) c = mix(c, IRRADIATED, Math.min(0.4, (rad - radStart) * 1.6));
+      if (t === Terrain.Concrete) {
+        // Grietas en el asfalto.
+        if (Math.abs(grain.fbm(pxl / 11, py / 11, 2, 0.5) - 0.5) < 0.02) c = mix(c, [50, 48, 46], 0.7);
+      } else if (t === Terrain.Rock) {
+        // Afloramiento en relieve: borde superior iluminado y sombra abajo.
+        const h = grain.fbm(pxl / 6, py / 6, 3, 0.5);
+        c = mix(c, h > 0.55 ? [120, 114, 106] : [60, 56, 54], Math.abs(h - 0.5) * 1.2);
+        if (groundAt(pxl, py - 3).t !== Terrain.Rock) c = mix(c, [150, 142, 130], 0.55);
+        else if (groundAt(pxl, py + 4).t !== Terrain.Rock) c = mix(c, [40, 36, 34], 0.6);
+      }
+      c = shadeRelief(map, c, pxl, py, g);
+      // Grano del suelo.
+      const shade = (g - 0.5) * 18 + (rng.next() < 0.04 ? -14 : 0);
+      c = [c[0] + shade, c[1] + shade, c[2] + shade];
+    }
+    return c;
   }
 }
 
-const CLIFF_TOP: RGB = [150, 136, 112];
-const CLIFF_FACE: RGB = [92, 80, 66];
-const CLIFF_DARK: RGB = [52, 44, 38];
+const CLIFF_TOP: RGB = [168, 152, 124];
+const ROCK_FACE: RGB = [98, 86, 72];
+const ROCK_DARK: RGB = [46, 40, 36];
+const BANK_FACE: RGB = [112, 90, 64];
+const SLOPE_FACE: RGB = [138, 116, 84];
+
+type WallKind = 'rock' | 'slope' | 'bank';
+
+/** Color de la pared vista de frente bajo una casilla elevada. t = 0 arriba, 1 al pie. */
+function wallColor(kind: WallKind, pxl: number, y: number, t: number, g: number): RGB {
+  if (kind === 'rock') {
+    // Roca con vetas verticales, más oscura hacia el pie.
+    const streak = ((pxl * 7 + Math.floor(y / 4) * 3) % 11) / 11;
+    let c = mix(ROCK_FACE, ROCK_DARK, streak * 0.4 + (g - 0.5) * 0.3);
+    c = mix(c, ROCK_DARK, t * 0.6);
+    if (t === 0) c = CLIFF_TOP;
+    return c;
+  }
+  if (kind === 'slope') {
+    // Talud de tierra transitable: claro, con rayas en diagonal que indican la rampa.
+    let c = mix(SLOPE_FACE, [96, 80, 58], t * 0.45);
+    if ((pxl + y) % 6 === 0) c = mix(c, [176, 156, 120], 0.35);
+    return mix(c, [0, 0, 0], (g - 0.5) * 0.15);
+  }
+  // Orilla o pequeño escalón de tierra.
+  let c = mix(BANK_FACE, [60, 48, 36], t * 0.7);
+  if (t === 0) c = mix(c, [190, 170, 130], 0.5);
+  return mix(c, [0, 0, 0], (g - 0.5) * 0.2);
+}
 
 /**
- * Relieve: las terrazas más altas se ven más claras, los acantilados como pared de roca
- * con el borde iluminado y una sombra hacia abajo-derecha (luz desde arriba-izquierda).
- * Usa la casilla exacta del píxel para que lo que se ve coincida con lo que bloquea.
+ * Sombreado de la superficie de una casilla: cada nivel más claro, el borde alto de los
+ * acantilados en roca y sombra al pie de lo que tiene detrás (norte) o a la izquierda (oeste).
  */
 function shadeRelief(map: GameMap, c: RGB, pxl: number, py: number, g: number): RGB {
   const tx = Math.floor(pxl / TILE);
   const ty = Math.floor(py / TILE);
-  const lx = pxl - tx * TILE; // posición dentro de la casilla (0..15)
+  const lx = pxl - tx * TILE;
   const ly = py - ty * TILE;
-  const w = map.width;
-  const i = ty * w + tx;
-  const lvl = map.level[i];
-  const levelAt = (x: number, y: number) => (x < 0 || y < 0 || x >= w || y >= map.height ? lvl : map.level[y * w + x]);
-  const isLower = (x: number, y: number) => {
-    const l = levelAt(x, y);
-    return l > 0 && l < lvl;
-  };
+  const i = ty * map.width + tx;
+  const lvl = renderLevel(map, tx, ty);
+  const levelAt = (x: number, y: number) =>
+    x < 0 || y < 0 || x >= map.width || y >= map.height ? lvl : renderLevel(map, x, y);
 
-  // Altura general: cada nivel más claro y algo más seco que el de abajo.
-  const k = 1 + (lvl - 2) * 0.1;
-  let out: RGB = mix([c[0] * k, c[1] * k, c[2] * k], [176, 160, 130], Math.max(0, lvl - 2) * 0.06);
+  // Cada nivel algo más claro y seco que el de abajo.
+  const k = 1 + (lvl - 2) * 0.13;
+  let out: RGB = mix([c[0] * k, c[1] * k, c[2] * k], [186, 168, 134], Math.max(0, lvl - 2) * 0.1);
 
   if (map.cliff[i]) {
-    const south = isLower(tx, ty + 1);
-    const north = isLower(tx, ty - 1);
-    const east = isLower(tx + 1, ty);
-    const west = isLower(tx - 1, ty);
-    // Vetas verticales de la roca.
-    const streak = ((pxl * 7 + Math.floor(py / 5) * 3) % 11) / 11;
-    const rock = mix(CLIFF_FACE, CLIFF_DARK, streak * 0.35 + (g - 0.5) * 0.3);
-    let px = out;
-    if (west && lx <= 7) px = mix(rock, CLIFF_TOP, 0.45 - lx * 0.03); // cara al oeste: iluminada
-    if (east && lx >= 8) px = mix(rock, CLIFF_DARK, 0.25 + (lx - 8) * 0.04); // cara al este: en sombra
-    if (north && ly <= 5) px = ly >= 4 ? CLIFF_TOP : mix(rock, CLIFF_DARK, 0.2);
-    if (south) {
-      // Pared vista de frente: labio claro arriba y la roca oscureciéndose hacia el pie.
-      if (ly >= 4) px = mix(rock, CLIFF_DARK, (ly - 4) / 13);
-      else if (ly === 3) px = CLIFF_TOP;
-    }
-    // Labio iluminado en el lado alto (donde la casilla linda con su misma altura).
-    if (!north && ly === 0 && !south) px = mix(px, CLIFF_TOP, 0.5);
-    if (!west && lx === 0 && (east || south)) px = mix(px, CLIFF_TOP, 0.3);
-    return px;
+    // Borde superior del acantilado: roca desnuda.
+    const h = ((pxl * 5 + py * 3) % 7) / 7;
+    out = mix(out, mix(ROCK_FACE, CLIFF_TOP, 0.5 + (g - 0.5) * 0.4 + h * 0.1), 0.3);
   }
+  // Caídas a los lados (no se ve la pared): línea oscura en el borde y labio claro.
+  if (levelAt(tx + 1, ty) < lvl) {
+    if (lx >= 14) out = mix(out, ROCK_DARK, lx === 15 ? 0.7 : 0.35);
+  }
+  if (levelAt(tx - 1, ty) < lvl) {
+    if (lx === 0) out = mix(out, CLIFF_TOP, 0.5);
+  }
+  if (levelAt(tx, ty - 1) < lvl && ly === 0) out = mix(out, CLIFF_TOP, 0.45);
 
-  // Sombra que proyecta un desnivel más alto al norte o al oeste.
-  const upN = levelAt(tx, ty - 1) > lvl;
-  const upW = levelAt(tx - 1, ty) > lvl;
-  const upNW = levelAt(tx - 1, ty - 1) > lvl;
+  // Sombra al pie de una pared que queda detrás (norte) o a la izquierda (oeste).
   let shadow = 0;
-  if (upN) shadow = Math.max(shadow, 1 - ly / 6);
-  if (upW) shadow = Math.max(shadow, 1 - lx / 5);
-  if (upNW && !upN && !upW) shadow = Math.max(shadow, 1 - Math.max(lx, ly) / 4);
-  if (shadow > 0) out = mix(out, [24, 20, 18], shadow * 0.45);
-
-  // Pendientes: gradiente suave hacia el lado bajo y una línea de nivel.
-  if (map.slope[i]) {
-    if (isLower(tx, ty + 1)) out = mix(out, [40, 34, 30], (ly / 16) * 0.22);
-    if (isLower(tx + 1, ty)) out = mix(out, [40, 34, 30], (lx / 16) * 0.18);
-    if (isLower(tx, ty - 1) && ly === 0) out = mix(out, [200, 184, 150], 0.25);
-    if (isLower(tx - 1, ty) && lx === 0) out = mix(out, [200, 184, 150], 0.2);
-  }
+  const upN = levelAt(tx, ty - 1) - lvl;
+  const upW = levelAt(tx - 1, ty) - lvl;
+  if (upN > 0) shadow = Math.max(shadow, 1 - ly / (3 + upN * 2));
+  if (upW > 0) shadow = Math.max(shadow, 1 - lx / (2 + upW * 2));
+  if (shadow > 0) out = mix(out, [20, 16, 14], shadow * 0.5);
   return out;
 }
 
@@ -187,7 +232,7 @@ export function paintProps(map: GameMap, ctx: CanvasRenderingContext2D): void {
     for (let x = 0; x < map.width; x++) {
       const p = map.props[y * map.width + x] as Prop;
       if (p === Prop.None) continue;
-      drawProp(ctx, p, x * TILE, y * TILE, rng);
+      drawProp(ctx, p, x * TILE, y * TILE + TOP_MARGIN - renderLevel(map, x, y) * LIFT, rng);
     }
   }
 }

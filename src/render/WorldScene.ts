@@ -4,6 +4,7 @@ import { Colonist } from '../sim/colonist';
 import { isWalkable } from '../sim/pathfinding';
 import { GameSpeed, World } from '../sim/world';
 import { paintGround, paintProps, TILE } from './mapArt';
+import { liftOf, pickTile, TOP_MARGIN } from './projection';
 
 export { TILE };
 const MAP_TEXTURE = 'world-map';
@@ -27,6 +28,8 @@ export class WorldScene extends Phaser.Scene {
   map!: GameMap;
   selectedId: number | null = null;
   private sprites = new Map<number, Phaser.GameObjects.Image>();
+  /** Elevación dibujada de cada colono, suavizada al subir o bajar de nivel. */
+  private spriteLift = new Map<number, number>();
   private selectionGfx!: Phaser.GameObjects.Graphics;
   private uiTimer = 0;
   private dragging = false;
@@ -46,19 +49,20 @@ export class WorldScene extends Phaser.Scene {
     this.map = this.world.map;
     this.selectedId = null;
     this.sprites.clear();
+    this.spriteLift.clear();
     this.drawMap();
-    this.add.image(0, 0, MAP_TEXTURE).setOrigin(0, 0);
-    this.add.image(0, 0, PROPS_TEXTURE).setOrigin(0, 0).setDepth(2);
+    this.add.image(0, -TOP_MARGIN, MAP_TEXTURE).setOrigin(0, 0);
+    this.add.image(0, -TOP_MARGIN, PROPS_TEXTURE).setOrigin(0, 0).setDepth(2);
     this.selectionGfx = this.add.graphics().setDepth(COLONIST_DEPTH - 1);
     this.createColonistSprites();
 
     const cam = this.cameras.main;
     const worldW = this.map.width * TILE;
     const worldH = this.map.height * TILE;
-    cam.setBounds(0, 0, worldW, worldH);
+    cam.setBounds(0, -TOP_MARGIN, worldW, worldH + TOP_MARGIN);
     cam.setBackgroundColor('#141210');
     cam.setZoom(this.clampZoom(Math.max(this.minZoom(), 1.5)));
-    cam.centerOn((this.map.start.x + 0.5) * TILE, (this.map.start.y + 0.5) * TILE);
+    cam.centerOn((this.map.start.x + 0.5) * TILE, (this.map.start.y + 0.5) * TILE - liftOf(this.map, this.map.start.x, this.map.start.y));
 
     this.setupInput();
     this.scale.on('resize', this.onResize, this);
@@ -78,7 +82,7 @@ export class WorldScene extends Phaser.Scene {
       this.emitClock();
       if (this.selectedId !== null) this.game.events.emit('selection', this.selected());
     }
-    if (!this.keys) return;
+    if (!this.keys || isTyping()) return;
     const cam = this.cameras.main;
     const speed = (0.6 * delta) / cam.zoom;
     const k = this.keys;
@@ -94,7 +98,7 @@ export class WorldScene extends Phaser.Scene {
       if (this.textures.exists(key)) this.textures.remove(key);
     }
     const w = this.map.width * TILE;
-    const h = this.map.height * TILE;
+    const h = this.map.height * TILE + TOP_MARGIN;
 
     const ground = this.textures.createCanvas(MAP_TEXTURE, w, h);
     if (!ground) throw new Error('No se pudo crear la textura del mapa');
@@ -160,15 +164,19 @@ export class WorldScene extends Phaser.Scene {
     const kb = this.input.keyboard;
     if (kb) {
       const K = Phaser.Input.Keyboard.KeyCodes;
+      // Sin captura: si no, el navegador no recibe W, A, S, D al escribir en un cuadro de texto.
       this.keys = kb.addKeys({
         up: K.UP, down: K.DOWN, left: K.LEFT, right: K.RIGHT,
         w: K.W, a: K.A, s: K.S, d: K.D,
-      }) as MoveKeys;
-      kb.on('keydown-SPACE', () => this.setSpeed(this.world.speed === 0 ? 1 : 0));
-      kb.on('keydown-ONE', () => this.setSpeed(1));
-      kb.on('keydown-TWO', () => this.setSpeed(2));
-      kb.on('keydown-THREE', () => this.setSpeed(3));
-      kb.on('keydown-ESC', () => this.select(null));
+      }, false) as MoveKeys;
+      const hotkey = (fn: () => void) => () => {
+        if (!isTyping()) fn();
+      };
+      kb.on('keydown-SPACE', hotkey(() => this.setSpeed(this.world.speed === 0 ? 1 : 0)));
+      kb.on('keydown-ONE', hotkey(() => this.setSpeed(1)));
+      kb.on('keydown-TWO', hotkey(() => this.setSpeed(2)));
+      kb.on('keydown-THREE', hotkey(() => this.setSpeed(3)));
+      kb.on('keydown-ESC', hotkey(() => this.select(null)));
     }
   }
 
@@ -214,7 +222,7 @@ export class WorldScene extends Phaser.Scene {
 
   private minZoom(): number {
     const { width, height } = this.scale.gameSize;
-    return Math.max(width / (this.map.width * TILE), height / (this.map.height * TILE));
+    return Math.max(width / (this.map.width * TILE), height / (this.map.height * TILE + TOP_MARGIN));
   }
 
   private clampZoom(z: number): number {
@@ -239,7 +247,7 @@ export class WorldScene extends Phaser.Scene {
   /** Centra la cámara en un colono. */
   focus(id: number): void {
     const c = this.world.colonists.find((k) => k.id === id);
-    if (c) this.cameras.main.pan(c.pos.x * TILE, c.pos.y * TILE, 300, 'Sine.easeInOut');
+    if (c) this.cameras.main.pan(c.pos.x * TILE, c.pos.y * TILE - this.colonistLift(c), 300, 'Sine.easeInOut');
   }
 
   private selected(): Colonist | null {
@@ -253,17 +261,16 @@ export class WorldScene extends Phaser.Scene {
   /** Toque o clic sin arrastrar: seleccionar colono, dar orden o deseleccionar. */
   private handleTap(p: Phaser.Input.Pointer): void {
     const world = this.cameras.main.getWorldPoint(p.x, p.y);
-    const wx = world.x / TILE;
-    const wy = world.y / TILE;
-    const hit = this.world.colonistAt(wx, wy, 0.9);
+    const hit = this.colonistAtScreen(world.x, world.y);
     if (hit && !p.rightButtonReleased()) {
       this.select(hit.id);
       return;
     }
     this.reportTile(p);
     if (this.selectedId === null) return;
-    const tx = Math.floor(wx);
-    const ty = Math.floor(wy);
+    const tile = pickTile(this.map, world.x, world.y);
+    if (!tile) return;
+    const { x: tx, y: ty } = tile;
     if (!isWalkable(this.map, tx, ty)) {
       this.game.events.emit('toast', 'No se puede caminar ahí');
       return;
@@ -278,7 +285,7 @@ export class WorldScene extends Phaser.Scene {
   private flashTarget(tx: number, ty: number): void {
     const g = this.add.graphics().setDepth(COLONIST_DEPTH + 1);
     g.lineStyle(2, 0xf0d7b0, 1);
-    g.strokeRect(tx * TILE + 2, ty * TILE + 2, TILE - 4, TILE - 4);
+    g.strokeRect(tx * TILE + 2, ty * TILE - liftOf(this.map, tx, ty) + 2, TILE - 4, TILE - 4);
     this.tweens.add({ targets: g, alpha: 0, duration: 600, onComplete: () => g.destroy() });
   }
 
@@ -286,7 +293,9 @@ export class WorldScene extends Phaser.Scene {
     for (const c of this.world.colonists) {
       const key = `colonist-${this.map.seed}-${c.id}`;
       if (!this.textures.exists(key)) drawColonistTexture(this, key, c);
-      const img = this.add.image(c.pos.x * TILE, c.pos.y * TILE, key).setDepth(COLONIST_DEPTH).setOrigin(0.5, 0.75);
+      const lift = liftOf(this.map, c.tile.x, c.tile.y);
+      this.spriteLift.set(c.id, lift);
+      const img = this.add.image(c.pos.x * TILE, c.pos.y * TILE - lift, key).setDepth(COLONIST_DEPTH).setOrigin(0.5, 0.75);
       this.sprites.set(c.id, img);
     }
   }
@@ -298,7 +307,12 @@ export class WorldScene extends Phaser.Scene {
       if (!img) continue;
       const walking = c.path.length > 0 && this.world.speed > 0;
       const bob = walking ? Math.abs(Math.sin(t / 90 + c.id)) * -1.5 : 0;
-      img.setPosition(c.pos.x * TILE, c.pos.y * TILE + bob);
+      // Sube o baja de nivel poco a poco en lugar de saltar.
+      const target = liftOf(this.map, c.tile.x, c.tile.y);
+      const prev = this.spriteLift.get(c.id) ?? target;
+      const lift = Math.abs(target - prev) < 0.3 ? target : prev + (target - prev) * 0.25;
+      this.spriteLift.set(c.id, lift);
+      img.setPosition(c.pos.x * TILE, c.pos.y * TILE - lift + bob);
       img.setFlipX(c.facing < 0);
       img.setDepth(COLONIST_DEPTH + c.pos.y / 1000);
     }
@@ -309,26 +323,52 @@ export class WorldScene extends Phaser.Scene {
     g.clear();
     const c = this.selected();
     if (!c) return;
+    const lift = this.colonistLift(c);
     if (c.path.length > 0) {
       g.lineStyle(1.5, 0xf0d7b0, 0.6);
       g.beginPath();
-      g.moveTo(c.pos.x * TILE, c.pos.y * TILE);
-      for (const p of c.path) g.lineTo((p.x + 0.5) * TILE, (p.y + 0.5) * TILE);
+      g.moveTo(c.pos.x * TILE, c.pos.y * TILE - lift);
+      for (const p of c.path) g.lineTo((p.x + 0.5) * TILE, (p.y + 0.5) * TILE - liftOf(this.map, p.x, p.y));
       g.strokePath();
       const end = c.path[c.path.length - 1];
-      g.strokeRect(end.x * TILE + 3, end.y * TILE + 3, TILE - 6, TILE - 6);
+      g.strokeRect(end.x * TILE + 3, end.y * TILE - liftOf(this.map, end.x, end.y) + 3, TILE - 6, TILE - 6);
     }
     g.lineStyle(2, 0xd96c2c, 1);
-    g.strokeEllipse(c.pos.x * TILE, c.pos.y * TILE + 3, TILE * 0.95, TILE * 0.45);
+    g.strokeEllipse(c.pos.x * TILE, c.pos.y * TILE - lift + 3, TILE * 0.95, TILE * 0.45);
   }
 
   private reportTile(p: Phaser.Input.Pointer): void {
     const world = this.cameras.main.getWorldPoint(p.x, p.y);
-    const tx = Math.floor(world.x / TILE);
-    const ty = Math.floor(world.y / TILE);
-    if (!inBounds(this.map, tx, ty)) return;
-    this.game.events.emit('tile-info', describeTile(this.map, tx, ty));
+    const tile = pickTile(this.map, world.x, world.y);
+    if (!tile || !inBounds(this.map, tile.x, tile.y)) return;
+    this.game.events.emit('tile-info', describeTile(this.map, tile.x, tile.y));
   }
+
+  /** Elevación con la que se dibuja ahora mismo un colono. */
+  private colonistLift(c: Colonist): number {
+    return this.spriteLift.get(c.id) ?? liftOf(this.map, c.tile.x, c.tile.y);
+  }
+
+  /** Colono dibujado bajo un punto del mundo (en píxeles), el de más delante si hay varios. */
+  private colonistAtScreen(wx: number, wy: number): Colonist | undefined {
+    let best: Colonist | undefined;
+    let bestDist = TILE * 0.9;
+    for (const c of this.world.colonists) {
+      // Centro del cuerpo: el sprite se ancla en los pies.
+      const d = Math.hypot(c.pos.x * TILE - wx, c.pos.y * TILE - this.colonistLift(c) - 3 - wy);
+      if (d <= bestDist) {
+        best = c;
+        bestDist = d;
+      }
+    }
+    return best;
+  }
+}
+
+/** El jugador está escribiendo en un cuadro de texto: el teclado no mueve la cámara ni cambia la velocidad. */
+function isTyping(): boolean {
+  const el = document.activeElement;
+  return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || (el instanceof HTMLElement && el.isContentEditable);
 }
 
 /** Dibuja un colono pixel art de 16×16 con sus colores. */
