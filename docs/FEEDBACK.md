@@ -5,7 +5,7 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 ## Pendiente
 
 - [ ] **Vista con algo de 3D** (2026-10-16): no completamente cenital; que se vean las alturas y se pueda mover/girar la vista. Plan por partes:
-  1. Relieve visible: sombreado según la elevación y caras de acantilado en los desniveles (encaja con la tarea de geografía de la fase 1).
+  1. ~~Relieve visible: sombreado según la elevación y caras de acantilado en los desniveles~~ (hecho 2026-10-16).
   2. Proyección inclinada (2.5D): casillas más bajas que anchas, objetos y colonos dibujados de pie y ordenados por profundidad.
   3. Girar la vista en pasos de 90° (botón y gesto) e inclinación ajustable.
 

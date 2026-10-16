@@ -7,6 +7,8 @@ function cleanWorld(): World {
   const world = new World({ seed: 7, width: 30, height: 30 });
   world.map.terrain.fill(Terrain.Soil);
   world.map.props.fill(0);
+  world.map.cliff.fill(0);
+  world.map.slope.fill(0);
   return world;
 }
 

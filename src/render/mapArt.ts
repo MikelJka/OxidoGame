@@ -96,6 +96,7 @@ export function paintGround(map: GameMap, img: ImageData): void {
           if (groundAt(pxl, py - 3).t !== Terrain.Rock) c = mix(c, [150, 142, 130], 0.55);
           else if (groundAt(pxl, py + 4).t !== Terrain.Rock) c = mix(c, [40, 36, 34], 0.6);
         }
+        c = shadeRelief(map, c, pxl, py, g);
         // Grano del suelo.
         const shade = (g - 0.5) * 18 + (rng.next() < 0.04 ? -14 : 0);
         c = [c[0] + shade, c[1] + shade, c[2] + shade];
@@ -107,6 +108,76 @@ export function paintGround(map: GameMap, img: ImageData): void {
       px[o + 3] = 255;
     }
   }
+}
+
+const CLIFF_TOP: RGB = [150, 136, 112];
+const CLIFF_FACE: RGB = [92, 80, 66];
+const CLIFF_DARK: RGB = [52, 44, 38];
+
+/**
+ * Relieve: las terrazas más altas se ven más claras, los acantilados como pared de roca
+ * con el borde iluminado y una sombra hacia abajo-derecha (luz desde arriba-izquierda).
+ * Usa la casilla exacta del píxel para que lo que se ve coincida con lo que bloquea.
+ */
+function shadeRelief(map: GameMap, c: RGB, pxl: number, py: number, g: number): RGB {
+  const tx = Math.floor(pxl / TILE);
+  const ty = Math.floor(py / TILE);
+  const lx = pxl - tx * TILE; // posición dentro de la casilla (0..15)
+  const ly = py - ty * TILE;
+  const w = map.width;
+  const i = ty * w + tx;
+  const lvl = map.level[i];
+  const levelAt = (x: number, y: number) => (x < 0 || y < 0 || x >= w || y >= map.height ? lvl : map.level[y * w + x]);
+  const isLower = (x: number, y: number) => {
+    const l = levelAt(x, y);
+    return l > 0 && l < lvl;
+  };
+
+  // Altura general: cada nivel más claro y algo más seco que el de abajo.
+  const k = 1 + (lvl - 2) * 0.1;
+  let out: RGB = mix([c[0] * k, c[1] * k, c[2] * k], [176, 160, 130], Math.max(0, lvl - 2) * 0.06);
+
+  if (map.cliff[i]) {
+    const south = isLower(tx, ty + 1);
+    const north = isLower(tx, ty - 1);
+    const east = isLower(tx + 1, ty);
+    const west = isLower(tx - 1, ty);
+    // Vetas verticales de la roca.
+    const streak = ((pxl * 7 + Math.floor(py / 5) * 3) % 11) / 11;
+    const rock = mix(CLIFF_FACE, CLIFF_DARK, streak * 0.35 + (g - 0.5) * 0.3);
+    let px = out;
+    if (west && lx <= 7) px = mix(rock, CLIFF_TOP, 0.45 - lx * 0.03); // cara al oeste: iluminada
+    if (east && lx >= 8) px = mix(rock, CLIFF_DARK, 0.25 + (lx - 8) * 0.04); // cara al este: en sombra
+    if (north && ly <= 5) px = ly >= 4 ? CLIFF_TOP : mix(rock, CLIFF_DARK, 0.2);
+    if (south) {
+      // Pared vista de frente: labio claro arriba y la roca oscureciéndose hacia el pie.
+      if (ly >= 4) px = mix(rock, CLIFF_DARK, (ly - 4) / 13);
+      else if (ly === 3) px = CLIFF_TOP;
+    }
+    // Labio iluminado en el lado alto (donde la casilla linda con su misma altura).
+    if (!north && ly === 0 && !south) px = mix(px, CLIFF_TOP, 0.5);
+    if (!west && lx === 0 && (east || south)) px = mix(px, CLIFF_TOP, 0.3);
+    return px;
+  }
+
+  // Sombra que proyecta un desnivel más alto al norte o al oeste.
+  const upN = levelAt(tx, ty - 1) > lvl;
+  const upW = levelAt(tx - 1, ty) > lvl;
+  const upNW = levelAt(tx - 1, ty - 1) > lvl;
+  let shadow = 0;
+  if (upN) shadow = Math.max(shadow, 1 - ly / 6);
+  if (upW) shadow = Math.max(shadow, 1 - lx / 5);
+  if (upNW && !upN && !upW) shadow = Math.max(shadow, 1 - Math.max(lx, ly) / 4);
+  if (shadow > 0) out = mix(out, [24, 20, 18], shadow * 0.45);
+
+  // Pendientes: gradiente suave hacia el lado bajo y una línea de nivel.
+  if (map.slope[i]) {
+    if (isLower(tx, ty + 1)) out = mix(out, [40, 34, 30], (ly / 16) * 0.22);
+    if (isLower(tx + 1, ty)) out = mix(out, [40, 34, 30], (lx / 16) * 0.18);
+    if (isLower(tx, ty - 1) && ly === 0) out = mix(out, [200, 184, 150], 0.25);
+    if (isLower(tx - 1, ty) && lx === 0) out = mix(out, [200, 184, 150], 0.2);
+  }
+  return out;
 }
 
 /** Pinta todos los objetos del mapa en un lienzo transparente del tamaño del mapa. */

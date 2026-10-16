@@ -7,6 +7,8 @@ function flatMap(width: number, height: number) {
   const map = generateMap({ width, height, seed: 1 });
   map.terrain.fill(Terrain.Soil);
   map.props.fill(0);
+  map.cliff.fill(0);
+  map.slope.fill(0);
   return map;
 }
 

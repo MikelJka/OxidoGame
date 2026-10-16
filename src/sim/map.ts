@@ -100,12 +100,23 @@ export interface GameMap {
   radiation: Float32Array;
   /** 1 si el agua de la casilla está contaminada. */
   contaminated: Uint8Array;
+  /** Nivel de altura en terrazas: 0 agua, 1–4 tierra (más alto = mejor defensa y vista). */
+  level: Uint8Array;
+  /** 1 si la casilla es un acantilado: borde alto de un desnivel, no se puede pisar. */
+  cliff: Uint8Array;
+  /** 1 si la casilla es una pendiente entre dos niveles: se cruza, pero más despacio. */
+  slope: Uint8Array;
   /** Casilla sugerida para empezar la colonia. */
   start: { x: number; y: number };
 }
 
 /** Nivel de radiación a partir del cual una casilla se considera irradiada. */
 export const RADIATION_THRESHOLD = 0.78;
+/** Nivel de altura máximo. */
+export const MAX_LEVEL = 4;
+/** Coste extra de subir o bajar por una pendiente. */
+export const SLOPE_COST = 1.5;
+const LEVEL_NAMES = ['', 'llano bajo', 'llano', 'loma', 'meseta'];
 
 export function index(map: { width: number }, x: number, y: number): number {
   return y * map.width + x;
@@ -131,15 +142,15 @@ export function isWater(t: Terrain): boolean {
 export function isPassable(map: GameMap, x: number, y: number): boolean {
   if (!inBounds(map, x, y)) return false;
   const i = index(map, x, y);
-  return TERRAIN_INFO[map.terrain[i] as Terrain].walkable && !PROP_INFO[map.props[i] as Prop].blocks;
+  return TERRAIN_INFO[map.terrain[i] as Terrain].walkable && !PROP_INFO[map.props[i] as Prop].blocks && !map.cliff[i];
 }
 
 /** Coste de pisar la casilla (suelo × objeto). Infinity si no se puede. */
 export function tileMoveCost(map: GameMap, x: number, y: number): number {
   const i = index(map, x, y);
   const prop = PROP_INFO[map.props[i] as Prop];
-  if (prop.blocks) return Infinity;
-  return TERRAIN_INFO[map.terrain[i] as Terrain].moveCost * prop.moveCost;
+  if (prop.blocks || map.cliff[i]) return Infinity;
+  return TERRAIN_INFO[map.terrain[i] as Terrain].moveCost * prop.moveCost * (map.slope[i] ? SLOPE_COST : 1);
 }
 
 /** Texto descriptivo de una casilla para la interfaz. */
@@ -148,10 +159,13 @@ export function describeTile(map: GameMap, x: number, y: number): string {
   const t = map.terrain[i] as Terrain;
   const parts = [TERRAIN_INFO[t].name];
   if (isWater(t) && map.contaminated[i]) parts[0] += ' contaminada';
+  if (map.cliff[i]) parts.unshift('Acantilado');
+  else if (map.slope[i]) parts.push('pendiente');
+  if (!isWater(t)) parts.push(LEVEL_NAMES[map.level[i]] ?? '');
   const p = map.props[i] as Prop;
   if (p !== Prop.None) parts.unshift(PROP_INFO[p].name);
   if (!isWater(t) && map.radiation[i] > RADIATION_THRESHOLD) parts.push('irradiado');
-  return parts.join(' · ');
+  return parts.filter(Boolean).join(' · ');
 }
 
 /** Genera un mapa determinista a partir de una semilla. */
@@ -162,6 +176,7 @@ export function generateMap(opts: MapOptions): GameMap {
   const moistNoise = new ValueNoise(rng);
   const radNoise = new ValueNoise(rng);
   const detailNoise = new ValueNoise(rng);
+  const cliffNoise = new ValueNoise(rng);
 
   const size = width * height;
   const map: GameMap = {
@@ -174,6 +189,9 @@ export function generateMap(opts: MapOptions): GameMap {
     moisture: new Float32Array(size),
     radiation: new Float32Array(size),
     contaminated: new Uint8Array(size),
+    level: new Uint8Array(size),
+    cliff: new Uint8Array(size),
+    slope: new Uint8Array(size),
     start: { x: 0, y: 0 },
   };
   const { terrain, elevation, moisture, radiation } = map;
@@ -214,19 +232,214 @@ export function generateMap(opts: MapOptions): GameMap {
     if (isWater(terrain[i] as Terrain) && radiation[i] > 0.6) map.contaminated[i] = 1;
   }
 
-  // 5. Carreteras viejas y ruinas a sus lados.
+  // 5. Terrazas de altura (ya con los ríos excavados).
+  assignLevels(map);
+
+  // 6. Carreteras viejas y ruinas a sus lados.
   const roads = carveRoads(map, rng, detailNoise);
   placeRuins(map, rng, roads);
 
-  // 6. Objetos naturales y restos dispersos.
+  // 7. Acantilados y pendientes en los desniveles (las carreteras siempre son rampa).
+  markCliffs(map, cliffNoise);
+
+  // 8. Objetos naturales y restos dispersos.
   scatterProps(map, rng, detailNoise);
 
-  // 7. Manantiales: agua limpia en terreno alto.
+  // 9. Manantiales: agua limpia en terreno alto.
   placeSprings(map, rng);
 
   map.start = findStart(map);
   clearAround(map, map.start.x, map.start.y, 3);
+  // 10. Pasos estrechos: abre los acantilados que dejen zonas aisladas del inicio.
+  openPasses(map);
+  // 11. Vados: si el agua separa una zona grande del inicio, se abre un vado por el tramo más corto.
+  if (openFords(map)) openPasses(map);
   return map;
+}
+
+/** Zonas a pie de al menos este tamaño deben poder alcanzarse desde el inicio. */
+const MIN_CONNECTED_REGION = 250;
+
+function openFords(map: GameMap): boolean {
+  const { width, height, terrain } = map;
+  const size = width * height;
+  let changed = false;
+  for (let iter = 0; iter < 8; iter++) {
+    const reached = reachableFrom(map, map.start.x, map.start.y);
+    // Zonas grandes sin conectar.
+    const target = new Uint8Array(size);
+    const seen = new Uint8Array(size);
+    let any = false;
+    for (let i = 0; i < size; i++) {
+      if (reached[i] || seen[i]) continue;
+      const x = i % width;
+      const y = (i - x) / width;
+      if (!isPassable(map, x, y)) continue;
+      const region = reachableFrom(map, x, y);
+      let n = 0;
+      for (let j = 0; j < size; j++) if (region[j]) n++;
+      for (let j = 0; j < size; j++) {
+        if (!region[j]) continue;
+        seen[j] = 1;
+        if (n >= MIN_CONNECTED_REGION) {
+          target[j] = 1;
+          any = true;
+        }
+      }
+    }
+    if (!any) return changed;
+
+    // BFS por el agua desde la zona alcanzada hasta la primera casilla de una zona objetivo.
+    const prev = new Int32Array(size).fill(-1);
+    const queue: number[] = [];
+    for (let i = 0; i < size; i++) if (reached[i]) queue.push(i);
+    const visited = Uint8Array.from(reached);
+    let hit = -1;
+    for (let head = 0; head < queue.length && hit < 0; head++) {
+      const i = queue[head];
+      const x = i % width;
+      const y = (i - x) / width;
+      for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+        if (!inBounds(map, nx, ny)) continue;
+        const j = ny * width + nx;
+        if (visited[j]) continue;
+        if (target[j]) {
+          prev[j] = i;
+          hit = j;
+          break;
+        }
+        if (!isWater(terrain[j] as Terrain)) continue;
+        visited[j] = 1;
+        prev[j] = i;
+        queue.push(j);
+      }
+    }
+    if (hit < 0) return changed;
+    for (let k = prev[hit]; k >= 0 && !reached[k]; k = prev[k]) {
+      terrain[k] = Terrain.ShallowWater;
+      map.level[k] = 1;
+      map.props[k] = Prop.None;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+/** Nivel de altura de una casilla de tierra según su elevación. */
+export function levelForElevation(e: number): number {
+  if (e < 0.42) return 1;
+  if (e < 0.56) return 2;
+  if (e < 0.7) return 3;
+  return MAX_LEVEL;
+}
+
+function assignLevels(map: GameMap): void {
+  for (let i = 0; i < map.level.length; i++) {
+    const t = map.terrain[i] as Terrain;
+    map.level[i] = isWater(t) && t !== Terrain.ShallowWater ? 0 : t === Terrain.ShallowWater ? 1 : levelForElevation(map.elevation[i]);
+    // Los vados y orillas del río quedan al nivel del agua más baja posible.
+    if (t === Terrain.ShallowWater || t === Terrain.Sand) map.level[i] = Math.min(map.level[i], 1);
+  }
+  // Suaviza: una casilla de tierra no puede quedar más de un nivel por encima de todos sus vecinos
+  // ni formar picos de una sola casilla.
+  const { width, height, level } = map;
+  for (let pass = 0; pass < 2; pass++) {
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const i = y * width + x;
+        if (level[i] === 0) continue;
+        let higher = 0;
+        let lower = 0;
+        for (const j of [i - 1, i + 1, i - width, i + width]) {
+          if (level[j] > level[i]) higher++;
+          else if (level[j] < level[i] && level[j] > 0) lower++;
+        }
+        if (higher >= 3) level[i]++;
+        else if (lower >= 3) level[i]--;
+      }
+    }
+  }
+}
+
+/** Marca acantilados (borde alto de un desnivel) y pendientes. */
+function markCliffs(map: GameMap, noise: ValueNoise): void {
+  const { width, height, level, terrain, cliff, slope, props } = map;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      if (level[i] <= 1) continue;
+      let drop = 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (!inBounds(map, nx, ny)) continue;
+        const j = ny * width + nx;
+        if (level[j] > 0 && level[j] < level[i]) drop = Math.max(drop, level[i] - level[j]);
+      }
+      if (drop === 0) continue;
+      const t = terrain[i] as Terrain;
+      // Tramos largos de acantilado con huecos de pendiente; los saltos dobles casi siempre son acantilado.
+      const steep = noise.fbm(x / 11, y / 11, 2, 0.5) + (drop > 1 ? 0.25 : 0) + (level[i] >= 3 ? 0.08 : 0);
+      if (t !== Terrain.Concrete && t !== Terrain.Rock && steep > 0.5) {
+        cliff[i] = 1;
+        props[i] = Prop.None;
+      } else if (t !== Terrain.Rock) {
+        slope[i] = 1;
+      }
+    }
+  }
+}
+
+/**
+ * Garantiza que todo el terreno transitable que solo queda aislado por acantilados se pueda
+ * alcanzar desde el inicio, abriendo un paso estrecho (una casilla de pendiente) cada vez.
+ */
+function openPasses(map: GameMap): void {
+  const { width, height, cliff, slope } = map;
+  for (let iter = 0; iter < 400; iter++) {
+    const reached = reachableFrom(map, map.start.x, map.start.y);
+    let opened = -1;
+    for (let y = 0; y < height && opened < 0; y++) {
+      for (let x = 0; x < width && opened < 0; x++) {
+        const i = y * width + x;
+        if (!cliff[i]) continue;
+        let touchesReached = false;
+        let touchesOther = false;
+        for (const [jx, jy] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+          if (!isPassable(map, jx, jy)) continue;
+          const j = jy * width + jx;
+          if (reached[j]) touchesReached = true;
+          else touchesOther = true;
+        }
+        if (touchesReached && touchesOther) opened = i;
+      }
+    }
+    if (opened < 0) return;
+    cliff[opened] = 0;
+    slope[opened] = 1;
+  }
+}
+
+/** Casillas alcanzables a pie (4 direcciones) desde (sx, sy). */
+export function reachableFrom(map: GameMap, sx: number, sy: number): Uint8Array {
+  const { width } = map;
+  const seen = new Uint8Array(map.terrain.length);
+  if (!isPassable(map, sx, sy)) return seen;
+  const queue = [sy * width + sx];
+  seen[queue[0]] = 1;
+  for (let head = 0; head < queue.length; head++) {
+    const i = queue[head];
+    const x = i % width;
+    const y = (i - x) / width;
+    for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+      if (!isPassable(map, nx, ny)) continue;
+      const j = ny * width + nx;
+      if (seen[j]) continue;
+      seen[j] = 1;
+      queue.push(j);
+    }
+  }
+  return seen;
 }
 
 function normalize(field: Float32Array): void {
@@ -334,8 +547,9 @@ function placeRuins(map: GameMap, rng: Rng, roadCells: number[]): void {
         y0 = rng.int(2, height - h - 3);
       }
       if (x0 < 1 || y0 < 1 || x0 + w >= width - 1 || y0 + h >= height - 1) continue;
-      if (!areaIs(map, x0 - 1, y0 - 1, w + 2, h + 2, (t, p) =>
-        (t === Terrain.Soil || t === Terrain.Sand || t === Terrain.Gravel) && p === Prop.None)) continue;
+      const lvl = map.level[y0 * width + x0];
+      if (!areaIs(map, x0 - 1, y0 - 1, w + 2, h + 2, (t, p, i) =>
+        (t === Terrain.Soil || t === Terrain.Sand || t === Terrain.Gravel) && p === Prop.None && map.level[i] === lvl)) continue;
 
       const door = rng.int(1, 2 * (w + h) - 6);
       let k = 0;
@@ -368,7 +582,7 @@ function scatterProps(map: GameMap, rng: Rng, noise: ValueNoise): void {
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = y * width + x;
-      if (props[i] !== Prop.None) continue;
+      if (props[i] !== Prop.None || map.cliff[i]) continue;
       const t = terrain[i] as Terrain;
       if (t !== Terrain.Soil && t !== Terrain.Sand && t !== Terrain.Gravel) continue;
       const m = moisture[i];
@@ -407,13 +621,13 @@ function placeSprings(map: GameMap, rng: Rng): void {
     const y = rng.int(3, height - 4);
     const i = y * width + x;
     const t = terrain[i];
-    if ((t === Terrain.Gravel || t === Terrain.Soil) && elevation[i] > 0.55 && radiation[i] < 0.6) {
+    if ((t === Terrain.Gravel || t === Terrain.Soil) && elevation[i] > 0.55 && radiation[i] < 0.6 && !map.cliff[i]) {
       props[i] = Prop.Spring;
       // Hierba algo más viva alrededor: matorrales.
       for (let dy = -1; dy <= 1; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
           const j = (y + dy) * width + x + dx;
-          if (j !== i && props[j] === Prop.None && rng.chance(0.4)) props[j] = Prop.Bush;
+          if (j !== i && props[j] === Prop.None && !map.cliff[j] && rng.chance(0.4)) props[j] = Prop.Bush;
         }
       }
       n++;
@@ -423,13 +637,13 @@ function placeSprings(map: GameMap, rng: Rng): void {
 
 function areaIs(
   map: GameMap, x0: number, y0: number, w: number, h: number,
-  ok: (t: Terrain, p: Prop) => boolean,
+  ok: (t: Terrain, p: Prop, i: number) => boolean,
 ): boolean {
   for (let y = y0; y < y0 + h; y++) {
     for (let x = x0; x < x0 + w; x++) {
       if (!inBounds(map, x, y)) return false;
       const i = y * map.width + x;
-      if (!ok(map.terrain[i] as Terrain, map.props[i] as Prop)) return false;
+      if (!ok(map.terrain[i] as Terrain, map.props[i] as Prop, i)) return false;
     }
   }
   return true;
@@ -439,7 +653,8 @@ function areaIs(
 function findStart(map: GameMap): { x: number; y: number } {
   const cx = Math.floor(map.width / 2);
   const cy = Math.floor(map.height / 2);
-  const good = (t: Terrain, _p: Prop) => TERRAIN_INFO[t].buildable;
+  const good = (t: Terrain, _p: Prop, i: number) => TERRAIN_INFO[t].buildable && !map.cliff[i];
+  const main = largestRegion(map);
   const maxR = Math.max(map.width, map.height);
   for (let r = 0; r < maxR; r++) {
     for (let dy = -r; dy <= r; dy++) {
@@ -448,11 +663,38 @@ function findStart(map: GameMap): { x: number; y: number } {
         const x = cx + dx;
         const y = cy + dy;
         if (map.radiation[y * map.width + x] > 0.65) continue;
+        if (main && !main[y * map.width + x]) continue;
         if (areaIs(map, x - 3, y - 3, 7, 7, good)) return { x, y };
       }
     }
   }
   return { x: cx, y: cy };
+}
+
+/** Zona más grande a la que se llega a pie (sin contar el río ni los lagos), para empezar en ella. */
+function largestRegion(map: GameMap): Uint8Array | null {
+  const visited = new Uint8Array(map.terrain.length);
+  let best: Uint8Array | null = null;
+  let bestSize = 0;
+  for (let i = 0; i < visited.length; i++) {
+    if (visited[i]) continue;
+    const x = i % map.width;
+    const y = (i - x) / map.width;
+    if (!isPassable(map, x, y)) continue;
+    const region = reachableFrom(map, x, y);
+    let size = 0;
+    for (let j = 0; j < region.length; j++) {
+      if (region[j]) {
+        visited[j] = 1;
+        size++;
+      }
+    }
+    if (size > bestSize) {
+      bestSize = size;
+      best = region;
+    }
+  }
+  return best;
 }
 
 /** Quita objetos que bloquean alrededor del inicio para que los colonos puedan moverse. */
@@ -462,6 +704,10 @@ function clearAround(map: GameMap, cx: number, cy: number, r: number): void {
       if (!inBounds(map, x, y)) continue;
       const i = y * map.width + x;
       if (PROP_INFO[map.props[i] as Prop].blocks || map.props[i] === Prop.GlowPuddle) map.props[i] = Prop.None;
+      if (map.cliff[i]) {
+        map.cliff[i] = 0;
+        map.slope[i] = 1;
+      }
     }
   }
 }
