@@ -3,12 +3,11 @@ import { GameMap, describeTile, inBounds } from '../sim/map';
 import { Colonist } from '../sim/colonist';
 import { isWalkable } from '../sim/pathfinding';
 import { GameSpeed, World } from '../sim/world';
-import { paintGround, paintProps, TILE } from './mapArt';
-import { liftOf, pickTile, TOP_MARGIN } from './projection';
+import { canvasPropRasterizer, paintGround, TILE } from './mapArt';
+import { liftOf, occludedFraction, pickTile, TOP_MARGIN } from './projection';
 
 export { TILE };
 const MAP_TEXTURE = 'world-map';
-const PROPS_TEXTURE = 'world-props';
 const MAX_ZOOM = 4;
 const COLONIST_DEPTH = 10;
 const UI_EMIT_MS = 200;
@@ -52,7 +51,6 @@ export class WorldScene extends Phaser.Scene {
     this.spriteLift.clear();
     this.drawMap();
     this.add.image(0, -TOP_MARGIN, MAP_TEXTURE).setOrigin(0, 0);
-    this.add.image(0, -TOP_MARGIN, PROPS_TEXTURE).setOrigin(0, 0).setDepth(2);
     this.selectionGfx = this.add.graphics().setDepth(COLONIST_DEPTH - 1);
     this.createColonistSprites();
 
@@ -92,11 +90,9 @@ export class WorldScene extends Phaser.Scene {
     if (k.down.isDown || k.s.isDown) cam.scrollY += speed;
   }
 
-  /** Pinta el suelo y los objetos en dos texturas de lienzo. */
+  /** Pinta suelo, paredes y objetos en una sola textura, fila a fila. */
   private drawMap(): void {
-    for (const key of [MAP_TEXTURE, PROPS_TEXTURE]) {
-      if (this.textures.exists(key)) this.textures.remove(key);
-    }
+    if (this.textures.exists(MAP_TEXTURE)) this.textures.remove(MAP_TEXTURE);
     const w = this.map.width * TILE;
     const h = this.map.height * TILE + TOP_MARGIN;
 
@@ -104,14 +100,9 @@ export class WorldScene extends Phaser.Scene {
     if (!ground) throw new Error('No se pudo crear la textura del mapa');
     const gctx = ground.getContext();
     const img = gctx.createImageData(w, h);
-    paintGround(this.map, img);
+    paintGround(this.map, img, canvasPropRasterizer());
     gctx.putImageData(img, 0, 0);
     ground.refresh();
-
-    const props = this.textures.createCanvas(PROPS_TEXTURE, w, h);
-    if (!props) throw new Error('No se pudo crear la textura de objetos');
-    paintProps(this.map, props.getContext());
-    props.refresh();
   }
 
   private setupInput(): void {
@@ -312,8 +303,14 @@ export class WorldScene extends Phaser.Scene {
       const prev = this.spriteLift.get(c.id) ?? target;
       const lift = Math.abs(target - prev) < 0.3 ? target : prev + (target - prev) * 0.25;
       this.spriteLift.set(c.id, lift);
-      img.setPosition(c.pos.x * TILE, c.pos.y * TILE - lift + bob);
+      const footY = c.pos.y * TILE - lift;
+      img.setPosition(c.pos.x * TILE, footY + bob);
       img.setFlipX(c.facing < 0);
+      // Detrás de una meseta o pared: se ve como silueta translúcida para no perderlo.
+      const hidden = occludedFraction(this.map, c.pos.x * TILE, footY, c.tile.y);
+      img.setAlpha(1 - hidden * 0.6);
+      if (hidden > 0) img.setTint(0xb8c4d0);
+      else img.clearTint();
       img.setDepth(COLONIST_DEPTH + c.pos.y / 1000);
     }
   }

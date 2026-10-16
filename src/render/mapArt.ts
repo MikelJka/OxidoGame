@@ -44,7 +44,40 @@ function sampleField(map: GameMap, field: Float32Array, fx: number, fy: number):
  * Pinta el suelo píxel a píxel. Los bordes entre tipos de suelo se deforman con ruido
  * y la humedad y la radiación se interpolan, para que no se vean bloques por casilla.
  */
-export function paintGround(map: GameMap, img: ImageData): void {
+/** Píxeles RGBA de un objeto ya dibujado, con su ancla (esquina de su casilla) en (0, ancla). */
+export interface PropSprite {
+  data: Uint8ClampedArray;
+  width: number;
+  height: number;
+  /** Fila del sprite que corresponde al borde superior de la casilla. */
+  anchorY: number;
+}
+
+/** Dibuja un objeto en un lienzo pequeño y devuelve sus píxeles; null si no hay lienzo (tests). */
+export type PropRasterizer = (p: Prop, rng: Rng) => PropSprite | null;
+
+const PROP_HEADROOM = 16;
+
+/** Rasterizador con un lienzo del navegador: los objetos pueden sobresalir hacia arriba de su casilla. */
+export function canvasPropRasterizer(): PropRasterizer {
+  const canvas = document.createElement('canvas');
+  canvas.width = TILE;
+  canvas.height = TILE + PROP_HEADROOM;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return () => null;
+  return (p, rng) => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawProp(ctx, p, 0, PROP_HEADROOM, rng);
+    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    return { data: img.data, width: canvas.width, height: canvas.height, anchorY: PROP_HEADROOM };
+  };
+}
+
+/**
+ * Pinta el mapa completo (suelo, paredes y objetos) fila a fila de norte a sur, para que
+ * lo que está delante y más alto tape lo de detrás.
+ */
+export function paintGround(map: GameMap, img: ImageData, rasterizeProp?: PropRasterizer): void {
   const w = map.width * TILE;
   const rng = new Rng(map.seed ^ 0x9e3779b9);
   const warp = new ValueNoise(rng);
@@ -83,6 +116,25 @@ export function paintGround(map: GameMap, img: ImageData): void {
     out[o] = 20; out[o + 1] = 18; out[o + 2] = 16; out[o + 3] = 255;
   }
 
+  const propRng = new Rng(map.seed ^ 0x2f6a1c3d);
+  /** Mezcla un objeto sobre la imagen respetando su transparencia. */
+  const blendProp = (sprite: PropSprite, x0: number, y0: number) => {
+    const { data, width, height } = sprite;
+    for (let y = 0; y < height; y++) {
+      const oy = y0 + y;
+      if (oy < 0 || oy >= H) continue;
+      for (let x = 0; x < width; x++) {
+        const si = (y * width + x) * 4;
+        const a = data[si + 3] / 255;
+        if (a === 0) continue;
+        const o = (oy * w + x0 + x) * 4;
+        out[o] = data[si] * a + out[o] * (1 - a);
+        out[o + 1] = data[si + 1] * a + out[o + 1] * (1 - a);
+        out[o + 2] = data[si + 2] * a + out[o + 2] * (1 - a);
+      }
+    }
+  };
+
   // Se pinta fila a fila de norte a sur: lo de delante tapa a lo de detrás.
   for (let ty = 0; ty < map.height; ty++) {
     for (let py = ty * TILE; py < (ty + 1) * TILE; py++) {
@@ -106,6 +158,17 @@ export function paintGround(map: GameMap, img: ImageData): void {
           const pxl = tx * TILE + lx;
           put(pxl, y, wallColor(kind, pxl, y, (y - top) / Math.max(1, bottom - top - 1), grain.sample(pxl / 3, y / 3)));
         }
+      }
+    }
+    // Objetos de esta fila, encima de su suelo y debajo de las filas de delante.
+    if (rasterizeProp) {
+      for (let tx = 0; tx < map.width; tx++) {
+        const p = map.props[ty * map.width + tx] as Prop;
+        if (p === Prop.None) continue;
+        const sprite = rasterizeProp(p, propRng);
+        if (!sprite) continue;
+        const tileTopY = ty * TILE + TOP_MARGIN - renderLevel(map, tx, ty) * LIFT;
+        blendProp(sprite, tx * TILE, tileTopY - sprite.anchorY);
       }
     }
   }
@@ -223,18 +286,6 @@ function shadeRelief(map: GameMap, c: RGB, pxl: number, py: number, g: number): 
   if (upW > 0) shadow = Math.max(shadow, 1 - lx / (2 + upW * 2));
   if (shadow > 0) out = mix(out, [20, 16, 14], shadow * 0.5);
   return out;
-}
-
-/** Pinta todos los objetos del mapa en un lienzo transparente del tamaño del mapa. */
-export function paintProps(map: GameMap, ctx: CanvasRenderingContext2D): void {
-  const rng = new Rng(map.seed ^ 0x2f6a1c3d);
-  for (let y = 0; y < map.height; y++) {
-    for (let x = 0; x < map.width; x++) {
-      const p = map.props[y * map.width + x] as Prop;
-      if (p === Prop.None) continue;
-      drawProp(ctx, p, x * TILE, y * TILE + TOP_MARGIN - renderLevel(map, x, y) * LIFT, rng);
-    }
-  }
 }
 
 function drawProp(ctx: CanvasRenderingContext2D, p: Prop, x: number, y: number, rng: Rng): void {

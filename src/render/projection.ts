@@ -43,3 +43,19 @@ export function pickTile(map: GameMap, wx: number, wy: number): { x: number; y: 
   }
   return null;
 }
+
+/** Alturas (en píxeles sobre los pies) que se comprueban para saber si algo tapa a un colono. */
+const BODY_SAMPLES = [2, 6, 10];
+
+/**
+ * Parte (0–1) del cuerpo de un colono que queda tapada por terreno de delante (filas más al sur)
+ * dibujado por encima de él. `footX`, `footY` son sus pies en el mundo; `row` su fila.
+ */
+export function occludedFraction(map: GameMap, footX: number, footY: number, row: number): number {
+  let hidden = 0;
+  for (const h of BODY_SAMPLES) {
+    const t = pickTile(map, footX, footY - h);
+    if (t && t.y > row) hidden++;
+  }
+  return hidden / BODY_SAMPLES.length;
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { generateMap, Terrain } from '../src/sim/map';
-import { LIFT, pickTile, TILE, tileTop } from '../src/render/projection';
+import { LIFT, occludedFraction, pickTile, TILE, tileTop } from '../src/render/projection';
 
 function stepMap() {
   // Mapa llano de nivel 1 con una meseta de nivel 3 en las filas 4 a 6.
@@ -46,5 +46,22 @@ describe('proyección del relieve', () => {
     const map = stepMap();
     expect(pickTile(map, -5, 20)).toBeNull();
     expect(pickTile(map, 20, 5000)).toBeNull();
+  });
+});
+
+describe('ocultación detrás del relieve', () => {
+  it('un colono en llano justo detrás de una meseta queda tapado', () => {
+    const map = stepMap(); // meseta de nivel 3 en las filas 4 a 6
+    const row = 3;
+    const footY = (row + 0.5) * TILE - LIFT; // pies en el centro de su casilla de nivel 1
+    expect(occludedFraction(map, 24, footY, row)).toBeGreaterThan(0.5);
+  });
+
+  it('un colono encima de la meseta o lejos de ella se ve entero', () => {
+    const map = stepMap();
+    expect(occludedFraction(map, 24, (5.5) * TILE - 3 * LIFT, 5)).toBe(0);
+    expect(occludedFraction(map, 24, (1.5) * TILE - LIFT, 1)).toBe(0);
+    // Delante de la meseta (más al sur) tampoco se tapa.
+    expect(occludedFraction(map, 24, (8.5) * TILE - LIFT, 8)).toBe(0);
   });
 });
