@@ -1,9 +1,11 @@
 :root {
   --bg: #141210;
-  --panel: rgba(20, 18, 16, 0.82);
+  --panel: rgba(20, 18, 16, 0.88);
+  --border: #3a322a;
   --text: #f0d7b0;
   --muted: #b39c7c;
   --accent: #d96c2c;
+  --btn: #2c241d;
 }
 * { box-sizing: border-box; }
 html, body {
@@ -13,40 +15,109 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 13px;
   touch-action: none;
   overscroll-behavior: none;
   -webkit-user-select: none;
   user-select: none;
 }
 #game { position: fixed; inset: 0; }
-#hud {
+[hidden] { display: none !important; }
+
+.panel {
   position: fixed;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+button {
+  font: inherit;
+  color: var(--text);
+  background: var(--btn);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  min-height: 36px;
+  min-width: 36px;
+  padding: 4px 10px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+button:active { background: var(--accent); color: var(--bg); }
+button.active { border-color: var(--accent); color: var(--accent); }
+
+#topbar {
   top: calc(8px + env(safe-area-inset-top));
   left: 8px;
   right: 8px;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 6px 12px;
-  padding: 8px 10px;
-  background: var(--panel);
-  border: 1px solid #3a322a;
-  border-radius: 4px;
-  font-size: 13px;
+  gap: 10px;
+  padding: 6px 8px;
+}
+.brand strong { color: var(--accent); letter-spacing: 2px; }
+#clock { flex: 1; color: var(--muted); white-space: nowrap; }
+#speeds { display: flex; gap: 4px; }
+#speeds button { padding: 4px 6px; font-size: 11px; letter-spacing: -2px; }
+
+#menu {
+  top: calc(62px + env(safe-area-inset-top));
+  right: 8px;
+  width: min(340px, calc(100% - 16px));
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#seed { color: var(--muted); }
+.help { margin: 0; color: var(--muted); line-height: 1.6; font-size: 12px; }
+.help strong { color: var(--text); }
+
+#tile {
+  top: calc(62px + env(safe-area-inset-top));
+  left: 8px;
+  padding: 4px 8px;
+  color: var(--muted);
+  font-size: 12px;
   pointer-events: none;
 }
-.hud-title strong { color: var(--accent); letter-spacing: 2px; }
-#seed, #tile { color: var(--muted); }
-#tile { flex: 1 1 180px; }
-#new-map {
-  pointer-events: auto;
-  font: inherit;
-  color: var(--text);
-  background: #2c241d;
-  border: 1px solid var(--accent);
-  border-radius: 3px;
-  padding: 6px 12px;
-  min-height: 36px;
-  cursor: pointer;
+#tile:empty { display: none; }
+
+#toast {
+  top: 40%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  pointer-events: none;
 }
-#new-map:active { background: var(--accent); color: var(--bg); }
+
+#roster {
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  left: 8px;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  max-width: calc(100% - 16px);
+  overflow-x: auto;
+}
+#roster button { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+#roster .dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+#colonist-panel {
+  bottom: calc(64px + env(safe-area-inset-bottom));
+  left: 8px;
+  width: min(320px, calc(100% - 16px));
+  max-height: 55vh;
+  overflow-y: auto;
+  padding: 10px;
+}
+.cp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+#cp-name { font-size: 15px; color: var(--text); }
+#cp-sub, #cp-activity { color: var(--muted); }
+#cp-activity { margin: 6px 0; }
+#cp-traits { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.trait { border: 1px solid var(--border); border-radius: 3px; padding: 2px 6px; font-size: 12px; }
+.skill { display: grid; grid-template-columns: 1fr 24px 80px 14px; gap: 6px; align-items: center; line-height: 1.7; }
+.skill .bar { height: 6px; background: #2c241d; border-radius: 2px; overflow: hidden; }
+.skill .bar span { display: block; height: 100%; background: var(--accent); }
+.skill .num { text-align: right; color: var(--muted); }
+.skill .passion { color: #e8a040; }

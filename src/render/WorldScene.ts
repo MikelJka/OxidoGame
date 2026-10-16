@@ -1,11 +1,16 @@
 import Phaser from 'phaser';
-import { generateMap, GameMap, Terrain, TERRAIN_INFO, terrainAt, inBounds } from '../sim/map';
-import { Rng } from '../sim/rng';
-import { CONTAMINATION_TINT, TERRAIN_COLORS } from './palette';
+import { GameMap, describeTile, inBounds } from '../sim/map';
+import { Colonist } from '../sim/colonist';
+import { isWalkable } from '../sim/pathfinding';
+import { GameSpeed, World } from '../sim/world';
+import { paintGround, paintProps, TILE } from './mapArt';
 
-export const TILE = 16;
+export { TILE };
 const MAP_TEXTURE = 'world-map';
+const PROPS_TEXTURE = 'world-props';
 const MAX_ZOOM = 4;
+const COLONIST_DEPTH = 10;
+const UI_EMIT_MS = 200;
 
 type MoveKeys = Record<'up' | 'down' | 'left' | 'right' | 'w' | 'a' | 's' | 'd', Phaser.Input.Keyboard.Key>;
 
@@ -18,12 +23,18 @@ export interface WorldSceneData {
  * (arrastrar, rueda, pellizco táctil y teclado).
  */
 export class WorldScene extends Phaser.Scene {
+  world!: World;
   map!: GameMap;
+  selectedId: number | null = null;
+  private sprites = new Map<number, Phaser.GameObjects.Image>();
+  private selectionGfx!: Phaser.GameObjects.Graphics;
+  private uiTimer = 0;
   private dragging = false;
   private dragStart = new Phaser.Math.Vector2();
   private camStart = new Phaser.Math.Vector2();
   private pinchStartDist = 0;
   private pinchStartZoom = 1;
+  private lastPinchAt = -1000;
   private keys?: MoveKeys;
 
   constructor() {
@@ -31,10 +42,15 @@ export class WorldScene extends Phaser.Scene {
   }
 
   create(data: WorldSceneData): void {
-    this.map = generateMap({ width: 100, height: 100, seed: data.seed });
+    this.world = new World({ seed: data.seed });
+    this.map = this.world.map;
+    this.selectedId = null;
+    this.sprites.clear();
     this.drawMap();
     this.add.image(0, 0, MAP_TEXTURE).setOrigin(0, 0);
-    this.drawStartMarker();
+    this.add.image(0, 0, PROPS_TEXTURE).setOrigin(0, 0).setDepth(2);
+    this.selectionGfx = this.add.graphics().setDepth(COLONIST_DEPTH - 1);
+    this.createColonistSprites();
 
     const cam = this.cameras.main;
     const worldW = this.map.width * TILE;
@@ -48,9 +64,20 @@ export class WorldScene extends Phaser.Scene {
     this.scale.on('resize', this.onResize, this);
     this.events.once('shutdown', () => this.scale.off('resize', this.onResize, this));
     this.game.events.emit('map-ready', this.map);
+    this.game.events.emit('selection', null);
+    this.emitClock();
   }
 
   update(_time: number, delta: number): void {
+    this.world.update(delta);
+    this.syncColonists();
+    this.drawSelection();
+    this.uiTimer += delta;
+    if (this.uiTimer >= UI_EMIT_MS) {
+      this.uiTimer = 0;
+      this.emitClock();
+      if (this.selectedId !== null) this.game.events.emit('selection', this.selected());
+    }
     if (!this.keys) return;
     const cam = this.cameras.main;
     const speed = (0.6 * delta) / cam.zoom;
@@ -61,62 +88,31 @@ export class WorldScene extends Phaser.Scene {
     if (k.down.isDown || k.s.isDown) cam.scrollY += speed;
   }
 
-  /** Pinta todo el mapa en una textura de lienzo, con detalle pixel art por casilla. */
+  /** Pinta el suelo y los objetos en dos texturas de lienzo. */
   private drawMap(): void {
-    if (this.textures.exists(MAP_TEXTURE)) this.textures.remove(MAP_TEXTURE);
+    for (const key of [MAP_TEXTURE, PROPS_TEXTURE]) {
+      if (this.textures.exists(key)) this.textures.remove(key);
+    }
     const w = this.map.width * TILE;
     const h = this.map.height * TILE;
-    const canvas = this.textures.createCanvas(MAP_TEXTURE, w, h);
-    if (!canvas) throw new Error('No se pudo crear la textura del mapa');
-    const ctx = canvas.getContext();
-    const img = ctx.createImageData(w, h);
-    const px = img.data;
-    const rng = new Rng(this.map.seed ^ 0x9e3779b9);
 
-    for (let ty = 0; ty < this.map.height; ty++) {
-      for (let tx = 0; tx < this.map.width; tx++) {
-        const t = terrainAt(this.map, tx, ty);
-        const base = [...TERRAIN_COLORS[t]] as [number, number, number];
-        if (this.map.contaminated[ty * this.map.width + tx]) {
-          for (let c = 0; c < 3; c++) base[c] += CONTAMINATION_TINT[c];
-        }
-        const tileShade = rng.range(-6, 6);
-        for (let y = 0; y < TILE; y++) {
-          for (let x = 0; x < TILE; x++) {
-            const shade = tileShade + pixelDetail(t, x, y, rng);
-            const i = ((ty * TILE + y) * w + tx * TILE + x) * 4;
-            px[i] = clamp(base[0] + shade);
-            px[i + 1] = clamp(base[1] + shade);
-            px[i + 2] = clamp(base[2] + shade);
-            px[i + 3] = 255;
-          }
-        }
-      }
-    }
-    ctx.putImageData(img, 0, 0);
-    canvas.refresh();
-    this.textures.get(MAP_TEXTURE).setFilter(Phaser.Textures.FilterMode.NEAREST);
-  }
+    const ground = this.textures.createCanvas(MAP_TEXTURE, w, h);
+    if (!ground) throw new Error('No se pudo crear la textura del mapa');
+    const gctx = ground.getContext();
+    const img = gctx.createImageData(w, h);
+    paintGround(this.map, img);
+    gctx.putImageData(img, 0, 0);
+    ground.refresh();
 
-  private drawStartMarker(): void {
-    const { x, y } = this.map.start;
-    const g = this.add.graphics();
-    g.lineStyle(2, 0xd96c2c, 1);
-    g.strokeRect((x - 2) * TILE, (y - 2) * TILE, TILE * 5, TILE * 5);
-    this.add
-      .text((x + 0.5) * TILE, (y - 2.6) * TILE, 'Inicio', {
-        fontFamily: 'monospace',
-        fontSize: '12px',
-        color: '#f0d7b0',
-        backgroundColor: '#00000088',
-        padding: { x: 3, y: 1 },
-      })
-      .setOrigin(0.5, 1)
-      .setResolution(2);
+    const props = this.textures.createCanvas(PROPS_TEXTURE, w, h);
+    if (!props) throw new Error('No se pudo crear la textura de objetos');
+    paintProps(this.map, props.getContext());
+    props.refresh();
   }
 
   private setupInput(): void {
     this.input.addPointer(1); // segundo dedo para el pellizco
+    this.input.mouse?.disableContextMenu();
     const cam = this.cameras.main;
 
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
@@ -143,7 +139,8 @@ export class WorldScene extends Phaser.Scene {
 
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
       const moved = Phaser.Math.Distance.Between(p.downX, p.downY, p.upX, p.upY);
-      if (moved < 8) this.reportTile(p);
+      const wasPinch = this.pinchStartDist > 0 || this.time.now - this.lastPinchAt < 350;
+      if (moved < 8 && !wasPinch) this.handleTap(p);
       this.dragging = false;
       this.pinchStartDist = 0;
       // Si queda un dedo apoyado tras el pellizco, reanuda el arrastre desde él.
@@ -167,6 +164,11 @@ export class WorldScene extends Phaser.Scene {
         up: K.UP, down: K.DOWN, left: K.LEFT, right: K.RIGHT,
         w: K.W, a: K.A, s: K.S, d: K.D,
       }) as MoveKeys;
+      kb.on('keydown-SPACE', () => this.setSpeed(this.world.speed === 0 ? 1 : 0));
+      kb.on('keydown-ONE', () => this.setSpeed(1));
+      kb.on('keydown-TWO', () => this.setSpeed(2));
+      kb.on('keydown-THREE', () => this.setSpeed(3));
+      kb.on('keydown-ESC', () => this.select(null));
     }
   }
 
@@ -180,6 +182,7 @@ export class WorldScene extends Phaser.Scene {
     const a = this.input.pointer1;
     const b = this.input.pointer2;
     this.dragging = false;
+    this.lastPinchAt = this.time.now;
     this.pinchStartDist = Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
     this.pinchStartZoom = this.cameras.main.zoom;
   }
@@ -189,6 +192,7 @@ export class WorldScene extends Phaser.Scene {
     const a = this.input.pointer1;
     const b = this.input.pointer2;
     const dist = Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
+    this.lastPinchAt = this.time.now;
     if (this.pinchStartDist < 1) return;
     this.zoomAt(this.pinchStartZoom * (dist / this.pinchStartDist), (a.x + b.x) / 2, (a.y + b.y) / 2);
   }
@@ -222,51 +226,147 @@ export class WorldScene extends Phaser.Scene {
     cam.setZoom(this.clampZoom(cam.zoom));
   }
 
+  setSpeed(speed: GameSpeed): void {
+    this.world.speed = speed;
+    this.emitClock();
+  }
+
+  select(id: number | null): void {
+    this.selectedId = id;
+    this.game.events.emit('selection', this.selected());
+  }
+
+  /** Centra la cámara en un colono. */
+  focus(id: number): void {
+    const c = this.world.colonists.find((k) => k.id === id);
+    if (c) this.cameras.main.pan(c.pos.x * TILE, c.pos.y * TILE, 300, 'Sine.easeInOut');
+  }
+
+  private selected(): Colonist | null {
+    return this.world.colonists.find((c) => c.id === this.selectedId) ?? null;
+  }
+
+  private emitClock(): void {
+    this.game.events.emit('clock', this.world.clockLabel(), this.world.speed);
+  }
+
+  /** Toque o clic sin arrastrar: seleccionar colono, dar orden o deseleccionar. */
+  private handleTap(p: Phaser.Input.Pointer): void {
+    const world = this.cameras.main.getWorldPoint(p.x, p.y);
+    const wx = world.x / TILE;
+    const wy = world.y / TILE;
+    const hit = this.world.colonistAt(wx, wy, 0.9);
+    if (hit && !p.rightButtonReleased()) {
+      this.select(hit.id);
+      return;
+    }
+    this.reportTile(p);
+    if (this.selectedId === null) return;
+    const tx = Math.floor(wx);
+    const ty = Math.floor(wy);
+    if (!isWalkable(this.map, tx, ty)) {
+      this.game.events.emit('toast', 'No se puede caminar ahí');
+      return;
+    }
+    if (this.world.orderMove(this.selectedId, { x: tx, y: ty })) {
+      this.flashTarget(tx, ty);
+    } else {
+      this.game.events.emit('toast', 'No hay camino hasta ahí');
+    }
+  }
+
+  private flashTarget(tx: number, ty: number): void {
+    const g = this.add.graphics().setDepth(COLONIST_DEPTH + 1);
+    g.lineStyle(2, 0xf0d7b0, 1);
+    g.strokeRect(tx * TILE + 2, ty * TILE + 2, TILE - 4, TILE - 4);
+    this.tweens.add({ targets: g, alpha: 0, duration: 600, onComplete: () => g.destroy() });
+  }
+
+  private createColonistSprites(): void {
+    for (const c of this.world.colonists) {
+      const key = `colonist-${this.map.seed}-${c.id}`;
+      if (!this.textures.exists(key)) drawColonistTexture(this, key, c);
+      const img = this.add.image(c.pos.x * TILE, c.pos.y * TILE, key).setDepth(COLONIST_DEPTH).setOrigin(0.5, 0.75);
+      this.sprites.set(c.id, img);
+    }
+  }
+
+  private syncColonists(): void {
+    const t = this.time.now;
+    for (const c of this.world.colonists) {
+      const img = this.sprites.get(c.id);
+      if (!img) continue;
+      const walking = c.path.length > 0 && this.world.speed > 0;
+      const bob = walking ? Math.abs(Math.sin(t / 90 + c.id)) * -1.5 : 0;
+      img.setPosition(c.pos.x * TILE, c.pos.y * TILE + bob);
+      img.setFlipX(c.facing < 0);
+      img.setDepth(COLONIST_DEPTH + c.pos.y / 1000);
+    }
+  }
+
+  private drawSelection(): void {
+    const g = this.selectionGfx;
+    g.clear();
+    const c = this.selected();
+    if (!c) return;
+    if (c.path.length > 0) {
+      g.lineStyle(1.5, 0xf0d7b0, 0.6);
+      g.beginPath();
+      g.moveTo(c.pos.x * TILE, c.pos.y * TILE);
+      for (const p of c.path) g.lineTo((p.x + 0.5) * TILE, (p.y + 0.5) * TILE);
+      g.strokePath();
+      const end = c.path[c.path.length - 1];
+      g.strokeRect(end.x * TILE + 3, end.y * TILE + 3, TILE - 6, TILE - 6);
+    }
+    g.lineStyle(2, 0xd96c2c, 1);
+    g.strokeEllipse(c.pos.x * TILE, c.pos.y * TILE + 3, TILE * 0.95, TILE * 0.45);
+  }
+
   private reportTile(p: Phaser.Input.Pointer): void {
     const world = this.cameras.main.getWorldPoint(p.x, p.y);
     const tx = Math.floor(world.x / TILE);
     const ty = Math.floor(world.y / TILE);
     if (!inBounds(this.map, tx, ty)) return;
-    const t = terrainAt(this.map, tx, ty);
-    const info = TERRAIN_INFO[t];
-    const dirty = this.map.contaminated[ty * this.map.width + tx] ? ' (contaminada)' : '';
-    this.game.events.emit('tile-info', `${info.name}${dirty} · ${tx},${ty}`);
+    this.game.events.emit('tile-info', describeTile(this.map, tx, ty));
   }
 }
 
-function clamp(v: number): number {
-  return v < 0 ? 0 : v > 255 ? 255 : v;
-}
-
-/** Variación de brillo por píxel para dar textura pixel art a cada terreno. */
-function pixelDetail(t: Terrain, x: number, y: number, rng: Rng): number {
-  switch (t) {
-    case Terrain.DeepWater:
-    case Terrain.Water:
-    case Terrain.ShallowWater:
-      // Ondas horizontales suaves.
-      return (y + (x >> 2)) % 6 === 0 && rng.chance(0.6) ? 14 : 0;
-    case Terrain.DeadForest: {
-      // Troncos secos: una columna oscura con ramas.
-      const trunk = x === 7 || x === 8;
-      if (trunk && y > 3 && y < 14) return -26;
-      if ((y === 6 || y === 9) && x > 4 && x < 11) return -18;
-      return rng.chance(0.12) ? -10 : 0;
-    }
-    case Terrain.Rock:
-      return (x + y * 3) % 7 === 0 ? -14 : rng.chance(0.1) ? 10 : 0;
-    case Terrain.Hills:
-      return y % 5 === 0 && rng.chance(0.5) ? 12 : rng.chance(0.06) ? -10 : 0;
-    case Terrain.Ruins:
-      // Patrón de ladrillos rotos.
-      if (y % 4 === 0) return -20;
-      if ((x + (y % 8 < 4 ? 0 : 4)) % 8 === 0) return -20;
-      return rng.chance(0.08) ? 16 : 0;
-    case Terrain.Irradiated:
-      return rng.chance(0.05) ? 28 : rng.chance(0.15) ? -8 : 0;
-    case Terrain.Spring:
-      return Math.hypot(x - 7.5, y - 7.5) < 4 ? 30 : 0;
-    default:
-      return rng.chance(0.08) ? -10 : rng.chance(0.04) ? 8 : 0;
-  }
+/** Dibuja un colono pixel art de 16×16 con sus colores. */
+function drawColonistTexture(scene: Phaser.Scene, key: string, c: Colonist): void {
+  const tex = scene.textures.createCanvas(key, 16, 16);
+  if (!tex) return;
+  const ctx = tex.getContext();
+  const hex = (n: number, shade = 0) => {
+    const r = Math.max(0, Math.min(255, ((n >> 16) & 255) + shade));
+    const g = Math.max(0, Math.min(255, ((n >> 8) & 255) + shade));
+    const b = Math.max(0, Math.min(255, (n & 255) + shade));
+    return `rgb(${r},${g},${b})`;
+  };
+  const px = (x: number, y: number, w: number, h: number, color: string) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, w, h);
+  };
+  const outline = '#1a1410';
+  // Sombra
+  px(4, 14, 8, 1, 'rgba(0,0,0,0.35)');
+  // Piernas
+  px(6, 11, 2, 3, '#3a3028');
+  px(9, 11, 2, 3, '#3a3028');
+  // Cuerpo (camisa) con contorno
+  px(4, 6, 8, 6, outline);
+  px(5, 6, 6, 5, hex(c.look.shirt));
+  px(5, 6, 6, 1, hex(c.look.shirt, 25));
+  px(10, 7, 1, 4, hex(c.look.shirt, -30));
+  // Brazos
+  px(4, 7, 1, 3, hex(c.look.skin, -20));
+  px(11, 7, 1, 3, hex(c.look.skin, -20));
+  // Cabeza
+  px(5, 1, 6, 6, outline);
+  px(6, 2, 4, 4, hex(c.look.skin));
+  // Pelo
+  px(6, 1, 4, 2, hex(c.look.hair));
+  px(5, 2, 1, 2, hex(c.look.hair));
+  // Ojo (mira a la derecha; el sprite se voltea)
+  px(9, 4, 1, 1, outline);
+  tex.refresh();
 }

@@ -17,14 +17,15 @@ Terminado: la URL pública muestra el mapa generado y se puede mover y hacer zoo
 
 Terminado: puedo mover la cámara y ver a 3 colonos caminar por el mapa; el tiempo se pausa y acelera.
 
-- [ ] Bucle de simulación por ticks independiente del dibujado (`src/sim/world.ts`), con velocidades pausa/x1/x2/x3
-- [ ] Botones de velocidad en el HUD (táctiles) y teclas espacio/1/2/3
-- [ ] Modelo de colono: nombre, posición, habilidades 0–20, rasgos (datos en `src/data/`)
-- [ ] Pathfinding A* sobre el mapa respetando `walkable` y `moveCost`, con tests
-- [ ] 3 colonos que aparecen en el inicio y deambulan por destinos aleatorios alcanzables
-- [ ] Sprites pixel art provisionales de colonos (generados por código) y animación de paso
-- [ ] Seleccionar un colono tocándolo y ver su ficha en un panel adaptable a móvil
-- [ ] Ordenar a un colono seleccionado que vaya a una casilla (control directo)
+- [x] Bucle de simulación por ticks independiente del dibujado (`src/sim/world.ts`), con velocidades pausa/x1/x2/x3
+- [x] Botones de velocidad en el HUD (táctiles) y teclas espacio/1/2/3
+- [x] Modelo de colono: nombre, posición, habilidades 0–20, rasgos (datos en `src/data/`)
+- [x] Pathfinding A* sobre el mapa respetando `walkable` y `moveCost`, con tests
+- [x] 3 colonos que aparecen en el inicio y deambulan por destinos aleatorios alcanzables
+- [x] Sprites pixel art provisionales de colonos (generados por código) y animación de paso
+- [x] Seleccionar un colono tocándolo y ver su ficha en un panel adaptable a móvil
+- [x] Ordenar a un colono seleccionado que vaya a una casilla (control directo)
+- [x] Suelo continuo con transiciones suaves y variedad mediante objetos (árboles secos, matorrales, rocas, chatarra, coches, muros, barriles tóxicos, charcos radiactivos, manantiales, huesos, neumáticos); carreteras viejas con ruinas; vados en los ríos
 - [ ] Más geografía: acantilados (bordes de roca entre niveles), pasos estrechos, mesetas; tests de variedad
 
 ## Fase 2 — Trabajos y recursos

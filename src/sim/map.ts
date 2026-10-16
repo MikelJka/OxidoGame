@@ -1,26 +1,24 @@
 import { Rng } from './rng';
 import { ValueNoise } from './noise';
 
-/** Tipos de terreno. Los valores se guardan en un Uint8Array. */
+/**
+ * Suelo de cada casilla. Es la capa base: pocos tipos, con transiciones suaves al dibujar.
+ * La variedad del mapa viene de los objetos (Prop) colocados encima.
+ */
 export enum Terrain {
   DeepWater = 0,
   Water = 1,
   ShallowWater = 2,
   Sand = 3,
-  Wasteland = 4,
-  DeadForest = 5,
-  Hills = 6,
-  Rock = 7,
-  Ruins = 8,
-  Irradiated = 9,
-  Spring = 10,
+  Soil = 4,
+  Gravel = 5,
+  Rock = 6,
+  Concrete = 7,
 }
 
 export interface TerrainInfo {
   name: string;
-  /** Se puede caminar por encima. */
   walkable: boolean;
-  /** Se puede construir encima directamente. */
   buildable: boolean;
   /** Multiplicador de coste de movimiento (1 = normal). */
   moveCost: number;
@@ -31,13 +29,55 @@ export const TERRAIN_INFO: Record<Terrain, TerrainInfo> = {
   [Terrain.Water]: { name: 'Agua', walkable: false, buildable: false, moveCost: Infinity },
   [Terrain.ShallowWater]: { name: 'Agua poco profunda', walkable: true, buildable: false, moveCost: 3 },
   [Terrain.Sand]: { name: 'Arena', walkable: true, buildable: true, moveCost: 1.2 },
-  [Terrain.Wasteland]: { name: 'Páramo', walkable: true, buildable: true, moveCost: 1 },
-  [Terrain.DeadForest]: { name: 'Bosque muerto', walkable: true, buildable: true, moveCost: 1.5 },
-  [Terrain.Hills]: { name: 'Colinas', walkable: true, buildable: true, moveCost: 1.8 },
+  [Terrain.Soil]: { name: 'Tierra', walkable: true, buildable: true, moveCost: 1 },
+  [Terrain.Gravel]: { name: 'Pedregal', walkable: true, buildable: true, moveCost: 1.3 },
   [Terrain.Rock]: { name: 'Roca', walkable: false, buildable: false, moveCost: Infinity },
-  [Terrain.Ruins]: { name: 'Ruinas', walkable: true, buildable: false, moveCost: 1.4 },
-  [Terrain.Irradiated]: { name: 'Zona irradiada', walkable: true, buildable: true, moveCost: 1 },
-  [Terrain.Spring]: { name: 'Manantial', walkable: true, buildable: false, moveCost: 2 },
+  [Terrain.Concrete]: { name: 'Asfalto viejo', walkable: true, buildable: true, moveCost: 0.9 },
+};
+
+/** Objetos colocados sobre el suelo. */
+export enum Prop {
+  None = 0,
+  DeadTree = 1,
+  Stump = 2,
+  Bush = 3,
+  Boulder = 4,
+  Stones = 5,
+  ScrapPile = 6,
+  CarWreck = 7,
+  RuinWall = 8,
+  Rubble = 9,
+  ToxicBarrel = 10,
+  GlowPuddle = 11,
+  Spring = 12,
+  Bones = 13,
+  Tires = 14,
+}
+
+export interface PropInfo {
+  name: string;
+  /** Impide el paso. */
+  blocks: boolean;
+  /** Multiplicador de coste al atravesarlo (si no bloquea). */
+  moveCost: number;
+}
+
+export const PROP_INFO: Record<Prop, PropInfo> = {
+  [Prop.None]: { name: '', blocks: false, moveCost: 1 },
+  [Prop.DeadTree]: { name: 'Árbol seco', blocks: true, moveCost: 1 },
+  [Prop.Stump]: { name: 'Tocón', blocks: false, moveCost: 1.3 },
+  [Prop.Bush]: { name: 'Matorral', blocks: false, moveCost: 1.6 },
+  [Prop.Boulder]: { name: 'Roca grande', blocks: true, moveCost: 1 },
+  [Prop.Stones]: { name: 'Piedras', blocks: false, moveCost: 1.3 },
+  [Prop.ScrapPile]: { name: 'Montón de chatarra', blocks: true, moveCost: 1 },
+  [Prop.CarWreck]: { name: 'Coche abandonado', blocks: true, moveCost: 1 },
+  [Prop.RuinWall]: { name: 'Muro derruido', blocks: true, moveCost: 1 },
+  [Prop.Rubble]: { name: 'Escombros', blocks: false, moveCost: 1.5 },
+  [Prop.ToxicBarrel]: { name: 'Barril tóxico', blocks: true, moveCost: 1 },
+  [Prop.GlowPuddle]: { name: 'Charco radiactivo', blocks: false, moveCost: 1.2 },
+  [Prop.Spring]: { name: 'Manantial', blocks: true, moveCost: 1 },
+  [Prop.Bones]: { name: 'Huesos', blocks: false, moveCost: 1 },
+  [Prop.Tires]: { name: 'Neumáticos', blocks: false, moveCost: 1.4 },
 };
 
 export interface MapOptions {
@@ -51,13 +91,21 @@ export interface GameMap {
   height: number;
   seed: number;
   terrain: Uint8Array;
-  /** Elevación 0..1 por casilla (para ventaja defensiva y pozos más adelante). */
+  props: Uint8Array;
+  /** Elevación 0..1 por casilla (ventaja defensiva y pozos más adelante). */
   elevation: Float32Array;
+  /** Humedad 0..1 (afecta al color del suelo y a la vegetación). */
+  moisture: Float32Array;
+  /** Radiación 0..1 (tinte del suelo, barriles y charcos; salud más adelante). */
+  radiation: Float32Array;
   /** 1 si el agua de la casilla está contaminada. */
   contaminated: Uint8Array;
   /** Casilla sugerida para empezar la colonia. */
   start: { x: number; y: number };
 }
+
+/** Nivel de radiación a partir del cual una casilla se considera irradiada. */
+export const RADIATION_THRESHOLD = 0.78;
 
 export function index(map: { width: number }, x: number, y: number): number {
   return y * map.width + x;
@@ -71,8 +119,39 @@ export function terrainAt(map: GameMap, x: number, y: number): Terrain {
   return map.terrain[index(map, x, y)] as Terrain;
 }
 
+export function propAt(map: GameMap, x: number, y: number): Prop {
+  return map.props[index(map, x, y)] as Prop;
+}
+
 export function isWater(t: Terrain): boolean {
   return t === Terrain.DeepWater || t === Terrain.Water || t === Terrain.ShallowWater;
+}
+
+/** Se puede caminar: suelo transitable y sin objeto que bloquee. */
+export function isPassable(map: GameMap, x: number, y: number): boolean {
+  if (!inBounds(map, x, y)) return false;
+  const i = index(map, x, y);
+  return TERRAIN_INFO[map.terrain[i] as Terrain].walkable && !PROP_INFO[map.props[i] as Prop].blocks;
+}
+
+/** Coste de pisar la casilla (suelo × objeto). Infinity si no se puede. */
+export function tileMoveCost(map: GameMap, x: number, y: number): number {
+  const i = index(map, x, y);
+  const prop = PROP_INFO[map.props[i] as Prop];
+  if (prop.blocks) return Infinity;
+  return TERRAIN_INFO[map.terrain[i] as Terrain].moveCost * prop.moveCost;
+}
+
+/** Texto descriptivo de una casilla para la interfaz. */
+export function describeTile(map: GameMap, x: number, y: number): string {
+  const i = index(map, x, y);
+  const t = map.terrain[i] as Terrain;
+  const parts = [TERRAIN_INFO[t].name];
+  if (isWater(t) && map.contaminated[i]) parts[0] += ' contaminada';
+  const p = map.props[i] as Prop;
+  if (p !== Prop.None) parts.unshift(PROP_INFO[p].name);
+  if (!isWater(t) && map.radiation[i] > RADIATION_THRESHOLD) parts.push('irradiado');
+  return parts.join(' · ');
 }
 
 /** Genera un mapa determinista a partir de una semilla. */
@@ -82,28 +161,37 @@ export function generateMap(opts: MapOptions): GameMap {
   const elevNoise = new ValueNoise(rng);
   const moistNoise = new ValueNoise(rng);
   const radNoise = new ValueNoise(rng);
+  const detailNoise = new ValueNoise(rng);
 
   const size = width * height;
-  const terrain = new Uint8Array(size);
-  const elevation = new Float32Array(size);
-  const contaminated = new Uint8Array(size);
-  const moisture = new Float32Array(size);
-  const radiation = new Float32Array(size);
+  const map: GameMap = {
+    width,
+    height,
+    seed,
+    terrain: new Uint8Array(size),
+    props: new Uint8Array(size),
+    elevation: new Float32Array(size),
+    moisture: new Float32Array(size),
+    radiation: new Float32Array(size),
+    contaminated: new Uint8Array(size),
+    start: { x: 0, y: 0 },
+  };
+  const { terrain, elevation, moisture, radiation } = map;
 
-  // 1. Campos base de ruido.
-  const elevScale = 1 / 22;
+  // 1. Campos continuos de ruido.
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = y * width + x;
-      elevation[i] = elevNoise.fbm(x * elevScale, y * elevScale, 5, 0.5);
+      elevation[i] = elevNoise.fbm(x / 22, y / 22, 5, 0.5);
       moisture[i] = moistNoise.fbm(x / 14, y / 14, 3, 0.5);
       radiation[i] = radNoise.fbm(x / 26, y / 26, 3, 0.55);
     }
   }
   normalize(elevation);
+  normalize(moisture);
   normalize(radiation);
 
-  // 2. Terreno según elevación y humedad.
+  // 2. Suelo según la elevación.
   for (let i = 0; i < size; i++) {
     const e = elevation[i];
     let t: Terrain;
@@ -111,47 +199,33 @@ export function generateMap(opts: MapOptions): GameMap {
     else if (e < 0.22) t = Terrain.Water;
     else if (e < 0.25) t = Terrain.ShallowWater;
     else if (e < 0.29) t = Terrain.Sand;
-    else if (e > 0.86) t = Terrain.Rock;
-    else if (e > 0.72) t = Terrain.Hills;
-    else if (moisture[i] > 0.58) t = Terrain.DeadForest;
-    else t = Terrain.Wasteland;
+    else if (e > 0.88) t = Terrain.Rock;
+    else if (e > 0.74) t = Terrain.Gravel;
+    else t = Terrain.Soil;
     terrain[i] = t;
   }
 
-  // 3. Ríos: 1 o 2 cauces que cruzan el mapa serpenteando.
+  // 3. Ríos que cruzan el mapa.
   const riverCount = rng.int(1, 2);
-  for (let r = 0; r < riverCount; r++) {
-    carveRiver(terrain, elevation, width, height, rng, elevNoise);
-  }
+  for (let r = 0; r < riverCount; r++) carveRiver(map, rng, elevNoise);
 
-  // 4. Zonas irradiadas en tierra; el agua de esas zonas queda contaminada.
+  // 4. Agua contaminada en zonas con radiación.
   for (let i = 0; i < size; i++) {
-    const t = terrain[i] as Terrain;
-    const rad = radiation[i];
-    if (rad > 0.82 && (t === Terrain.Wasteland || t === Terrain.Sand || t === Terrain.DeadForest)) {
-      terrain[i] = Terrain.Irradiated;
-    }
-    if (isWater(t) && rad > 0.6) contaminated[i] = 1;
+    if (isWater(terrain[i] as Terrain) && radiation[i] > 0.6) map.contaminated[i] = 1;
   }
 
-  // 5. Ruinas: varios bloques rectangulares sobre terreno llano.
-  const ruinCount = rng.int(3, 6);
-  for (let n = 0; n < ruinCount; n++) placeRuins(terrain, width, height, rng);
+  // 5. Carreteras viejas y ruinas a sus lados.
+  const roads = carveRoads(map, rng, detailNoise);
+  placeRuins(map, rng, roads);
 
-  // 6. Manantiales: agua limpia en colinas o junto a ellas.
-  const springCount = rng.int(2, 4);
-  for (let n = 0, tries = 0; n < springCount && tries < 500; tries++) {
-    const x = rng.int(2, width - 3);
-    const y = rng.int(2, height - 3);
-    const i = y * width + x;
-    if (terrain[i] === Terrain.Hills || terrain[i] === Terrain.Wasteland) {
-      terrain[i] = Terrain.Spring;
-      n++;
-    }
-  }
+  // 6. Objetos naturales y restos dispersos.
+  scatterProps(map, rng, detailNoise);
 
-  const map: GameMap = { width, height, seed, terrain, elevation, contaminated, start: { x: 0, y: 0 } };
+  // 7. Manantiales: agua limpia en terreno alto.
+  placeSprings(map, rng);
+
   map.start = findStart(map);
+  clearAround(map, map.start.x, map.start.y, 3);
   return map;
 }
 
@@ -166,14 +240,8 @@ function normalize(field: Float32Array): void {
   for (let i = 0; i < field.length; i++) field[i] = (field[i] - min) / span;
 }
 
-function carveRiver(
-  terrain: Uint8Array,
-  elevation: Float32Array,
-  width: number,
-  height: number,
-  rng: Rng,
-  noise: ValueNoise,
-): void {
+function carveRiver(map: GameMap, rng: Rng, noise: ValueNoise): void {
+  const { width, height, terrain, elevation } = map;
   const vertical = rng.chance(0.5);
   const length = vertical ? height : width;
   const span = vertical ? width : height;
@@ -181,10 +249,12 @@ function carveRiver(
   const amplitude = rng.range(span * 0.12, span * 0.25);
   const offset = rng.range(0, 1000);
   const halfWidth = rng.range(1, 2.2);
+  // Vados: tramos poco profundos que se pueden cruzar a pie antes de tener puentes.
+  const fords = Array.from({ length: rng.int(2, 3) }, () => rng.int(5, length - 6));
 
   for (let s = 0; s < length; s++) {
-    const wander = (noise.fbm(s / 30 + offset, offset, 3, 0.5) - 0.5) * 2 * amplitude;
-    const center = base + wander;
+    const isFord = fords.some((f) => Math.abs(f - s) <= 1);
+    const center = base + (noise.fbm(s / 30 + offset, offset, 3, 0.5) - 0.5) * 2 * amplitude;
     const w = halfWidth + noise.sample(s / 10, offset + 7) * 1.2;
     for (let d = Math.floor(center - w - 1); d <= Math.ceil(center + w + 1); d++) {
       if (d < 0 || d >= span) continue;
@@ -192,54 +262,184 @@ function carveRiver(
       const y = vertical ? s : d;
       const i = y * width + x;
       const dist = Math.abs(d - center);
-      if (terrain[i] === Terrain.Rock && dist > w * 0.5) continue; // los cañones respetan la roca
-      if (dist <= w * 0.6) {
+      if (terrain[i] === Terrain.Rock && dist > w * 0.5) continue; // cañón entre rocas
+      if (dist <= w && isFord) {
+        terrain[i] = Terrain.ShallowWater;
+      } else if (dist <= w * 0.6) {
         terrain[i] = Terrain.Water;
         elevation[i] = Math.min(elevation[i], 0.2);
       } else if (dist <= w) {
         if (terrain[i] !== Terrain.Water && terrain[i] !== Terrain.DeepWater) terrain[i] = Terrain.ShallowWater;
-      } else if (dist <= w + 1) {
-        const t = terrain[i];
-        if (t === Terrain.Wasteland || t === Terrain.DeadForest) terrain[i] = Terrain.Sand;
+      } else if (terrain[i] === Terrain.Soil || terrain[i] === Terrain.Gravel) {
+        terrain[i] = Terrain.Sand;
       }
     }
   }
 }
 
-function placeRuins(terrain: Uint8Array, width: number, height: number, rng: Rng): void {
-  for (let tries = 0; tries < 40; tries++) {
-    const w = rng.int(4, 9);
-    const h = rng.int(4, 9);
-    const x0 = rng.int(2, width - w - 3);
-    const y0 = rng.int(2, height - h - 3);
-    let ok = true;
-    for (let y = y0; y < y0 + h && ok; y++) {
-      for (let x = x0; x < x0 + w; x++) {
-        const t = terrain[y * width + x];
-        if (t !== Terrain.Wasteland && t !== Terrain.Sand && t !== Terrain.Irradiated) {
-          ok = false;
-          break;
+/** Una o dos carreteras viejas, rectas con ligeras curvas. Devuelve sus casillas. */
+function carveRoads(map: GameMap, rng: Rng, noise: ValueNoise): number[] {
+  const { width, height, terrain } = map;
+  const cells: number[] = [];
+  const count = rng.int(1, 2);
+  for (let r = 0; r < count; r++) {
+    const vertical = rng.chance(0.5);
+    const length = vertical ? height : width;
+    const span = vertical ? width : height;
+    const base = rng.range(span * 0.25, span * 0.75);
+    const offset = rng.range(0, 1000);
+    let broken = 0;
+    for (let s = 0; s < length; s++) {
+      const center = Math.round(base + (noise.fbm(s / 50 + offset, offset, 2, 0.5) - 0.5) * span * 0.3);
+      // Tramos de asfalto desaparecidos.
+      if (broken > 0) {
+        broken--;
+        continue;
+      }
+      if (rng.chance(0.02)) broken = rng.int(2, 6);
+      for (let d = center - 1; d <= center + 1; d++) {
+        if (d < 0 || d >= span) continue;
+        const x = vertical ? d : s;
+        const y = vertical ? s : d;
+        const i = y * width + x;
+        const t = terrain[i] as Terrain;
+        if (t === Terrain.Soil || t === Terrain.Sand || t === Terrain.Gravel) {
+          // Bordes desgastados.
+          if (d !== center && rng.chance(0.25)) continue;
+          terrain[i] = Terrain.Concrete;
+          cells.push(i);
         }
       }
     }
-    if (!ok) continue;
-    for (let y = y0; y < y0 + h; y++) {
-      for (let x = x0; x < x0 + w; x++) {
-        const edge = x === x0 || y === y0 || x === x0 + w - 1 || y === y0 + h - 1;
-        // Muros derruidos en el borde, escombros dispersos dentro.
-        if ((edge && rng.chance(0.7)) || (!edge && rng.chance(0.15))) {
-          terrain[y * width + x] = Terrain.Ruins;
+  }
+  return cells;
+}
+
+function placeRuins(map: GameMap, rng: Rng, roadCells: number[]): void {
+  const { width, height, terrain, props } = map;
+  const buildings = rng.int(4, 8);
+  for (let n = 0; n < buildings; n++) {
+    for (let tries = 0; tries < 60; tries++) {
+      const w = rng.int(4, 8);
+      const h = rng.int(4, 7);
+      let x0: number;
+      let y0: number;
+      if (roadCells.length > 0 && rng.chance(0.8)) {
+        // Junto a la carretera.
+        const c = roadCells[rng.int(0, roadCells.length - 1)];
+        x0 = (c % width) + rng.int(2, 4) * (rng.chance(0.5) ? 1 : -1) - (rng.chance(0.5) ? w : 0);
+        y0 = Math.floor(c / width) + rng.int(2, 4) * (rng.chance(0.5) ? 1 : -1) - (rng.chance(0.5) ? h : 0);
+      } else {
+        x0 = rng.int(2, width - w - 3);
+        y0 = rng.int(2, height - h - 3);
+      }
+      if (x0 < 1 || y0 < 1 || x0 + w >= width - 1 || y0 + h >= height - 1) continue;
+      if (!areaIs(map, x0 - 1, y0 - 1, w + 2, h + 2, (t, p) =>
+        (t === Terrain.Soil || t === Terrain.Sand || t === Terrain.Gravel) && p === Prop.None)) continue;
+
+      const door = rng.int(1, 2 * (w + h) - 6);
+      let k = 0;
+      for (let y = y0; y < y0 + h; y++) {
+        for (let x = x0; x < x0 + w; x++) {
+          const i = y * width + x;
+          terrain[i] = Terrain.Concrete;
+          const edge = x === x0 || y === y0 || x === x0 + w - 1 || y === y0 + h - 1;
+          if (edge) {
+            k++;
+            const isDoor = k === door || k === door + 1;
+            if (!isDoor && rng.chance(0.75)) props[i] = Prop.RuinWall;
+            else if (!isDoor && rng.chance(0.5)) props[i] = Prop.Rubble;
+          } else if (rng.chance(0.12)) {
+            props[i] = rng.chance(0.3) ? Prop.ScrapPile : Prop.Rubble;
+          }
         }
       }
+      break;
     }
-    return;
+  }
+  // Coches abandonados sobre la carretera.
+  for (const i of roadCells) {
+    if (props[i] === Prop.None && rng.chance(0.025)) props[i] = Prop.CarWreck;
   }
 }
 
-/** Busca la casilla construible más cercana al centro con terreno firme alrededor. */
+function scatterProps(map: GameMap, rng: Rng, noise: ValueNoise): void {
+  const { width, height, terrain, props, moisture, radiation } = map;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      if (props[i] !== Prop.None) continue;
+      const t = terrain[i] as Terrain;
+      if (t !== Terrain.Soil && t !== Terrain.Sand && t !== Terrain.Gravel) continue;
+      const m = moisture[i];
+      const rad = radiation[i];
+      const grove = noise.fbm(x / 7, y / 7, 2, 0.5); // agrupa la vegetación en bosquecillos
+      const r = rng.next();
+
+      if (rad > RADIATION_THRESHOLD) {
+        if (r < 0.035) props[i] = Prop.ToxicBarrel;
+        else if (r < 0.09) props[i] = Prop.GlowPuddle;
+        else if (r < 0.11) props[i] = Prop.Bones;
+        else if (r < 0.13) props[i] = Prop.DeadTree;
+        continue;
+      }
+      if (t === Terrain.Gravel) {
+        if (r < 0.07) props[i] = Prop.Boulder;
+        else if (r < 0.14) props[i] = Prop.Stones;
+        else if (r < 0.16) props[i] = Prop.Bush;
+        continue;
+      }
+      const treeChance = t === Terrain.Sand ? 0.01 : Math.max(0, (m - 0.45) * 0.55 + (grove - 0.5) * 0.5);
+      if (r < treeChance) props[i] = Prop.DeadTree;
+      else if (r < treeChance + 0.05 + m * 0.04) props[i] = Prop.Bush;
+      else if (r < treeChance + 0.1 + m * 0.04) props[i] = rng.chance(0.4) ? Prop.Stump : Prop.Stones;
+      else if (r < treeChance + 0.106 + m * 0.04) props[i] = Prop.ScrapPile;
+      else if (r < treeChance + 0.11 + m * 0.04) props[i] = rng.chance(0.5) ? Prop.Bones : Prop.Tires;
+    }
+  }
+}
+
+function placeSprings(map: GameMap, rng: Rng): void {
+  const { width, height, terrain, props, elevation, radiation } = map;
+  const count = rng.int(2, 4);
+  for (let n = 0, tries = 0; n < count && tries < 2000; tries++) {
+    const x = rng.int(3, width - 4);
+    const y = rng.int(3, height - 4);
+    const i = y * width + x;
+    const t = terrain[i];
+    if ((t === Terrain.Gravel || t === Terrain.Soil) && elevation[i] > 0.55 && radiation[i] < 0.6) {
+      props[i] = Prop.Spring;
+      // Hierba algo más viva alrededor: matorrales.
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const j = (y + dy) * width + x + dx;
+          if (j !== i && props[j] === Prop.None && rng.chance(0.4)) props[j] = Prop.Bush;
+        }
+      }
+      n++;
+    }
+  }
+}
+
+function areaIs(
+  map: GameMap, x0: number, y0: number, w: number, h: number,
+  ok: (t: Terrain, p: Prop) => boolean,
+): boolean {
+  for (let y = y0; y < y0 + h; y++) {
+    for (let x = x0; x < x0 + w; x++) {
+      if (!inBounds(map, x, y)) return false;
+      const i = y * map.width + x;
+      if (!ok(map.terrain[i] as Terrain, map.props[i] as Prop)) return false;
+    }
+  }
+  return true;
+}
+
+/** Casilla construible más cercana al centro con terreno firme alrededor. */
 function findStart(map: GameMap): { x: number; y: number } {
   const cx = Math.floor(map.width / 2);
   const cy = Math.floor(map.height / 2);
+  const good = (t: Terrain, _p: Prop) => TERRAIN_INFO[t].buildable;
   const maxR = Math.max(map.width, map.height);
   for (let r = 0; r < maxR; r++) {
     for (let dy = -r; dy <= r; dy++) {
@@ -247,19 +447,21 @@ function findStart(map: GameMap): { x: number; y: number } {
         if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
         const x = cx + dx;
         const y = cy + dy;
-        if (!inBounds(map, x - 2, y - 2) || !inBounds(map, x + 2, y + 2)) continue;
-        if (areaBuildable(map, x, y, 2)) return { x, y };
+        if (map.radiation[y * map.width + x] > 0.65) continue;
+        if (areaIs(map, x - 3, y - 3, 7, 7, good)) return { x, y };
       }
     }
   }
   return { x: cx, y: cy };
 }
 
-function areaBuildable(map: GameMap, x: number, y: number, radius: number): boolean {
-  for (let yy = y - radius; yy <= y + radius; yy++) {
-    for (let xx = x - radius; xx <= x + radius; xx++) {
-      if (!TERRAIN_INFO[terrainAt(map, xx, yy)].buildable) return false;
+/** Quita objetos que bloquean alrededor del inicio para que los colonos puedan moverse. */
+function clearAround(map: GameMap, cx: number, cy: number, r: number): void {
+  for (let y = cy - r; y <= cy + r; y++) {
+    for (let x = cx - r; x <= cx + r; x++) {
+      if (!inBounds(map, x, y)) continue;
+      const i = y * map.width + x;
+      if (PROP_INFO[map.props[i] as Prop].blocks || map.props[i] === Prop.GlowPuddle) map.props[i] = Prop.None;
     }
   }
-  return true;
 }

@@ -8,11 +8,48 @@
   </head>
   <body>
     <div id="game"></div>
-    <header id="hud">
-      <div class="hud-title"><strong>ÓXIDO</strong> <span id="seed"></span></div>
-      <div id="tile">Toca el mapa para ver el terreno</div>
-      <button id="new-map" type="button">Nuevo mapa</button>
+
+    <header id="topbar" class="panel">
+      <div class="brand"><strong>ÓXIDO</strong></div>
+      <div id="clock">Día 1 · 07:00</div>
+      <div id="speeds" role="group" aria-label="Velocidad">
+        <button type="button" data-speed="0" title="Pausa (espacio)">❚❚</button>
+        <button type="button" data-speed="1" title="Velocidad x1 (1)">▶</button>
+        <button type="button" data-speed="2" title="Velocidad x2 (2)">▶▶</button>
+        <button type="button" data-speed="3" title="Velocidad x3 (3)">▶▶▶</button>
+      </div>
+      <button id="menu-btn" type="button" title="Menú">☰</button>
     </header>
+
+    <div id="menu" class="panel" hidden>
+      <div id="seed"></div>
+      <button id="new-map" type="button">Nuevo mapa</button>
+      <p class="help">
+        <strong>Controles</strong><br />
+        Arrastrar: mover la cámara · Rueda o pellizco: zoom<br />
+        Tocar un colono: seleccionarlo · Tocar el suelo: mandarlo allí<br />
+        PC: clic derecho también da la orden · Espacio, 1, 2, 3: velocidad · Esc: deseleccionar
+      </p>
+    </div>
+
+    <div id="tile" class="panel"></div>
+    <div id="toast" class="panel" hidden></div>
+
+    <section id="colonist-panel" class="panel" hidden>
+      <div class="cp-head">
+        <div>
+          <div id="cp-name"></div>
+          <div id="cp-sub"></div>
+        </div>
+        <button id="cp-close" type="button" title="Deseleccionar">✕</button>
+      </div>
+      <div id="cp-activity"></div>
+      <div id="cp-traits"></div>
+      <div id="cp-skills"></div>
+    </section>
+
+    <nav id="roster" class="panel" aria-label="Colonos"></nav>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

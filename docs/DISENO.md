@@ -28,7 +28,8 @@ Pilares de diseño:
 Décadas después de un colapso, el mundo es un páramo de ruinas, bosques muertos y zonas irradiadas. La colonia empieza con 3 supervivientes y pocos recursos.
 
 - Mapa de casillas generado con ruido procedural a partir de una semilla; la misma semilla genera siempre el mismo mapa.
-- Biomas: páramo, bosque muerto, ruinas urbanas, zona irradiada, costa.
+- Suelo continuo con transiciones suaves (tierra, arena, pedregal, roca, asfalto viejo, agua). La variedad viene de objetos encima, no de bloques de color: árboles secos, tocones, matorrales, rocas, piedras, chatarra, coches abandonados, muros derruidos, escombros, barriles tóxicos, charcos radiactivos, manantiales, huesos y neumáticos.
+- Zonas irradiadas: tinte suave del suelo más barriles y charcos; carreteras viejas con edificios en ruinas.
 - Agua: ríos que cruzan el mapa, lagos, manantiales y acuíferos subterráneos para pozos; parte del agua está contaminada y hay que filtrarla.
 - Geografía variada que condiciona la construcción: colinas, acantilados, cañones, mesetas, pasos estrechos y llanuras. Los ríos se cruzan con puentes y el terreno alto da ventaja defensiva.
 - Ruinas con chatarra, componentes y restos saqueables; yacimientos de piedra y metal.

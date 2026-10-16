@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { generateMap, Terrain, TERRAIN_INFO, isWater, terrainAt } from '../src/sim/map';
+import { generateMap, isPassable, isWater, Prop, PROP_INFO, Terrain, TERRAIN_INFO, terrainAt } from '../src/sim/map';
+import { findPath } from '../src/sim/pathfinding';
 import { Rng, seedFromString } from '../src/sim/rng';
 
 describe('Rng', () => {
@@ -22,6 +23,7 @@ describe('generateMap', () => {
     const a = generateMap(opts);
     const b = generateMap(opts);
     expect(Array.from(a.terrain)).toEqual(Array.from(b.terrain));
+    expect(Array.from(a.props)).toEqual(Array.from(b.props));
   });
 
   it('genera mapas distintos con semillas distintas', () => {
@@ -30,24 +32,48 @@ describe('generateMap', () => {
     expect(Array.from(a.terrain)).not.toEqual(Array.from(b.terrain));
   });
 
-  it('siempre tiene agua, terreno construible y variedad de terreno', () => {
+  it('tiene agua, suelo construible y objetos variados', () => {
     for (let seed = 1; seed <= 20; seed++) {
       const map = generateMap({ ...opts, seed });
-      const counts = new Map<Terrain, number>();
-      for (const t of map.terrain) counts.set(t as Terrain, (counts.get(t as Terrain) ?? 0) + 1);
-      const water = [...counts].filter(([t]) => isWater(t)).reduce((s, [, n]) => s + n, 0);
-      const buildable = [...counts].filter(([t]) => TERRAIN_INFO[t].buildable).reduce((s, [, n]) => s + n, 0);
+      let water = 0;
+      let buildable = 0;
+      const propKinds = new Set<Prop>();
+      let propCount = 0;
+      for (let i = 0; i < map.terrain.length; i++) {
+        const t = map.terrain[i] as Terrain;
+        if (isWater(t)) water++;
+        if (TERRAIN_INFO[t].buildable) buildable++;
+        if (map.props[i] !== Prop.None) {
+          propKinds.add(map.props[i] as Prop);
+          propCount++;
+        }
+      }
       expect(water, `semilla ${seed}: agua`).toBeGreaterThan(100);
       expect(buildable, `semilla ${seed}: construible`).toBeGreaterThan(3000);
-      expect(counts.size, `semilla ${seed}: variedad`).toBeGreaterThanOrEqual(6);
+      expect(propKinds.size, `semilla ${seed}: tipos de objetos`).toBeGreaterThanOrEqual(7);
+      expect(propCount, `semilla ${seed}: cantidad de objetos`).toBeGreaterThan(600);
+      expect(propCount, `semilla ${seed}: no saturado`).toBeLessThan(4000);
     }
   });
 
-  it('coloca el inicio en terreno construible', () => {
+  it('el inicio es construible, está despejado y conecta con buena parte del mapa', () => {
     for (let seed = 1; seed <= 20; seed++) {
       const map = generateMap({ ...opts, seed });
-      const t = terrainAt(map, map.start.x, map.start.y);
-      expect(TERRAIN_INFO[t].buildable).toBe(true);
+      const { x, y } = map.start;
+      expect(TERRAIN_INFO[terrainAt(map, x, y)].buildable).toBe(true);
+      for (let dy = -3; dy <= 3; dy++) {
+        for (let dx = -3; dx <= 3; dx++) {
+          expect(PROP_INFO[map.props[(y + dy) * map.width + x + dx] as Prop].blocks).toBe(false);
+        }
+      }
+      // Hay sitios alejados alcanzables.
+      let reachable = 0;
+      for (let k = 0; k < 10; k++) {
+        const tx = (x + 15 + k * 3) % map.width;
+        const ty = (y + 7 * k) % map.height;
+        if (isPassable(map, tx, ty) && findPath(map, { x, y }, { x: tx, y: ty })) reachable++;
+      }
+      expect(reachable, `semilla ${seed}: alcanzables`).toBeGreaterThanOrEqual(3);
     }
   });
 });
