@@ -121,3 +121,9 @@ button.active { border-color: var(--accent); color: var(--accent); }
 .skill .bar span { display: block; height: 100%; background: var(--accent); }
 .skill .num { text-align: right; color: var(--muted); }
 .skill .passion { color: #e8a040; }
+
+@media (max-width: 600px) {
+  #colonist-panel { max-height: 34vh; padding: 8px; }
+  .skill { line-height: 1.45; font-size: 12px; }
+  #cp-name { font-size: 14px; }
+}
