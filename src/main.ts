@@ -262,7 +262,7 @@ for (const def of BUILDINGS) {
   b.dataset.mode = 'construir';
   b.dataset.build = def.id;
   const cost = RESOURCES.filter((r) => def.cost[r]).map((r) => `${RESOURCE_ICONS[r]}${def.cost[r]}`).join(' ');
-  b.textContent = `${def.name} `;
+  b.textContent = `${def.name}${def.size ? ` ${def.size[0]}×${def.size[1]}` : ''} `;
   const n = document.createElement('span');
   n.className = 'n';
   n.textContent = cost;
@@ -314,6 +314,12 @@ for (const b of modeButtons) {
     s.setDesignMode(s.designMode === mode ? null : mode);
   });
 }
+$('build-rot').addEventListener('click', () => rotateBuild());
+function rotateBuild(): void {
+  const s = scene();
+  s.buildRot = s.buildRot ? 0 : 1;
+  showToast(`Construcción girada (${s.buildRot ? 'en vertical' : 'en horizontal'})`, 1000);
+}
 shapeBtn.addEventListener('click', () => {
   const s = scene();
   s.buildShape = s.buildShape === 'contorno' ? 'relleno' : 'contorno';
@@ -352,6 +358,7 @@ window.addEventListener('keydown', (e) => {
   if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return;
   if (e.key === 't' || e.key === 'T') showMenu(orderModes.hidden ? 'orders' : null);
   if (e.key === 'b' || e.key === 'B') showMenu(buildModes.hidden ? 'build' : null);
+  if (e.key === 'x' || e.key === 'X') rotateBuild();
 });
 
 // --- Panel de un taller: qué fabricar y hasta cuánto ---------------------------

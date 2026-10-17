@@ -10,7 +10,7 @@ import { HARVEST_JOB_NAMES, HarvestJob, MAX_STACK, RESOURCE_NAMES, RESOURCES, Re
 import { WorkType } from '../data/work';
 import { BuildingDef, buildingDef } from '../data/buildings';
 import { canZone, STORAGE_PRIORITY_NAMES } from '../sim/zones';
-import { PlaceShape, Structure, Structures } from '../sim/structures';
+import { footprintTiles, PlaceShape, Structure, Structures } from '../sim/structures';
 import { fertilityAt, plantStage } from '../sim/farming';
 import { TERRAIN_JOB_NAMES, terrainBlocker, TerrainJob } from '../sim/terrain';
 import { CropDef } from '../data/crops';
@@ -121,6 +121,8 @@ export class WorldScene extends Phaser.Scene {
   /** Construcción que se coloca en el modo «construir» y forma del área. */
   buildDefId = 'muro_madera';
   buildShape: PlaceShape = 'contorno';
+  /** Giro de la construcción que se coloca (para las de varias casillas). */
+  buildRot: 0 | 1 = 0;
   private zoneGfx!: Phaser.GameObjects.Graphics;
   private zoneVersion = -1;
   private structSprites: Phaser.GameObjects.Image[] = [];
@@ -811,7 +813,7 @@ export class WorldScene extends Phaser.Scene {
       toast(n > 0 ? `Quitadas ${n} casillas de almacenes y huertos` : 'No había zonas ahí');
     } else if (mode === 'construir') {
       const def = buildingDef(this.buildDefId);
-      const n = this.world.structures.placeArea(r, def.id, this.buildShape);
+      const n = this.world.structures.placeArea(r, def.id, this.buildShape, this.buildRot);
       toast(n > 0 ? `${def.name}: ${n} ${n === 1 ? 'plano' : 'planos'}` : 'Ahí no se puede construir (hace falta suelo llano y libre)');
     } else if (mode === 'quitarPlano') {
       const n = this.world.demolishArea(r);
@@ -857,6 +859,19 @@ export class WorldScene extends Phaser.Scene {
     const color = DESIGN_COLORS[mode];
     const d = this.world.designations;
     const st = this.world.structures;
+    // Construcción de varias casillas: se ve lo que ocupará (verde si cabe, rojo si no).
+    if (mode === 'construir') {
+      const def = buildingDef(this.buildDefId);
+      const [w, h] = def.size ?? [1, 1];
+      if (w * h > 1) {
+        const ok = st.canPlaceDef(def, r.x0, r.y0, this.buildRot);
+        g.fillStyle(ok ? 0x8fc060 : 0xd9534f, 0.55);
+        for (const t of footprintTiles(def, r.x0, r.y0, this.buildRot)) {
+          if (inBounds(this.map, t.x, t.y)) this.fillTile(g, t.x, t.y, 1);
+        }
+        return;
+      }
+    }
     const hitAt = (x: number, y: number, edge: boolean): boolean => {
       switch (mode) {
         case 'cancelar': return d.at(x, y) !== undefined || this.world.terrain.at(x, y) !== undefined;
@@ -1067,11 +1082,17 @@ export class WorldScene extends Phaser.Scene {
     this.structSprites = [];
     const unitH = wallHeight(LIFT);
     for (const s of st.all()) {
-      const key = `build-${s.def.id}-${TILE_H}-${unitH}`;
-      if (!this.textures.exists(key)) drawBuildingTexture(this, key, s.def, unitH);
-      const v = this.viewTile(s.x, s.y);
-      const top = v.y * TILE_H - liftOf(this.view, v.x, v.y);
-      const img = this.add.image(v.x * TILE, top - faceHeight(s.def, LIFT), key).setOrigin(0, 0);
+      // Lo que ocupa, visto con el giro de la vista.
+      const vt = st.tilesOf(s).map((t) => this.viewTile(t.x, t.y));
+      const vx0 = Math.min(...vt.map((t) => t.x));
+      const vy0 = Math.min(...vt.map((t) => t.y));
+      const vw = Math.max(...vt.map((t) => t.x)) - vx0 + 1;
+      const vh = Math.max(...vt.map((t) => t.y)) - vy0 + 1;
+      const key = `build-${s.def.id}-${TILE_H}-${unitH}-${vw}x${vh}`;
+      if (!this.textures.exists(key)) drawBuildingTexture(this, key, s.def, unitH, vw, vh);
+      const v = { x: vx0, y: vy0 + vh - 1 };
+      const top = vy0 * TILE_H - liftOf(this.view, vx0, vy0);
+      const img = this.add.image(vx0 * TILE, top - faceHeight(s.def, LIFT), key).setOrigin(0, 0);
       // Delante de lo que está en su fila y en las de detrás; detrás de lo que está más al sur.
       // Las torres, justo por debajo de los colonos de su fila: quien sube se ve encima.
       const flat = s.def.height === 0;
@@ -1379,10 +1400,10 @@ function structureLabel(st: Structures, s: Structure): string {
   return `Plano: ${s.def.name} (${parts.join(', ')})`;
 }
 
-function drawBuildingTexture(scene: Phaser.Scene, key: string, def: BuildingDef, unitH: number): void {
-  const tex = scene.textures.createCanvas(key, TILE, TILE_H + unitH * def.height);
+function drawBuildingTexture(scene: Phaser.Scene, key: string, def: BuildingDef, unitH: number, vw = 1, vh = 1): void {
+  const tex = scene.textures.createCanvas(key, TILE * vw, TILE_H * vh + unitH * def.height);
   if (!tex) return;
-  drawBuilding(tex.getContext(), def, TILE, TILE_H, unitH);
+  drawBuilding(tex.getContext(), def, TILE * vw, TILE_H * vh, unitH);
   tex.refresh();
 }
 

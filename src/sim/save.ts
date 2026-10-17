@@ -43,7 +43,7 @@ export interface SaveData {
   items: { x: number; y: number; resource: string; amount: number }[];
   designations: { x: number; y: number; job: string }[];
   zones: { id: number; name: string; priority: number; accepts: Record<string, boolean>; tiles: number[] }[];
-  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number; demolish?: boolean; bill?: { recipe: string; target: number; paused: boolean } }[];
+  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number; demolish?: boolean; bill?: { recipe: string; target: number; paused: boolean }; rot?: number }[];
   /** Obras de terreno pendientes (desde que existen). */
   terrain?: { x: number; y: number; job: string }[];
   /** Huertos (desde que existe el cultivo; las partidas anteriores no los tienen). */
@@ -127,6 +127,7 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     structures: world.structures.all().map((s) => ({
       def: s.def.id, x: s.x, y: s.y, built: s.built, delivered: { ...s.delivered } as Record<string, number>, progress: s.progress, hp: s.hp,
       demolish: s.demolish || undefined,
+      rot: s.rot || undefined,
       bill: s.bill ? { recipe: s.bill.recipe.id, target: s.bill.target, paused: s.bill.paused } : undefined,
     })),
     terrain: world.terrain.list().map((o) => ({ ...o })),
@@ -259,7 +260,13 @@ export function loadWorld(input: string | unknown): World {
     for (const [r, n] of Object.entries(s.delivered ?? {})) if (isResource(r)) delivered[r] = num(n, 0);
     // En las construcciones terminadas solo cuenta lo que hay dentro de un taller.
     const keep = !s.built || def.category === 'taller' ? delivered : {};
-    const restored = world.structures.restore(def, s.x, s.y, !!s.built, keep, num(s.progress, 0), num(s.hp, def.hp));
+    const restored = world.structures.restore(def, s.x, s.y, !!s.built, keep, num(s.progress, 0), num(s.hp, def.hp), s.rot === 1 ? 1 : 0);
+    if (!restored) {
+      // Ya no cabe (p. ej. ahora ocupa más casillas): se devuelve su material.
+      const back: Partial<Record<ResourceId, number>> = s.built ? { ...def.cost } : { ...delivered };
+      for (const [r, n] of Object.entries(back) as [ResourceId, number][]) world.items.drop(s.x, s.y, r, n);
+      continue;
+    }
     if (s.demolish) world.structures.markDemolish(s.x, s.y);
     const recipe = s.bill ? recipeDef(String(s.bill.recipe)) : undefined;
     if (restored && recipe && recipe.station === def.id) {

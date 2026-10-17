@@ -84,7 +84,7 @@ describe('necesidades', () => {
   it('en una partida de varios días con comida y camas, nadie pasa hambre y no se rompe nada', () => {
     const world = flatWorld(3);
     world.items.drop(4, 20, 'patata', 150);
-    for (const x of [10, 11, 12]) buildNow(world, x, 14, 'cama');
+    for (const y of [14, 16, 18]) buildNow(world, 10, y, 'cama'); // camas de 2×1
     for (let t = 0; t < TICKS_PER_DAY * 3; t++) {
       world.step();
       if (t % 600 === 0) expect(checkWorld(world)).toEqual([]);

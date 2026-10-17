@@ -251,12 +251,17 @@ function drawFlat(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number,
     }
     return;
   }
-  // Cama: armazón, colchón y almohada.
+  // Cama: armazón, manta y almohada (en el lado corto de arriba o de la izquierda).
   px(1, 1, tile - 2, tileH - 2, '#1a1410');
   px(2, 2, tile - 4, tileH - 4, dark);
   px(3, 2, tile - 6, tileH - 5, face);
-  px(3, 2, tile - 6, 3, '#d8d0bc');
-  px(3, tileH - 5, tile - 6, 2, top);
+  if (tile > tileH * 1.3) {
+    px(3, 3, 5, tileH - 7, '#d8d0bc');
+    px(tile - 6, 2, 2, tileH - 5, top);
+  } else {
+    px(3, 2, tile - 6, 3, '#d8d0bc');
+    px(3, tileH - 5, tile - 6, 2, top);
+  }
 }
 
 /** Portón: hoja alta de tablones o chapa, pensado para ponerse en línea (las casillas se juntan). */

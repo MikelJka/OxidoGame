@@ -148,3 +148,40 @@ describe('construir', () => {
     expect(checkWorld(world)).toEqual([]);
   });
 });
+
+describe('construcciones de varias casillas', () => {
+  it('una cama ocupa 2×1 (o 1×2 girada) y un horno 2×2; no se solapan', () => {
+    const world = flatWorld();
+    const st = world.structures;
+    expect(st.place(10, 10, 'cama')).toBe(true);
+    expect(st.at(11, 10)).toBe(st.at(10, 10));
+    expect(st.place(11, 10, 'cama')).toBe(false);
+    expect(st.place(10, 12, 'cama', 1)).toBe(true);
+    expect(st.at(10, 13)).toBe(st.at(10, 12));
+    expect(st.place(14, 10, 'horno')).toBe(true);
+    expect(st.tilesOf(st.at(15, 11)!)).toHaveLength(4);
+    expect(st.all().length).toBe(3);
+  });
+
+  it('no cabe sobre un desnivel ni encima de un objeto', () => {
+    const world = flatWorld();
+    world.map.level[index(world.map, 21, 10)] = 3;
+    expect(world.structures.place(20, 10, 'horno')).toBe(false);
+    world.map.props[index(world.map, 26, 11)] = Prop.Boulder;
+    expect(world.structures.place(25, 10, 'horno')).toBe(false);
+  });
+
+  it('un horno 2×2 se construye desde fuera, bloquea sus 4 casillas y funde', () => {
+    const world = flatWorld(2);
+    world.items.drop(4, 20, 'piedra', 50);
+    world.items.drop(4, 22, 'chatarra', 40);
+    world.structures.place(14, 10, 'horno');
+    runUntil(world, () => world.structures.blueprints().length === 0, 40000);
+    const h = world.structures.at(14, 10)!;
+    expect(h.built).toBe(true);
+    for (const t of world.structures.tilesOf(h)) expect(isPassable(world.map, t.x, t.y)).toBe(false);
+    world.demolishStructure(h);
+    for (const t of world.structures.tilesOf(h)) expect(isPassable(world.map, t.x, t.y)).toBe(true);
+    expect(checkWorld(world)).toEqual([]);
+  });
+});

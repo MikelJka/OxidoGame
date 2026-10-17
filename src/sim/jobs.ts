@@ -266,7 +266,7 @@ function fabricateCandidates(ctx: JobContext, c: Colonist): Candidate[] {
     out.push({
       kind: 'fabricar', x: s.x, y: s.y, dist: manhattan(c.tile, s.x, s.y),
       make: () => {
-        const sides = sideTiles(ctx.map, s.x, s.y);
+        const sides = ctx.structures.sidesOf(s);
         if (ctx.structures.needsAny(s)) {
           // Primero, traer los materiales de la tanda.
           const mat = nearestMaterial(ctx, s, c.tile);
@@ -281,7 +281,7 @@ function fabricateCandidates(ctx: JobContext, c: Colonist): Candidate[] {
             path: route.path,
           };
         }
-        const here = isBeside(c.tile, s.x, s.y);
+        const here = ctx.structures.isBesideStructure(c.tile, s);
         const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, sides);
         if (!route) return null;
         return { job: { kind: 'fabricar', x: s.x, y: s.y, stand: route.stand, progress: 0, work: s.bill!.recipe.work }, path: route.path };
@@ -300,8 +300,8 @@ function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
     out.push({
       kind: 'construir', x: s.x, y: s.y, dist: manhattan(c.tile, s.x, s.y),
       make: () => {
-        const here = isBeside(c.tile, s.x, s.y);
-        const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, sideTiles(ctx.map, s.x, s.y));
+        const here = ctx.structures.isBesideStructure(c.tile, s);
+        const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, ctx.structures.sidesOf(s));
         if (!route) return null;
         return { job: { kind: 'construir', x: s.x, y: s.y, stand: route.stand, progress: 0, work: Math.ceil(s.def.work / 2), demolish: true }, path: route.path };
       },
@@ -314,7 +314,7 @@ function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
       kind: 'construir', x: s.x, y: s.y, dist: manhattan(c.tile, s.x, s.y),
       make: () => {
         // Hay que poder llegar al lado del plano.
-        const sides = sideTiles(ctx.map, s.x, s.y);
+        const sides = ctx.structures.sidesOf(s);
         if (ctx.structures.needsAny(s)) {
           const mat = nearestMaterial(ctx, s, c.tile);
           if (!mat) return null;
@@ -329,7 +329,7 @@ function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
             path: route.path,
           };
         }
-        const here = isBeside(c.tile, s.x, s.y);
+        const here = ctx.structures.isBesideStructure(c.tile, s);
         const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, sides);
         if (!route) return null;
         return { job: { kind: 'construir', x: s.x, y: s.y, stand: route.stand, progress: s.progress, work: s.def.work }, path: route.path };

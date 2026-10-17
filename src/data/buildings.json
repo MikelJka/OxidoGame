@@ -556,7 +556,11 @@
       "top": "#8a6a4a",
       "face": "#5a6b4a",
       "dark": "#3a2a1c"
-    }
+    },
+    "size": [
+      2,
+      1
+    ]
   },
   {
     "id": "estanteria_madera",
@@ -614,7 +618,11 @@
       "top": "#8a6a4a",
       "face": "#6a4a2c",
       "dark": "#3e2a18"
-    }
+    },
+    "size": [
+      2,
+      1
+    ]
   },
   {
     "id": "horno",
@@ -632,7 +640,11 @@
       "top": "#8a877f",
       "face": "#6a5a4a",
       "dark": "#3a302a"
-    }
+    },
+    "size": [
+      2,
+      2
+    ]
   },
   {
     "id": "banco_trabajo",
@@ -650,7 +662,11 @@
       "top": "#9a7448",
       "face": "#6a4a2c",
       "dark": "#3e2a18"
-    }
+    },
+    "size": [
+      2,
+      1
+    ]
   },
   {
     "id": "cantera",
@@ -668,7 +684,11 @@
       "top": "#9a958c",
       "face": "#6a5a4a",
       "dark": "#3a302a"
-    }
+    },
+    "size": [
+      3,
+      3
+    ]
   },
   {
     "id": "recicladora",
@@ -686,6 +706,10 @@
       "top": "#8a7a6a",
       "face": "#6a5a4a",
       "dark": "#3a302a"
-    }
+    },
+    "size": [
+      2,
+      2
+    ]
   }
 ]

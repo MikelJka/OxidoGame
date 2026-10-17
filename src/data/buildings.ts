@@ -31,6 +31,8 @@ export interface BuildingDef {
   moveCost?: number;
   /** Altura en «pisos» de muro: 1 muro normal, 2 muro alto, 3 torre. */
   height: number;
+  /** Casillas que ocupa [ancho, alto] sin girar (por defecto 1×1). */
+  size?: [number, number];
   /** Estantería: cuántos montones normales caben en su casilla. */
   storage?: number;
   /** Casillas de vista desde lo alto (torres; servirá para ver venir a los enemigos). */
@@ -57,6 +59,7 @@ export function validateBuilding(d: unknown): BuildingDef {
   if (typeof b.blocks !== 'boolean') fail('falta «blocks»');
   if (b.height === undefined) b.height = 1;
   if (!Number.isInteger(b.height) || b.height < 0 || b.height > 4) fail('altura no válida');
+  if (b.size !== undefined && (!Array.isArray(b.size) || b.size.length !== 2 || !b.size.every((n) => Number.isInteger(n) && n >= 1 && n <= 4))) fail('tamaño no válido');
   if (b.moveCost !== undefined && !(b.moveCost >= 0.5 && b.moveCost <= 5)) fail('coste de paso no válido');
   if (b.category === 'torre' && b.blocks) fail('una torre se tiene que poder subir (no bloquea)');
   if (!b.colors?.top || !b.colors.face || !b.colors.dark) fail('faltan colores');

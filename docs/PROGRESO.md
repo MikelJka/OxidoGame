@@ -2,6 +2,14 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (tarde, 13) — Construcciones de varias casillas
+
+- Petición de Mikel: talleres y camas más grandes que 1×1, y poder girar la vista libremente.
+- Cama, banco de trabajo y armario ocupan 2×1; horno y recicladora 2×2; cantera 3×3. En 🏗 hay ↻ Girar (tecla X) para ponerlas en vertical u horizontal; al arrastrar se ve en verde dónde caben o en rojo si no (todas sus casillas tienen que ser suelo llano, libre y a la misma altura). Se construyen y se usan desde cualquier casilla de alrededor; al demolerlas se libera todo lo que ocupaban.
+- Partidas guardadas: un taller o una cama de antes que ya no quepa con su tamaño nuevo se quita y devuelve su material al suelo.
+- Vista libre: decidido con Mikel pasar a 3D real (Three.js) con órbita libre (botón central, dos dedos). Se hace en varias sesiones con un interruptor; mientras, la vista actual sigue.
+- Qué probar: poner un horno 2×2 y una cama girada; comprobar que los colonos la usan.
+
 ## 2026-10-17 (tarde, 12) — Fin de la fase 3 y primeras necesidades (fase 4)
 
 - **Habitaciones**: el juego detecta los cuartos cerrados por muros (las puertas y portones los separan); al tocar dentro se ve «Habitación (12 casillas, 1 puerta)». Servirán para el ánimo y la temperatura.

@@ -4,10 +4,14 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Pendiente
 
+- [ ] **Girar la vista libremente** (2026-10-17): pivotar la cámara a cualquier ángulo e inclinación con el botón central del ratón (y con dos dedos en el móvil), no solo los 4 giros fijos. Decidido: pasar a 3D real con Three.js, en varias sesiones; mientras, la vista actual sigue y la nueva se activa con un interruptor.
+
 - [ ] **Mobiliario de almacén** (2026-10-17): estanterías y armarios ya están; los armeros de pared llegarán con las armas (fase 4).
 
 
 ## Hecho
+
+- [x] **Construcciones de varias casillas** (2026-10-17): cama y banco de trabajo 2×1, armario 2×1, horno y recicladora 2×2, cantera 3×3. Se giran con ↻ Girar (tecla X) en 🏗; al arrastrar se ve en verde dónde cabe (o en rojo si no). Necesitan suelo llano y libre en todas sus casillas.
 
 - [x] **Máquinas que generan recursos: canteras y recicladoras** (2026-10-17): 🏗 → Talleres. La cantera saca piedra y la recicladora chatarra (y componentes), sin materiales, despacio.
 

@@ -4,7 +4,7 @@ import { findPath, isWalkable, Point } from './pathfinding';
 import { Rng } from './rng';
 import { GroundItems } from './items';
 import { Designations } from './designations';
-import { canWorkFrom, findJob, findJobAt, isBeside, stationWantsWork, JOB_PATH_NODES, JobContext, reservePlan, Reservations, sideTiles, workSpeed } from './jobs';
+import { canWorkFrom, findJob, findJobAt, stationWantsWork, JOB_PATH_NODES, JobContext, reservePlan, Reservations, workSpeed } from './jobs';
 import { harvestAt, harvestTile, Stockpile } from './resources';
 import { StorageZones } from './zones';
 import { GrowZones } from './farming';
@@ -503,7 +503,8 @@ export class World implements JobContext {
       return;
     }
     const building = j.kind === 'construir' || j.kind === 'fabricar';
-    const inPlace = building ? isBeside(c.tile, j.x, j.y) : canWorkFrom(this.map, c.tile, j.x, j.y);
+    const target = building ? this.structures.at(j.x, j.y) : undefined;
+    const inPlace = building ? !!target && this.structures.isBesideStructure(c.tile, target) : canWorkFrom(this.map, c.tile, j.x, j.y);
     if (!inPlace) {
       const path = findPath(this.map, c.tile, j.stand, JOB_PATH_NODES);
       if (!path || path.length === 0) {
@@ -528,7 +529,7 @@ export class World implements JobContext {
     if (j.kind === 'fabricar') {
       if (j.progress >= j.work) {
         const s = this.structures.at(j.x, j.y)!;
-        if (this.structures.consumeInputs(s)) this.items.dropAll(s.x, s.y, s.bill!.recipe.outputs);
+        if (this.structures.consumeInputs(s)) this.dropBeside(s, s.bill!.recipe.outputs);
         this.dropJob(c);
       }
       return;
@@ -617,7 +618,8 @@ export class World implements JobContext {
       h.picked = true;
       this.reservations.release(h.from.x, h.from.y, c.id, 'pickup');
       // Al almacén se entra; a un plano se le lleva el material desde el lado.
-      const targets = h.toBlueprint ? sideTiles(this.map, h.to.x, h.to.y) : [h.to];
+      const dest = h.toBlueprint ? this.structures.at(h.to.x, h.to.y) : undefined;
+      const targets = h.toBlueprint ? (dest ? this.structures.sidesOf(dest) : []) : [h.to];
       const route = this.routeTo(c, targets);
       if (!route) {
         this.dropJob(c);
@@ -629,7 +631,8 @@ export class World implements JobContext {
       c.activity = 'toJob';
       return;
     }
-    const arrived = h.toBlueprint ? isBeside(c.tile, h.to.x, h.to.y) : c.tile.x === h.to.x && c.tile.y === h.to.y;
+    const dest = h.toBlueprint ? this.structures.at(h.to.x, h.to.y) : undefined;
+    const arrived = h.toBlueprint ? !!dest && this.structures.isBesideStructure(c.tile, dest) : c.tile.x === h.to.x && c.tile.y === h.to.y;
     if (!arrived) {
       this.repathOrDrop(c, j.stand);
       return;
@@ -677,6 +680,12 @@ export class World implements JobContext {
     if (!back) return false;
     this.items.dropAll(x, y, back);
     return true;
+  }
+
+  /** Suelta recursos junto a una construcción (desde una casilla de al lado, por si ocupa varias). */
+  private dropBeside(s: Structure, gains: Partial<Stockpile>): void {
+    const side = this.structures.sidesOf(s)[0] ?? { x: s.x, y: s.y };
+    this.items.dropAll(side.x, side.y, gains);
   }
 
   /** Derriba una construcción terminada y deja en el suelo parte de su material. */
@@ -779,17 +788,21 @@ export class World implements JobContext {
   completeStructure(s: Structure): void {
     this.structures.complete(s);
     if (!s.def.blocks) return;
-    const stack = this.items.at(s.x, s.y);
-    if (stack) {
-      const got = this.items.take(s.x, s.y, stack.amount)!;
-      this.items.drop(s.x, s.y, got.resource, got.amount);
+    const tiles = this.structures.tilesOf(s);
+    const on = (p: Point) => tiles.some((t) => t.x === p.x && t.y === p.y);
+    for (const t of tiles) {
+      const stack = this.items.at(t.x, t.y);
+      if (!stack) continue;
+      const got = this.items.take(t.x, t.y, stack.amount)!;
+      const side = this.structures.sidesOf(s)[0] ?? t;
+      this.items.drop(side.x, side.y, got.resource, got.amount);
     }
     for (const c of this.colonists) {
-      if (c.tile.x === s.x && c.tile.y === s.y) this.moveOutOfTheWay(c);
+      if (on(c.tile)) this.moveOutOfTheWay(c);
     }
     // Los caminos que pasaban por ahí se recalculan.
     for (const c of this.colonists) {
-      if (!c.path.some((p) => p.x === s.x && p.y === s.y)) continue;
+      if (!c.path.some(on)) continue;
       const goal = c.path[c.path.length - 1];
       const path = isPassable(this.map, goal.x, goal.y) ? findPath(this.map, c.tile, goal, JOB_PATH_NODES) : null;
       c.path = path ?? [];
