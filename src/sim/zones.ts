@@ -26,7 +26,8 @@ export interface StorageZone {
 
 /** Se puede incluir la casilla en una zona: se pisa y no es agua. */
 export function canZone(map: GameMap, x: number, y: number): boolean {
-  return isPassable(map, x, y) && !isWater(map.terrain[index(map, x, y)] as Terrain);
+  const i = index(map, x, y);
+  return isPassable(map, x, y) && !isWater(map.terrain[i] as Terrain) && !map.trench[i];
 }
 
 export class StorageZones {

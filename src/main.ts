@@ -77,6 +77,8 @@ const game = new Phaser.Game({
 // ?nueva en la URL empieza un mapa nuevo.
 const wantsNew = new URLSearchParams(window.location.search).has('nueva');
 const storedSave = wantsNew ? null : readStoredSave();
+/** Última partida (texto) que se ha intentado cargar: si falla, se aparta esa. */
+let lastLoadedText: string | null = storedSave;
 game.scene.add('world', WorldScene, true, storedSave ? { seed, save: storedSave } : { seed });
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -191,6 +193,7 @@ $('save-import').addEventListener('click', async () => {
     return;
   }
   menu.hidden = true;
+  lastLoadedText = text;
   scene().scene.restart({ seed, save: text });
   showToast('⬆ Partida cargada');
 });
@@ -202,13 +205,14 @@ $('save-backup').addEventListener('click', () => {
   }
   if (!window.confirm('¿Volver a la partida guardada anterior? Se pierde lo jugado desde entonces.')) return;
   menu.hidden = true;
+  lastLoadedText = text;
   scene().scene.restart({ seed, save: text });
 });
 game.events.on('load-failed', (why: string) => {
   recordError('guardado', `No se pudo cargar la partida guardada: ${why}`);
   // Se aparta la partida que no se pudo leer para que el guardado automático no la pise.
   try {
-    if (storedSave) localStorage.setItem('oxido.partida.fallida', storedSave);
+    if (lastLoadedText) localStorage.setItem('oxido.partida.fallida', lastLoadedText);
   } catch {
     // sin sitio: nada que hacer
   }
@@ -277,6 +281,8 @@ const DESIGN_HINTS: Record<Exclude<DesignMode, null>, string> = {
   rebajar: 'Rebajar: arrastra sobre las casillas que bajarán un nivel (sale piedra; la roca se pica)',
   elevar: 'Elevar: arrastra sobre las casillas que subirán un nivel',
   rampa: 'Rampa: arrastra sobre acantilados para convertirlos en pendiente (se podrán cruzar)',
+  zanja: 'Zanja: arrastra para cavar una zanja (se cruza muy despacio: frena a los enemigos)',
+  rellenar: 'Rellenar: arrastra sobre las zanjas que quieras tapar',
   quitarAlmacen: 'Quitar zona: arrastra sobre las casillas de almacén o huerto que ya no quieras',
   construir: 'Construir',
   quitarPlano: 'Demoler: arrastra sobre construcciones (devuelven la mitad del material) o planos (todo lo llevado)',
@@ -588,8 +594,15 @@ function renderRoster(): void {
       }, LONG_PRESS_MS);
     });
     const cancel = () => window.clearTimeout(pressTimer);
+    let downX = 0;
+    b.addEventListener('pointerdown', (e) => (downX = e.clientX));
     b.addEventListener('pointerup', cancel);
     b.addEventListener('pointerleave', cancel);
+    // Al deslizar la lista (móvil) no cuenta como pulsación larga.
+    b.addEventListener('pointercancel', cancel);
+    b.addEventListener('pointermove', (e) => {
+      if (Math.abs(e.clientX - downX) > 8) cancel();
+    });
     b.addEventListener('contextmenu', (e) => e.preventDefault());
     b.addEventListener('click', (e) => {
       if (longPressed) return;
@@ -654,8 +667,13 @@ game.events.on('selection', (c: Colonist | null, group: Colonist[] = c ? [c] : [
   if (!c) {
     panel.hidden = true;
     lastPanelId = null;
+    lastPriorityKey = '';
+    lastGroupKey = '';
     return;
   }
+  // Al abrirse la ficha, los menús de órdenes se cierran para no taparse en el móvil
+  // (solo al abrirse: luego se pueden volver a abrir con la ficha a la vista).
+  if (panel.hidden && (!orderModes.hidden || !buildModes.hidden)) showMenu(null);
   panel.hidden = false;
   const draftBtn = $('cp-draft');
   const allDrafted = group.every((k) => k.drafted);
@@ -674,6 +692,7 @@ game.events.on('selection', (c: Colonist | null, group: Colonist[] = c ? [c] : [
     $('cp-traits').replaceChildren();
     $('cp-skills').replaceChildren();
     $('cp-work').replaceChildren();
+    lastPriorityKey = '';
     return;
   }
   panel.classList.remove('group');

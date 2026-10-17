@@ -16,9 +16,9 @@ import { GameSpeed, World } from './world';
 /** Versión del formato. Súbela solo si un cambio no se puede leer de forma tolerante, y añade la migración. */
 export const SAVE_VERSION = 1;
 
-type U8Field = 'terrain' | 'props' | 'contaminated' | 'level' | 'cliff' | 'slope' | 'stock';
+type U8Field = 'terrain' | 'props' | 'contaminated' | 'level' | 'cliff' | 'slope' | 'stock' | 'trench';
 type F32Field = 'elevation' | 'moisture' | 'radiation';
-const U8_FIELDS: readonly U8Field[] = ['terrain', 'props', 'contaminated', 'level', 'cliff', 'slope', 'stock'];
+const U8_FIELDS: readonly U8Field[] = ['terrain', 'props', 'contaminated', 'level', 'cliff', 'slope', 'stock', 'trench'];
 const F32_FIELDS: readonly F32Field[] = ['elevation', 'moisture', 'radiation'];
 
 export interface SaveData {
@@ -191,6 +191,7 @@ function restoreMap(d: SaveData): GameMap {
     slope: u8('slope'),
     stock: u8('stock'),
     blocked: new Uint8Array(size), // lo rehacen las construcciones al cargarse
+    trench: u8('trench'), // las partidas de antes de las zanjas no lo tienen: vacío
     start: { x: num(d.map.start?.x, 0), y: num(d.map.start?.y, 0) },
   };
   return map;

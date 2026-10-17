@@ -166,3 +166,45 @@ describe('aviso de colono encerrado', () => {
     expect(checkWorld(world).some((p) => p.key.startsWith('trapped-'))).toBe(false);
   });
 });
+
+describe('zanjas', () => {
+  it('una zanja se cruza muy despacio, no admite montones ni construcciones y se puede rellenar', () => {
+    const world = flatWorld();
+    const m = world.map;
+    world.items.addAt(12, 12, 'madera', 10);
+    world.terrain.add(12, 12, 'zanja');
+    runUntil(world, () => world.terrain.count === 0);
+    expect(m.trench[index(m, 12, 12)]).toBe(1);
+    expect(isPassable(m, 12, 12)).toBe(true);
+    expect(world.items.at(12, 12)).toBeUndefined();
+    expect(world.inventory().madera).toBe(10);
+    expect(world.structures.canPlace(12, 12)).toBe(false);
+    world.terrain.add(12, 12, 'rellenar');
+    runUntil(world, () => world.terrain.count === 0);
+    expect(m.trench[index(m, 12, 12)]).toBe(0);
+  });
+
+  it('las zanjas se guardan con la partida', () => {
+    const world = flatWorld();
+    applyTerrainJob(world.map, 7, 7, 'zanja');
+    const loaded = loadWorld(JSON.stringify(serializeWorld(world)));
+    expect(loaded.map.trench[index(loaded.map, 7, 7)]).toBe(1);
+  });
+});
+
+describe('estanterías', () => {
+  it('en una estantería de un almacén cabe el triple', () => {
+    const world = flatWorld();
+    world.createStorageZone({ x0: 12, y0: 12, x1: 12, y1: 12 });
+    world.structures.place(12, 12, 'estanteria_madera');
+    const s = world.structures.at(12, 12)!;
+    world.structures.deliver(s, 'madera', 12);
+    world.completeStructure(s);
+    expect(world.items.room(12, 12, 'madera')).toBe(75 * 3);
+    world.items.drop(3, 20, 'madera', 200);
+    const busy = () => world.items.list().some((st) => !world.zones.at(st.x, st.y)) || world.colonists.some((c) => c.job);
+    for (let t = 0; t < 20000 && busy(); t++) world.step();
+    expect(world.items.at(12, 12)!.amount).toBe(200);
+    expect(checkWorld(world)).toEqual([]);
+  });
+});

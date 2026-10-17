@@ -4,12 +4,14 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Pendiente
 
-- [ ] **Mobiliario de almacén** (2026-10-17): estanterías, armarios y soportes de pared (p. ej. armeros para armas). Fase 3.
-- [ ] **Defensas: zanjas** (2026-10-17): los pinchos y las barricadas ya están; las zanjas van con el trabajo de terreno. Fase 3.
+- [ ] **Mobiliario de almacén** (2026-10-17): las estanterías ya están; armarios y armeros de pared llegarán con las armas (fase 4).
 
 - [ ] **Máquinas que generan recursos: canteras y recicladoras** (2026-10-17): para cuando se acaben la piedra y la chatarra iniciales del mapa. Van en la fase 3 (construcción), en el roadmap.
 
 ## Hecho
+
+- [x] **Zanjas** (2026-10-17): ⚒ → ▭ Zanja (se cruza cuatro veces más despacio; frenará a los enemigos) y ▬ Rellenar.
+- [x] **Estanterías** (2026-10-17): 🏗 → Muebles → estantería de madera (cabe el triple) o de metal (el cuádruple). Se ponen dentro de un almacén.
 
 - [x] **Materiales nuevos: el metal** (2026-10-17): horno de fundición (🏗 → Talleres): 10 de chatarra dan 5 de metal. Con metal: muros normales y altos, puerta y portón blindados, torre de vigía, barricada y pinchos. Banco de trabajo para montar componentes y prensar fibra en madera.
 

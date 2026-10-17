@@ -163,6 +163,8 @@ export interface GameMap {
   stock: Uint8Array;
   /** Construcción en la casilla: 0 nada, 1 impide el paso (muro…), ≥2 se pisa con otro coste (ver `walkableStructureCode`). Lo mantiene `Structures`. */
   blocked: Uint8Array;
+  /** 1 si hay una zanja: se cruza muy despacio (frena a los enemigos). */
+  trench: Uint8Array;
   /** Casilla sugerida para empezar la colonia. */
   start: { x: number; y: number };
 }
@@ -173,6 +175,8 @@ export const RADIATION_THRESHOLD = 0.78;
 export const MAX_LEVEL = 4;
 /** Coste extra de subir o bajar por una pendiente. */
 export const SLOPE_COST = 1.5;
+/** Coste extra de cruzar una zanja. */
+export const TRENCH_COST = 4;
 /**
  * Valores de `blocked`: 0 nada, 1 construcción que impide el paso; desde 2, construcción que se
  * pisa y cambia el coste de paso: el valor guarda ese coste (×10 + 1), p. ej. 14 = ×1,3 (puerta),
@@ -222,7 +226,8 @@ export function tileMoveCost(map: GameMap, x: number, y: number): number {
   const prop = PROP_INFO[map.props[i] as Prop];
   if (prop.blocks || map.cliff[i] || map.blocked[i] === BLOCK_SOLID) return Infinity;
   const built = structureMoveCost(map.blocked[i]);
-  return TERRAIN_INFO[map.terrain[i] as Terrain].moveCost * prop.moveCost * (map.slope[i] ? SLOPE_COST : 1) * built;
+  const trench = map.trench[i] ? TRENCH_COST : 1;
+  return TERRAIN_INFO[map.terrain[i] as Terrain].moveCost * prop.moveCost * (map.slope[i] ? SLOPE_COST : 1) * built * trench;
 }
 
 /** Texto descriptivo de una casilla para la interfaz. */
@@ -232,6 +237,7 @@ export function describeTile(map: GameMap, x: number, y: number): string {
   const parts = [TERRAIN_INFO[t].name];
   if (isWater(t) && map.contaminated[i]) parts[0] += ' contaminada';
   if (map.cliff[i]) parts.unshift('Acantilado');
+  if (map.trench[i]) parts.unshift('Zanja');
   else if (map.slope[i]) parts.push('pendiente');
   if (!isWater(t)) parts.push(LEVEL_NAMES[map.level[i]] ?? '');
   const p = map.props[i] as Prop;
@@ -269,6 +275,7 @@ export function generateMap(opts: MapOptions): GameMap {
     slope: new Uint8Array(size),
     stock: new Uint8Array(size),
     blocked: new Uint8Array(size),
+    trench: new Uint8Array(size),
     start: { x: 0, y: 0 },
   };
   const { terrain, elevation, moisture, radiation } = map;

@@ -55,8 +55,8 @@ Terminado: diseño un refugio cerrado y los colonos lo construyen con recursos.
 - [ ] Máquinas de producción: cantera (piedra) y recicladora (chatarra a partir de basura y restos), para cuando se agoten los del mapa
 - [ ] Materiales: metal (hecho: se funde chatarra en el horno) y hormigón
 - [x] Muros altos para perímetros y torres de vigía (madera, piedra y chatarra; las de metal, con el metal)
-- [ ] Defensas: pinchos y barricadas (hechos); zanjas (con el trabajo de terreno)
-- [ ] Mobiliario de almacén: estanterías, armarios y armeros de pared
+- [x] Defensas: pinchos, barricadas y zanjas
+- [ ] Mobiliario de almacén: estanterías (hechas); armarios y armeros de pared (con las armas)
 - [x] Terreno: aplanar y subir o bajar el nivel de las casillas (trabajo de los colonos) y rampas en los acantilados
 
 ## Fase 4 — Necesidades y raids (primera versión jugable)

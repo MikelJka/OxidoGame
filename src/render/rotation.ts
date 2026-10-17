@@ -85,6 +85,7 @@ export function rotateMap(map: GameMap, r: Rotation): GameMap {
     slope: u8(map.slope),
     stock: u8(map.stock),
     blocked: u8(map.blocked),
+    trench: u8(map.trench),
     start: tileToView(map.start.x, map.start.y, map.width, map.height, r),
   };
 }

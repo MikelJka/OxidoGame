@@ -163,7 +163,7 @@ export function bestStorageTile(ctx: JobContext, resource: ResourceId, current: 
       const y = Math.floor(i / ctx.map.width);
       if (ctx.items.room(x, y, resource) <= 0) continue;
       if (ctx.reservations.holder(x, y, 'drop') !== undefined) continue;
-      if (ctx.structures.at(x, y)) continue; // no se guarda encima de un plano
+      if (ctx.structures.at(x, y)?.built === false) continue; // no se guarda encima de un plano
       const merge = ctx.items.at(x, y) ? -0.5 : 0;
       const score = manhattan(near, x, y) + merge;
       if (score < bestScore || (score === bestScore && best && (y < best.y || (y === best.y && x < best.x)))) {

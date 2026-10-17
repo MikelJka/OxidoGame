@@ -40,6 +40,8 @@ export const DESIGN_COLORS: Record<WorkType | TerrainJob | 'cancelar' | 'almacen
   rebajar: 0xc09060,
   elevar: 0xc09060,
   rampa: 0xc09060,
+  zanja: 0x9a6a40,
+  rellenar: 0xc09060,
   cultivar: 0x8fc060,
   cultivo: 0x8fc060,
   terreno: 0xc09060,
@@ -161,9 +163,14 @@ export class WorldScene extends Phaser.Scene {
     this.structVersion = -1;
     this.structSprites = [];
     this.carrySprites.clear();
+    this.extraIds.clear();
+    // Los paneles abiertos eran del mapa anterior: se cierran.
     this.selectedZoneId = null;
     this.selectedFarmId = null;
     this.selectedStation = null;
+    this.game.events.emit('zone-select', null);
+    this.game.events.emit('farm-select', null);
+    this.game.events.emit('station-select', null);
     this.farmVersion = -1;
     this.plantSprites = [];
     this.plantsVersion = -1;
@@ -264,6 +271,7 @@ export class WorldScene extends Phaser.Scene {
         this.view.cliff[vi] = this.map.cliff[i];
         this.view.slope[vi] = this.map.slope[i];
         this.view.terrain[vi] = this.map.terrain[i];
+        this.view.trench[vi] = this.map.trench[i];
       }
       columns.add(v.x);
     }
@@ -416,6 +424,13 @@ export class WorldScene extends Phaser.Scene {
         cam.scrollY = this.camStart.y - (p.y - this.dragStart.y) / cam.zoom;
       }
       this.reportTile(p);
+    });
+
+    // Si el dedo se levanta encima de un panel, Phaser avisa con «pointerupoutside»: se cierra el gesto.
+    this.input.on('pointerupoutside', () => {
+      this.dragging = false;
+      this.pinchStartDist = 0;
+      this.clearDesignDrag();
     });
 
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
@@ -802,9 +817,9 @@ export class WorldScene extends Phaser.Scene {
       if (n.planos > 0) parts.push(`${n.planos} ${n.planos === 1 ? 'plano quitado' : 'planos quitados'}`);
       if (n.demoler > 0) parts.push(`${n.demoler} para demoler`);
       toast(parts.length ? parts.join(' · ') : 'Ahí no hay construcciones');
-    } else if (mode === 'rebajar' || mode === 'elevar' || mode === 'rampa') {
+    } else if (mode === 'rebajar' || mode === 'elevar' || mode === 'rampa' || mode === 'zanja' || mode === 'rellenar') {
       const n = this.world.terrain.addArea(r, mode, (x, y) => !!this.world.structures.at(x, y));
-      toast(n > 0 ? `${TERRAIN_JOB_NAMES[mode]}: ${n} ${n === 1 ? 'casilla' : 'casillas'}` : mode === 'rampa' ? 'Ahí no hay acantilados' : 'Ahí no se puede (agua, construcción, objeto o nivel límite)');
+      toast(n > 0 ? `${TERRAIN_JOB_NAMES[mode]}: ${n} ${n === 1 ? 'casilla' : 'casillas'}` : mode === 'rampa' ? 'Ahí no hay acantilados' : mode === 'rellenar' ? 'Ahí no hay zanjas' : 'Ahí no se puede (agua, construcción, objeto, acantilado o nivel límite)');
     } else if (mode === 'cancelar') {
       const n = d.cancelArea(r) + this.world.terrain.removeArea(r);
       toast(n > 0 ? `${n} ${n === 1 ? 'orden quitada' : 'órdenes quitadas'}` : 'No había órdenes ahí');
@@ -845,7 +860,9 @@ export class WorldScene extends Phaser.Scene {
         case 'cancelar': return d.at(x, y) !== undefined || this.world.terrain.at(x, y) !== undefined;
         case 'rebajar':
         case 'elevar':
-        case 'rampa': return terrainBlocker(this.map, x, y, mode, !!st.at(x, y)) === null;
+        case 'rampa':
+        case 'zanja':
+        case 'rellenar': return terrainBlocker(this.map, x, y, mode, !!st.at(x, y)) === null;
         case 'almacen': return canZone(this.map, x, y) && !this.world.zones.at(x, y) && !this.world.farms.at(x, y);
         case 'cultivo': return canZone(this.map, x, y) && fertilityAt(this.map, x, y) > 0 && !this.world.zones.at(x, y) && !this.world.farms.at(x, y);
         case 'quitarAlmacen': return this.world.zones.at(x, y) !== undefined || this.world.farms.at(x, y) !== undefined;
@@ -875,6 +892,7 @@ export class WorldScene extends Phaser.Scene {
     const version = d.version * 65536 + this.world.terrain.version;
     if (version === this.designVersion) return;
     this.designVersion = version;
+    this.emitDesignations(); // los contadores de los botones bajan según se trabaja
     const g = this.designGfx;
     g.clear();
     // Obras de terreno: esquinas y una flecha (abajo rebajar, arriba elevar) o una rampa.
@@ -890,7 +908,11 @@ export class WorldScene extends Phaser.Scene {
       g.fillStyle(color, 1);
       if (o.job === 'rebajar') g.fillTriangle(cx - 4, cy - 2, cx + 4, cy - 2, cx, cy + 3);
       else if (o.job === 'elevar') g.fillTriangle(cx - 4, cy + 2, cx + 4, cy + 2, cx, cy - 3);
-      else {
+      else if (o.job === 'zanja') g.fillRect(cx - 5, cy - 1, 10, 3);
+      else if (o.job === 'rellenar') {
+        g.fillRect(cx - 5, cy - 1, 10, 3);
+        g.fillTriangle(cx - 3, cy - 3, cx + 3, cy - 3, cx, cy - 6);
+      } else {
         g.lineStyle(2, color, 1);
         g.lineBetween(left + 3, top + TILE_H - 3, left + TILE - 3, top + 3);
       }
@@ -1051,7 +1073,8 @@ export class WorldScene extends Phaser.Scene {
       // Delante de lo que está en su fila y en las de detrás; detrás de lo que está más al sur.
       // Las torres, justo por debajo de los colonos de su fila: quien sube se ve encima.
       const flat = s.def.height === 0;
-      const rowOffset = s.def.category === 'torre' || flat ? 0.3 : 0.99;
+      // Torres, cosas a ras de suelo y estanterías, por debajo de lo que tienen encima o delante.
+      const rowOffset = s.def.category === 'torre' || flat || s.def.storage ? 0.3 : 0.99;
       // Los suelos van pegados al suelo, debajo de montones y colonos.
       img.setDepth(s.def.category === 'suelo' ? ZONE_DEPTH - 0.1 : COLONIST_DEPTH + (v.y + rowOffset) / 1000);
       if (!s.built) img.setAlpha(0.45).setTint(0x8fc0ff); // plano: translúcido y azulado

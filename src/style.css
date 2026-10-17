@@ -263,6 +263,7 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 
 /* --- Órdenes: talar, picar, saquear ------------------------------------------ */
 #orders {
+  z-index: 4; /* por encima de las fichas de abajo si se tocan en el móvil */
   top: calc(114px + env(safe-area-inset-top));
   right: 8px;
   display: flex;
@@ -331,7 +332,7 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 #cp-work .prio-1 strong { color: #e0a040; }
 #cp-work .prio-0 { opacity: 0.55; }
 #colonist-panel.group .zp-label { display: none; }
-#order-modes button[data-mode="rebajar"].active, #order-modes button[data-mode="elevar"].active, #order-modes button[data-mode="rampa"].active { border-color: #c09060; color: #c09060; }
+#order-modes button[data-mode="rebajar"].active, #order-modes button[data-mode="elevar"].active, #order-modes button[data-mode="rampa"].active, #order-modes button[data-mode="zanja"].active, #order-modes button[data-mode="rellenar"].active { border-color: #c09060; color: #c09060; }
 #sp-recipes { display: flex; flex-direction: column; gap: 4px; }
 #sp-controls { align-items: center; }
 #sp-target { min-width: 110px; text-align: center; font-size: 12px; }

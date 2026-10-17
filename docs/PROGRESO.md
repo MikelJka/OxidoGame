@@ -2,6 +2,22 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (tarde, 10) — Zanjas, estanterías y repaso de fallos
+
+- **Zanjas**: ⚒ → ▭ Zanja y ▬ Rellenar (trabajo «obras de terreno»). Una zanja se cruza 4 veces más despacio (frenará a los raids de la fase 4); no admite montones, almacenes, huertos ni construcciones. Se ven como un foso oscuro y se guardan con la partida (las partidas anteriores simplemente no tienen).
+- **Estanterías** de madera (🪵12, caben 3 montones) y de metal (🔗8, caben 4) en 🏗 → Muebles. Dentro de un almacén, los colonos llenan la estantería antes de ocupar más suelo.
+- Repaso del código de pantalla e interfaz (no se puede ejecutar aquí) y arreglos:
+  - La lista de prioridades de la ficha se quedaba vacía tras elegir un grupo, y podía editar al colono de un mapa anterior.
+  - Los paneles de almacén, huerto y taller se quedaban abiertos (y sin poder cerrarse) tras un mapa nuevo, importar o volver a la partida anterior.
+  - Los círculos de grupo seguían dibujados tras un mapa nuevo.
+  - Los contadores de 🪓 ⛏ 🔩 no bajaban mientras se trabajaba.
+  - En el móvil, deslizar la lista de colonos podía añadir uno al grupo sin querer.
+  - Al abrir la ficha de un colono se cierran los menús de órdenes (en un móvil se tapaban); el menú queda por encima de las fichas.
+  - Si se levantaba el dedo de un pellizco encima de un panel, el siguiente toque se ignoraba.
+  - Si fallaba la carga de una partida importada, se apartaba la que no era.
+- Qué probar: cavar una zanja y mandar a un colono a cruzarla; poner una estantería en un almacén y ver cómo se llena; con un grupo elegido y luego un solo colono, ver que salen las prioridades.
+- Siguiente: hormigón y armarios; después, fase 4 (comer, beber y dormir).
+
 ## 2026-10-17 (tarde, 9) — Talleres y metal
 
 - Sin incidencias nuevas en 🐞.

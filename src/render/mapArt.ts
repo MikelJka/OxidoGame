@@ -165,6 +165,20 @@ export function paintGround(map: GameMap, img: { data: Uint8ClampedArray }, rast
         put(pxl, ty * TILE_H + r + TOP_MARGIN - renderLevel(map, tx, ty) * LIFT, surfaceColor(pxl, py));
       }
     }
+    // Zanjas: un foso oscuro dentro de la casilla, con sombra arriba y borde de tierra abajo.
+    for (let tx = c0; tx <= c1; tx++) {
+      if (!map.trench[ty * map.width + tx]) continue;
+      const top = ty * TILE_H + TOP_MARGIN - renderLevel(map, tx, ty) * LIFT;
+      for (let r = 1; r < TILE_H - 1; r++) {
+        for (let lx = 2; lx < TILE - 2; lx++) {
+          const pxl = tx * TILE + lx;
+          const deep = r < 3 ? 0.85 : r > TILE_H - 4 ? 0.35 : 0.65;
+          const g = grain.sample(pxl / 3, (top + r) / 3);
+          const base: RGB = r > TILE_H - 3 ? [120, 96, 66] : [46, 36, 26];
+          put(pxl, top + r, mix(base, [20, 16, 12], deep * (0.8 + g * 0.2)));
+        }
+      }
+    }
     // Paredes en la cara sur de las casillas más altas que su vecina de abajo.
     for (let tx = c0; tx <= c1; tx++) {
       const l = renderLevel(map, tx, ty);

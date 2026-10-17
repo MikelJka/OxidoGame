@@ -30,6 +30,10 @@ export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, ti
     drawTower(ctx, def, tile, tileH, wallH);
     return;
   }
+  if (def.storage) {
+    drawShelf(ctx, def, tile, tileH, wallH);
+    return;
+  }
   if (def.category === 'suelo' || def.category === 'mueble' || (def.category === 'defensa' && def.height === 0)) {
     drawFlat(ctx, def, tile, tileH);
     return;
@@ -149,6 +153,25 @@ function drawStation(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: numb
   px(10, 3, 1, 4, '#5a4228'); // martillo
   px(9, 3, 3, 1, '#8a9096');
   px(4, tileH - 4, 3, 2, '#c08040');
+}
+
+/** Estantería: dos postes traseros, baldas y el estante de abajo libre para lo que se guarde delante. */
+function drawShelf(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, wallH: number): void {
+  const { top, face, dark } = def.colors;
+  const px = painter(ctx);
+  const h = tileH + wallH;
+  ctx.clearRect(0, 0, tile, h);
+  // Postes.
+  px(0, 0, 2, h, '#1a1410');
+  px(tile - 2, 0, 2, h, '#1a1410');
+  px(0, 0, 1, h, face);
+  px(tile - 2, 0, 1, h, face);
+  // Baldas.
+  for (let y = 1; y < h - 2; y += Math.max(3, Math.floor(h / 4))) {
+    px(1, y, tile - 2, 2, '#1a1410');
+    px(1, y, tile - 2, 1, top);
+  }
+  px(1, h - 2, tile - 2, 2, dark);
 }
 
 type Px = (x: number, y: number, w: number, h: number, color: string) => void;

@@ -47,6 +47,7 @@ export function buildBlocker(map: GameMap, x: number, y: number): string | null 
   if (map.cliff[i]) return 'acantilado';
   if (map.slope[i]) return 'pendiente';
   if (map.props[i] !== Prop.None) return 'objeto';
+  if (map.trench[i]) return 'zanja';
   return null;
 }
 

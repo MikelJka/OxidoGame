@@ -489,6 +489,44 @@
     }
   },
   {
+    "id": "estanteria_madera",
+    "name": "Estantería de madera",
+    "category": "mueble",
+    "cost": {
+      "madera": 12
+    },
+    "work": 250,
+    "hp": 100,
+    "blocks": false,
+    "moveCost": 1.5,
+    "height": 1,
+    "storage": 3,
+    "colors": {
+      "top": "#a57a48",
+      "face": "#74512f",
+      "dark": "#45301c"
+    }
+  },
+  {
+    "id": "estanteria_metal",
+    "name": "Estantería de metal",
+    "category": "mueble",
+    "cost": {
+      "metal": 8
+    },
+    "work": 300,
+    "hp": 250,
+    "blocks": false,
+    "moveCost": 1.5,
+    "height": 1,
+    "storage": 4,
+    "colors": {
+      "top": "#9aa0a6",
+      "face": "#6e747a",
+      "dark": "#3e4246"
+    }
+  },
+  {
     "id": "horno",
     "name": "Horno de fundición",
     "category": "taller",

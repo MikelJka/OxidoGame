@@ -4,13 +4,15 @@
 import { GameMap, inBounds, index, isWater, MAX_LEVEL, PROP_INFO, Prop, Terrain, TERRAIN_INFO } from './map';
 import type { TileRect } from './designations';
 
-export type TerrainJob = 'rebajar' | 'elevar' | 'rampa';
-export const TERRAIN_JOBS: readonly TerrainJob[] = ['rebajar', 'elevar', 'rampa'];
+export type TerrainJob = 'rebajar' | 'elevar' | 'rampa' | 'zanja' | 'rellenar';
+export const TERRAIN_JOBS: readonly TerrainJob[] = ['rebajar', 'elevar', 'rampa', 'zanja', 'rellenar'];
 
 export const TERRAIN_JOB_NAMES: Record<TerrainJob, string> = {
   rebajar: 'Rebajar',
   elevar: 'Elevar',
   rampa: 'Hacer rampa',
+  zanja: 'Cavar zanja',
+  rellenar: 'Rellenar zanja',
 };
 
 /** Ticks de trabajo de un colono normal. */
@@ -18,6 +20,8 @@ export const TERRAIN_WORK: Record<TerrainJob, number> = {
   rebajar: 480,
   elevar: 600,
   rampa: 300,
+  zanja: 360,
+  rellenar: 240,
 };
 
 /** Piedra que sale al rebajar una casilla. */
@@ -42,6 +46,10 @@ export function terrainBlocker(map: GameMap, x: number, y: number, job: TerrainJ
       return map.level[i] >= MAX_LEVEL ? 'ya está al nivel más alto' : null;
     case 'rampa':
       return map.cliff[i] ? null : 'no es un acantilado';
+    case 'zanja':
+      return map.trench[i] ? 'ya hay zanja' : map.cliff[i] ? 'acantilado' : t === Terrain.Rock ? 'roca' : null;
+    case 'rellenar':
+      return map.trench[i] ? null : 'no hay zanja';
   }
 }
 
@@ -71,6 +79,8 @@ export function applyTerrainJob(map: GameMap, x: number, y: number, job: Terrain
   if (job === 'rampa') {
     map.cliff[i] = 0;
     map.slope[i] = 1;
+  } else if (job === 'zanja' || job === 'rellenar') {
+    map.trench[i] = job === 'zanja' ? 1 : 0;
   } else {
     map.level[i] = Math.max(1, Math.min(MAX_LEVEL, map.level[i] + (job === 'elevar' ? 1 : -1)));
     // Una casilla que se toca deja de ser acantilado: queda como pendiente o llano.

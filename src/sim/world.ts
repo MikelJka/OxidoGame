@@ -76,6 +76,11 @@ export class World implements JobContext {
     this.rng = new Rng(opts.seed ^ 0x51ed270b);
     if (!opts.map) this.spawnColonists(opts.colonists ?? 3);
     this.items = new GroundItems(this.map);
+    // Una estantería terminada multiplica lo que cabe en su casilla.
+    this.items.capacityAt = (x, y) => {
+      const s = this.structures?.at(x, y);
+      return s && s.built && s.def.storage ? s.def.storage : 1;
+    };
     this.designations = new Designations(this.map);
     this.reservations = new Reservations(this.map);
     this.zones = new StorageZones(this.map);
@@ -385,6 +390,12 @@ export class World implements JobContext {
     this.changedTiles.push(...changed);
     this.terrainVersion++;
     if (job === 'rebajar') this.items.drop(x, y, 'piedra', LOWER_STONE);
+    // En una zanja no se guarda nada: lo que hubiera se aparta.
+    const stack = this.items.at(x, y);
+    if (stack && !this.items.canHold(x, y)) {
+      const got = this.items.take(x, y, stack.amount)!;
+      this.items.drop(x, y, got.resource, got.amount);
+    }
     // Lo que quedara mal colocado tras el cambio (zonas, plantas, colonos) se corrige.
     this.zones.prune();
     this.farms.prune();

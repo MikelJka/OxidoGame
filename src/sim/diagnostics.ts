@@ -1,4 +1,3 @@
-import { MAX_STACK } from '../data/resources';
 import { inBounds } from './map';
 import { canDesignate } from './designations';
 import { canZone } from './zones';
@@ -76,7 +75,7 @@ export function checkWorld(world: World, progress = new Map<number, ProgressMark
     if (!world.items.canHold(s.x, s.y)) {
       problems.push({ key: `item-bad-tile-${s.x}-${s.y}`, message: `Hay un montón de ${s.resource} en (${s.x}, ${s.y}), una casilla que no lo admite` });
     }
-    if (s.amount <= 0 || s.amount > MAX_STACK[s.resource]) {
+    if (s.amount <= 0 || s.amount > world.items.maxAt(s.x, s.y, s.resource)) {
       problems.push({ key: `item-amount-${s.x}-${s.y}`, message: `El montón de ${s.resource} en (${s.x}, ${s.y}) tiene ${s.amount} unidades` });
     }
   }

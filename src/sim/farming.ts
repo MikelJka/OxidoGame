@@ -32,7 +32,7 @@ export function fertilityAt(map: GameMap, x: number, y: number): number {
 export function canFarm(map: GameMap, x: number, y: number): boolean {
   if (!isPassable(map, x, y)) return false;
   const i = index(map, x, y);
-  return fertilityAt(map, x, y) > 0 && map.props[i] === Prop.None && map.blocked[i] === 0;
+  return fertilityAt(map, x, y) > 0 && map.props[i] === Prop.None && map.blocked[i] === 0 && !map.trench[i];
 }
 
 export interface Plant {

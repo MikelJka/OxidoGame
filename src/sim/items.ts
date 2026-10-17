@@ -27,7 +27,15 @@ export class GroundItems {
   /** Aumenta con cada cambio: el dibujado lo usa para saber cuándo repintar. */
   version = 0;
 
+  /** Cuántos montones normales caben en una casilla (2 o más con una estantería). Lo fija `World`. */
+  capacityAt: (x: number, y: number) => number = () => 1;
+
   constructor(readonly map: GameMap) {}
+
+  /** Máximo de un recurso en una casilla. */
+  maxAt(x: number, y: number, resource: ResourceId): number {
+    return MAX_STACK[resource] * this.capacityAt(x, y);
+  }
 
   /** Montón de una casilla, o undefined. */
   at(x: number, y: number): ItemStack | undefined {
@@ -37,15 +45,16 @@ export class GroundItems {
   /** Se puede dejar algo en la casilla: se pisa, no es agua y no tiene un objeto que bloquee. */
   canHold(x: number, y: number): boolean {
     if (!isPassable(this.map, x, y)) return false;
-    return !isWater(this.map.terrain[index(this.map, x, y)] as Terrain);
+    const i = index(this.map, x, y);
+    return !isWater(this.map.terrain[i] as Terrain) && !this.map.trench[i];
   }
 
   /** Cuánto de un recurso cabe todavía en una casilla. */
   room(x: number, y: number, resource: ResourceId): number {
     if (!this.canHold(x, y)) return 0;
     const s = this.at(x, y);
-    if (!s) return MAX_STACK[resource];
-    return s.resource === resource ? MAX_STACK[resource] - s.amount : 0;
+    if (!s) return this.maxAt(x, y, resource);
+    return s.resource === resource ? Math.max(0, this.maxAt(x, y, resource) - s.amount) : 0;
   }
 
   /**

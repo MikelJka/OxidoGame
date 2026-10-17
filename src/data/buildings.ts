@@ -31,6 +31,8 @@ export interface BuildingDef {
   moveCost?: number;
   /** Altura en «pisos» de muro: 1 muro normal, 2 muro alto, 3 torre. */
   height: number;
+  /** Estantería: cuántos montones normales caben en su casilla. */
+  storage?: number;
   /** Casillas de vista desde lo alto (torres; servirá para ver venir a los enemigos). */
   sight?: number;
   /** Colores del dibujo: cara de arriba, frente y sombra. */
