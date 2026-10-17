@@ -133,7 +133,7 @@ async function setView3D(on: boolean): Promise<void> {
   document.body.classList.toggle('mode-3d', on);
   $('view3d-quick').textContent = on ? '2D' : '3D';
   $('view3d-quick').classList.toggle('active', on);
-  view3dBtn.textContent = on ? '🗺 Volver a la vista 2D' : '🧊 Vista 3D (en pruebas)';
+  view3dBtn.innerHTML = on ? '<span class="mi">🗺</span><span>Vista 2D</span>' : '<span class="mi">🧊</span><span>Vista 3D</span>';
   try {
     localStorage.setItem(VIEW3D_KEY, on ? '1' : '0');
   } catch {
@@ -175,9 +175,16 @@ game.events.on('view-tilt', (i: number) => {
 
 // --- Menú --------------------------------------------------------------------
 const menu = $('menu');
+const menuBtn = $('menu-btn');
 $('menu-btn').addEventListener('click', () => {
   menu.hidden = !menu.hidden;
   if (!menu.hidden) report.hidden = true;
+});
+$('menu-close').addEventListener('click', () => (menu.hidden = true));
+// El botón ☰ se ve encendido mientras el menú está abierto (lo cierre quien lo cierre).
+new MutationObserver(() => menuBtn.classList.toggle('active', !menu.hidden)).observe(menu, { attributes: true, attributeFilter: ['hidden'] });
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !menu.hidden) menu.hidden = true;
 });
 const devPanel = $('dev-panel');
 $('dev-btn').addEventListener('click', () => {

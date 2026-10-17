@@ -59,34 +59,49 @@
     </div>
     <div id="design-hint" class="panel" hidden></div>
 
-    <div id="menu" class="panel" hidden>
-      <button id="main-menu-btn" type="button">🏠 Menú principal</button>
-      <div id="seed"></div>
-      <div id="map-resources" class="muted"></div>
-      <button id="view3d-btn" type="button" title="Vista 3D con giro libre: botón central del ratón (o Alt+arrastrar) para pivotar, dos dedos en el móvil">🧊 Vista 3D (en pruebas)</button>
-      <button id="dev-btn" type="button">📋 Progreso del desarrollo</button>
-      <div class="save-row">
-        <button id="save-now" type="button" title="La partida también se guarda sola cada 30 s y al salir">💾 Guardar</button>
-        <button id="save-export" type="button" title="Descargar la partida en un archivo">⬇ Exportar</button>
-        <button id="save-import" type="button" title="Cargar una partida desde un archivo">⬆ Importar</button>
+    <div id="menu" class="panel sheet" hidden role="dialog" aria-label="Menú">
+      <div class="sheet-head">
+        <strong>☰ Menú</strong>
+        <span id="seed" class="muted"></span>
+        <button id="menu-close" type="button" title="Cerrar (Esc)" aria-label="Cerrar">✕</button>
       </div>
-      <div id="save-status" class="muted"></div>
-      <button id="save-backup" type="button" title="Volver a la partida guardada anterior">↶ Partida anterior</button>
-      <button id="new-map" type="button">Nuevo mapa</button>
-      <p class="help">
-        <strong>Controles</strong><br />
-        Arrastrar: mover la cámara · Rueda o pellizco: zoom<br />
-        Tocar un colono: seleccionarlo · Tocar el suelo: mandarlo allí · Tocar algo con trabajo (un árbol, un plano…): que lo haga ya<br />
-        Grupo: 👥 o mantener pulsado un nombre de la lista (Mayús+clic en PC) · 🎖 Reclutar (G): deja de trabajar y espera órdenes<br />
-        Arriba a la izquierda: inventario de la colonia (los montones del suelo)<br />
-        Órdenes ⚒ (tecla T): elegir talar, picar, saquear o almacén y arrastrar un área (o tocar una casilla); con dos dedos se mueve la cámara · Esc: salir<br />
-        Construir 🏗 (tecla B): elegir muro o puerta y arrastrar; los colonos llevan el material y lo levantan<br />
-        Tocar un almacén: su prioridad y qué se guarda en él · Tocar un huerto: qué se planta · Tocar un taller: qué fabrica<br />
-        Girar la vista: botones ⟲ ⟳, girar dos dedos o teclas Q y E<br />
-        Inclinar la vista: botón ∠, deslizar dos dedos arriba o abajo o teclas R y F<br />
-        Vista 3D (☰): botón central del ratón (o Alt + arrastrar) para pivotar a cualquier ángulo e inclinación; arrastrar o WASD para moverse; rueda o pellizco para el zoom; dos dedos para girar e inclinar<br />
-        PC: clic derecho también da la orden · Espacio, 1, 2, 3: velocidad · Esc: deseleccionar
-      </p>
+      <div class="sheet-body">
+        <div class="menu-sec">Partida</div>
+        <div class="menu-grid">
+          <button id="save-now" type="button" title="La partida también se guarda sola cada 30 s y al salir"><span class="mi">💾</span><span>Guardar</span></button>
+          <button id="save-export" type="button" title="Descargar la partida en un archivo"><span class="mi">⬇</span><span>Exportar</span></button>
+          <button id="save-import" type="button" title="Cargar una partida desde un archivo"><span class="mi">⬆</span><span>Importar</span></button>
+          <button id="save-backup" type="button" title="Volver a la partida guardada anterior"><span class="mi">↶</span><span>Anterior</span></button>
+        </div>
+        <div id="save-status" class="muted"></div>
+        <div class="menu-sec">Vista y más</div>
+        <div class="menu-grid">
+          <button id="view3d-btn" type="button" title="Vista 3D con giro libre: botón central del ratón (o Alt+arrastrar) para pivotar, dos dedos en el móvil"><span class="mi">🧊</span><span>Vista 3D</span></button>
+          <button id="dev-btn" type="button" title="Qué hay hecho y qué viene"><span class="mi">📋</span><span>Progreso</span></button>
+          <button id="main-menu-btn" type="button" title="Continuar, nueva partida con opciones, cargar, modo Dios"><span class="mi">🏠</span><span>Inicio</span></button>
+          <button id="new-map" type="button" title="Empezar otra partida en un mapa al azar"><span class="mi">✚</span><span>Mapa nuevo</span></button>
+        </div>
+        <div id="map-resources" class="muted"></div>
+        <details class="menu-help">
+          <summary>❓ Cómo se juega</summary>
+          <dl class="help">
+            <dt>🎥 Cámara</dt>
+            <dd>Arrastrar: mover · Rueda o pellizco: zoom · ⟲ ⟳ (Q/E) o girar dos dedos: girar · ∠ (R/F) o deslizar dos dedos: inclinar.</dd>
+            <dt>🧍 Colonos</dt>
+            <dd>Tocar un colono: elegirlo · Tocar el suelo: mandarlo allí · Tocar algo con trabajo (árbol, plano…): que lo haga ya · 🎖 Reclutar (G): deja de trabajar y espera órdenes · Grupo: 👥 o mantener pulsado un nombre (Mayús+clic en PC).</dd>
+            <dt>⚒ Órdenes (T)</dt>
+            <dd>Elegir talar, picar, saquear, almacén, huerto u obras de terreno y arrastrar un área (o tocar una casilla). Con dos dedos se sigue moviendo la cámara.</dd>
+            <dt>🏗 Construir (B)</dt>
+            <dd>Elegir qué y arrastrar; ↻ (R o X) gira lo grande. Los colonos llevan el material y lo levantan.</dd>
+            <dt>📦 Almacenes, huertos y talleres</dt>
+            <dd>Tocarlos para elegir prioridad y qué se guarda, qué se planta o qué se fabrica. Arriba a la izquierda, lo que tiene la colonia.</dd>
+            <dt>🧊 Vista 3D</dt>
+            <dd>Botón central del ratón (o Alt + arrastrar) para pivotar; WASD o arrastrar para moverse; dos dedos para girar e inclinar.</dd>
+            <dt>⌨ PC</dt>
+            <dd>Clic derecho: dar la orden · Espacio, 1, 2, 3: velocidad · Esc: cerrar o deseleccionar.</dd>
+          </dl>
+        </details>
+      </div>
     </div>
 
     <section id="report" class="panel" hidden aria-label="Informar">

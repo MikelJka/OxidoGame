@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (noche, 8) — Menú ☰ más claro y cómodo en el móvil
+
+- Primera parte de rehacer los menús de la partida (Mikel): el **menú ☰**.
+- Cabecera con ✕ para cerrar (también Esc) y la semilla del mapa; botones grandes con icono en dos apartados: **Partida** (Guardar, Exportar, Importar, Anterior) y **Vista y más** (Vista 3D/2D, Progreso, Inicio, Mapa nuevo). La ayuda larga va recogida en «❓ Cómo se juega», ordenada por temas (cámara, colonos, órdenes, construir, almacenes, 3D, PC).
+- **Móvil en vertical**: el menú sale desde abajo, a todo lo ancho, al alcance del pulgar. **Móvil en horizontal**: columna a la derecha de toda la altura. El botón ☰ se ve encendido mientras está abierto.
+- Comprobado con capturas en 380×740, 780×360 y PC; tests con Bun (189) y tipos con `tsc`; la prueba completa, en GitHub Actions.
+- Qué probar: abrir ☰ con el móvil en vertical y en horizontal, guardar y pasar a 3D desde ahí.
+- Siguiente: los paneles 🏗 Construir y ⚒ Órdenes con el mismo estilo (pestañas por categoría y hoja inferior en el móvil).
+
 ## 2026-10-17 (noche, 7) — Dificultad al empezar y nuevo menú de inicio
 
 - Sin incidencias nuevas en 🐞. Tarea de la fase 4: **dificultad configurable**.
