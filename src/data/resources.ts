@@ -30,3 +30,19 @@ export const HARVEST_JOB_NAMES: Record<HarvestJob, string> = {
 
 /** Rango [mínimo, máximo] de unidades, ambos incluidos. */
 export type AmountRange = readonly [number, number];
+
+/** Máximo de unidades de un recurso en un montón (una casilla del suelo). */
+export const MAX_STACK: Record<ResourceId, number> = {
+  madera: 75,
+  piedra: 50,
+  chatarra: 75,
+  componentes: 25,
+};
+
+/** Provisiones con las que llega la colonia: se dejan en el suelo junto al punto de inicio. */
+export const STARTING_SUPPLIES: Partial<Record<ResourceId, number>> = {
+  madera: 60,
+  piedra: 30,
+  chatarra: 20,
+  componentes: 5,
+};

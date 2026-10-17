@@ -2,6 +2,9 @@ import { Colonist, createColonist, walkSpeedMultiplier } from './colonist';
 import { GameMap, generateMap, tileMoveCost } from './map';
 import { findPath, isWalkable, Point } from './pathfinding';
 import { Rng } from './rng';
+import { GroundItems } from './items';
+import { harvestTile, Stockpile } from './resources';
+import { RESOURCES, STARTING_SUPPLIES } from '../data/resources';
 
 /** Ticks de simulación por segundo real a velocidad x1. */
 export const TICKS_PER_SECOND = 30;
@@ -30,6 +33,8 @@ export class World {
   readonly map: GameMap;
   readonly rng: Rng;
   readonly colonists: Colonist[] = [];
+  /** Montones de recursos en el suelo. */
+  readonly items: GroundItems;
   tick = 0;
   speed: GameSpeed = 1;
   private accumulator = 0;
@@ -38,6 +43,23 @@ export class World {
     this.map = generateMap({ width: opts.width ?? MAP_SIZE, height: opts.height ?? MAP_SIZE, seed: opts.seed });
     this.rng = new Rng(opts.seed ^ 0x51ed270b);
     this.spawnColonists(opts.colonists ?? 3);
+    this.items = new GroundItems(this.map);
+    this.dropStartingSupplies();
+  }
+
+  /** Inventario de la colonia: todo lo que hay en el suelo. */
+  inventory(): Stockpile {
+    return this.items.totals();
+  }
+
+  /**
+   * Termina de aprovechar el objeto de una casilla y suelta lo obtenido en el suelo, al lado.
+   * Devuelve lo obtenido, o null si no había nada. Lo usarán los trabajos de talar, picar y saquear.
+   */
+  harvest(x: number, y: number): Partial<Stockpile> | null {
+    const gains = harvestTile(this.map, x, y, this.rng);
+    if (gains) this.items.dropAll(x, y, gains);
+    return gains;
   }
 
   /** Avanza la simulación según el tiempo real transcurrido y la velocidad. */
@@ -98,6 +120,17 @@ export class World {
     const h = Math.floor(this.hour);
     const m = Math.floor((this.hour - h) * 60);
     return `Día ${this.day} · ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+
+  /** Deja las provisiones iniciales junto al punto de inicio (sin azar: no cambia el resto de la partida). */
+  private dropStartingSupplies(): void {
+    const { start } = this.map;
+    for (const r of RESOURCES) {
+      const amount = STARTING_SUPPLIES[r] ?? 0;
+      if (amount <= 0) continue;
+      const left = this.items.drop(start.x + 2, start.y + 1, r, amount);
+      if (left > 0) this.items.drop(start.x, start.y, r, left);
+    }
   }
 
   private spawnColonists(count: number): void {

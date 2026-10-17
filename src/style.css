@@ -84,10 +84,30 @@ button.active { border-color: var(--accent); color: var(--accent); }
 #tilt-btn { font-size: 13px !important; }
 #compass { min-width: 26px; text-align: center; color: var(--accent); font-weight: bold; }
 
-#tile {
+/* Inventario y casilla, uno debajo de otro, a la izquierda del control de la vista. */
+#info-stack {
+  position: fixed;
   top: calc(62px + env(safe-area-inset-top));
   left: 8px;
-  max-width: calc(100% - 180px);
+  max-width: calc(100% - 220px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  pointer-events: none;
+}
+#info-stack .panel { position: static; }
+#inventory {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  padding: 4px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+#inventory:empty { display: none; }
+#inventory .inv-item { display: inline-flex; gap: 3px; }
+#tile {
   padding: 4px 8px;
   color: var(--muted);
   font-size: 12px;

@@ -3,6 +3,8 @@ import { GameMap, describeTile, inBounds } from '../sim/map';
 import { Colonist } from '../sim/colonist';
 import { isWalkable } from '../sim/pathfinding';
 import { GameSpeed, World } from '../sim/world';
+import { describeStack } from '../sim/items';
+import { MAX_STACK, RESOURCE_NAMES, ResourceId } from '../data/resources';
 import { canvasPropRasterizer, paintGround, TILE } from './mapArt';
 import { liftOf, occludedFraction, pickTile, rowY, setTilt, TILE_H, tiltIndex, TILTS, TOP_MARGIN } from './projection';
 import { fromView, normalizeRotation, Rotation, rotateMap, tileFromView, tileToView, toView } from './rotation';
@@ -11,6 +13,8 @@ export { TILE };
 const MAP_TEXTURE = 'world-map';
 const MAX_ZOOM = 4;
 const COLONIST_DEPTH = 10;
+/** Los montones del suelo van por debajo de los colonos y de la selección. */
+const ITEM_DEPTH = COLONIST_DEPTH - 2;
 const UI_EMIT_MS = 200;
 /** Giro de los dedos (en radianes) que hace falta para girar la vista un cuarto de vuelta. */
 const TWIST_STEP = Math.PI / 4;
@@ -51,6 +55,9 @@ export class WorldScene extends Phaser.Scene {
   /** Elevación dibujada de cada colono, suavizada al subir o bajar de nivel. */
   private spriteLift = new Map<number, number>();
   private selectionGfx!: Phaser.GameObjects.Graphics;
+  /** Dibujos de los montones del suelo; se rehacen cuando cambian (versión) o cambia la vista. */
+  private itemSprites: Phaser.GameObjects.Image[] = [];
+  private itemsVersion = -1;
   private uiTimer = 0;
   private dragging = false;
   private dragStart = new Phaser.Math.Vector2();
@@ -72,6 +79,8 @@ export class WorldScene extends Phaser.Scene {
     this.spriteLift.clear();
     this.lastViewX.clear();
     this.mapImage = undefined;
+    this.itemSprites = [];
+    this.itemsVersion = -1;
     this.view = rotateMap(this.map, this.rotation);
     this.drawMap();
     this.selectionGfx = this.add.graphics().setDepth(COLONIST_DEPTH - 1);
@@ -96,6 +105,7 @@ export class WorldScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     this.world.update(delta);
     this.syncColonists();
+    this.syncItems();
     this.drawSelection();
     this.uiTimer += delta;
     if (this.uiTimer >= UI_EMIT_MS) {
@@ -205,6 +215,7 @@ export class WorldScene extends Phaser.Scene {
     this.centerOnTile(center.x, center.y);
     this.lastViewX.clear();
     this.spriteLift.clear(); // la altura en píxeles de cada nivel puede haber cambiado
+    this.itemsVersion = -1; // los montones cambian de sitio en pantalla
   }
 
   private setupInput(): void {
@@ -374,6 +385,7 @@ export class WorldScene extends Phaser.Scene {
 
   private emitClock(): void {
     this.game.events.emit('clock', this.world.clockLabel(), this.world.speed);
+    this.game.events.emit('inventory', this.world.inventory());
   }
 
   /** Toque o clic sin arrastrar: seleccionar colono, dar orden o deseleccionar. */
@@ -453,6 +465,30 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  /** Rehace los dibujos de los montones del suelo si han cambiado. */
+  private syncItems(): void {
+    const items = this.world.items;
+    if (items.version === this.itemsVersion) return;
+    this.itemsVersion = items.version;
+    for (const img of this.itemSprites) img.destroy();
+    this.itemSprites = [];
+    for (const s of items.list()) {
+      const key = itemTextureKey(s.resource);
+      if (!this.textures.exists(key)) drawItemTexture(this, key, s.resource);
+      const v = this.viewTile(s.x, s.y);
+      const cx = (v.x + 0.5) * TILE;
+      const cy = rowY(v.y + 0.5) - liftOf(this.view, v.x, v.y);
+      // Un montón casi vacío se ve más pequeño que uno lleno.
+      const scale = 0.7 + 0.3 * Math.min(1, s.amount / MAX_STACK[s.resource]);
+      const img = this.add.image(cx, cy + 2, key).setOrigin(0.5, 0.8).setScale(scale);
+      img.setDepth(ITEM_DEPTH + v.y / 1000);
+      // Detrás de una meseta o pared: casi transparente, como los colonos.
+      const above = pickTile(this.view, cx, cy - 2);
+      if (above && above.y > v.y) img.setAlpha(0.35).setTint(0xb8c4d0);
+      this.itemSprites.push(img);
+    }
+  }
+
   private drawSelection(): void {
     const g = this.selectionGfx;
     g.clear();
@@ -481,7 +517,9 @@ export class WorldScene extends Phaser.Scene {
     const world = this.cameras.main.getWorldPoint(p.x, p.y);
     const tile = this.pickRealTile(world.x, world.y);
     if (!tile || !inBounds(this.map, tile.x, tile.y)) return;
-    this.game.events.emit('tile-info', describeTile(this.map, tile.x, tile.y));
+    const stack = this.world.items.at(tile.x, tile.y);
+    const base = describeTile(this.map, tile.x, tile.y);
+    this.game.events.emit('tile-info', stack ? `${describeStack(stack, RESOURCE_NAMES)} · ${base}` : base);
   }
 
   /** Elevación con la que se dibuja ahora mismo un colono. */
@@ -549,5 +587,58 @@ function drawColonistTexture(scene: Phaser.Scene, key: string, c: Colonist): voi
   px(5, 2, 1, 2, hex(c.look.hair));
   // Ojo (mira a la derecha; el sprite se voltea)
   px(9, 4, 1, 1, outline);
+  tex.refresh();
+}
+
+function itemTextureKey(r: ResourceId): string {
+  return `item-${r}`;
+}
+
+/** Dibuja un montón pixel art de 12×10 para un recurso. */
+function drawItemTexture(scene: Phaser.Scene, key: string, r: ResourceId): void {
+  const tex = scene.textures.createCanvas(key, 12, 10);
+  if (!tex) return;
+  const ctx = tex.getContext();
+  const px = (x: number, y: number, w: number, h: number, color: string) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, w, h);
+  };
+  px(1, 9, 10, 1, 'rgba(0,0,0,0.35)'); // sombra
+  switch (r) {
+    case 'madera':
+      // Tres troncos apilados con las puntas claras.
+      for (const [x, y] of [[1, 5], [6, 5], [3, 1]]) {
+        px(x, y, 5, 4, '#1a1410');
+        px(x + 1, y + 1, 3, 2, '#7a5634');
+        px(x + 1, y + 1, 1, 2, '#c9a26a');
+      }
+      break;
+    case 'piedra':
+      // Bloques de piedra grises.
+      for (const [x, y, w] of [[1, 5, 5], [6, 5, 5], [3, 1, 6]]) {
+        px(x, y, w, 4, '#22201e');
+        px(x + 1, y + 1, w - 2, 2, '#8c8a84');
+        px(x + 1, y + 1, w - 2, 1, '#b4b1a8');
+      }
+      break;
+    case 'chatarra':
+      // Chapas y barras oxidadas.
+      px(1, 5, 10, 4, '#1a1410');
+      px(2, 6, 8, 2, '#8a4a26');
+      px(3, 6, 2, 1, '#c27a3e');
+      px(7, 7, 2, 1, '#5c5a56');
+      px(4, 2, 5, 3, '#1a1410');
+      px(5, 3, 3, 1, '#a35a2c');
+      px(9, 1, 1, 4, '#6e6c66');
+      break;
+    case 'componentes':
+      // Caja con un engranaje.
+      px(1, 2, 10, 7, '#1a1410');
+      px(2, 3, 8, 5, '#5a6b4a');
+      px(2, 3, 8, 1, '#7d8f68');
+      px(5, 4, 2, 3, '#d8c27a');
+      px(4, 5, 4, 1, '#d8c27a');
+      break;
+  }
   tex.refresh();
 }

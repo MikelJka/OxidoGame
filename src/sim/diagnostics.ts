@@ -1,3 +1,4 @@
+import { MAX_STACK } from '../data/resources';
 import { inBounds } from './map';
 import { isWalkable } from './pathfinding';
 import type { World } from './world';
@@ -65,6 +66,16 @@ export function checkWorld(world: World, progress = new Map<number, ProgressMark
       progress.set(c.id, { tileKey, since: world.tick });
     } else if (world.tick - mark.since >= STUCK_TICKS) {
       problems.push({ key: `stuck-${c.id}`, message: `${who} lleva ${world.tick - mark.since} ticks atascado en (${c.tile.x}, ${c.tile.y}) con un camino pendiente` });
+    }
+  }
+
+  // Montones en el suelo: siempre en casillas que los admiten y sin pasarse del máximo.
+  for (const s of world.items.list()) {
+    if (!world.items.canHold(s.x, s.y)) {
+      problems.push({ key: `item-bad-tile-${s.x}-${s.y}`, message: `Hay un montón de ${s.resource} en (${s.x}, ${s.y}), una casilla que no lo admite` });
+    }
+    if (s.amount <= 0 || s.amount > MAX_STACK[s.resource]) {
+      problems.push({ key: `item-amount-${s.x}-${s.y}`, message: `El montón de ${s.resource} en (${s.x}, ${s.y}) tiene ${s.amount} unidades` });
     }
   }
   return problems;

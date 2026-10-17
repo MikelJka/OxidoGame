@@ -11,7 +11,8 @@ import { checkWorld, ProgressMark } from './sim/diagnostics';
 import { installErrorCapture, mountReportPanel, onNewError, recordError } from './ui/bugReport';
 import { mountDevPanel } from './ui/devPanel';
 import { reachableResources } from './sim/resources';
-import { RESOURCE_ICONS, RESOURCE_NAMES } from './data/resources';
+import { RESOURCE_ICONS, RESOURCE_NAMES, RESOURCES } from './data/resources';
+import type { Stockpile } from './sim/resources';
 import './style.css';
 
 // Primero de todo: cualquier fallo a partir de aquí queda registrado.
@@ -120,6 +121,24 @@ game.events.on('map-ready', (map: GameMap) => {
   url.searchParams.set('seed', String(seed));
   window.history.replaceState(null, '', url);
   renderRoster();
+});
+
+// --- Inventario de la colonia ---------------------------------------------------
+const inventory = $('inventory');
+let inventoryKey = '';
+game.events.on('inventory', (inv: Stockpile) => {
+  const key = RESOURCES.map((r) => inv[r]).join(',');
+  if (key === inventoryKey) return; // solo se rehace si cambia algo
+  inventoryKey = key;
+  inventory.replaceChildren(
+    ...RESOURCES.map((r) => {
+      const el = document.createElement('span');
+      el.className = 'inv-item';
+      el.title = RESOURCE_NAMES[r];
+      el.textContent = `${RESOURCE_ICONS[r]} ${inv[r]}`;
+      return el;
+    }),
+  );
 });
 
 // --- Información de casilla y avisos -----------------------------------------

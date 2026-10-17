@@ -38,6 +38,7 @@
         <strong>Controles</strong><br />
         Arrastrar: mover la cámara · Rueda o pellizco: zoom<br />
         Tocar un colono: seleccionarlo · Tocar el suelo: mandarlo allí<br />
+        Arriba a la izquierda: inventario de la colonia (los montones del suelo)<br />
         Girar la vista: botones ⟲ ⟳, girar dos dedos o teclas Q y E<br />
         Inclinar la vista: botón ∠, deslizar dos dedos arriba o abajo o teclas R y F<br />
         PC: clic derecho también da la orden · Espacio, 1, 2, 3: velocidad · Esc: deseleccionar
@@ -81,7 +82,10 @@
       <div id="dp-body"></div>
     </section>
 
-    <div id="tile" class="panel"></div>
+    <div id="info-stack">
+      <div id="inventory" class="panel" title="Inventario de la colonia (recursos en el suelo)"></div>
+      <div id="tile" class="panel"></div>
+    </div>
     <div id="toast" class="panel" hidden></div>
 
     <section id="colonist-panel" class="panel" hidden>
