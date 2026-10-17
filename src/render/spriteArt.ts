@@ -141,6 +141,17 @@ export function paintItem(ctx: CanvasRenderingContext2D, r: ResourceId): void {
       px(2, 5, 8, 1, '#5a8a44');
       px(5, 3, 2, 6, '#c8a060');
       break;
+    case 'comida':
+      // Olla de guiso con vapor.
+      px(1, 4, 10, 5, '#1a1410');
+      px(2, 5, 8, 3, '#5c5a56');
+      px(2, 5, 8, 1, '#8a8780');
+      px(0, 5, 1, 2, '#1a1410');
+      px(11, 5, 1, 2, '#1a1410');
+      px(3, 4, 6, 1, '#b0703a'); // el guiso asomando
+      px(4, 1, 1, 2, 'rgba(230,230,230,0.6)');
+      px(7, 0, 1, 3, 'rgba(230,230,230,0.6)');
+      break;
   }
 }
 

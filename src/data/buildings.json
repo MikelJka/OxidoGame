@@ -648,6 +648,29 @@
     }
   },
   {
+    "id": "cocina",
+    "name": "Cocina",
+    "category": "taller",
+    "cost": {
+      "piedra": 15,
+      "chatarra": 8,
+      "madera": 5
+    },
+    "work": 500,
+    "hp": 250,
+    "blocks": true,
+    "height": 1,
+    "colors": {
+      "top": "#9a7a5a",
+      "face": "#6a4a32",
+      "dark": "#3a2a1e"
+    },
+    "size": [
+      2,
+      1
+    ]
+  },
+  {
     "id": "horno",
     "name": "Horno de fundición",
     "category": "taller",

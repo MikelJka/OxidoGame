@@ -64,7 +64,7 @@ Terminado: diseño un refugio cerrado y los colonos lo construyen con recursos.
 Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed o por un raid.
 
 - [x] Hambre, sed, sueño, ánimo; colonos que comen, beben y duermen solos
-- [ ] Cultivos (hechos: patatas, maíz, setas y cáñamo) y cocina
+- [x] Cultivos (patatas, maíz, setas y cáñamo) y cocina
 - [ ] Salud: heridas localizadas, tratamiento, infecciones (hechas heridas y curas; faltan infecciones)
 - [ ] Dificultad configurable al empezar (días sin raids, dureza)
 - [ ] Raids de saqueadores y mutantes que escalan con la riqueza (hechos los saqueadores; faltan los mutantes)

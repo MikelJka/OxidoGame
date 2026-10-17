@@ -171,6 +171,20 @@ function drawStation(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: numb
     px(11, 0, 1, 3, dark);
     return;
   }
+  if (def.id === 'cocina') {
+    // Fogón de piedra con dos ollas encima y fuego en la boca.
+    px(1, 1, tile - 2, h - 1, '#1a1410');
+    px(2, 2, tile - 4, tileH - 3, top);
+    px(2, tileH - 1, tile - 4, wallH - 1, face);
+    const my = tileH + Math.max(1, Math.floor(wallH / 3));
+    px(4, my, 8, Math.max(2, wallH - (my - tileH) - 2), '#2a1a10');
+    px(5, my + 1, 6, 1, '#e07a2a');
+    px(3, 2, 4, 3, '#3a3836'); // olla
+    px(4, 2, 2, 1, '#b0703a');
+    px(9, 3, 4, 2, '#5c5a56'); // sartén
+    px(13, 3, 2, 1, '#1a1410');
+    return;
+  }
   // Banco: tablero, patas y herramientas encima.
   px(0, 1, tile, tileH - 1, '#1a1410');
   px(1, 2, tile - 2, tileH - 3, top);
