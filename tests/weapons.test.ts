@@ -6,7 +6,7 @@ import { loadWorld, serializeWorld } from '../src/sim/save';
 import { TICKS_PER_DAY } from '../src/sim/world';
 import { recipesFor } from '../src/data/recipes';
 import { raiderWeaponPool, WEAPON_IDS } from '../src/data/weapons';
-import type { Colonist } from '../src/sim/colonist';
+import { walkSpeedMultiplier, type Colonist } from '../src/sim/colonist';
 
 function raiderAt(w: ReturnType<typeof flatWorld>, x: number, y: number): Colonist {
   const r = w.makePawn('saqueador');
@@ -196,5 +196,56 @@ describe('cobertura y alcance', () => {
     e.raider = { fleeing: false, leaveAt: w.tick + 100000 };
     expect(seekCover(w, c, e)).toBe(true);
     expect(c.path[c.path.length - 1]).toEqual({ x: 11, y: 11 });
+  });
+});
+
+describe('armadura', () => {
+  it('se pone solo el mejor chaleco y el mejor casco libres, y quitan daño', () => {
+    const w = flatWorld(1);
+    const c = w.colonists[0];
+    w.items.drop(8, 8, 'chaleco_cuero', 1);
+    w.items.drop(12, 5, 'chaleco_metal', 1);
+    w.items.drop(6, 9, 'casco_chapa', 1);
+    for (let i = 0; i < 4000 && !(c.vest === 'chaleco_metal' && c.helmet === 'casco_chapa'); i++) w.step();
+    expect([c.vest, c.helmet]).toEqual(['chaleco_metal', 'casco_chapa']);
+    expect(walkSpeedMultiplier(c)).toBeCloseTo(0.9 * c.traits.reduce((m, t) => m * (t.walkSpeed ?? 1), 1));
+    w.setArmorChoice(c, 'ninguna');
+    expect([c.vest, c.helmet]).toEqual([null, null]);
+  });
+
+  it('con chaleco y casco de metal se recibe la mitad de daño', () => {
+    const lost = (armored: boolean) => {
+      const w = flatWorld(2);
+      const [a, b] = w.colonists;
+      a.skills.combate = 20;
+      if (armored) {
+        b.vest = 'chaleco_metal';
+        b.helmet = 'casco_metal';
+      }
+      let n = 0;
+      for (let i = 0; i < 40; i++) {
+        const before = b.health;
+        attack(w, a, b);
+        n += before - b.health;
+        b.health = 1;
+        b.wounds = [];
+        b.downed = false;
+      }
+      return n;
+    };
+    expect(lost(true)).toBeCloseTo(lost(false) * 0.5, 5);
+  });
+
+  it('se guarda con la partida y los saqueadores llevan chaleco desde el día 10', () => {
+    const w = flatWorld(1);
+    const c = w.colonists[0];
+    c.vest = 'chaleco_chapa';
+    c.helmet = 'casco_metal';
+    c.armorChoice = 'ninguna';
+    const l = loadWorld(JSON.stringify(serializeWorld(w))).colonists[0];
+    expect([l.vest, l.helmet, l.armorChoice]).toEqual(['chaleco_chapa', 'casco_metal', 'ninguna']);
+    w.tick = 11 * TICKS_PER_DAY;
+    const raiders = startRaid(w, 4);
+    expect(raiders.every((r) => r.vest === 'chaleco_cuero' || r.vest === 'chaleco_chapa')).toBe(true);
   });
 });

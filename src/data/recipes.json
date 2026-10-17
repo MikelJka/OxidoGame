@@ -220,5 +220,71 @@
     },
     "work": 150,
     "description": "Munición para el arco."
+  },
+  {
+    "id": "fabricar_chaleco_cuero",
+    "name": "Chaleco de cuero",
+    "station": "banco_trabajo",
+    "inputs": {
+      "fibra": 8
+    },
+    "outputs": {
+      "chaleco_cuero": 1
+    },
+    "work": 300,
+    "description": "Quita un 15 % del daño."
+  },
+  {
+    "id": "fabricar_chaleco_chapa",
+    "name": "Chaleco de chapa",
+    "station": "banco_trabajo",
+    "inputs": {
+      "chatarra": 12
+    },
+    "outputs": {
+      "chaleco_chapa": 1
+    },
+    "work": 400,
+    "description": "Quita un 25 % del daño; se anda un 5 % más despacio."
+  },
+  {
+    "id": "fabricar_chaleco_metal",
+    "name": "Chaleco de metal",
+    "station": "banco_trabajo",
+    "inputs": {
+      "metal": 8,
+      "componentes": 1
+    },
+    "outputs": {
+      "chaleco_metal": 1
+    },
+    "work": 500,
+    "description": "Quita un 35 % del daño; se anda un 10 % más despacio."
+  },
+  {
+    "id": "fabricar_casco_chapa",
+    "name": "Casco de chapa",
+    "station": "banco_trabajo",
+    "inputs": {
+      "chatarra": 6
+    },
+    "outputs": {
+      "casco_chapa": 1
+    },
+    "work": 250,
+    "description": "Quita un 10 % del daño."
+  },
+  {
+    "id": "fabricar_casco_metal",
+    "name": "Casco de metal",
+    "station": "banco_trabajo",
+    "inputs": {
+      "metal": 4
+    },
+    "outputs": {
+      "casco_metal": 1
+    },
+    "work": 300,
+    "description": "Quita un 15 % del daño."
   }
 ]

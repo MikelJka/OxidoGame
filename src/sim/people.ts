@@ -4,6 +4,7 @@
 import { RESOURCES, ResourceId } from '../data/resources';
 import { personValue, RESOURCE_VALUES } from '../data/values';
 import { isGear, raiderWeaponPool, WEAPONS, WeaponDef } from '../data/weapons';
+import { armorProtection, isArmor, raiderVestPool } from '../data/armor';
 import type { Colonist } from './colonist';
 import { BODY_PARTS, hurt } from './health';
 import { findPath, Point } from './pathfinding';
@@ -82,6 +83,8 @@ export function startRaid(w: World, n: number): Colonist[] {
     r.skills.combate = Math.max(r.skills.combate, w.rng.int(3, 10));
     r.weapon = pool[w.rng.int(0, pool.length - 1)];
     r.ammo = r.weapon && WEAPONS[r.weapon].ammo ? 15 : 0;
+    const vests = raiderVestPool(w.day);
+    if (vests.some((v) => v)) r.vest = vests[w.rng.int(0, vests.length - 1)];
     w.others.push(r);
   }
   w.addLog(`⚔️ ¡Raid! ${n} ${n === 1 ? 'saqueador llega' : 'saqueadores llegan'}. Recluta a los colonos (🎖) para defenderos.`, 'malo');
@@ -94,7 +97,7 @@ export function startTrader(w: World): Colonist | null {
   if (!w.placeAtEdge(t)) return null;
   const stock: Partial<Record<ResourceId, number>> = {};
   // Las caravanas todavía no venden armas.
-  for (const r of RESOURCES) if (!isGear(r) && w.rng.chance(0.5)) stock[r] = w.rng.int(10, 60);
+  for (const r of RESOURCES) if (!isGear(r) && !isArmor(r) && w.rng.chance(0.5)) stock[r] = w.rng.int(10, 60);
   stock.componentes = w.rng.int(2, 10);
   const slaves: Colonist[] = [];
   const nSlaves = w.rng.int(0, 2);
@@ -230,7 +233,8 @@ export function attack(w: World, a: Colonist, b: Colonist): boolean {
   const tough = b.traits.some((t) => t.id === 'duro') ? 0.75 : 1;
   // La dureza de la partida solo cambia los golpes de los saqueadores.
   const hard = a.role === 'saqueador' ? DIFFICULTIES[w.difficulty.level].enemyDamage : 1;
-  const dmg = (0.08 + w.rng.next() * 0.1) * (1 + a.skills.combate * 0.03) * tough * hard * (weapon?.damage ?? 1);
+  const armor = 1 - armorProtection([b.vest, b.helmet]);
+  const dmg = (0.08 + w.rng.next() * 0.1) * (1 + a.skills.combate * 0.03) * tough * hard * (weapon?.damage ?? 1) * armor;
   const part = BODY_PARTS[w.rng.int(0, BODY_PARTS.length - 1)];
   const wasDown = b.downed;
   hurt(b, dmg, part);
@@ -343,8 +347,12 @@ export function updateOthers(w: World): void {
 export function dropGear(w: World, c: Colonist): void {
   if (c.weapon) w.items.drop(c.tile.x, c.tile.y, c.weapon, 1);
   if (c.ammo > 0) w.items.drop(c.tile.x, c.tile.y, 'flechas', c.ammo);
+  if (c.vest) w.items.drop(c.tile.x, c.tile.y, c.vest, 1);
+  if (c.helmet) w.items.drop(c.tile.x, c.tile.y, c.helmet, 1);
   c.weapon = null;
   c.ammo = 0;
+  c.vest = null;
+  c.helmet = null;
 }
 
 function leaveMap(w: World, o: Colonist, why: string): void {

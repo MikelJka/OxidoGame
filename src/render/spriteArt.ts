@@ -180,6 +180,25 @@ export function paintItem(ctx: CanvasRenderingContext2D, r: ResourceId): void {
       for (let i = 0; i < 8; i++) px(3 + Math.round(Math.sin((i / 7) * Math.PI) * 3), 1 + i, 2, 1, '#7a5634');
       px(3, 1, 1, 8, 'rgba(220,210,190,0.8)');
       break;
+    case 'chaleco_cuero':
+    case 'chaleco_chapa':
+    case 'chaleco_metal': {
+      const [base, light] = r === 'chaleco_cuero' ? ['#7a5634', '#a57a48'] : r === 'chaleco_chapa' ? ['#8a4a26', '#c27a3e'] : ['#6e747a', '#9aa0a6'];
+      px(2, 1, 8, 8, '#1a1410');
+      px(3, 2, 6, 6, base);
+      px(3, 2, 6, 1, light);
+      px(5, 1, 2, 2, '#1a1410'); // cuello
+      break;
+    }
+    case 'casco_chapa':
+    case 'casco_metal': {
+      const [base, light] = r === 'casco_chapa' ? ['#8a4a26', '#c27a3e'] : ['#6e747a', '#b4b8bc'];
+      px(2, 3, 8, 6, '#1a1410');
+      px(3, 4, 6, 4, base);
+      px(4, 4, 3, 1, light);
+      px(1, 7, 10, 1, '#1a1410');
+      break;
+    }
     case 'flechas':
       for (const y of [3, 5, 7]) {
         px(2, y, 7, 1, '#9a7650');

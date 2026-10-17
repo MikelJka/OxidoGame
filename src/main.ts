@@ -22,6 +22,7 @@ import { parseSave } from './sim/save';
 import { reachableResources } from './sim/resources';
 import { BASE_RESOURCES, HarvestJob, RESOURCE_ICONS, RESOURCE_NAMES, RESOURCES } from './data/resources';
 import { isWeapon, WEAPON_IDS, WEAPONS } from './data/weapons';
+import { armorProtection } from './data/armor';
 import { CROPS } from './data/crops';
 import { recipesFor } from './data/recipes';
 import type { ResourceId } from './data/resources';
@@ -904,7 +905,22 @@ weaponSelect.addEventListener('change', () => {
   const v = weaponSelect.value;
   if (c && (v === 'auto' || v === 'ninguna' || isWeapon(v))) w.setWeaponChoice(c, v);
 });
+const armorSelect = $<HTMLSelectElement>('cp-armor');
+armorSelect.addEventListener('change', () => {
+  const w = scene().world;
+  const c = w.colonists.find((k) => k.id === weaponPawnId);
+  const v = armorSelect.value;
+  if (c && (v === 'auto' || v === 'ninguna')) w.setArmorChoice(c, v);
+});
+function renderArmor(c: Colonist): void {
+  const pieces = [c.vest, c.helmet].filter((p) => p !== null);
+  $('cp-armor-now').textContent = pieces.length
+    ? `${pieces.map((p) => `${RESOURCE_ICONS[p]} ${RESOURCE_NAMES[p]}`).join(' · ')} (−${Math.round(armorProtection(pieces) * 100)} % de daño)`
+    : '👕 Sin armadura';
+  if (document.activeElement !== armorSelect) armorSelect.value = c.armorChoice;
+}
 function renderWeapon(c: Colonist): void {
+  renderArmor(c);
   weaponPawnId = c.id;
   const def = c.weapon ? WEAPONS[c.weapon] : null;
   const ammo = def?.ammo ? ` · ${RESOURCE_ICONS.flechas} ${c.ammo}` : '';

@@ -1,4 +1,5 @@
 import type { WeaponId } from '../data/weapons';
+import { ArmorId, armorWalk } from '../data/armor';
 import {
   FIRST_NAMES, HAIR_COLORS, NICKNAMES, SHIRT_COLORS, SKILLS, SKIN_COLORS, Skill, TRAITS, TRAIT_CONFLICTS, TraitDef,
 } from '../data/colonists';
@@ -136,7 +137,12 @@ export interface Colonist {
   weaponChoice: WeaponChoice;
   /** Munición que lleva encima (flechas). */
   ammo: number;
-  /** Va a recoger un arma o munición del suelo o del almacén. */
+  /** Chaleco y casco puestos. */
+  vest: ArmorId | null;
+  helmet: ArmorId | null;
+  /** Armadura: la mejor libre («auto») o ninguna. */
+  armorChoice: 'auto' | 'ninguna';
+  /** Va a recoger un arma, munición o armadura del suelo o del almacén. */
   gearTask?: { x: number; y: number; resource: ResourceId };
 }
 
@@ -199,11 +205,14 @@ export function createColonist(id: number, at: Point, rng: Rng): Colonist {
     weapon: null,
     weaponChoice: 'auto',
     ammo: 0,
+    vest: null,
+    helmet: null,
+    armorChoice: 'auto',
   };
 }
 
 export function walkSpeedMultiplier(c: Colonist): number {
-  return c.traits.reduce((m, t) => m * (t.walkSpeed ?? 1), 1);
+  return c.traits.reduce((m, t) => m * (t.walkSpeed ?? 1), 1) * armorWalk([c.vest, c.helmet]);
 }
 
 export function activityLabel(c: Colonist): string {

@@ -14,6 +14,7 @@ import type { StoragePriority } from './zones';
 import { GameSpeed, TICKS_PER_DAY, World } from './world';
 import { initialSchedule, makeDifficulty } from './storyteller';
 import { isWeapon } from '../data/weapons';
+import { ARMORS, isArmor } from '../data/armor';
 
 /** Versión del formato. Súbela solo si un cambio no se puede leer de forma tolerante, y añade la migración. */
 export const SAVE_VERSION = 1;
@@ -91,6 +92,9 @@ interface SavedColonist {
   weapon?: string | null;
   weaponChoice?: string;
   ammo?: number;
+  vest?: string | null;
+  helmet?: string | null;
+  armorChoice?: string;
 }
 
 function savePawn(c: Colonist): SavedColonist {
@@ -122,6 +126,9 @@ function savePawn(c: Colonist): SavedColonist {
     weapon: c.weapon,
     weaponChoice: c.weaponChoice,
     ammo: c.ammo,
+    vest: c.vest,
+    helmet: c.helmet,
+    armorChoice: c.armorChoice,
   };
 }
 
@@ -318,6 +325,10 @@ function restoreColonist(s: SavedColonist): Colonist {
     weapon: typeof s.weapon === 'string' && isWeapon(s.weapon) ? s.weapon : null,
     weaponChoice: s.weaponChoice === 'ninguna' || (typeof s.weaponChoice === 'string' && isWeapon(s.weaponChoice)) ? s.weaponChoice : 'auto',
     ammo: Math.max(0, Math.round(num(s.ammo, 0))),
+    // Partidas de antes de las armaduras: sin nada puesto, eligiendo sola la mejor.
+    vest: typeof s.vest === 'string' && isArmor(s.vest) && ARMORS[s.vest].slot === 'chaleco' ? s.vest : null,
+    helmet: typeof s.helmet === 'string' && isArmor(s.helmet) && ARMORS[s.helmet].slot === 'casco' ? s.helmet : null,
+    armorChoice: s.armorChoice === 'ninguna' ? 'ninguna' : 'auto',
   };
 }
 

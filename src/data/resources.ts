@@ -1,7 +1,7 @@
 /** Recursos de la colonia y trabajos para obtenerlos del mapa. Ampliar aquí, no en la lógica. */
 import type { Skill } from './colonists';
 
-export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra', 'metal', 'hormigon', 'comida', 'palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'flechas'] as const;
+export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra', 'metal', 'hormigon', 'comida', 'palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'flechas', 'chaleco_cuero', 'chaleco_chapa', 'chaleco_metal', 'casco_chapa', 'casco_metal'] as const;
 
 export type ResourceId = (typeof RESOURCES)[number];
 
@@ -24,6 +24,11 @@ export const RESOURCE_NAMES: Record<ResourceId, string> = {
   machete: 'Machete',
   arco: 'Arco',
   flechas: 'Flechas',
+  chaleco_cuero: 'Chaleco de cuero',
+  chaleco_chapa: 'Chaleco de chapa',
+  chaleco_metal: 'Chaleco de metal',
+  casco_chapa: 'Casco de chapa',
+  casco_metal: 'Casco de metal',
 };
 
 /** Recursos que se muestran siempre en el inventario (los demás, solo si hay). */
@@ -53,6 +58,11 @@ export const RESOURCE_ICONS: Record<ResourceId, string> = {
   machete: '🗡️',
   arco: '🏹',
   flechas: '➶',
+  chaleco_cuero: '🦺',
+  chaleco_chapa: '🦺',
+  chaleco_metal: '🦺',
+  casco_chapa: '⛑️',
+  casco_metal: '⛑️',
 };
 
 /** Tipo de trabajo con el que se aprovecha un objeto del mapa. */
@@ -103,6 +113,11 @@ export const MAX_STACK: Record<ResourceId, number> = {
   machete: 10,
   arco: 10,
   flechas: 100,
+  chaleco_cuero: 10,
+  chaleco_chapa: 10,
+  chaleco_metal: 10,
+  casco_chapa: 10,
+  casco_metal: 10,
 };
 
 /** Provisiones con las que llega la colonia: se dejan en el suelo junto al punto de inicio. */

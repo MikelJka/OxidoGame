@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (noche, 15) — Armadura
+
+- Segunda regla de combate, con los números aprobados por Mikel. En el banco de trabajo: chaleco de cuero (🧵8, −15 % de daño), de chapa (🔩12, −25 %, −5 % al andar), de metal (🔗8 ⚙️1, −35 %, −10 % al andar), casco de chapa (🔩6, −10 %) y de metal (🔗4, −15 %). Lo que quitan se suma.
+- Cada colono se pone solo el chaleco y el casco libres que más protegen (deja los suyos en su lugar). En la ficha se ve lo que lleva y cuánto daño quita, con un selector: «la mejor libre» o «sin armadura».
+- Los saqueadores llegan con chaleco de cuero o de chapa desde el día 10 y lo sueltan al caer.
+- Se guarda con la partida. Tests en `tests/weapons.test.ts`.
+- Decidido con Mikel: los números de la **electricidad** (en `FEEDBACK.md`); la recicladora y la depuradora pasarán a necesitar corriente.
+- Qué probar: fabricar un chaleco y un casco en el banco y ver que un colono se los pone; mirar su ficha.
+- Siguiente: moral y huida (con sus números para Mikel); la electricidad, en cuanto se decida el orden.
+
 ## 2026-10-17 (noche, 14) — Cobertura y alcance
 
 - Primera regla de combate aprobada por Mikel. Al disparar con arco cuenta lo que hay pegado al objetivo en dirección al tirador: un muro, puerta, portón, muro derruido o roca impide el disparo; una barricada o una roca grande quitan un 50 % de acierto; un árbol, coche, chatarra, barril o neumáticos, un 30 %; estar dentro de una zanja, otro 25 %. El acierto baja un 6 % por casilla.

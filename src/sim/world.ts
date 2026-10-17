@@ -14,6 +14,7 @@ import { tickHealth, treatWounds } from './health';
 import { Difficulty, initialSchedule, makeDifficulty, scaledSupplies, StorySchedule } from './storyteller';
 import { canTalk, colonistFight, dropGear, makePrisoner, runStoryteller, talkToPrisoner, updateOthers } from './people';
 import { AMMO_CARRY, AMMO_LOW, isGear, isWeapon, WEAPON_IDS, WEAPONS, weaponScore } from '../data/weapons';
+import { ARMOR_IDS, ARMORS, isArmor } from '../data/armor';
 import { TRAPPED_TILES } from './diagnostics';
 import {
   BAD_WATER_TICKS_DAYS, DEHYDRATED, DRINK_TICKS, EAT_TICKS, EXHAUSTED, foodDecay, foodPreference, HUNGRY, isFood, isRawFood, NUTRITION, restDecay,
@@ -502,7 +503,33 @@ export class World implements JobContext {
       if (best !== c.weapon) return best;
     }
     if (c.weapon && WEAPONS[c.weapon].ammo && c.ammo < AMMO_LOW && inv.flechas > 0) return 'flechas';
+    // Armadura: el chaleco y el casco que más protegen de los que hay libres.
+    if (c.armorChoice === 'auto') {
+      for (const slot of ['chaleco', 'casco'] as const) {
+        const now = slot === 'chaleco' ? c.vest : c.helmet;
+        let best = now;
+        for (const id of ARMOR_IDS) {
+          const def = ARMORS[id];
+          if (def.slot !== slot || inv[id] <= 0) continue;
+          if (def.protection > (best ? ARMORS[best].protection : 0)) best = id;
+        }
+        if (best !== now) return best;
+      }
+    }
     return null;
+  }
+
+  /** Armadura: la mejor libre o ninguna (la que lleva se deja en el suelo y la llevan al almacén). */
+  setArmorChoice(c: Colonist, choice: Colonist['armorChoice']): void {
+    c.armorChoice = choice;
+    c.gearTask = undefined;
+    this.nextGearScan.delete(c.id);
+    if (choice === 'ninguna') {
+      if (c.vest) this.items.drop(c.tile.x, c.tile.y, c.vest, 1);
+      if (c.helmet) this.items.drop(c.tile.x, c.tile.y, c.helmet, 1);
+      c.vest = null;
+      c.helmet = null;
+    }
   }
 
   /** Aplica lo elegido en la ficha: sin arma, la suelta (y la llevan al almacén). */
@@ -548,6 +575,15 @@ export class World implements JobContext {
       if (t.resource === 'flechas') {
         const got = this.items.at(t.x, t.y)?.resource === 'flechas' ? this.items.take(t.x, t.y, AMMO_CARRY - c.ammo) : null;
         if (got) c.ammo += got.amount;
+        return;
+      }
+      if (isArmor(t.resource)) {
+        if (this.items.at(t.x, t.y)?.resource !== t.resource || !this.items.take(t.x, t.y, 1)) return;
+        const slot = ARMORS[t.resource].slot;
+        const old = slot === 'chaleco' ? c.vest : c.helmet;
+        if (old) this.items.drop(t.x, t.y, old, 1);
+        if (slot === 'chaleco') c.vest = t.resource;
+        else c.helmet = t.resource;
         return;
       }
       if (!isWeapon(t.resource) || this.items.at(t.x, t.y)?.resource !== t.resource) return;
