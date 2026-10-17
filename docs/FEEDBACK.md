@@ -11,6 +11,8 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Hecho
 
+- [x] **Construir encima de los suelos** (2026-10-17): los suelos van en su propia capa; encima se puede poner de todo (muros, camas, talleres…) menos lo del agua (pozo, depuradora), y los huertos no van sobre suelo. Al demoler lo de encima, el suelo sigue ahí.
+
 - [x] **Vista previa en blanco de lo que se construye y girar con R** (2026-10-17): al elegir algo en 🏗 se ve un fantasma blanco bajo el ratón y en todo el área arrastrada (2D y 3D); R gira camas, talleres, puertas…
 
 - [x] **Construcciones de varias casillas** (2026-10-17): cama y banco de trabajo 2×1, armario 2×1, horno y recicladora 2×2, cantera 3×3. Se giran con ↻ Girar (tecla X) en 🏗; al arrastrar se ve en verde dónde cabe (o en rojo si no). Necesitan suelo llano y libre en todas sus casillas.

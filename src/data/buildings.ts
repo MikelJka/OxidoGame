@@ -2,7 +2,7 @@
 import raw from './buildings.json';
 import { RESOURCES, ResourceId } from './resources';
 
-export type BuildingCategory = 'muro' | 'puerta' | 'porton' | 'torre' | 'suelo' | 'defensa' | 'mueble' | 'taller';
+export type BuildingCategory = 'muro' | 'puerta' | 'porton' | 'torre' | 'suelo' | 'defensa' | 'mueble' | 'taller' | 'agua';
 
 export const BUILDING_CATEGORY_NAMES: Record<BuildingCategory, string> = {
   muro: 'Muros',
@@ -13,6 +13,7 @@ export const BUILDING_CATEGORY_NAMES: Record<BuildingCategory, string> = {
   defensa: 'Defensas',
   mueble: 'Muebles',
   taller: 'Talleres',
+  agua: 'Agua',
 };
 
 export interface BuildingDef {
@@ -33,6 +34,8 @@ export interface BuildingDef {
   height: number;
   /** Casillas que ocupa [ancho, alto] sin girar (por defecto 1×1). */
   size?: [number, number];
+  /** Hay que ponerla junto al agua (depuradora). */
+  nearWater?: boolean;
   /** Estantería: cuántos montones normales caben en su casilla. */
   storage?: number;
   /** Casillas de vista desde lo alto (torres; servirá para ver venir a los enemigos). */

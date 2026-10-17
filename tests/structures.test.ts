@@ -185,3 +185,43 @@ describe('construcciones de varias casillas', () => {
     expect(checkWorld(world)).toEqual([]);
   });
 });
+
+describe('suelos (capa aparte)', () => {
+  it('sobre un suelo se construye de todo menos lo del agua; el muro manda en el paso y al demolerlo vuelve el suelo', () => {
+    const world = flatWorld();
+    const st = world.structures;
+    const put = (x: number, y: number, id: string, rot: 0 | 1 = 0) => {
+      expect(st.place(x, y, id, rot)).toBe(true);
+      const s = [...st.all()].reverse().find((k) => k.x === x && k.y === y && k.def.id === id)!;
+      for (const [r, n] of Object.entries(s.def.cost)) st.deliver(s, r as never, n as number);
+      world.completeStructure(s);
+      return s;
+    };
+    put(10, 10, 'suelo_piedra');
+    put(11, 10, 'suelo_piedra');
+    const base = tileMoveCost(world.map, 10, 10);
+    expect(st.place(10, 10, 'suelo_madera')).toBe(false); // ya hay suelo
+    const wall = put(10, 10, 'muro_piedra');
+    expect(isPassable(world.map, 10, 10)).toBe(false);
+    expect(st.at(10, 10)).toBe(wall);
+    expect(st.floorAt(10, 10)?.def.id).toBe('suelo_piedra');
+    expect(st.canPlaceDef(buildingDef('pozo'), 11, 10)).toBe(false); // agua no
+    expect(st.canPlaceDef(buildingDef('cama'), 9, 10)).toBe(false); // la cama 2×1 pisaría el muro
+    expect(st.place(11, 10, 'cama', 1)).toBe(true); // girada sí cabe sobre el suelo
+    world.demolishStructure(wall);
+    expect(tileMoveCost(world.map, 10, 10)).toBeCloseTo(base);
+    expect(checkWorld(world)).toEqual([]);
+  });
+
+  it('los colonos construyen un muro encima de un suelo terminado', () => {
+    const world = flatWorld();
+    world.items.drop(4, 20, 'piedra', 30);
+    world.structures.place(12, 12, 'suelo_piedra');
+    runUntil(world, () => world.structures.blueprints().length === 0);
+    world.structures.place(12, 12, 'muro_piedra');
+    runUntil(world, () => world.structures.blueprints().length === 0);
+    expect(world.structures.mainAt(12, 12)?.built).toBe(true);
+    expect(world.structures.floorAt(12, 12)?.built).toBe(true);
+    expect(isPassable(world.map, 12, 12)).toBe(false);
+  });
+});

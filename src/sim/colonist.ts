@@ -12,14 +12,16 @@ export type ColonistActivity = 'idle' | 'wandering' | 'moving' | 'toJob' | 'work
 
 /** Lo que hace por sí mismo para cubrir una necesidad: comer (en un montón de comida) o dormir. */
 export interface NeedTask {
-  type: 'comer' | 'dormir';
-  /** Casilla del montón de comida o de la cama (o donde duerme en el suelo). */
+  type: 'comer' | 'dormir' | 'beber';
+  /** Casilla del montón de comida, de la cama (o donde duerme en el suelo) o desde donde bebe. */
   x: number;
   y: number;
   /** Duerme en una cama. */
   bed: boolean;
-  /** Ticks que lleva comiendo. */
+  /** Ticks que lleva comiendo o bebiendo. */
   progress: number;
+  /** Bebe agua contaminada. */
+  dirty?: boolean;
 }
 
 /** Prioridad de un trabajo para un colono: 0 = no lo hace, 1 = el primero … 4 = el último. */
@@ -46,6 +48,8 @@ export interface ColonistJob {
   terrain?: TerrainJob;
   /** Demoler la construcción de la casilla. */
   demolish?: boolean;
+  /** Construcción a la que va el trabajo (construir, demoler, fabricar). */
+  sid?: number;
 }
 
 export interface HaulInfo {
@@ -141,9 +145,9 @@ export function walkSpeedMultiplier(c: Colonist): number {
 
 export function activityLabel(c: Colonist): string {
   if (c.need) {
-    if (c.activity === 'eating') return 'Comiendo';
+    if (c.activity === 'eating') return c.need.type === 'beber' ? 'Bebiendo' : 'Comiendo';
     if (c.activity === 'sleeping') return c.need.bed ? 'Durmiendo en la cama' : 'Durmiendo en el suelo';
-    return c.need.type === 'comer' ? 'Yendo a comer' : 'Yendo a dormir';
+    return c.need.type === 'comer' ? 'Yendo a comer' : c.need.type === 'beber' ? 'Yendo a beber' : 'Yendo a dormir';
   }
   if (c.drafted && !c.job) return c.path.length > 0 ? 'Reclutado · yendo' : 'Reclutado · esperando órdenes';
   switch (c.activity) {

@@ -1,5 +1,5 @@
 import { Colonist, createColonist, walkSpeedMultiplier } from './colonist';
-import { GameMap, generateMap, isPassable, tileMoveCost } from './map';
+import { GameMap, generateMap, isPassable, isWater, Prop, Terrain, tileMoveCost } from './map';
 import { findPath, isWalkable, Point } from './pathfinding';
 import { Rng } from './rng';
 import { GroundItems } from './items';
@@ -10,7 +10,10 @@ import { StorageZones } from './zones';
 import { GrowZones } from './farming';
 import { regrowNature } from './nature';
 import { Rooms } from './rooms';
-import { EAT_TICKS, EXHAUSTED, foodDecay, HUNGRY, isFood, NUTRITION, restDecay, restGain, STARVING, TIRED } from './needs';
+import {
+  BAD_WATER_TICKS_DAYS, DEHYDRATED, DRINK_TICKS, EAT_TICKS, EXHAUSTED, foodDecay, HUNGRY, isFood, NUTRITION, restDecay,
+  restGain, STARVING, THIRSTY, TIRED, waterDecay,
+} from './needs';
 import { applyTerrainJob, LOWER_STONE, terrainBlocker, TerrainJob, TerrainOrders } from './terrain';
 import { Structure, Structures } from './structures';
 import type { TileRect } from './designations';
@@ -27,6 +30,8 @@ const BASE_WALK_SPEED = 3;
 const START_HOUR = 7;
 /** Máximo de ticks a simular por fotograma para no bloquear el navegador. */
 const MAX_TICKS_PER_UPDATE = 60;
+/** Casillas que mira un colono, como mucho, buscando dónde beber. */
+const DRINK_SEARCH_TILES = 12000;
 /** Ticks que espera un colono para volver a buscar trabajo si no encontró ninguno. */
 const JOB_RETRY_TICKS = 90;
 /** Ticks de pausa entre terminar un trabajo y empezar el siguiente. */
@@ -285,6 +290,7 @@ export class World implements JobContext {
   private decayNeeds(c: Colonist): void {
     const n = c.needs;
     n.food = Math.max(0, n.food - foodDecay(c, TICKS_PER_DAY));
+    n.water = Math.max(0, n.water - waterDecay(TICKS_PER_DAY));
     if (c.activity !== 'sleeping') n.rest = Math.max(0, n.rest - restDecay(TICKS_PER_HOUR));
   }
 
@@ -300,17 +306,82 @@ export class World implements JobContext {
     const busy = c.job !== null || c.activity === 'moving';
     const wantsSleep = n.rest < (busy ? EXHAUSTED : TIRED) || (!busy && this.isNight && n.rest < 0.75);
     const wantsFood = n.food < (busy ? STARVING : HUNGRY);
-    if (!wantsSleep && !wantsFood) return false;
+    const wantsWater = n.water < (busy ? DEHYDRATED : THIRSTY);
+    if (!wantsSleep && !wantsFood && !wantsWater) return false;
     if (this.tick < (this.nextNeedScan.get(c.id) ?? 0)) return false;
     // Primero lo más grave.
-    const order: ('comer' | 'dormir')[] = n.food < n.rest ? ['comer', 'dormir'] : ['dormir', 'comer'];
-    for (const what of order) {
-      if (what === 'comer' && !wantsFood) continue;
-      if (what === 'dormir' && !wantsSleep) continue;
-      if (what === 'comer' ? this.startEating(c) : this.startSleeping(c)) return true;
+    const wants: { what: 'comer' | 'dormir' | 'beber'; level: number }[] = [];
+    if (wantsFood) wants.push({ what: 'comer', level: n.food });
+    if (wantsWater) wants.push({ what: 'beber', level: n.water });
+    if (wantsSleep) wants.push({ what: 'dormir', level: n.rest });
+    wants.sort((a, b) => a.level - b.level);
+    for (const { what } of wants) {
+      const ok = what === 'comer' ? this.startEating(c) : what === 'beber' ? this.startDrinking(c) : this.startSleeping(c);
+      if (ok) return true;
     }
     this.nextNeedScan.set(c.id, this.tick + JOB_RETRY_TICKS);
     return false;
+  }
+
+  /**
+   * Agua que se puede beber desde una casilla en la que se está de pie: limpia (manantial, pozo,
+   * depuradora o agua sin contaminar al lado), sucia (solo agua contaminada) o ninguna.
+   */
+  drinkAt(x: number, y: number): 'limpia' | 'sucia' | null {
+    let dirty = false;
+    for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= this.map.width || ny >= this.map.height) continue;
+      const i = ny * this.map.width + nx;
+      if (this.map.props[i] === Prop.Spring) return 'limpia';
+      const s = this.structures.at(nx, ny);
+      if (s && s.built && s.def.category === 'agua') return 'limpia';
+      if (isWater(this.map.terrain[i] as Terrain)) {
+        if (!this.map.contaminated[i]) return 'limpia';
+        dirty = true;
+      }
+    }
+    return dirty ? 'sucia' : null;
+  }
+
+  /** Va a beber al sitio más cercano con agua limpia (o, si no hay, con agua contaminada). */
+  private startDrinking(c: Colonist): boolean {
+    const m = this.map;
+    const start = c.tile.y * m.width + c.tile.x;
+    const seen = new Set<number>([start]);
+    const queue = [start];
+    let dirtySpot: Point | null = null;
+    let clean: Point | null = null;
+    for (let head = 0; head < queue.length && head < DRINK_SEARCH_TILES; head++) {
+      const i = queue[head];
+      const x = i % m.width;
+      const y = (i - x) / m.width;
+      const kind = this.drinkAt(x, y);
+      if (kind === 'limpia') {
+        clean = { x, y };
+        break;
+      }
+      if (kind === 'sucia' && !dirtySpot) dirtySpot = { x, y };
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (!isPassable(m, nx, ny)) continue;
+        const j = ny * m.width + nx;
+        if (seen.has(j)) continue;
+        seen.add(j);
+        queue.push(j);
+      }
+    }
+    const spot = clean ?? dirtySpot;
+    if (!spot) return false;
+    const route = this.routeTo(c, [spot]);
+    if (!route) return false;
+    if (c.job) this.dropJob(c);
+    c.need = { type: 'beber', x: spot.x, y: spot.y, bed: false, progress: 0, dirty: !clean };
+    c.path = route.path;
+    c.activity = 'toNeed';
+    return true;
   }
 
   /** Va al montón de comida más cercano al que se llega. */
@@ -367,6 +438,21 @@ export class World implements JobContext {
     const t = c.need!;
     if (c.path.length > 0) {
       this.moveAlongPath(c);
+      return;
+    }
+    if (t.type === 'beber') {
+      if (c.tile.x !== t.x || c.tile.y !== t.y) {
+        const path = findPath(this.map, c.tile, t, JOB_PATH_NODES);
+        if (!path || path.length === 0) this.endNeed(c);
+        else c.path = path;
+        return;
+      }
+      c.activity = 'eating';
+      t.progress++;
+      if (t.progress < DRINK_TICKS) return;
+      c.needs.water = 1;
+      if (t.dirty) c.needs.badWaterUntil = this.tick + BAD_WATER_TICKS_DAYS * TICKS_PER_DAY;
+      this.endNeed(c);
       return;
     }
     if (t.type === 'comer') {
@@ -445,12 +531,17 @@ export class World implements JobContext {
     c.waitTicks = JOB_PAUSE_TICKS;
   }
 
+  /** Construcción a la que va un trabajo (por su id; si no tiene, la de la casilla). */
+  private jobStructure(j: NonNullable<Colonist['job']>): Structure | undefined {
+    return j.sid !== undefined ? this.structures.get(j.sid) : this.structures.at(j.x, j.y);
+  }
+
   /** El trabajo sigue teniendo sentido (no se ha quitado la orden, el montón sigue ahí…). */
   private jobStillValid(c: Colonist): boolean {
     const j = c.job!;
     const h = j.haul;
     if (j.kind === 'construir') {
-      const s = this.structures.at(j.x, j.y);
+      const s = this.jobStructure(j);
       if (j.demolish) return !!s && s.built && !!s.demolish;
       if (!s || s.built) return false;
       if (h && !h.picked) {
@@ -460,7 +551,7 @@ export class World implements JobContext {
       return true;
     }
     if (j.kind === 'fabricar') {
-      const s = this.structures.at(j.x, j.y);
+      const s = this.jobStructure(j);
       if (!s || !stationWantsWork(this, s)) return false;
       if (h && !h.picked) {
         const st = this.items.at(h.from.x, h.from.y);
@@ -503,7 +594,7 @@ export class World implements JobContext {
       return;
     }
     const building = j.kind === 'construir' || j.kind === 'fabricar';
-    const target = building ? this.structures.at(j.x, j.y) : undefined;
+    const target = building ? this.jobStructure(j) : undefined;
     const inPlace = building ? !!target && this.structures.isBesideStructure(c.tile, target) : canWorkFrom(this.map, c.tile, j.x, j.y);
     if (!inPlace) {
       const path = findPath(this.map, c.tile, j.stand, JOB_PATH_NODES);
@@ -521,21 +612,21 @@ export class World implements JobContext {
     j.progress += workSpeed(c, j.kind);
     if (building && j.demolish) {
       if (j.progress >= j.work) {
-        this.demolishStructure(this.structures.at(j.x, j.y)!);
+        this.demolishStructure(this.jobStructure(j)!);
         this.dropJob(c);
       }
       return;
     }
     if (j.kind === 'fabricar') {
       if (j.progress >= j.work) {
-        const s = this.structures.at(j.x, j.y)!;
+        const s = this.jobStructure(j)!;
         if (this.structures.consumeInputs(s)) this.dropBeside(s, s.bill!.recipe.outputs);
         this.dropJob(c);
       }
       return;
     }
     if (building) {
-      const s = this.structures.at(j.x, j.y)!;
+      const s = this.jobStructure(j)!;
       s.progress = Math.min(j.progress, s.def.work);
       if (j.progress >= j.work) {
         this.completeStructure(s);
@@ -618,7 +709,7 @@ export class World implements JobContext {
       h.picked = true;
       this.reservations.release(h.from.x, h.from.y, c.id, 'pickup');
       // Al almacén se entra; a un plano se le lleva el material desde el lado.
-      const dest = h.toBlueprint ? this.structures.at(h.to.x, h.to.y) : undefined;
+      const dest = h.toBlueprint ? this.jobStructure(j) : undefined;
       const targets = h.toBlueprint ? (dest ? this.structures.sidesOf(dest) : []) : [h.to];
       const route = this.routeTo(c, targets);
       if (!route) {
@@ -631,7 +722,7 @@ export class World implements JobContext {
       c.activity = 'toJob';
       return;
     }
-    const dest = h.toBlueprint ? this.structures.at(h.to.x, h.to.y) : undefined;
+    const dest = h.toBlueprint ? this.jobStructure(j) : undefined;
     const arrived = h.toBlueprint ? !!dest && this.structures.isBesideStructure(c.tile, dest) : c.tile.x === h.to.x && c.tile.y === h.to.y;
     if (!arrived) {
       this.repathOrDrop(c, j.stand);
@@ -641,7 +732,7 @@ export class World implements JobContext {
     if (load) {
       let left = load.amount;
       if (h.toBlueprint) {
-        const s = this.structures.at(h.to.x, h.to.y);
+        const s = this.jobStructure(j);
         if (s) left -= this.structures.deliver(s, load.resource, left);
       } else {
         left = this.items.addAt(h.to.x, h.to.y, load.resource, left);

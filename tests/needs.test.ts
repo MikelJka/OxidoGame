@@ -4,6 +4,7 @@ import { moodOf, needsWorkFactor } from '../src/sim/needs';
 import { loadWorld, serializeWorld } from '../src/sim/save';
 import { TICKS_PER_DAY, TICKS_PER_HOUR } from '../src/sim/world';
 import { flatWorld } from './helpers';
+import { index, Terrain } from '../src/sim/map';
 
 function buildNow(world: ReturnType<typeof flatWorld>, x: number, y: number, id: string) {
   world.structures.place(x, y, id);
@@ -73,10 +74,10 @@ describe('necesidades', () => {
     const world = flatWorld();
     const c = world.colonists[0];
     c.traits = [];
-    c.needs = { food: 1, rest: 1, sleptIn: null };
+    c.needs = { food: 1, water: 1, badWaterUntil: 0, rest: 1, sleptIn: null };
     const good = moodOf(c).mood;
     const fast = needsWorkFactor(c);
-    c.needs = { food: 0.05, rest: 0.05, sleptIn: 'suelo' };
+    c.needs = { food: 0.05, water: 1, badWaterUntil: 0, rest: 0.05, sleptIn: 'suelo' };
     expect(moodOf(c).mood).toBeLessThan(good);
     expect(needsWorkFactor(c)).toBeLessThan(fast);
   });
@@ -95,8 +96,55 @@ describe('necesidades', () => {
 
   it('las necesidades se guardan con la partida', () => {
     const world = flatWorld();
-    world.colonists[0].needs = { food: 0.33, rest: 0.44, sleptIn: 'cama' };
+    world.colonists[0].needs = { food: 0.33, water: 0.5, badWaterUntil: 0, rest: 0.44, sleptIn: 'cama' };
     const loaded = loadWorld(JSON.stringify(serializeWorld(world)));
-    expect(loaded.colonists[0].needs).toEqual({ food: 0.33, rest: 0.44, sleptIn: 'cama' });
+    expect(loaded.colonists[0].needs).toEqual({ food: 0.33, water: 0.5, badWaterUntil: 0, rest: 0.44, sleptIn: 'cama' });
+  });
+});
+
+describe('sed y agua', () => {
+  it('con sed va al agua limpia más cercana y bebe', () => {
+    const world = flatWorld();
+    const m = world.map;
+    m.terrain[index(m, 15, 5)] = Terrain.Water;
+    const c = world.colonists[0];
+    c.needs.water = 0.2;
+    c.needs.food = 1;
+    for (let t = 0; t < 3000 && c.needs.water < 0.9; t++) world.step();
+    expect(c.needs.water).toBeGreaterThan(0.9);
+    expect(c.needs.badWaterUntil).toBe(0);
+  });
+
+  it('si solo hay agua contaminada, la bebe pero le sienta mal', () => {
+    const world = flatWorld();
+    const m = world.map;
+    m.terrain[index(m, 15, 5)] = Terrain.Water;
+    m.contaminated[index(m, 15, 5)] = 1;
+    const c = world.colonists[0];
+    c.needs.water = 0.2;
+    c.needs.food = 1;
+    for (let t = 0; t < 3000 && c.needs.water < 0.9; t++) world.step();
+    expect(c.needs.water).toBeGreaterThan(0.9);
+    expect(moodOf(c, world.tick).reasons.some((r) => r.text.includes('contaminada'))).toBe(true);
+  });
+
+  it('un pozo da agua limpia lejos del río; la depuradora tiene que ir junto al agua', () => {
+    const world = flatWorld();
+    const m = world.map;
+    m.terrain[index(m, 25, 25)] = Terrain.Water;
+    m.contaminated[index(m, 25, 25)] = 1;
+    expect(world.structures.place(10, 10, 'depuradora')).toBe(false);
+    expect(world.structures.place(24, 25, 'depuradora')).toBe(true);
+    world.structures.place(8, 5, 'pozo');
+    const pozo = world.structures.at(8, 5)!;
+    for (const [r, n] of Object.entries(pozo.def.cost)) world.structures.deliver(pozo, r as never, n as number);
+    world.completeStructure(pozo);
+    expect(world.drinkAt(7, 5)).toBe('limpia');
+    expect(world.drinkAt(25, 24)).toBe('sucia');
+    const c = world.colonists[0];
+    c.needs.water = 0.2;
+    c.needs.food = 1;
+    for (let t = 0; t < 3000 && c.needs.water < 0.9; t++) world.step();
+    expect(c.needs.badWaterUntil).toBe(0);
   });
 });

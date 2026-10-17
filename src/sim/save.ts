@@ -65,7 +65,7 @@ interface SavedColonist {
   priorities: Record<string, number>;
   carrying: { resource: string; amount: number } | null;
   drafted?: boolean;
-  needs?: { food: number; rest: number; sleptIn: string | null };
+  needs?: { food: number; rest: number; sleptIn: string | null; water?: number; badWaterUntil?: number };
 }
 
 // --- Codificación de arrays en base64 ------------------------------------------
@@ -235,6 +235,8 @@ function restoreColonist(s: SavedColonist): Colonist {
     drafted: !!s.drafted,
     needs: {
       food: Math.max(0, Math.min(1, num(s.needs?.food, 0.8))),
+      water: Math.max(0, Math.min(1, num(s.needs?.water, 0.85))),
+      badWaterUntil: Math.max(0, num(s.needs?.badWaterUntil, 0)),
       rest: Math.max(0, Math.min(1, num(s.needs?.rest, 0.85))),
       sleptIn: (['cama', 'suelo', 'habitacion'] as const).find((k) => k === s.needs?.sleptIn) ?? null,
     },

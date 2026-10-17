@@ -712,9 +712,10 @@ $('cp-draft').addEventListener('click', () => scene().toggleDraftSelected());
 // --- Ficha del colono ------------------------------------------------------------
 /** Barras de comida, descanso y ánimo, con los motivos del ánimo. */
 function renderNeeds(c: Colonist): void {
-  const { mood, reasons } = moodOf(c);
+  const { mood, reasons } = moodOf(c, scene().world.tick);
   const bars: [string, number, string][] = [
     ['Comida', c.needs.food, '#c8a040'],
+    ['Agua', c.needs.water, '#5aa0c8'],
     ['Descanso', c.needs.rest, '#6fa8dc'],
     ['Ánimo', mood, '#8fc060'],
   ];

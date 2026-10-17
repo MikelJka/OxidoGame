@@ -854,9 +854,9 @@ export class WorldScene extends Phaser.Scene {
       for (const t of Structures.areaTiles(r, this.buildShape)) {
         if (groups.length >= 300) break;
         if (!inBounds(this.map, t.x, t.y)) continue;
-        const ok = st.canPlace(t.x, t.y);
+        const ok = st.canPlace(t.x, t.y, def);
         // En un área solo se ven donde caben; bajo el ratón, también en rojo si no cabe.
-        if (ok || (r.x0 === r.x1 && r.y0 === r.y1 && !st.at(t.x, t.y))) groups.push({ tiles: [t], ok });
+        if (ok || (r.x0 === r.x1 && r.y0 === r.y1)) groups.push({ tiles: [t], ok });
       }
     }
     return groups;
@@ -1011,7 +1011,7 @@ export class WorldScene extends Phaser.Scene {
         case 'almacen': return canZone(this.map, x, y) && !this.world.zones.at(x, y) && !this.world.farms.at(x, y);
         case 'cultivo': return canZone(this.map, x, y) && fertilityAt(this.map, x, y) > 0 && !this.world.zones.at(x, y) && !this.world.farms.at(x, y);
         case 'quitarAlmacen': return this.world.zones.at(x, y) !== undefined || this.world.farms.at(x, y) !== undefined;
-        case 'construir': return (this.buildShape === 'relleno' || edge) && st.canPlace(x, y);
+        case 'construir': return (this.buildShape === 'relleno' || edge) && st.canPlace(x, y, buildingDef(this.buildDefId));
         case 'quitarPlano': return st.at(x, y) !== undefined;
         default: return canDesignate(this.map, x, y, mode);
       }
@@ -1345,7 +1345,9 @@ export class WorldScene extends Phaser.Scene {
     const plant = this.world.farms.plantAt(tile.x, tile.y);
     if (plant) text = `${plant.crop.name} ${plant.growth >= 1 ? 'maduras' : `${Math.floor(plant.growth * 100)} %`} · ${text}`;
     if (farm) text = `${farm.name} (${farm.crop.name.toLowerCase()}, fertilidad ${Math.round(fertilityAt(this.map, tile.x, tile.y) * 100)} %) · ${text}`;
-    const s = this.world.structures.at(tile.x, tile.y);
+    const floor = this.world.structures.floorAt(tile.x, tile.y);
+    const s = this.world.structures.mainAt(tile.x, tile.y);
+    if (floor) text = `${structureLabel(this.world.structures, floor)} · ${text}`;
     if (s) text = `${structureLabel(this.world.structures, s)}${s.built && s.def.sight ? ` (vista ${s.def.sight} casillas)` : ''} · ${text}`;
     this.game.events.emit('tile-info', text);
   }

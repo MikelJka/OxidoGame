@@ -275,7 +275,7 @@ function fabricateCandidates(ctx: JobContext, c: Colonist): Candidate[] {
           if (!route || !pathToNearest(ctx.map, { x: mat.x, y: mat.y }, sides)) return null;
           return {
             job: {
-              kind: 'fabricar', x: s.x, y: s.y, stand: route.stand, progress: 0, work: 0,
+              kind: 'fabricar', sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: 0, work: 0,
               haul: { resource: mat.resource, amount: mat.amount, from: { x: mat.x, y: mat.y }, to: { x: s.x, y: s.y }, toBlueprint: true, picked: false },
             },
             path: route.path,
@@ -284,7 +284,7 @@ function fabricateCandidates(ctx: JobContext, c: Colonist): Candidate[] {
         const here = ctx.structures.isBesideStructure(c.tile, s);
         const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, sides);
         if (!route) return null;
-        return { job: { kind: 'fabricar', x: s.x, y: s.y, stand: route.stand, progress: 0, work: s.bill!.recipe.work }, path: route.path };
+        return { job: { kind: 'fabricar', sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: 0, work: s.bill!.recipe.work }, path: route.path };
       },
     });
   }
@@ -303,7 +303,7 @@ function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
         const here = ctx.structures.isBesideStructure(c.tile, s);
         const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, ctx.structures.sidesOf(s));
         if (!route) return null;
-        return { job: { kind: 'construir', x: s.x, y: s.y, stand: route.stand, progress: 0, work: Math.ceil(s.def.work / 2), demolish: true }, path: route.path };
+        return { job: { kind: 'construir', sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: 0, work: Math.ceil(s.def.work / 2), demolish: true }, path: route.path };
       },
     });
   }
@@ -323,7 +323,7 @@ function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
           if (!pathToNearest(ctx.map, { x: mat.x, y: mat.y }, sides)) return null;
           return {
             job: {
-              kind: 'construir', x: s.x, y: s.y, stand: route.stand, progress: 0, work: 0,
+              kind: 'construir', sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: 0, work: 0,
               haul: { resource: mat.resource, amount: mat.amount, from: { x: mat.x, y: mat.y }, to: { x: s.x, y: s.y }, toBlueprint: true, picked: false },
             },
             path: route.path,
@@ -332,7 +332,7 @@ function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
         const here = ctx.structures.isBesideStructure(c.tile, s);
         const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, sides);
         if (!route) return null;
-        return { job: { kind: 'construir', x: s.x, y: s.y, stand: route.stand, progress: s.progress, work: s.def.work }, path: route.path };
+        return { job: { kind: 'construir', sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: s.progress, work: s.def.work }, path: route.path };
       },
     });
   }

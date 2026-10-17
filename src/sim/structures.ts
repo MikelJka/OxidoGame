@@ -8,6 +8,8 @@ import type { TileRect } from './designations';
 import type { Stockpile } from './resources';
 
 export interface Structure {
+  /** Identificador único (para que un trabajo sepa a qué construcción va, aunque haya un suelo debajo). */
+  id: number;
   def: BuildingDef;
   /** Esquina (arriba a la izquierda) de lo que ocupa. */
   x: number;
@@ -68,19 +70,58 @@ export function footprintTiles(def: BuildingDef, x: number, y: number, rot: 0 | 
   return out;
 }
 
+/** Los suelos van en su propia capa: encima se puede construir casi todo. */
+export function isFloor(def: BuildingDef): boolean {
+  return def.category === 'suelo';
+}
+
 export class Structures {
+  /** Construcciones (muros, muebles, talleres…), una por casilla. */
   private byTile = new Map<number, Structure>();
+  /** Suelos, debajo de lo anterior. */
+  private floorByTile = new Map<number, Structure>();
+  private byId = new Map<number, Structure>();
+  private nextId = 1;
   /** Aumenta con cada cambio: el dibujado lo usa para saber cuándo repintar. */
   version = 0;
 
   constructor(readonly map: GameMap) {}
 
+  /** Lo construido en una casilla: la construcción o, si no hay, el suelo. */
   at(x: number, y: number): Structure | undefined {
+    if (!inBounds(this.map, x, y)) return undefined;
+    const i = index(this.map, x, y);
+    return this.byTile.get(i) ?? this.floorByTile.get(i);
+  }
+
+  /** Solo la construcción (no el suelo). */
+  mainAt(x: number, y: number): Structure | undefined {
     return inBounds(this.map, x, y) ? this.byTile.get(index(this.map, x, y)) : undefined;
   }
 
+  /** Solo el suelo. */
+  floorAt(x: number, y: number): Structure | undefined {
+    return inBounds(this.map, x, y) ? this.floorByTile.get(index(this.map, x, y)) : undefined;
+  }
+
+  get(id: number): Structure | undefined {
+    return this.byId.get(id);
+  }
+
   all(): Structure[] {
-    return [...new Set(this.byTile.values())];
+    return [...this.byId.values()];
+  }
+
+  private layer(s: Structure): Map<number, Structure> {
+    return isFloor(s.def) ? this.floorByTile : this.byTile;
+  }
+
+  /** Código de paso de una casilla según lo terminado en ella (la construcción manda sobre el suelo). */
+  private refreshBlocked(i: number): void {
+    const main = this.byTile.get(i);
+    const floor = this.floorByTile.get(i);
+    const top = main?.built ? main : floor?.built ? floor : undefined;
+    this.map.blocked[i] = !top ? 0 : top.def.blocks ? BLOCK_SOLID : walkableStructureCode(top.def.moveCost ?? 1);
   }
 
   /** Casillas que ocupa. */
@@ -126,9 +167,9 @@ export class Structures {
     return this.all().filter((s) => s.built && s.demolish);
   }
 
-  /** Marca (o desmarca) una construcción terminada para demolerla. */
+  /** Marca (o desmarca) una construcción terminada para demolerla (si hay construcción y suelo, la construcción). */
   markDemolish(x: number, y: number, on = true): boolean {
-    const s = this.at(x, y);
+    const s = this.mainAt(x, y)?.built ? this.mainAt(x, y) : this.floorAt(x, y);
     if (!s || !s.built || !!s.demolish === on) return false;
     s.demolish = on;
     this.version++;
@@ -137,11 +178,12 @@ export class Structures {
 
   /** Quita una construcción terminada (demolida). Devuelve el material que se recupera. */
   demolish(s: Structure): Partial<Stockpile> {
-    if (this.byTile.get(index(this.map, s.x, s.y)) !== s) return {};
+    if (this.byId.get(s.id) !== s) return {};
+    this.byId.delete(s.id);
     for (const t of this.tilesOf(s)) {
       const i = index(this.map, t.x, t.y);
-      this.byTile.delete(i);
-      this.map.blocked[i] = 0;
+      this.layer(s).delete(i);
+      this.refreshBlocked(i);
     }
     this.version++;
     const back: Partial<Stockpile> = {};
@@ -153,9 +195,16 @@ export class Structures {
     return back;
   }
 
-  /** Se puede poner un plano en esa casilla: terreno llano y libre, sin objeto ni otra construcción. */
-  canPlace(x: number, y: number): boolean {
-    return buildBlocker(this.map, x, y) === null && !this.at(x, y);
+  /**
+   * Se puede poner un plano en esa casilla: terreno llano y libre, sin objeto ni otra construcción.
+   * Sobre un suelo se puede construir de todo menos lo del agua; un suelo va donde no haya otro.
+   */
+  canPlace(x: number, y: number, def?: BuildingDef): boolean {
+    if (buildBlocker(this.map, x, y) !== null) return false;
+    if (!def) return !this.at(x, y);
+    if (isFloor(def)) return !this.floorAt(x, y);
+    if (def.category === 'agua' && this.floorAt(x, y)) return false;
+    return !this.mainAt(x, y);
   }
 
   /** Cabe una construcción (de varias casillas) en (x, y): todas libres y a la misma altura. */
@@ -163,15 +212,23 @@ export class Structures {
     const tiles = footprintTiles(def, x, y, rot);
     if (!inBounds(this.map, x, y)) return false;
     const level = this.map.level[index(this.map, x, y)];
-    return tiles.every((t) => this.canPlace(t.x, t.y) && this.map.level[index(this.map, t.x, t.y)] === level);
+    if (!tiles.every((t) => this.canPlace(t.x, t.y, def) && this.map.level[index(this.map, t.x, t.y)] === level)) return false;
+    // La depuradora tiene que tocar agua.
+    if (def.nearWater && !tiles.some((t) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
+      const nx = t.x + dx;
+      const ny = t.y + dy;
+      return inBounds(this.map, nx, ny) && isWater(this.map.terrain[index(this.map, nx, ny)] as Terrain);
+    }))) return false;
+    return true;
   }
 
   /** Coloca un plano con su esquina en (x, y). false si no cabe. */
   place(x: number, y: number, defId: string, rot: 0 | 1 = 0): boolean {
     const def = buildingDef(defId);
     if (!this.canPlaceDef(def, x, y, rot)) return false;
-    const s: Structure = { def, x, y, rot, built: false, delivered: {}, progress: 0, hp: def.hp };
-    for (const t of footprintTiles(def, x, y, rot)) this.byTile.set(index(this.map, t.x, t.y), s);
+    const s: Structure = { id: this.nextId++, def, x, y, rot, built: false, delivered: {}, progress: 0, hp: def.hp };
+    this.byId.set(s.id, s);
+    for (const t of footprintTiles(def, x, y, rot)) this.layer(s).set(index(this.map, t.x, t.y), s);
     this.version++;
     return true;
   }
@@ -209,9 +266,12 @@ export class Structures {
    * llevado, para soltarlos en el suelo, o null si no había plano.
    */
   cancel(x: number, y: number): Partial<Stockpile> | null {
-    const s = this.at(x, y);
+    // Primero el plano de construcción; si no hay, el de suelo.
+    const main = this.mainAt(x, y);
+    const s = main && !main.built ? main : this.floorAt(x, y);
     if (!s || s.built) return null;
-    for (const t of this.tilesOf(s)) this.byTile.delete(index(this.map, t.x, t.y));
+    this.byId.delete(s.id);
+    for (const t of this.tilesOf(s)) this.layer(s).delete(index(this.map, t.x, t.y));
     this.version++;
     return { ...s.delivered };
   }
@@ -267,10 +327,12 @@ export class Structures {
   /** Vuelve a poner una construcción guardada (al cargar una partida). */
   restore(def: BuildingDef, x: number, y: number, built: boolean, delivered: Partial<Stockpile>, progress: number, hp: number, rot: 0 | 1 = 0): Structure | undefined {
     const tiles = footprintTiles(def, x, y, rot);
+    const layer = isFloor(def) ? this.floorByTile : this.byTile;
     // Si ya no cabe (p. ej. ahora ocupa más casillas que cuando se guardó), no se pone.
-    if (tiles.some((t) => !inBounds(this.map, t.x, t.y) || this.at(t.x, t.y))) return undefined;
-    const s: Structure = { def, x, y, rot, built: false, delivered: {}, progress, hp };
-    for (const t of tiles) this.byTile.set(index(this.map, t.x, t.y), s);
+    if (tiles.some((t) => !inBounds(this.map, t.x, t.y) || layer.has(index(this.map, t.x, t.y)))) return undefined;
+    const s: Structure = { id: this.nextId++, def, x, y, rot, built: false, delivered: {}, progress, hp };
+    this.byId.set(s.id, s);
+    for (const t of tiles) layer.set(index(this.map, t.x, t.y), s);
     if (built) this.complete(s);
     s.delivered = { ...delivered };
     s.progress = progress;
@@ -284,8 +346,7 @@ export class Structures {
     s.built = true;
     s.delivered = {}; // el material ya es la construcción; en un taller, aquí irán sus materiales
     s.progress = s.def.work;
-    const code = s.def.blocks ? BLOCK_SOLID : walkableStructureCode(s.def.moveCost ?? 1);
-    for (const t of this.tilesOf(s)) this.map.blocked[index(this.map, t.x, t.y)] = code;
+    for (const t of this.tilesOf(s)) this.refreshBlocked(index(this.map, t.x, t.y));
     this.version++;
   }
 }

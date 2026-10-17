@@ -38,6 +38,10 @@ export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, ti
     drawFlat(ctx, def, tile, tileH);
     return;
   }
+  if (def.category === 'agua') {
+    drawWater(ctx, def, tile, tileH, wallH);
+    return;
+  }
   if (def.category === 'taller') {
     drawStation(ctx, def, tile, tileH, wallH);
     return;
@@ -206,6 +210,32 @@ function drawShelf(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number
     px(1, y, tile - 2, 1, top);
   }
   px(1, h - 2, tile - 2, 2, dark);
+}
+
+/** Pozo (brocal de piedra con agua y travesaño) o depuradora (depósito con tubo). */
+function drawWater(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, wallH: number): void {
+  const { top, face, dark } = def.colors;
+  const px = painter(ctx);
+  const h = tileH + wallH;
+  ctx.clearRect(0, 0, tile, h);
+  if (def.id === 'pozo') {
+    const lip = Math.max(3, Math.floor(wallH / 2));
+    px(1, tileH - 2, tile - 2, lip + 3, '#1a1410');
+    px(2, tileH - 1, tile - 4, lip + 1, face);
+    px(2, 1, tile - 4, tileH - 2, '#1a1410');
+    px(3, 2, tile - 6, tileH - 4, top);
+    px(2, 0, 1, tileH, '#5a4228');
+    px(tile - 3, 0, 1, tileH, '#5a4228');
+    px(2, 0, tile - 4, 1, '#5a4228');
+    px(Math.floor(tile / 2), 1, 1, 3, '#8a9096');
+    return;
+  }
+  px(1, 1, tile - 2, h - 1, '#1a1410');
+  px(2, 2, tile - 4, tileH - 3, top);
+  px(2, tileH - 1, tile - 4, wallH - 1, face);
+  for (let y = tileH + 1; y < h - 2; y += 3) px(2, y, tile - 4, 1, dark);
+  px(tile - 5, tileH + 2, 4, 2, '#8a9096');
+  px(4, 4, 3, 2, '#9ad0e0');
 }
 
 type Px = (x: number, y: number, w: number, h: number, color: string) => void;

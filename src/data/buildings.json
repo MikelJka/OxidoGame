@@ -711,5 +711,42 @@
       2,
       2
     ]
+  },
+  {
+    "id": "pozo",
+    "name": "Pozo",
+    "category": "agua",
+    "cost": {
+      "piedra": 20,
+      "madera": 5
+    },
+    "work": 900,
+    "hp": 300,
+    "blocks": true,
+    "height": 1,
+    "colors": {
+      "top": "#4a6a7a",
+      "face": "#8a877f",
+      "dark": "#55534e"
+    }
+  },
+  {
+    "id": "depuradora",
+    "name": "Depuradora",
+    "category": "agua",
+    "cost": {
+      "chatarra": 15,
+      "componentes": 2
+    },
+    "work": 700,
+    "hp": 250,
+    "blocks": true,
+    "height": 1,
+    "nearWater": true,
+    "colors": {
+      "top": "#5a8a9a",
+      "face": "#6a6862",
+      "dark": "#3d3c38"
+    }
   }
 ]

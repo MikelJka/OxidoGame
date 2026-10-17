@@ -2,6 +2,14 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (noche, 2) — Sed y agua; construir sobre suelos
+
+- **Construir sobre suelos** (Mikel: no dejaba construir sobre losas de piedra): los suelos son una capa aparte. Encima se puede poner cualquier construcción salvo las de agua; la construcción manda en el paso y, al demolerla, vuelve el suelo. Los huertos no van sobre suelo. Cada trabajo sabe ya a qué construcción va (por su identificador), aunque haya un suelo y un muro en la misma casilla.
+- **Sed** (fase 4): nuevo indicador «Agua» en la ficha. Con sed, el colono va a beber al sitio más cercano con agua limpia: un río o lago sin contaminar, un manantial, un pozo o una depuradora; si solo encuentra agua contaminada, la bebe, pero le sienta mal (ánimo −12 durante un día). Sediento y deshidratado bajan el ánimo. Con esto quedan hechas las necesidades de la fase 4 (hambre, sed, sueño y ánimo) y la tarea del agua de la fase 2.
+- **Construcciones de agua** (🏗 → Agua): pozo (🪨20 🪵5; agua limpia en cualquier sitio) y depuradora (🔩15 ⚙️2; hay que ponerla junto al agua y la limpia).
+- Qué probar: un mapa con el agua lejos o contaminada; construir un pozo junto al campamento; poner un muro y una cama encima de un suelo de losas.
+- Siguiente: muerte por hambre o sed (fin de la partida si mueren todos), salud y heridas, y después los raids.
+
 ## 2026-10-17 (noche) — Vista 3D en pruebas
 
 - Primer paso de la vista libre que pidió Mikel: ☰ → 🧊 Vista 3D (en pruebas), hecha con Three.js (`src/render3d/`). El mismo mundo, ahora en 3D: terreno en bloques con sus alturas, árboles, rocas y demás de pie (siempre mirando a la cámara), construcciones como bloques de su material (de varias casillas, translúcidas y azuladas si son planos, rojizas si se van a demoler), montones, plantas, colonos (tumbados si duermen, con banderín si están reclutados), almacenes, huertos y órdenes marcados en el suelo, y luz de día y de noche.

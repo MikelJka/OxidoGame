@@ -40,7 +40,7 @@ Terminado: marco árboles y los colonos los talan y guardan la madera solos.
 - [x] Zonas de almacén (con filtro de recursos y prioridad) y transporte
 - [x] Panel de prioridades de trabajo
 - [x] Los árboles vuelven a crecer con el tiempo (los tocones rebrotan y aparecen árboles nuevos cerca de otros)
-- [ ] Agua: recoger agua de ríos/manantiales; el agua contaminada necesita filtrado
+- [x] Agua: beber de ríos, lagos y manantiales; el agua contaminada sienta mal y se puede depurar (depuradora) o sacar limpia de un pozo
 - [x] Guardado manual y automático en el navegador, exportar/importar archivo
 
 ## Fase 3 — Construcción
@@ -63,7 +63,7 @@ Terminado: diseño un refugio cerrado y los colonos lo construyen con recursos.
 
 Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed o por un raid.
 
-- [ ] Hambre, sed, sueño, ánimo; colonos que comen, beben y duermen solos (hechos: hambre, sueño y ánimo; falta la sed, con el agua)
+- [x] Hambre, sed, sueño, ánimo; colonos que comen, beben y duermen solos
 - [ ] Cultivos (hechos: patatas, maíz, setas y cáñamo) y cocina
 - [ ] Salud: heridas localizadas, tratamiento, infecciones
 - [ ] Dificultad configurable al empezar (días sin raids, dureza)

@@ -122,7 +122,11 @@ export function checkWorld(world: World, progress = new Map<number, ProgressMark
   }
   for (const s of world.structures.all()) {
     const i = s.y * map.width + s.x;
-    if (s.built !== (map.blocked[i] !== 0)) {
+    // Una casilla con algo terminado (construcción o suelo) tiene código de paso; sin nada terminado, no.
+    const main = world.structures.mainAt(s.x, s.y);
+    const floor = world.structures.floorAt(s.x, s.y);
+    const anyBuilt = !!main?.built || !!floor?.built;
+    if (anyBuilt !== (map.blocked[i] !== 0)) {
       problems.push({ key: `structure-${s.x}-${s.y}`, message: `${s.def.name} en (${s.x}, ${s.y}) no coincide con el mapa de bloqueos` });
     }
   }
