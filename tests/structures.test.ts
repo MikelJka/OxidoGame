@@ -22,6 +22,22 @@ describe('definiciones de construcciones', () => {
     expect(new Set(BUILDINGS.map((b) => b.id)).size).toBe(BUILDINGS.length);
     expect(() => validateBuilding({ id: 'x', name: 'X', category: 'muro', cost: { oro: 1 }, work: 1, hp: 1, blocks: true, colors: { top: 'a', face: 'b', dark: 'c' } })).toThrow();
   });
+
+  it('hay muros altos y torres de vigía de madera, piedra y chatarra', () => {
+    const high = BUILDINGS.filter((b) => b.category === 'muro' && b.height >= 2);
+    const towers = BUILDINGS.filter((b) => b.category === 'torre');
+    for (const list of [high, towers]) {
+      expect(list.some((b) => b.cost.madera)).toBe(true);
+      expect(list.some((b) => b.cost.piedra)).toBe(true);
+      expect(list.some((b) => b.cost.chatarra)).toBe(true);
+    }
+    // Un muro alto aguanta más que el normal del mismo material.
+    expect(buildingDef('muralla_piedra').hp).toBeGreaterThan(buildingDef('muro_piedra').hp);
+    for (const t of towers) {
+      expect(t.blocks).toBe(false);
+      expect(t.sight).toBeGreaterThan(0);
+    }
+  });
 });
 
 describe('planos', () => {
@@ -79,6 +95,18 @@ describe('construir', () => {
     // Sin la puerta no se podría entrar.
     world.map.blocked[index(world.map, 17, 15)] = 1;
     expect(findPath(world.map, { x: 5, y: 5 }, { x: 17, y: 17 })).toBeNull();
+  });
+
+  it('una torre de vigía terminada se puede subir', () => {
+    const world = flatWorld();
+    world.items.drop(4, 8, 'madera', 40);
+    world.structures.place(12, 12, 'torre_madera');
+    runUntil(world, () => world.structures.blueprints().length === 0);
+    expect(world.structures.at(12, 12)!.built).toBe(true);
+    expect(isPassable(world.map, 12, 12)).toBe(true);
+    expect(world.orderMove(world.colonists[0].id, { x: 12, y: 12 })).toBe(true);
+    runUntil(world, () => world.colonists[0].tile.x === 12 && world.colonists[0].tile.y === 12, 3000);
+    expect(world.colonists[0].tile).toEqual({ x: 12, y: 12 });
   });
 
   it('sin material no se construye y no se rompe nada', () => {

@@ -54,7 +54,7 @@ Terminado: diseño un refugio cerrado y los colonos lo construyen con recursos.
 - [ ] Habitaciones cerradas detectadas (para ánimo y temperatura futura)
 - [ ] Máquinas de producción: cantera (piedra) y recicladora (chatarra a partir de basura y restos), para cuando se agoten los del mapa
 - [ ] Materiales: metal (fundiendo chatarra) y hormigón, además de madera, piedra y chatarra
-- [ ] Muros altos para perímetros y torres de vigía (madera, piedra, metal)
+- [x] Muros altos para perímetros y torres de vigía (madera, piedra y chatarra; las de metal, con el metal)
 - [ ] Defensas: pinchos, zanjas y barricadas
 - [ ] Mobiliario de almacén: estanterías, armarios y armeros de pared
 - [ ] Terreno: aplanar y subir o bajar el nivel de las casillas (trabajo de los colonos)

@@ -11,8 +11,8 @@ import { WorkType } from '../data/work';
 import { BuildingDef, buildingDef } from '../data/buildings';
 import { canZone, STORAGE_PRIORITY_NAMES, StorageZone } from '../sim/zones';
 import { PlaceShape, Structure, Structures } from '../sim/structures';
-import { drawBuilding, wallHeight } from './buildArt';
-import { canvasPropRasterizer, paintGround, TILE } from './mapArt';
+import { drawBuilding, faceHeight, wallHeight } from './buildArt';
+import { canvasPropRasterizer, paintGround, PropRasterizer, TILE } from './mapArt';
 import { LIFT, liftOf, occludedFraction, pickTile, rowY, setTilt, TILE_H, tiltIndex, TILTS, TOP_MARGIN } from './projection';
 import { fromView, normalizeRotation, Rotation, rotateMap, tileFromView, tileToView, toView } from './rotation';
 
@@ -81,6 +81,9 @@ export class WorldScene extends Phaser.Scene {
   /** Giro de la vista en cuartos de vuelta (se mantiene al generar un mapa nuevo). */
   rotation: Rotation = 0;
   private mapImage?: Phaser.GameObjects.Image;
+  private mapTexture?: Phaser.Textures.CanvasTexture;
+  private mapPixels?: ImageData;
+  private propRaster?: PropRasterizer;
   /** Última X dibujada de cada colono, para saber hacia dónde mira con la vista girada. */
   private lastViewX = new Map<number, number>();
   private pinchStartAngle = 0;
@@ -170,6 +173,7 @@ export class WorldScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     this.world.update(delta);
+    this.repaintChangedTiles();
     this.syncColonists();
     this.syncItems();
     this.syncDesignations();
@@ -204,10 +208,43 @@ export class WorldScene extends Phaser.Scene {
     if (!ground) throw new Error('No se pudo crear la textura del mapa');
     const gctx = ground.getContext();
     const img = gctx.createImageData(w, h);
-    paintGround(this.view, img, canvasPropRasterizer());
+    this.propRaster ??= canvasPropRasterizer();
+    paintGround(this.view, img, this.propRaster);
     gctx.putImageData(img, 0, 0);
     ground.refresh();
+    this.mapTexture = ground;
+    this.mapPixels = img;
+    this.world.takeChangedTiles(); // ya están pintados
     this.mapImage = this.add.image(0, -TOP_MARGIN, MAP_TEXTURE).setOrigin(0, 0).setDepth(-1);
+  }
+
+  /**
+   * Repinta las columnas del mapa donde ha cambiado un objeto (árbol talado, roca picada…).
+   * Solo esas columnas: no hay tirones aunque el mapa sea grande.
+   */
+  private repaintChangedTiles(): void {
+    const changed = this.world.takeChangedTiles();
+    if (changed.length === 0 || !this.mapTexture || !this.mapPixels) return;
+    const columns = new Set<number>();
+    for (const i of changed) {
+      const x = i % this.map.width;
+      const y = Math.floor(i / this.map.width);
+      const v = this.viewTile(x, y);
+      if (this.view !== this.map) {
+        // La vista girada es una copia: se le pasa el cambio.
+        const vi = v.y * this.view.width + v.x;
+        this.view.props[vi] = this.map.props[i];
+        this.view.stock[vi] = this.map.stock[i];
+      }
+      columns.add(v.x);
+    }
+    const ctx = this.mapTexture.getContext();
+    const h = this.view.height * TILE_H + TOP_MARGIN;
+    for (const col of columns) {
+      paintGround(this.view, this.mapPixels, this.propRaster, col);
+      ctx.putImageData(this.mapPixels, 0, 0, col * TILE, 0, TILE, h);
+    }
+    this.mapTexture.refresh();
   }
 
   private applyBounds(): void {
@@ -566,7 +603,7 @@ export class WorldScene extends Phaser.Scene {
       // Al trabajar, golpes cortos (hacha, pico o palanca); al andar, el paso.
       const bob = walking ? Math.abs(Math.sin(t / 90 + c.id)) * -1.5 : working ? -Math.max(0, Math.sin(t / 70 + c.id)) * 2 : 0;
       // Sube o baja de nivel poco a poco en lugar de saltar.
-      const target = this.liftAt(c.tile.x, c.tile.y);
+      const target = this.liftAt(c.tile.x, c.tile.y) + this.towerLift(c.tile.x, c.tile.y);
       const prev = this.spriteLift.get(c.id) ?? target;
       const lift = Math.abs(target - prev) < 0.3 ? target : prev + (target - prev) * 0.25;
       this.spriteLift.set(c.id, lift);
@@ -794,15 +831,17 @@ export class WorldScene extends Phaser.Scene {
     this.structVersion = st.version;
     for (const img of this.structSprites) img.destroy();
     this.structSprites = [];
-    const wallH = wallHeight(LIFT);
+    const unitH = wallHeight(LIFT);
     for (const s of st.all()) {
-      const key = `build-${s.def.id}-${TILE_H}-${wallH}`;
-      if (!this.textures.exists(key)) drawBuildingTexture(this, key, s.def, wallH);
+      const key = `build-${s.def.id}-${TILE_H}-${unitH}`;
+      if (!this.textures.exists(key)) drawBuildingTexture(this, key, s.def, unitH);
       const v = this.viewTile(s.x, s.y);
       const top = v.y * TILE_H - liftOf(this.view, v.x, v.y);
-      const img = this.add.image(v.x * TILE, top - wallH, key).setOrigin(0, 0);
+      const img = this.add.image(v.x * TILE, top - faceHeight(s.def, LIFT), key).setOrigin(0, 0);
       // Delante de lo que está en su fila y en las de detrás; detrás de lo que está más al sur.
-      img.setDepth(COLONIST_DEPTH + (v.y + 0.99) / 1000);
+      // Las torres, justo por debajo de los colonos de su fila: quien sube se ve encima.
+      const rowOffset = s.def.category === 'torre' ? 0.3 : 0.99;
+      img.setDepth(COLONIST_DEPTH + (v.y + rowOffset) / 1000);
       if (!s.built) img.setAlpha(0.45).setTint(0x8fc0ff); // plano: translúcido y azulado
       this.structSprites.push(img);
     }
@@ -903,8 +942,14 @@ export class WorldScene extends Phaser.Scene {
     const zone = this.world.zones.at(tile.x, tile.y);
     if (zone) text = `${zone.name} (${STORAGE_PRIORITY_NAMES[zone.priority].toLowerCase()}) · ${text}`;
     const s = this.world.structures.at(tile.x, tile.y);
-    if (s) text = `${structureLabel(this.world.structures, s)} · ${text}`;
+    if (s) text = `${structureLabel(this.world.structures, s)}${s.built && s.def.sight ? ` (vista ${s.def.sight} casillas)` : ''} · ${text}`;
     this.game.events.emit('tile-info', text);
+  }
+
+  /** Altura extra de quien está subido a una torre terminada. */
+  private towerLift(x: number, y: number): number {
+    const s = this.world.structures.at(x, y);
+    return s && s.built && s.def.category === 'torre' ? faceHeight(s.def, LIFT) : 0;
   }
 
   /** Elevación con la que se dibuja ahora mismo un colono. */
@@ -1038,10 +1083,10 @@ function structureLabel(st: Structures, s: Structure): string {
   return `Plano: ${s.def.name} (${parts.join(', ')})`;
 }
 
-function drawBuildingTexture(scene: Phaser.Scene, key: string, def: BuildingDef, wallH: number): void {
-  const tex = scene.textures.createCanvas(key, TILE, TILE_H + wallH);
+function drawBuildingTexture(scene: Phaser.Scene, key: string, def: BuildingDef, unitH: number): void {
+  const tex = scene.textures.createCanvas(key, TILE, TILE_H + unitH * def.height);
   if (!tex) return;
-  drawBuilding(tex.getContext(), def, TILE, TILE_H, wallH);
+  drawBuilding(tex.getContext(), def, TILE, TILE_H, unitH);
   tex.refresh();
 }
 

@@ -21,6 +21,14 @@ const MOIST: RGB = [86, 84, 54];
 const IRRADIATED: RGB = [128, 138, 56];
 const CONTAMINATED: RGB = [96, 104, 58];
 
+/** Número en [0, 1) que depende solo de (a, b, c): el dibujo de un píxel no depende del orden de pintado. */
+function hash01(a: number, b: number, c: number): number {
+  let h = Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b ^ 0xc2b2ae35, 0x27d4eb2f) ^ c;
+  h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d);
+  h = Math.imul(h ^ (h >>> 12), 0x297a2d39);
+  return ((h ^ (h >>> 15)) >>> 0) / 4294967296;
+}
+
 const clamp = (v: number) => (v < 0 ? 0 : v > 255 ? 255 : v | 0);
 const mix = (a: RGB, b: RGB, t: number): RGB => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 
@@ -76,8 +84,11 @@ export function canvasPropRasterizer(): PropRasterizer {
 /**
  * Pinta el mapa completo (suelo, paredes y objetos) fila a fila de norte a sur, para que
  * lo que está delante y más alto tape lo de detrás.
+ * Con `column` solo repinta esa columna de casillas (todo lo que se dibuja de una casilla cae
+ * en su columna de píxeles): sirve para actualizar un objeto talado o picado sin repintar todo.
+ * El resultado es idéntico al de pintar el mapa entero.
  */
-export function paintGround(map: GameMap, img: ImageData, rasterizeProp?: PropRasterizer): void {
+export function paintGround(map: GameMap, img: { data: Uint8ClampedArray }, rasterizeProp?: PropRasterizer, column?: number): void {
   const w = map.width * TILE;
   const rng = new Rng(map.seed ^ 0x9e3779b9);
   const warp = new ValueNoise(rng);
@@ -111,12 +122,21 @@ export function paintGround(map: GameMap, img: ImageData, rasterizeProp?: PropRa
     out[o + 2] = clamp(c[2]);
     out[o + 3] = 255;
   };
+  // Columnas de casillas que se pintan.
+  const c0 = column === undefined ? 0 : Math.max(0, Math.min(map.width - 1, column));
+  const c1 = column === undefined ? map.width - 1 : c0;
+  const p0 = c0 * TILE;
+  const p1 = (c1 + 1) * TILE;
   // Fondo bajo el mapa (lo que asoma por el borde inferior si la última fila está elevada).
-  for (let o = 0; o < out.length; o += 4) {
-    out[o] = 20; out[o + 1] = 18; out[o + 2] = 16; out[o + 3] = 255;
+  for (let y = 0; y < H; y++) {
+    for (let x = p0; x < p1; x++) {
+      const o = (y * w + x) * 4;
+      out[o] = 20; out[o + 1] = 18; out[o + 2] = 16; out[o + 3] = 255;
+    }
   }
 
-  const propRng = new Rng(map.seed ^ 0x2f6a1c3d);
+  /** Azar propio de cada casilla para la forma de su objeto: no cambia aunque cambien las demás. */
+  const propRngAt = (tx: number, ty: number) => new Rng((map.seed ^ 0x2f6a1c3d ^ Math.imul(tx + 1, 73856093) ^ Math.imul(ty + 1, 19349663)) >>> 0);
   /** Mezcla un objeto sobre la imagen respetando su transparencia. */
   const blendProp = (sprite: PropSprite, x0: number, y0: number) => {
     const { data, width, height } = sprite;
@@ -140,13 +160,13 @@ export function paintGround(map: GameMap, img: ImageData, rasterizeProp?: PropRa
     // La casilla se pinta en 16×16 y se aplasta a 16×TILE_H para inclinar el suelo.
     for (let r = 0; r < TILE_H; r++) {
       const py = ty * TILE + Math.floor(((r + 0.5) * TILE) / TILE_H);
-      for (let pxl = 0; pxl < w; pxl++) {
+      for (let pxl = p0; pxl < p1; pxl++) {
         const tx = Math.floor(pxl / TILE);
         put(pxl, ty * TILE_H + r + TOP_MARGIN - renderLevel(map, tx, ty) * LIFT, surfaceColor(pxl, py));
       }
     }
     // Paredes en la cara sur de las casillas más altas que su vecina de abajo.
-    for (let tx = 0; tx < map.width; tx++) {
+    for (let tx = c0; tx <= c1; tx++) {
       const l = renderLevel(map, tx, ty);
       const below = ty + 1 < map.height ? renderLevel(map, tx, ty + 1) : 0;
       if (l <= below) continue;
@@ -164,10 +184,10 @@ export function paintGround(map: GameMap, img: ImageData, rasterizeProp?: PropRa
     }
     // Objetos de esta fila, encima de su suelo y debajo de las filas de delante.
     if (rasterizeProp) {
-      for (let tx = 0; tx < map.width; tx++) {
+      for (let tx = c0; tx <= c1; tx++) {
         const p = map.props[ty * map.width + tx] as Prop;
         if (p === Prop.None) continue;
-        const sprite = rasterizeProp(p, propRng);
+        const sprite = rasterizeProp(p, propRngAt(tx, ty));
         if (!sprite) continue;
         // El objeto está dibujado para una casilla de 16×16: su base se apoya en el pie de la casilla.
         const tileBottomY = (ty + 1) * TILE_H + TOP_MARGIN - renderLevel(map, tx, ty) * LIFT;
@@ -212,7 +232,7 @@ export function paintGround(map: GameMap, img: ImageData, rasterizeProp?: PropRa
       }
       c = shadeRelief(map, c, pxl, py, g);
       // Grano del suelo.
-      const shade = (g - 0.5) * 18 + (rng.next() < 0.04 ? -14 : 0);
+      const shade = (g - 0.5) * 18 + (hash01(pxl, py, map.seed) < 0.04 ? -14 : 0);
       c = [c[0] + shade, c[1] + shade, c[2] + shade];
     }
     return c;

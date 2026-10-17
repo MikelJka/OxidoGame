@@ -7,9 +7,18 @@ export function wallHeight(lift: number): number {
   return lift + 2;
 }
 
-/** Dibuja una construcción. `tile` = ancho, `tileH` = alto de la cara de arriba, `wallH` = alto del frente. */
-export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, wallH: number): void {
+/** Alto en píxeles del frente de una construcción (muro normal, alto o torre). */
+export function faceHeight(def: BuildingDef, lift: number): number {
+  return wallHeight(lift) * def.height;
+}
+
+/**
+ * Dibuja una construcción. `tile` = ancho, `tileH` = alto de la cara de arriba, `wallH` = alto
+ * de un piso de muro (la construcción mide `def.height` pisos).
+ */
+export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, unitH: number): void {
   const { top, face, dark } = def.colors;
+  const wallH = unitH * def.height;
   const px = (x: number, y: number, w: number, h: number, color: string) => {
     ctx.fillStyle = color;
     ctx.fillRect(x, y, w, h);
@@ -17,6 +26,10 @@ export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, ti
   const outline = '#1a1410';
   const h = tileH + wallH;
   px(0, 0, tile, h, outline);
+  if (def.category === 'torre') {
+    drawTower(ctx, def, tile, tileH, wallH);
+    return;
+  }
   if (def.category === 'puerta') {
     // Marco con la hoja de la puerta en el frente; arriba, el dintel.
     px(1, 1, tile - 2, tileH - 2, top);
@@ -51,6 +64,42 @@ export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, ti
     }
     px(Math.floor(tile / 2), tileH, 2, Math.max(2, Math.floor(wallH / 3)), dark);
   }
+}
+
+/** Torre de vigía: plataforma con barandilla arriba y patas (o fuste de piedra) debajo. */
+function drawTower(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, wallH: number): void {
+  const { top, face, dark } = def.colors;
+  const px = (x: number, y: number, w: number, h: number, color: string) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, w, h);
+  };
+  const outline = '#1a1410';
+  ctx.clearRect(0, 0, tile, tileH + wallH);
+  const h = tileH + wallH;
+  if (def.id.includes('piedra')) {
+    // Fuste macizo algo más estrecho que la casilla, con sillares.
+    px(2, tileH - 1, tile - 4, wallH + 1, outline);
+    px(3, tileH - 1, tile - 6, wallH, face);
+    for (let y = tileH + 3; y < h - 1; y += 4) px(3, y, tile - 6, 1, dark);
+    px(7, tileH + 4, 2, 3, outline); // tronera
+  } else {
+    // Cuatro patas (se ven las dos de delante) con riostras en aspa.
+    px(1, tileH - 1, 3, wallH + 1, outline);
+    px(tile - 4, tileH - 1, 3, wallH + 1, outline);
+    px(2, tileH - 1, 1, wallH, face);
+    px(tile - 3, tileH - 1, 1, wallH, face);
+    for (let k = 0; k < wallH - 2; k++) {
+      const x = 3 + Math.floor((k * (tile - 7)) / Math.max(1, wallH - 3));
+      px(x, tileH + k, 1, 1, dark);
+      px(tile - 4 - (x - 3), tileH + k, 1, 1, dark);
+    }
+    if (def.id.includes('chatarra')) px(3, tileH + Math.floor(wallH / 2), tile - 6, 2, face);
+  }
+  // Plataforma con barandilla.
+  px(0, 0, tile, tileH, outline);
+  px(1, 1, tile - 2, tileH - 2, top);
+  for (let x = 2; x < tile - 2; x += 3) px(x, 2, 1, tileH - 4, dark);
+  px(0, tileH - 2, tile, 2, dark);
 }
 
 function lighten(hex: string): string {

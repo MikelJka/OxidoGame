@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (tarde, 6) — Árboles talados que no desaparecían; muros altos y torres
+
+- Bug #3 (enviado con 🐞 desde el móvil): al talar un árbol o un matorral seguía viéndose. Los objetos se pintan en la imagen del mapa y no se repintaba. Ahora, cuando cambia un objeto, se repinta solo su columna del mapa (todo lo que se dibuja de una casilla cae en su columna de píxeles), así que no hay tirones. Para que el repintado coincida con el original, la forma de cada objeto y el grano del suelo ya no dependen del orden de pintado (test que compara repintar una columna con pintar el mapa entero).
+- Muros altos: empalizada alta (🪵10), muralla de piedra (🪨12) y muro alto de chatarra (🔩10). Miden el doble y aguantan el doble que los normales; se colocan igual (en contorno) para cerrar perímetros.
+- Torres de vigía de madera (🪵25), piedra (🪨30 🪵8) y chatarra (🔩25 ⚙️2): se puede subir a ellas (se cruzan algo más despacio) y el colono se ve arriba, en la plataforma. Tienen un alcance de vista (8–10 casillas) que servirá para ver venir los raids y disparar desde lo alto en la fase 4.
+- Las partidas guardadas siguen valiendo (solo hay construcciones nuevas).
+- Qué probar: talar árboles y matorrales y ver que pasan a tocón o desaparecen (también con la vista girada); levantar un trozo de muralla y una torre, y mandar a un colono a la torre.
+- Siguiente: metal (fundir chatarra en un horno) y muros y torres de metal; después defensas (pinchos, zanjas).
+
 ## 2026-10-17 (tarde, 5) — La partida se guarda y sobrevive a las actualizaciones
 
 - Petición de Mikel: no perder la partida al recargar ni al publicarse una versión nueva.

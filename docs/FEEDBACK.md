@@ -5,7 +5,6 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 ## Pendiente
 
 - [ ] **Mobiliario de almacén** (2026-10-17): estanterías, armarios y soportes de pared (p. ej. armeros para armas). Fase 3.
-- [ ] **Muros altos para perímetros y torres de vigía de varios materiales** (2026-10-17). Fase 3.
 - [ ] **Materiales nuevos, como el metal** (2026-10-17): para muros y torres más resistentes. Fase 3.
 - [ ] **Defensas: pinchos y zanjas** (2026-10-17). Fase 3.
 - [ ] **Aplanar el terreno y subir o bajar su nivel** (#2, 2026-10-17): como trabajo de los colonos. Fase 3.
@@ -14,6 +13,9 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 - [ ] **Máquinas que generan recursos: canteras y recicladoras** (2026-10-17): para cuando se acaben la piedra y la chatarra iniciales del mapa. Van en la fase 3 (construcción), en el roadmap.
 
 ## Hecho
+
+- [x] **#3 Al talar un árbol o arbusto seguía viéndose** (2026-10-17): los objetos se pintaban una sola vez en la imagen del mapa. Ahora, al talar, picar o saquear, se repinta solo esa columna del mapa: el árbol pasa a tocón y el matorral desaparece, sin tirones.
+- [x] **Muros altos y torres de vigía** (2026-10-17): 🏗 → empalizada alta, muralla de piedra y muro alto de chatarra (el doble de alto y de resistentes); torres de vigía de madera, piedra y chatarra, a las que se puede subir. Las de metal llegarán con el metal.
 
 - [x] **Guardar la partida aunque se publiquen versiones nuevas** (2026-10-17): se guarda sola cada 30 s y al cerrar o esconder la pestaña, y al recargar se sigue donde estabas, también tras una actualización. ☰ → 💾 Guardar, ⬇ Exportar, ⬆ Importar y ↶ Partida anterior. «Nuevo mapa» pide confirmación.
 

@@ -53,6 +53,8 @@ export class World implements JobContext {
   readonly zones: StorageZones;
   /** Planos y construcciones. */
   readonly structures: Structures;
+  /** Casillas cuyo objeto ha cambiado desde la última vez que se preguntó (para repintarlas). */
+  private changedTiles: number[] = [];
   /** Tick a partir del cual cada colono vuelve a buscar trabajo. */
   private nextJobScan = new Map<number, number>();
   tick = 0;
@@ -71,6 +73,13 @@ export class World implements JobContext {
     if (!opts.map) this.dropStartingSupplies();
   }
 
+  /** Devuelve (y olvida) las casillas cuyo objeto ha cambiado: el dibujado las repinta. */
+  takeChangedTiles(): number[] {
+    const out = this.changedTiles;
+    this.changedTiles = [];
+    return out;
+  }
+
   /** Inventario de la colonia: lo que hay en el suelo más lo que llevan encima los colonos. */
   inventory(): Stockpile {
     const total = this.items.totals();
@@ -85,6 +94,7 @@ export class World implements JobContext {
   harvest(x: number, y: number): Partial<Stockpile> | null {
     const gains = harvestTile(this.map, x, y, this.rng);
     if (gains) {
+      this.changedTiles.push(y * this.map.width + x);
       this.items.dropAll(x, y, gains);
       // Lo que queda (p. ej. un tocón) no sigue designado: hay que volver a marcarlo.
       this.designations.remove(x, y);
