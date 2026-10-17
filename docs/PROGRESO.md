@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (noche, 14) — Cobertura y alcance
+
+- Primera regla de combate aprobada por Mikel. Al disparar con arco cuenta lo que hay pegado al objetivo en dirección al tirador: un muro, puerta, portón, muro derruido o roca impide el disparo; una barricada o una roca grande quitan un 50 % de acierto; un árbol, coche, chatarra, barril o neumáticos, un 30 %; estar dentro de una zanja, otro 25 %. El acierto baja un 6 % por casilla.
+- **Torres de vigía**: disparando desde una, +2 casillas de alcance y +15 % de acierto.
+- **Arqueros reclutados**: si están al descubierto, cada segundo miran si a 3 casillas o menos hay un sitio con cobertura desde el que sigan llegando al enemigo y van allí sin dejar de disparar.
+- La lanza (alcance 2) no atraviesa muros. Los saqueadores siguen las mismas reglas.
+- Tests en `tests/weapons.test.ts`.
+- Qué probar: poner barricadas, subir a un arquero a una torre y esperar un raid; ver que los saqueadores con arco no aciertan a quien está tras una barricada tanto como al descubierto.
+- Siguiente: armadura (con sus números para Mikel); después, la electricidad.
+
 ## 2026-10-17 (noche, 13) — Armero; decididas la cobertura y la electricidad
 
 - **Armero** (🏗 → Muebles, 2×1, 🪵15 🔩8; Mikel lo prefirió libre y de 2×1): se pone dentro de un almacén y guarda solo armas y munición (30 armas o 300 flechas por casilla). Lo que no es arma no cabe: al terminarlo, lo que hubiera encima sale a un lado. Con esto queda hecho el mobiliario de almacén de la fase 3.

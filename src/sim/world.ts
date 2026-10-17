@@ -135,6 +135,8 @@ export class World implements JobContext {
    * un colono al que se ha sacado. La comprobación de 🐞 los recoge.
    */
   readonly incidents: string[] = [];
+  /** Arqueros reclutados que van a una casilla con cobertura (no se guarda). */
+  readonly coverMoves = new Set<number>();
   tick = 0;
   speed: GameSpeed = 1;
   private accumulator = 0;

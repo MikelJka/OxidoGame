@@ -7,7 +7,7 @@ import { isGear, raiderWeaponPool, WEAPONS, WeaponDef } from '../data/weapons';
 import type { Colonist } from './colonist';
 import { BODY_PARTS, hurt } from './health';
 import { findPath, Point } from './pathfinding';
-import { isPassable } from './map';
+import { inBounds, isPassable, Prop, Terrain } from './map';
 import { DIFFICULTIES, raidGap, raidSize, TRADER_GAP, WANDERER_GAP } from './storyteller';
 import type { World } from './world';
 import { TICKS_PER_DAY } from './time';
@@ -128,9 +128,17 @@ export function usableWeapon(c: Colonist): WeaponDef | null {
   return def.ammo && c.ammo <= 0 ? null : def;
 }
 
-/** Casillas de alcance de una persona con lo que lleva. */
-export function reachOf(c: Colonist): number {
-  return usableWeapon(c)?.reach ?? 1;
+/** Está subido a una torre de vigía terminada. */
+export function onTower(w: World, c: Colonist): boolean {
+  const s = w.structures.mainAt(c.tile.x, c.tile.y);
+  return !!s?.built && s.def.category === 'torre';
+}
+
+/** Casillas de alcance de una persona con lo que lleva (desde una torre, +2 a distancia). */
+export function reachOf(c: Colonist, w?: World): number {
+  const weapon = usableWeapon(c);
+  const reach = weapon?.reach ?? 1;
+  return weapon?.ammo && w && onTower(w, c) ? reach + TOWER_REACH : reach;
 }
 
 /** Distancia en casillas (en diagonal cuenta como una). */
@@ -138,7 +146,70 @@ export function tileDistance(a: Colonist, b: Colonist): number {
   return Math.max(Math.abs(a.tile.x - b.tile.x), Math.abs(a.tile.y - b.tile.y));
 }
 
-const inReach = (a: Colonist, b: Colonist) => tileDistance(a, b) <= reachOf(a);
+// --- Cobertura (números aprobados por Mikel) --------------------------------------------
+
+/** Cobertura total: un muro impide el disparo. */
+export const FULL_COVER = 1;
+/** Alcance extra y acierto extra disparando desde una torre de vigía. */
+export const TOWER_REACH = 2;
+export const TOWER_AIM = 0.15;
+/** Lo que quita al acierto estar dentro de una zanja. */
+export const TRENCH_COVER = 0.25;
+
+/** Cuánto protege lo que hay en una casilla (0 nada, 0,3 árbol o coche, 0,5 barricada o roca, 1 muro). */
+export function coverValue(w: World, x: number, y: number): number {
+  const m = w.map;
+  if (!inBounds(m, x, y)) return 0;
+  const s = w.structures.mainAt(x, y);
+  if (s?.built) {
+    const cat = s.def.category;
+    if (cat === 'muro' || cat === 'puerta' || cat === 'porton') return FULL_COVER;
+    if (cat === 'defensa' && s.def.height >= 1) return 0.5;
+  }
+  const i = y * m.width + x;
+  if (m.terrain[i] === Terrain.Rock) return FULL_COVER;
+  switch (m.props[i] as Prop) {
+    case Prop.RuinWall:
+      return FULL_COVER;
+    case Prop.Boulder:
+      return 0.5;
+    case Prop.DeadTree:
+    case Prop.CarWreck:
+    case Prop.ScrapPile:
+    case Prop.ToxicBarrel:
+    case Prop.Tires:
+      return 0.3;
+    default:
+      return 0;
+  }
+}
+
+/**
+ * Cobertura de quien está en `target` frente a un disparo desde `from`: cuenta lo que hay en la
+ * casilla pegada al objetivo en dirección al tirador (y la zanja, si está dentro de una).
+ */
+export function coverAt(w: World, from: Point, target: Point): number {
+  const ddx = from.x - target.x;
+  const ddy = from.y - target.y;
+  if (Math.max(Math.abs(ddx), Math.abs(ddy)) <= 1) return 0; // pegados: cuerpo a cuerpo
+  // La casilla de al lado más cercana a la línea de tiro.
+  const ax = Math.abs(ddx);
+  const ay = Math.abs(ddy);
+  const sx = ax >= ay / 2 ? Math.sign(ddx) : 0;
+  const sy = ay >= ax / 2 ? Math.sign(ddy) : 0;
+  const cover = coverValue(w, target.x + sx, target.y + sy);
+  if (cover >= FULL_COVER) return FULL_COVER;
+  const trench = inBounds(w.map, target.x, target.y) && w.map.trench[target.y * w.map.width + target.x] ? TRENCH_COVER : 0;
+  return 1 - (1 - cover) * (1 - trench);
+}
+
+/** Puede golpear o disparar a `b` desde donde está: a su alcance y sin un muro delante del objetivo. */
+export function canHit(w: World, a: Colonist, b: Colonist): boolean {
+  const d = tileDistance(a, b);
+  if (d <= 1) return true;
+  if (d > reachOf(a, w)) return false;
+  return coverAt(w, a.tile, b.tile) < FULL_COVER;
+}
 
 /** Un golpe (o un disparo, con arco). Devuelve true si acierta. */
 export function attack(w: World, a: Colonist, b: Colonist): boolean {
@@ -150,8 +221,10 @@ export function attack(w: World, a: Colonist, b: Colonist): boolean {
   let hitChance = Math.min(0.95, 0.55 + a.skills.combate * 0.02);
   if (weapon?.ammo) {
     a.ammo--;
-    // A distancia se acierta menos cuanto más lejos.
+    // A distancia se acierta menos cuanto más lejos, y menos aún si el objetivo está a cubierto.
     hitChance = Math.max(0.2, hitChance * (1 - 0.06 * Math.max(0, dist - 1)));
+    if (onTower(w, a)) hitChance = Math.min(0.98, hitChance + TOWER_AIM);
+    hitChance *= 1 - Math.min(FULL_COVER, coverAt(w, a.tile, b.tile));
   }
   if (!w.rng.chance(hitChance)) return false;
   const tough = b.traits.some((t) => t.id === 'duro') ? 0.75 : 1;
@@ -167,16 +240,61 @@ export function attack(w: World, a: Colonist, b: Colonist): boolean {
   return true;
 }
 
+/** Cada cuánto mira un arquero reclutado si tiene mejor cobertura cerca. */
+const COVER_CHECK_TICKS = 30;
+/** Hasta dónde busca cobertura (casillas) y cuánta le basta para no moverse. */
+export const COVER_SEARCH = 3;
+const COVER_GOOD = 0.3;
+
+/**
+ * Arquero reclutado al descubierto: va a la casilla cercana (a 3 o menos) con más cobertura frente
+ * al enemigo desde la que todavía le puede disparar. true si se mueve.
+ */
+export function seekCover(w: World, c: Colonist, enemy: Colonist): boolean {
+  if (!usableWeapon(c)?.ammo) return false;
+  const here = coverAt(w, enemy.tile, c.tile);
+  if (here >= COVER_GOOD) return false;
+  const taken = new Set(w.pawns().filter((p) => p !== c).map((p) => p.tile.y * w.map.width + p.tile.x));
+  let best: { x: number; y: number; cover: number; d: number } | null = null;
+  for (let dy = -COVER_SEARCH; dy <= COVER_SEARCH; dy++) {
+    for (let dx = -COVER_SEARCH; dx <= COVER_SEARCH; dx++) {
+      const x = c.tile.x + dx;
+      const y = c.tile.y + dy;
+      if ((dx === 0 && dy === 0) || !isPassable(w.map, x, y) || taken.has(y * w.map.width + x)) continue;
+      const cover = coverAt(w, enemy.tile, { x, y });
+      if (cover <= here || cover < COVER_GOOD) continue;
+      // Desde ahí tiene que poder seguir disparándole.
+      const dist = Math.max(Math.abs(x - enemy.tile.x), Math.abs(y - enemy.tile.y));
+      if (dist > reachOf(c, w) || coverAt(w, { x, y }, enemy.tile) >= FULL_COVER) continue;
+      const d = Math.max(Math.abs(dx), Math.abs(dy));
+      if (!best || cover > best.cover || (cover === best.cover && d < best.d)) best = { x, y, cover, d };
+    }
+  }
+  if (!best) return false;
+  const path = findPath(w.map, c.tile, best, 400);
+  if (!path || path.length === 0 || path.length > COVER_SEARCH * 3) return false;
+  c.path = path;
+  w.coverMoves.add(c.id);
+  return true;
+}
+
 /** Defensa de un colono: golpea a un saqueador pegado a él; reclutado, además va a por los cercanos. true si ha actuado. */
 export function colonistFight(w: World, c: Colonist): boolean {
   if (c.downed) return false;
   if (c.attackCooldown && c.attackCooldown > 0) c.attackCooldown--;
   const enemies = w.others.filter(hostile);
   if (enemies.length === 0) return false;
-  // El enemigo más cercano a su alcance (pegado, o más lejos con lanza o arco).
-  const near = enemies.filter((e) => inReach(c, e)).sort((x, y) => tileDistance(c, x) - tileDistance(c, y))[0];
+  // El enemigo más cercano a su alcance (pegado, o más lejos con lanza o arco) y sin un muro delante.
+  const near = enemies.filter((e) => canHit(w, c, e)).sort((x, y) => tileDistance(c, x) - tileDistance(c, y))[0];
   if (near) {
     if (!c.attackCooldown) attack(w, c, near);
+    // Reclutado y con arco: si está al descubierto, busca cobertura cerca (sin dejar de disparar).
+    if (c.drafted && w.coverMoves.has(c.id) && c.path.length > 0) {
+      w.moveAlongPath(c);
+      return true;
+    }
+    w.coverMoves.delete(c.id);
+    if (c.drafted && (w.tick + c.id) % COVER_CHECK_TICKS === 0 && seekCover(w, c, near)) return true;
     if (c.drafted || c.job === null) {
       c.path = [];
       return true;
@@ -295,7 +413,7 @@ function updateRaider(w: World, o: Colonist): void {
     return;
   }
   const target = targets.sort((a, b) => Math.abs(a.tile.x - o.tile.x) + Math.abs(a.tile.y - o.tile.y) - (Math.abs(b.tile.x - o.tile.x) + Math.abs(b.tile.y - o.tile.y)))[0];
-  if (inReach(o, target)) {
+  if (canHit(w, o, target)) {
     o.path = [];
     o.activity = 'working';
     if (!o.attackCooldown) attack(w, o, target);

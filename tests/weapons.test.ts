@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { flatWorld } from './helpers';
-import { attack, startRaid, updateOthers } from '../src/sim/people';
+import { attack, canHit, coverAt, reachOf, seekCover, startRaid, updateOthers } from '../src/sim/people';
+import { Prop } from '../src/sim/map';
 import { loadWorld, serializeWorld } from '../src/sim/save';
 import { TICKS_PER_DAY } from '../src/sim/world';
 import { recipesFor } from '../src/data/recipes';
@@ -137,5 +138,63 @@ describe('armero', () => {
     expect(w.items.room(15, 15, 'madera')).toBe(0);
     expect(w.items.room(16, 15, 'cuchillo')).toBe(30);
     expect(w.items.room(16, 15, 'flechas')).toBe(300);
+  });
+});
+
+describe('cobertura y alcance', () => {
+  it('un muro pegado al objetivo impide dispararle; una barricada o un árbol quitan acierto', () => {
+    const w = flatWorld(2);
+    const [a, b] = w.colonists;
+    a.tile = { x: 5, y: 10 };
+    b.tile = { x: 10, y: 10 };
+    a.weapon = 'arco';
+    a.ammo = 10;
+    expect(canHit(w, a, b)).toBe(true);
+    expect(coverAt(w, a.tile, b.tile)).toBe(0);
+    w.setProp(9, 10, Prop.DeadTree);
+    expect(coverAt(w, a.tile, b.tile)).toBeCloseTo(0.3);
+    w.setProp(9, 10, Prop.Boulder);
+    expect(coverAt(w, a.tile, b.tile)).toBeCloseTo(0.5);
+    w.setProp(9, 10, Prop.None);
+    w.structures.place(9, 10, 'muro_madera');
+    w.completeStructure(w.structures.at(9, 10)!);
+    expect(canHit(w, a, b)).toBe(false);
+    // Desde el otro lado, el muro no le tapa.
+    a.tile = { x: 14, y: 10 };
+    expect(canHit(w, a, b)).toBe(true);
+  });
+
+  it('en una zanja se acierta menos y desde una torre se llega más lejos', () => {
+    const w = flatWorld(2);
+    const [a, b] = w.colonists;
+    a.tile = { x: 5, y: 10 };
+    b.tile = { x: 15, y: 10 };
+    a.weapon = 'arco';
+    a.ammo = 10;
+    w.map.trench[10 * w.map.width + 15] = 1;
+    expect(coverAt(w, a.tile, b.tile)).toBeCloseTo(0.25);
+    expect(canHit(w, a, b)).toBe(false); // a 10 casillas, el arco llega a 8
+    w.structures.place(5, 10, 'torre_madera');
+    w.completeStructure(w.structures.at(5, 10)!);
+    expect(reachOf(a, w)).toBe(10);
+    expect(canHit(w, a, b)).toBe(true);
+  });
+
+  it('un arquero reclutado al descubierto busca cobertura cerca', () => {
+    const w = flatWorld(1);
+    const c = w.colonists[0];
+    c.tile = { x: 10, y: 10 };
+    c.pos = { x: 10.5, y: 10.5 };
+    c.weapon = 'arco';
+    c.ammo = 20;
+    w.setDrafted(c.id, true);
+    w.structures.place(12, 11, 'barricada_madera');
+    w.completeStructure(w.structures.at(12, 11)!);
+    const e = w.makePawn('saqueador');
+    e.tile = { x: 17, y: 11 };
+    e.pos = { x: 17.5, y: 11.5 };
+    e.raider = { fleeing: false, leaveAt: w.tick + 100000 };
+    expect(seekCover(w, c, e)).toBe(true);
+    expect(c.path[c.path.length - 1]).toEqual({ x: 11, y: 11 });
   });
 });
