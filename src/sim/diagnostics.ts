@@ -86,7 +86,7 @@ export function checkWorld(world: World, progress = new Map<number, ProgressMark
     if (room < TRAPPED_TILES) {
       problems.push({
         key: `trapped-${c.id}-${c.tile.x}-${c.tile.y}`,
-        message: `${c.name} (#${c.id}) está encerrado en (${c.tile.x}, ${c.tile.y}): solo llega a ${room} casillas. Usa ⚒ → Rampa o Rebajar, o demuele un muro`,
+        message: `${c.name} (#${c.id}) está encerrado en (${c.tile.x}, ${c.tile.y}): solo llega a ${room} casillas. Tala lo que lo rodea (elígelo y toca el árbol), usa ⚒ → Rampa o Rebajar, o demuele un muro`,
       });
     }
   }

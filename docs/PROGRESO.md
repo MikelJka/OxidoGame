@@ -2,6 +2,13 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (tarde, 11) — Colono encerrado por árboles que rebrotan (#7)
+
+- Aviso automático #7 desde el móvil: «Óscar está encerrado: solo llega a 1 casilla». No se reproduce con la partida sola, así que la causa más probable es la novedad de hoy: los tocones que rodeaban a un colono quieto (reclutado o descansando) rebrotaron como árboles y le cerraron el paso.
+- Arreglo: no nace ni rebrota nada a menos de 2 casillas de un colono ni en su camino (test con un colono reclutado rodeado de tocones durante 4 días).
+- El aviso de encerrado ahora sugiere también talar lo que lo rodea: con el colono elegido, tocar un árbol de al lado hace que lo tale desde dentro.
+- Qué probar: en la partida del aviso, elegir a Óscar y tocar un árbol de al lado.
+
 ## 2026-10-17 (tarde, 10) — Zanjas, estanterías y repaso de fallos
 
 - **Zanjas**: ⚒ → ▭ Zanja y ▬ Rellenar (trabajo «obras de terreno»). Una zanja se cruza 4 veces más despacio (frenará a los raids de la fase 4); no admite montones, almacenes, huertos ni construcciones. Se ven como un foso oscuro y se guardan con la partida (las partidas anteriores simplemente no tienen).

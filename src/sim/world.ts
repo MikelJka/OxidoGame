@@ -140,7 +140,9 @@ export class World implements JobContext {
     if (this.tick % TICKS_PER_HOUR === 0) {
       const grown = regrowNature(this.map, this.rng, (x, y) =>
         !this.structures.at(x, y) && !this.zones.at(x, y) && !this.farms.at(x, y) && !this.items.at(x, y) &&
-        !this.colonists.some((c) => c.tile.x === x && c.tile.y === y) && !this.colonists.some((c) => c.path.some((p) => p.x === x && p.y === y)));
+        // Nada nace a menos de 2 casillas de un colono ni en su camino: un árbol que rebrota no puede encerrarlo.
+        !this.colonists.some((c) => Math.abs(c.tile.x - x) <= 2 && Math.abs(c.tile.y - y) <= 2) &&
+        !this.colonists.some((c) => c.path.some((p) => p.x === x && p.y === y)));
       this.changedTiles.push(...grown);
     }
     // Las plantas crecen a saltos de un segundo (basta y cuesta poco).

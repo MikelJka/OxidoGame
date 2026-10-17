@@ -38,3 +38,20 @@ describe('la naturaleza vuelve', () => {
     for (const i of world.zones.all()[0].tiles) expect(m.props[i] === Prop.None || m.props[i] === Prop.Stump).toBe(true);
   });
 });
+
+describe('árboles y colonos (#7)', () => {
+  it('un colono quieto entre tocones no queda encerrado cuando rebrotan', () => {
+    const world = flatWorld();
+    const m = world.map;
+    const c = world.colonists[0];
+    world.setDrafted(c.id, true); // quieto días enteros
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [2, 0], [-2, 0], [0, 2], [0, -2]]) {
+      m.props[index(m, c.tile.x + dx, c.tile.y + dy)] = Prop.Stump;
+    }
+    for (let t = 0; t < TICKS_PER_DAY * 4; t++) world.step();
+    expect(checkWorld(world).filter((p) => p.key.startsWith('trapped'))).toEqual([]);
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      expect(m.props[index(m, c.tile.x + dx, c.tile.y + dy)]).toBe(Prop.Stump);
+    }
+  });
+});

@@ -10,6 +10,8 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Hecho
 
+- [x] **#7 Óscar encerrado en una casilla** (aviso automático, 2026-10-17): lo más probable es que rebrotaran árboles en los tocones de alrededor de un colono quieto (reclutado o descansando). Ahora no nace nada a menos de 2 casillas de un colono ni en su camino. Para sacarlo de esa partida: elegirlo y tocar uno de los árboles de al lado (lo tala desde dentro), o ⚒ → Rampa/Rebajar.
+
 - [x] **Zanjas** (2026-10-17): ⚒ → ▭ Zanja (se cruza cuatro veces más despacio; frenará a los enemigos) y ▬ Rellenar.
 - [x] **Estanterías** (2026-10-17): 🏗 → Muebles → estantería de madera (cabe el triple) o de metal (el cuádruple). Se ponen dentro de un almacén.
 
