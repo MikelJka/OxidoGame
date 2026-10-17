@@ -2,18 +2,21 @@
 // Solo dibuja y traduce el ratón y los dedos a casillas; las reglas siguen en `src/sim/` y las
 // órdenes pasan por los métodos de `WorldScene` (tapAt, designBegin…), igual que en 2D.
 import * as THREE from 'three';
-import { Prop, Terrain, isWater, RADIATION_THRESHOLD, index } from '../sim/map';
+import { Prop, Terrain, isWater, index } from '../sim/map';
 import type { World } from '../sim/world';
 import type { Colonist } from '../sim/colonist';
 import type { WorldScene } from '../render/WorldScene';
 import { DESIGN_COLORS } from '../render/WorldScene';
-import { drawProp, GROUND, PROP_HEADROOM } from '../render/mapArt';
+import { drawProp, PROP_HEADROOM } from '../render/mapArt';
 import { colonistLookKey, COLONIST_SIZE, CROP_SIZE, ITEM_H, ITEM_W, paintColonist, paintCrop, paintItem } from '../render/spriteArt';
 import { plantStage } from '../sim/farming';
 import { footprintTiles } from '../sim/structures';
 import { BuildingDef, buildingDef } from '../data/buildings';
 import { Rng } from '../sim/rng';
 import { cameraPosition, clampOrbit, northLabel3d, OrbitState, panOrbit } from './camera3d';
+import { buildTerrainGeometry, paintBankTexture, paintGroundTexture } from './terrain3d';
+import { paintSurface } from './structTex3d';
+import { drawBuilding } from '../render/buildArt';
 
 /** Altura de un nivel de terreno (en casillas). */
 const LEVEL_H = 0.5;
@@ -64,7 +67,14 @@ export class View3D {
   private orbit: OrbitState = { tx: 70, tz: 70, yaw: 0, pitch: 0.75, dist: 34 };
   private running = false;
   private world: World | null = null;
-  private terrain?: THREE.InstancedMesh;
+  private terrain?: THREE.Mesh;
+  private terrainSides?: THREE.Mesh;
+  private water?: THREE.Mesh;
+  private groundTex?: THREE.CanvasTexture;
+  private topMat?: THREE.MeshLambertMaterial;
+  private sideMat?: THREE.MeshLambertMaterial;
+  private waterMat?: THREE.MeshPhongMaterial;
+  private surfaceTex = new Map<string, THREE.CanvasTexture>();
   private terrainKey = '';
   private propGroup = new THREE.Group();
   private propKey = '';
@@ -102,6 +112,11 @@ export class View3D {
     this.renderer = new THREE.WebGLRenderer({ antialias: false });
     this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    // Tonos más naturales y sombras del sol.
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.15;
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     const el: HTMLCanvasElement = this.renderer.domElement;
     el.id = 'view3d';
     el.style.touchAction = 'none';
@@ -112,6 +127,13 @@ export class View3D {
     el.addEventListener('pointercancel', (e: PointerEvent) => this.pointerUp(e, true));
     el.addEventListener('wheel', (e: WheelEvent) => this.wheel(e), { passive: false });
     this.sun.position.set(-40, 80, -30);
+    this.sun.castShadow = true;
+    const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+    this.sun.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
+    this.sun.shadow.bias = -0.0005;
+    this.sun.shadow.normalBias = 0.03;
+    this.scene3.fog = new THREE.Fog(0x8a9aa8, 60, 160);
+    this.scene3.add(this.sun.target);
     this.scene3.add(this.sun, this.ambient, this.propGroup, this.structGroup, this.itemGroup, this.plantGroup, this.ghostGroup);
     this.ring.rotation.x = -Math.PI / 2;
     this.scene3.add(this.ring);
@@ -208,8 +230,8 @@ export class View3D {
   private sync(scene: WorldScene): void {
     const w = scene.world;
     const tKey = `${w.terrainVersion}:${w.propsVersion}`;
-    if (tKey !== this.terrainKey) {
-      this.terrainKey = tKey;
+    if (`${w.terrainVersion}` !== this.terrainKey) {
+      this.terrainKey = `${w.terrainVersion}`;
       this.buildTerrain(w);
     }
     if (tKey !== this.propKey) {
@@ -239,37 +261,35 @@ export class View3D {
 
   private buildTerrain(w: World): void {
     const m = w.map;
-    const n = m.width * m.height;
-    if (!this.terrain) {
-      const geo = new THREE.BoxGeometry(1, 1, 1);
-      geo.translate(0, 0.5, 0);
-      this.terrain = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ color: 0xffffff }), n);
-      this.scene3.add(this.terrain);
+    for (const mesh of [this.terrain, this.terrainSides, this.water]) {
+      if (!mesh) continue;
+      this.scene3.remove(mesh);
+      mesh.geometry.dispose();
     }
-    const mat = new THREE.Matrix4();
-    const color = new THREE.Color();
-    for (let y = 0; y < m.height; y++) {
-      for (let x = 0; x < m.width; x++) {
-        const i = y * m.width + x;
-        const t = m.terrain[i] as Terrain;
-        const top = tileTopY(w, x, y);
-        mat.makeScale(1, top, 1);
-        mat.setPosition(x + 0.5, 0, y + 0.5);
-        this.terrain.setMatrixAt(i, mat);
-        const [r, g, b] = GROUND[t];
-        const v = (hash(x, y) - 0.5) * 0.12;
-        let k = 1 + v + (isWater(t) ? 0 : m.level[i] * 0.05);
-        if (m.cliff[i]) k *= 0.75;
-        if (m.trench[i]) k *= 0.55;
-        color.setRGB(Math.min(1, (r / 255) * k), Math.min(1, (g / 255) * k), Math.min(1, (b / 255) * k), THREE.SRGBColorSpace);
-        if (!isWater(t) && m.radiation[i] > RADIATION_THRESHOLD) color.lerp(new THREE.Color(0x80893a), 0.3);
-        if (isWater(t) && m.contaminated[i]) color.lerp(new THREE.Color(0x60683a), 0.4);
-        this.terrain.setColorAt(i, color);
-      }
+    const geo = buildTerrainGeometry(m, (x, y) => tileTopY(w, x, y), BASE_H - 0.02);
+    // La textura del suelo se pinta una vez por cambio de relieve (lleva las zanjas).
+    this.groundTex?.dispose();
+    const tex = pixelTexture(paintGroundTexture(m));
+    tex.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+    this.groundTex = tex;
+    if (!this.topMat) {
+      this.topMat = new THREE.MeshLambertMaterial({ map: tex });
+      const bank = pixelTexture(paintBankTexture());
+      bank.wrapS = bank.wrapT = THREE.RepeatWrapping;
+      this.sideMat = new THREE.MeshLambertMaterial({ map: bank, vertexColors: true });
+      this.waterMat = new THREE.MeshPhongMaterial({ color: 0x3f7590, transparent: true, opacity: 0.5, shininess: 90, specular: 0x8fb0c0, depthWrite: false });
+    } else {
+      this.topMat.map = tex;
+      this.topMat.needsUpdate = true;
     }
-    this.terrain.instanceMatrix.needsUpdate = true;
-    if (this.terrain.instanceColor) this.terrain.instanceColor.needsUpdate = true;
-    this.terrain.computeBoundingSphere();
+    this.terrain = new THREE.Mesh(geo.tops, this.topMat);
+    this.terrainSides = new THREE.Mesh(geo.sides, this.sideMat);
+    this.water = new THREE.Mesh(geo.water, this.waterMat);
+    this.terrain.receiveShadow = true;
+    this.terrainSides.receiveShadow = true;
+    this.terrainSides.castShadow = true;
+    this.water.renderOrder = 1;
+    this.scene3.add(this.terrain, this.terrainSides, this.water);
   }
 
   private propTexture(p: Prop, variant: number): THREE.CanvasTexture {
@@ -306,9 +326,14 @@ export class View3D {
     }
     const geo = new THREE.PlaneGeometry(1, 2);
     geo.translate(0, 1, 0);
+    // Normales hacia arriba: se iluminan como el suelo de al lado (si no, a contraluz salen negros).
+    const nor = geo.getAttribute('normal') as THREE.BufferAttribute;
+    for (let i = 0; i < nor.count; i++) nor.setXYZ(i, 0, 1, 0);
+    nor.needsUpdate = true;
     for (const g of groups.values()) {
       const mat = new THREE.MeshLambertMaterial({ map: this.propTexture(g.p, g.variant), transparent: true, alphaTest: 0.5, side: THREE.DoubleSide });
       const mesh = new THREE.InstancedMesh(geo, mat, g.pos.length);
+      mesh.castShadow = true;
       this.propGroup.add(mesh);
       this.propMeshes.push({ mesh, pos: g.pos });
     }
@@ -373,32 +398,78 @@ export class View3D {
       const ghostColor = look === 'no-cabe' ? 0xff6a5a : 0xffffff;
       const face = new THREE.Color(ghost ? ghostColor : s.def.colors.face);
       const top = new THREE.Color(ghost ? ghostColor : s.def.colors.top);
-      const mats = [face, face, top, face, face, face].map((c) =>
-        new THREE.MeshLambertMaterial({
-          color: c,
-          transparent: look === 'plano' || ghost,
-          opacity: ghost ? 0.6 : look === 'plano' ? 0.45 : 1,
-          depthWrite: !ghost,
-          emissive: new THREE.Color(look === 'demoler' ? 0x601010 : look === 'plano' ? 0x1a3a6a : ghost ? 0x999999 : 0),
-        }),
-      );
+      let mats: THREE.Material[];
+      if (ghost || look === 'plano') {
+        mats = [face, face, top, face, face, face].map((c) =>
+          new THREE.MeshLambertMaterial({
+            color: c,
+            transparent: true,
+            opacity: ghost ? 0.6 : 0.45,
+            depthWrite: !ghost,
+            emissive: new THREE.Color(look === 'plano' ? 0x1a3a6a : 0x999999),
+          }),
+        );
+      } else {
+        // Terminada: con la textura de su material (tablones, sillares, chapa…).
+        const emissive = new THREE.Color(look === 'demoler' ? 0x601010 : 0);
+        const sideMat = new THREE.MeshLambertMaterial({ map: this.surface(s.def, true), emissive });
+        const topMap = cat === 'mueble' && !s.def.storage ? this.furnitureTop(s.def, sw, sh) : this.surface(s.def, false);
+        const topMat = new THREE.MeshLambertMaterial({ map: topMap, emissive });
+        mats = [sideMat, sideMat, topMat, sideMat, sideMat, sideMat];
+      }
       // Puertas y portones, más finos en el sentido del paso.
       // Una puerta de una casilla girada se cruza de este a oeste en vez de norte a sur.
       const along = sw === sh ? rot === 0 : sw > sh;
       const gx = along ? sw : sw - inset * 2;
       const gz = along ? sh - inset * 2 : sh;
-      const geo = new THREE.BoxGeometry(cat === 'torre' ? sw - inset * 2 : gx, height, cat === 'torre' ? sh - inset * 2 : gz);
+      const bx = cat === 'torre' ? sw - inset * 2 : gx;
+      const bz = cat === 'torre' ? sh - inset * 2 : gz;
+      const geo = new THREE.BoxGeometry(bx, height, bz);
+      // La textura se repite una vez por casilla (salvo la cara de arriba de camas y similares).
+      tileUVs(geo, bx, height, bz, cat === 'mueble' && !s.def.storage);
       const mesh = new THREE.Mesh(geo, mats);
+      mesh.castShadow = !ghost && look !== 'plano' && height > 0.1;
+      mesh.receiveShadow = !ghost;
       mesh.position.set(x0 + sw / 2, base + height / 2, y0 + sh / 2);
       out.push(mesh);
       if (cat === 'torre') {
         // Plataforma con barandilla.
-        const plat = new THREE.Mesh(new THREE.BoxGeometry(sw + 0.1, 0.1, sh + 0.1), new THREE.MeshLambertMaterial({ color: top, transparent: ghost, opacity: ghost ? 0.55 : 1 }));
+        const platGeo = new THREE.BoxGeometry(sw + 0.1, 0.1, sh + 0.1);
+        tileUVs(platGeo, sw + 0.1, 0.1, sh + 0.1, false);
+        const plat = new THREE.Mesh(platGeo, ghost || look === 'plano'
+          ? new THREE.MeshLambertMaterial({ color: top, transparent: true, opacity: ghost ? 0.55 : 0.45 })
+          : new THREE.MeshLambertMaterial({ map: this.surface(s.def, false) }));
+        plat.castShadow = !ghost;
         plat.position.set(x0 + sw / 2, base + height + 0.05, y0 + sh / 2);
         out.push(plat);
       }
     }
     return out;
+  }
+
+  /** Textura (que se repite) del material de una construcción. */
+  private surface(def: BuildingDef, side: boolean): THREE.CanvasTexture {
+    const key = `${def.id}-${side ? 'lado' : 'arriba'}`;
+    let t = this.surfaceTex.get(key);
+    if (!t) {
+      t = pixelTexture(paintSurface(def, side));
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      this.surfaceTex.set(key, t);
+    }
+    return t;
+  }
+
+  /** Cara de arriba de una cama o un mueble: su dibujo de la vista 2D, entero. */
+  private furnitureTop(def: BuildingDef, sw: number, sh: number): THREE.CanvasTexture {
+    const key = `${def.id}-mueble-${sw}x${sh}`;
+    let t = this.surfaceTex.get(key);
+    if (!t) {
+      const { c, ctx } = canvas(16 * sw, 16 * sh);
+      drawBuilding(ctx, { ...def, height: 0 }, 16 * sw, 16 * sh, 0);
+      t = pixelTexture(c);
+      this.surfaceTex.set(key, t);
+    }
+    return t;
   }
 
   private itemTexture(r: string): THREE.CanvasTexture {
@@ -601,12 +672,33 @@ export class View3D {
   private syncLight(w: World): void {
     const h = w.hour;
     const day = Math.max(0, Math.sin(((h - 6) / 14) * Math.PI)); // 6:00–20:00
-    this.sun.intensity = 0.2 + day * 1.5;
-    this.ambient.intensity = 0.45 + day * 0.75;
-    const sky = new THREE.Color().lerpColors(new THREE.Color(0x10141c), new THREE.Color(0x8a9aa8), day);
+    // De noche se ve menos, pero se sigue jugando: luz de luna azulada.
+    this.sun.intensity = 0.35 + day * 1.9;
+    this.sun.color.set(day > 0.25 ? 0xfff1dc : day > 0 ? 0xffb070 : 0x9fb4e0);
+    this.ambient.intensity = 0.75 + day * 0.55;
+    const sky = new THREE.Color().lerpColors(new THREE.Color(0x1c2434), new THREE.Color(0x9fb0bc), day);
     this.scene3.background = sky;
-    const a = ((h - 6) / 14) * Math.PI;
-    this.sun.position.set(Math.cos(a) * 80, 40 + day * 60, -30);
+    const fog = this.scene3.fog as THREE.Fog;
+    fog.color.copy(sky);
+    fog.near = this.orbit.dist * 1.6;
+    fog.far = this.orbit.dist * 4.5 + 40;
+    // El sol (o la luna) sigue a la cámara para que las sombras cubran lo que se ve.
+    const a = day > 0 ? ((h - 6) / 14) * Math.PI : 0.6;
+    const tx = this.orbit.tx;
+    const tz = this.orbit.tz;
+    this.sun.position.set(tx + Math.cos(a) * 60, 45 + day * 50, tz - 35);
+    this.sun.target.position.set(tx, 0, tz);
+    const r = Math.min(60, this.orbit.dist * 1.3 + 8);
+    const cam = this.sun.shadow.camera;
+    if (cam.right !== r) {
+      cam.left = -r;
+      cam.right = r;
+      cam.top = r;
+      cam.bottom = -r;
+      cam.near = 1;
+      cam.far = 250;
+      cam.updateProjectionMatrix();
+    }
   }
 
   // --- Entrada -------------------------------------------------------------------
@@ -617,9 +709,15 @@ export class View3D {
     const rect = this.renderer.domElement.getBoundingClientRect();
     const ndc = new THREE.Vector2(((sx - rect.left) / rect.width) * 2 - 1, -((sy - rect.top) / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(ndc, this.camera);
-    const hit = this.raycaster.intersectObject(this.terrain, false)[0];
-    if (!hit || hit.instanceId === undefined) return null;
-    return { x: hit.instanceId % this.world.map.width, y: Math.floor(hit.instanceId / this.world.map.width) };
+    const hit = this.raycaster.intersectObjects([this.terrain, ...(this.terrainSides ? [this.terrainSides] : [])], false)[0];
+    if (!hit) return null;
+    // Un poco hacia dentro de la cara tocada: la casilla dueña de esa cara.
+    const n = hit.face?.normal ?? new THREE.Vector3(0, 1, 0);
+    const x = Math.floor(hit.point.x - n.x * 0.01);
+    const y = Math.floor(hit.point.z - n.z * 0.01);
+    const m = this.world.map;
+    if (x < 0 || y < 0 || x >= m.width || y >= m.height) return null;
+    return { x, y };
   }
 
   private pickColonist(sx: number, sy: number): Colonist | undefined {
@@ -769,4 +867,23 @@ export class View3D {
     if (this.keys.has('s') || this.keys.has('arrowdown')) dy -= step;
     if (dx || dy) this.orbit = panOrbit(this.orbit, dx, dy);
   }
+}
+
+/**
+ * Coordenadas de textura de una caja medidas en casillas, para que una textura que se repite
+ * salga a escala (un tablón por casilla, no estirado). `wholeTop`: la cara de arriba entera.
+ */
+function tileUVs(geo: THREE.BoxGeometry, sx: number, sy: number, sz: number, wholeTop: boolean): void {
+  const uv = geo.getAttribute('uv') as THREE.BufferAttribute;
+  // Orden de caras de BoxGeometry: +x, −x, +y, −y, +z, −z (4 vértices cada una).
+  const size: [number, number][] = [[sz, sy], [sz, sy], [sx, sz], [sx, sz], [sx, sy], [sx, sy]];
+  for (let f = 0; f < 6; f++) {
+    if (f === 2 && wholeTop) continue;
+    const [u, v] = size[f];
+    for (let k = 0; k < 4; k++) {
+      const i = f * 4 + k;
+      uv.setXY(i, uv.getX(i) * u, uv.getY(i) * v);
+    }
+  }
+  uv.needsUpdate = true;
 }

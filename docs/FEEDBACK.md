@@ -11,6 +11,8 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Hecho
 
+- [x] **La 3D se ve fea** (2026-10-17): suelo con textura, taludes, agua translúcida, muros con su material, sombras y mejor luz.
+
 - [x] **Más colonos, prisioneros y comerciantes con esclavos** (2026-10-17): llegan supervivientes que piden unirse (aceptar o rechazar); los saqueadores caídos se capturan y se pueden retener, convencer o liberar; las caravanas venden recursos y esclavos y compran prisioneros. Menú completo en 📜 → Prisioneros y 📜 → Comercio.
 - [x] **No veo la 3D** (2026-10-17): botón «3D» junto a los giros de la vista, y el botón central del ratón en la vista 2D también pasa a la 3D. Si el navegador no tiene WebGL (aceleración por hardware desactivada) avisa de ello.
 - [x] **#8 Colono encerrado** (2026-10-17, 🐞): Tania se quedaba encerrada en una fila de 6 casillas al cerrarse una construcción a su alrededor. Ahora, quien está dentro de un hueco que se cierra al terminar una obra sale fuera.

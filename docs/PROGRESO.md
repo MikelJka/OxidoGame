@@ -2,15 +2,25 @@
 
 Diario de sesiones, la más reciente arriba.
 
-## 2026-10-17 (noche, 4) — Cocina
+## 2026-10-17 (noche, 5) — Cocina
 
-- Sin incidencias nuevas en 🐞. El punto pendiente de la vista 3D sigue abierto (pulido en varias sesiones); esta sesión toma la siguiente tarea de la fase 4, la cocina.
+- Sin incidencias nuevas en 🐞. La vista 3D se pule en paralelo; esta sesión toma la siguiente tarea de la fase 4, la cocina.
 - **Cocina** (🏗 → Talleres, 2×1; 🪨15 🔩8 🪵5): al tocarla se elige qué guisar y hasta cuántas raciones: guiso de patatas (🥔5 → 🍲2), tortas de maíz (🌽5 → 🍲2) o setas asadas (🍄6 → 🍲2). Trabajo nuevo **Cocinar** en las prioridades de la ficha, que usa la habilidad Cocina.
 - **Comida cocinada** 🍲: una ración alimenta como 3,5 patatas, así que cocinar estira la cosecha un 40 %. Los colonos la prefieren (andan hasta 25 casillas de más por ella) y les sube el ánimo («Comió caliente»); si comen crudo, baja un poco («Comió crudo»). Los carceleros dan a los prisioneros solo lo que necesitan.
 - Se guarda con la partida (las antiguas empiezan sin comida anotada). Tests nuevos en `tests/cooking.test.ts`.
 - Sin npm en el entorno: tests con Bun (179) y tipos con `tsc`; la prueba completa, en GitHub Actions.
 - Qué probar: construir una cocina junto al almacén, ponerle «Guiso de patatas» y ver que los colonos cocinan y luego comen 🍲.
 - Siguiente: dificultad configurable al empezar (días sin raids, dureza); después infecciones y mutantes.
+
+## 2026-10-17 (noche, 4) — Vista 3D más bonita
+
+- Mikel: «al mover a 3D se ve así de feo». Cambios:
+- **Suelo con textura** pixel art vista desde arriba (granulado, guijarros, matas, arena con ondas, losas con juntas, vetas en la roca) y bordes entre suelos irregulares, en lugar de bloques de un solo color.
+- **Taludes** de tierra, arena o roca con estratos donde una casilla está más alta que la de al lado.
+- **Agua** translúcida con brillos del sol.
+- **Muros y muebles con su material**: tablones de madera, sillares de piedra, chapa remendada con óxido, metal ondulado, bloques de hormigón; las camas se ven con su manta y su almohada.
+- **Sombras del sol**, tonos más naturales, niebla en la distancia y noches con luz de luna (se ve menos, pero se ve). Los árboles, rocas y ruinas ya no salen negros a contraluz.
+- Qué probar: pasar a 3D con el fuerte de muros de madera y girar la cámara; mirar también de noche.
 
 ## 2026-10-17 (noche, 3) — Gente: raids, prisioneros, comercio y muerte
 
