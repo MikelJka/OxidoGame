@@ -4,7 +4,7 @@ import { Colonist } from '../sim/colonist';
 import { isWalkable } from '../sim/pathfinding';
 import { GameSpeed, World } from '../sim/world';
 import { canvasPropRasterizer, paintGround, TILE } from './mapArt';
-import { liftOf, occludedFraction, pickTile, rowY, TILE_H, TOP_MARGIN } from './projection';
+import { liftOf, occludedFraction, pickTile, rowY, setTilt, TILE_H, tiltIndex, TILTS, TOP_MARGIN } from './projection';
 import { fromView, normalizeRotation, Rotation, rotateMap, tileFromView, tileToView, toView } from './rotation';
 
 export { TILE };
@@ -14,6 +14,8 @@ const COLONIST_DEPTH = 10;
 const UI_EMIT_MS = 200;
 /** Giro de los dedos (en radianes) que hace falta para girar la vista un cuarto de vuelta. */
 const TWIST_STEP = Math.PI / 4;
+/** Desplazamiento vertical (px de pantalla) de los dos dedos a la vez que cambia la inclinación un paso. */
+const TILT_DRAG_STEP = 60;
 
 type MoveKeys = Record<'up' | 'down' | 'left' | 'right' | 'w' | 'a' | 's' | 'd', Phaser.Input.Keyboard.Key>;
 
@@ -43,6 +45,7 @@ export class WorldScene extends Phaser.Scene {
   /** Última X dibujada de cada colono, para saber hacia dónde mira con la vista girada. */
   private lastViewX = new Map<number, number>();
   private pinchStartAngle = 0;
+  private pinchStartY: [number, number] = [0, 0];
   selectedId: number | null = null;
   private sprites = new Map<number, Phaser.GameObjects.Image>();
   /** Elevación dibujada de cada colono, suavizada al subir o bajar de nivel. */
@@ -87,6 +90,7 @@ export class WorldScene extends Phaser.Scene {
     this.game.events.emit('selection', null);
     this.emitClock();
     this.game.events.emit('view-rotation', this.rotation);
+    this.game.events.emit('view-tilt', tiltIndex);
   }
 
   update(_time: number, delta: number): void {
@@ -162,6 +166,26 @@ export class WorldScene extends Phaser.Scene {
 
   /** Gira la vista un cuarto de vuelta (+1 horario, −1 antihorario) manteniendo centrado lo que se miraba. */
   rotate(dir: 1 | -1): void {
+    this.changeView(() => {
+      this.rotation = normalizeRotation(this.rotation + dir);
+    });
+    this.game.events.emit('view-rotation', this.rotation);
+  }
+
+  /** Cambia la inclinación un paso (+1 más de lado, −1 más desde arriba). */
+  tilt(dir: 1 | -1): void {
+    this.setTiltLevel(tiltIndex + dir);
+  }
+
+  /** Pone una inclinación concreta (índice en TILTS). */
+  setTiltLevel(index: number): void {
+    if (index < 0 || index >= TILTS.length || index === tiltIndex) return;
+    this.changeView(() => setTilt(index));
+    this.game.events.emit('view-tilt', tiltIndex);
+  }
+
+  /** Aplica un cambio de giro o de inclinación, redibuja el mapa y mantiene centrado lo que se miraba. */
+  private changeView(apply: () => void): void {
     const cam = this.cameras.main;
     // Centro de la pantalla en el mundo (el zoom de Phaser se aplica respecto al centro).
     const mid = { x: cam.scrollX + cam.width / 2, y: cam.scrollY + cam.height / 2 };
@@ -173,14 +197,14 @@ export class WorldScene extends Phaser.Scene {
         y: Phaser.Math.Clamp(Math.floor(p.y), 0, this.map.height - 1),
       };
     })();
-    this.rotation = normalizeRotation(this.rotation + dir);
+    apply();
     this.view = rotateMap(this.map, this.rotation);
     this.drawMap();
     this.applyBounds();
     cam.setZoom(this.clampZoom(cam.zoom));
     this.centerOnTile(center.x, center.y);
     this.lastViewX.clear();
-    this.game.events.emit('view-rotation', this.rotation);
+    this.spriteLift.clear(); // la altura en píxeles de cada nivel puede haber cambiado
   }
 
   private setupInput(): void {
@@ -248,6 +272,8 @@ export class WorldScene extends Phaser.Scene {
       kb.on('keydown-ESC', hotkey(() => this.select(null)));
       kb.on('keydown-Q', hotkey(() => this.rotate(-1)));
       kb.on('keydown-E', hotkey(() => this.rotate(1)));
+      kb.on('keydown-R', hotkey(() => this.tilt(-1)));
+      kb.on('keydown-F', hotkey(() => this.tilt(1)));
     }
   }
 
@@ -265,6 +291,7 @@ export class WorldScene extends Phaser.Scene {
     this.pinchStartDist = Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
     this.pinchStartZoom = this.cameras.main.zoom;
     this.pinchStartAngle = Math.atan2(b.y - a.y, b.x - a.x);
+    this.pinchStartY = [a.y, b.y];
   }
 
   private updatePinch(): void {
@@ -280,6 +307,16 @@ export class WorldScene extends Phaser.Scene {
     if (Math.abs(twist) >= TWIST_STEP) {
       this.rotate(twist > 0 ? 1 : -1);
       this.pinchStartAngle = angle;
+    }
+    // Deslizar los dos dedos a la vez hacia arriba o abajo (sin separarlos) cambia la inclinación.
+    const dyA = a.y - this.pinchStartY[0];
+    const dyB = b.y - this.pinchStartY[1];
+    const sameWay = Math.sign(dyA) === Math.sign(dyB);
+    const steady = Math.abs(dist / this.pinchStartDist - 1) < 0.2;
+    if (sameWay && steady && Math.min(Math.abs(dyA), Math.abs(dyB)) >= TILT_DRAG_STEP) {
+      this.tilt(dyA < 0 ? 1 : -1);
+      this.startPinch();
+      return;
     }
     this.zoomAt(this.pinchStartZoom * (dist / this.pinchStartDist), (a.x + b.x) / 2, (a.y + b.y) / 2);
   }

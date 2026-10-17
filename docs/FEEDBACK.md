@@ -4,14 +4,12 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Pendiente
 
-- [ ] **Vista con algo de 3D** (2026-10-16): no completamente cenital; que se vean las alturas y se pueda mover/girar la vista. Plan por partes:
-  1. ~~Relieve visible: sombreado según la elevación y caras de acantilado en los desniveles~~ (hecho 2026-10-16).
-  2. ~~Relieve elevado con paredes, lo alto tapa lo de detrás y vista inclinada~~ (hecho 2026-10-17).
-  3. ~~Girar la vista en pasos de 90° (botones, gesto de dos dedos y teclas Q/E)~~ (hecho 2026-10-17).
-  4. Inclinación ajustable.
+(nada)
+
 
 ## Hecho
 
+- [x] **Vista con algo de 3D** (2026-10-17): relieve elevado con paredes, lo alto tapa lo de detrás, vista inclinada, giro en pasos de 90° (⟲ ⟳, girar dos dedos, Q/E) e inclinación ajustable en 4 pasos, de cenital a casi de lado (botón ∠, deslizar dos dedos arriba/abajo, R/F).
 - [x] **Las alturas del mapa no se ven bien** (2026-10-17): el terreno se dibuja elevado; cada nivel sube 12 px y en la cara sur de los desniveles se ve una pared: roca oscura en los acantilados, talud claro y rayado en las pendientes y orillas de tierra junto al agua. Los niveles altos son más claros y dejan sombra al pie. Colonos, objetos, toques y caminos siguen la altura.
 - [x] **Al escribir en 🐞 no salían W, A, S, D** (2026-10-17): el juego capturaba esas teclas para la cámara. Ahora no las captura y, mientras escribes, el teclado no mueve la cámara ni cambia la velocidad (espacio, 1, 2, 3).
 - [x] **Panel de control del desarrollo en el juego** (2026-10-17): ☰ → «📋 Progreso del desarrollo». Muestra la versión publicada, el % total y de la fase actual, qué se hará a continuación, tus peticiones en cola, la próxima sesión automática, los últimos parches y todas las tareas que faltan por fase. Se genera de `ROADMAP.md`, `PROGRESO.md` y `FEEDBACK.md` en cada publicación.

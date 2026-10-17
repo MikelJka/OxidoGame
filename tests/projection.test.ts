@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { generateMap, Terrain } from '../src/sim/map';
-import { LIFT, occludedFraction, pickTile, TILE, TILE_H, tileTop } from '../src/render/projection';
+import {
+  DEFAULT_TILT, LIFT, occludedFraction, pickTile, setTilt, TILE, TILE_H, tileTop, TILTS, TOP_MARGIN,
+} from '../src/render/projection';
+import { MAX_LEVEL } from '../src/sim/map';
 
 function stepMap() {
   // Mapa llano de nivel 1 con una meseta de nivel 3 en las filas 4 a 6.
@@ -64,5 +67,39 @@ describe('ocultación detrás del relieve', () => {
     expect(occludedFraction(map, 24, 1.5 * TILE_H - LIFT, 1)).toBe(0);
     // Delante de la meseta (más al sur) tampoco se tapa.
     expect(occludedFraction(map, 24, 8.5 * TILE_H - LIFT, 8)).toBe(0);
+  });
+});
+
+describe('inclinación ajustable', () => {
+  afterEach(() => setTilt(DEFAULT_TILT));
+
+  it('cambia el alto de casilla y la altura de los niveles', () => {
+    expect(setTilt(0)).toBe(0);
+    expect(TILE_H).toBe(TILTS[0].tileH);
+    expect(LIFT).toBe(TILTS[0].lift);
+    expect(TOP_MARGIN).toBe(MAX_LEVEL * TILTS[0].lift);
+    expect(setTilt(99)).toBe(TILTS.length - 1);
+    expect(setTilt(-3)).toBe(0);
+  });
+
+  it('va de mirar desde arriba a mirar de lado', () => {
+    for (let i = 1; i < TILTS.length; i++) {
+      expect(TILTS[i].tileH).toBeLessThan(TILTS[i - 1].tileH);
+      expect(TILTS[i].lift).toBeGreaterThan(TILTS[i - 1].lift);
+    }
+  });
+
+  it('con cualquier inclinación, tocar una casilla la selecciona y la meseta tapa lo de detrás', () => {
+    const map = stepMap();
+    for (let t = 0; t < TILTS.length; t++) {
+      setTilt(t);
+      for (const [x, y] of [[1, 0], [3, 5], [7, 8], [0, 4], [9, 6], [4, 7]]) {
+        const top = tileTop(map, x, y);
+        expect(pickTile(map, x * TILE + 8, top + TILE_H / 2)).toEqual({ x, y });
+      }
+      const footY = 3.5 * TILE_H - LIFT;
+      expect(occludedFraction(map, 24, footY, 3)).toBeGreaterThan(0);
+      expect(occludedFraction(map, 24, 8.5 * TILE_H - LIFT, 8)).toBe(0);
+    }
   });
 });

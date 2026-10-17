@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { WorldScene } from './render/WorldScene';
 import { northLabel, Rotation } from './render/rotation';
+import { DEFAULT_TILT, TILTS } from './render/projection';
 import { seedFromString } from './sim/rng';
 import { Colonist, activityLabel } from './sim/colonist';
 import { SKILLS, SKILL_NAMES } from './data/colonists';
@@ -77,6 +78,15 @@ game.events.on('clock', (label: string, speed: GameSpeed) => {
 $('rot-left').addEventListener('click', () => scene().rotate(-1));
 $('rot-right').addEventListener('click', () => scene().rotate(1));
 game.events.on('view-rotation', (r: Rotation) => ($('compass').textContent = `↑${northLabel(r)}`));
+// El botón de inclinación recorre las inclinaciones, de mirar desde arriba a mirar de lado, y vuelve a empezar.
+const tiltBtn = $('tilt-btn');
+let tiltNow = DEFAULT_TILT;
+tiltBtn.addEventListener('click', () => scene().setTiltLevel((tiltNow + 1) % TILTS.length));
+game.events.on('view-tilt', (i: number) => {
+  tiltNow = i;
+  tiltBtn.title = `Inclinación: ${TILTS[i].name} (${i + 1}/${TILTS.length}) · R / F`;
+  tiltBtn.textContent = `∠${i + 1}`;
+});
 
 // --- Menú --------------------------------------------------------------------
 const menu = $('menu');

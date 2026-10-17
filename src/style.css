@@ -81,12 +81,13 @@ button.active { border-color: var(--accent); color: var(--accent); }
   padding: 4px;
 }
 #view-ctl button { padding: 4px 6px; font-size: 16px; }
+#tilt-btn { font-size: 13px !important; }
 #compass { min-width: 26px; text-align: center; color: var(--accent); font-weight: bold; }
 
 #tile {
   top: calc(62px + env(safe-area-inset-top));
   left: 8px;
-  max-width: calc(100% - 140px);
+  max-width: calc(100% - 180px);
   padding: 4px 8px;
   color: var(--muted);
   font-size: 12px;

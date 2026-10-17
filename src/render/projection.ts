@@ -3,15 +3,45 @@
 import { GameMap, inBounds, isWater, MAX_LEVEL, Terrain } from '../sim/map';
 
 export const TILE = 16;
+
+/** Una inclinación de la vista: alto en pantalla de cada casilla y altura de cada nivel. */
+export interface Tilt {
+  name: string;
+  tileH: number;
+  lift: number;
+}
+
+/** Inclinaciones disponibles, de mirar desde arriba a mirar casi de lado. */
+export const TILTS: readonly Tilt[] = [
+  { name: 'cenital', tileH: 16, lift: 5 },
+  { name: 'alta', tileH: 14, lift: 9 },
+  { name: 'inclinada', tileH: 12, lift: 12 },
+  { name: 'baja', tileH: 10, lift: 15 },
+];
+export const DEFAULT_TILT = 2;
+
 /**
  * Alto en pantalla de una casilla. Menor que TILE: el suelo se ve inclinado (desde un lado),
  * mientras que paredes, objetos y colonos se dibujan de pie con su tamaño normal.
+ * Cambia con `setTilt` (los módulos que lo importan ven siempre el valor actual).
  */
-export const TILE_H = 12;
+export let TILE_H = TILTS[DEFAULT_TILT].tileH;
 /** Píxeles (del mundo) que sube cada nivel de altura. */
-export const LIFT = 12;
+export let LIFT = TILTS[DEFAULT_TILT].lift;
 /** Margen superior de las texturas del mapa para que la primera fila elevada no se corte. */
-export const TOP_MARGIN = MAX_LEVEL * LIFT;
+export let TOP_MARGIN = MAX_LEVEL * LIFT;
+/** Índice en TILTS de la inclinación actual. */
+export let tiltIndex = DEFAULT_TILT;
+
+/** Cambia la inclinación de la vista (se recorta a las disponibles). Devuelve el índice aplicado. */
+export function setTilt(index: number): number {
+  const i = Math.max(0, Math.min(TILTS.length - 1, Math.round(index)));
+  tiltIndex = i;
+  TILE_H = TILTS[i].tileH;
+  LIFT = TILTS[i].lift;
+  TOP_MARGIN = MAX_LEVEL * LIFT;
+  return i;
+}
 
 /** Nivel con el que se dibuja una casilla: el agua siempre abajo del todo. */
 export function renderLevel(map: GameMap, x: number, y: number): number {
