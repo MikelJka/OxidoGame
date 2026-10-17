@@ -7,7 +7,8 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 - [ ] **Vista con algo de 3D** (2026-10-16): no completamente cenital; que se vean las alturas y se pueda mover/girar la vista. Plan por partes:
   1. ~~Relieve visible: sombreado según la elevación y caras de acantilado en los desniveles~~ (hecho 2026-10-16).
   2. ~~Relieve elevado con paredes, lo alto tapa lo de detrás y vista inclinada~~ (hecho 2026-10-17).
-  3. Girar la vista en pasos de 90° (botón y gesto) e inclinación ajustable.
+  3. ~~Girar la vista en pasos de 90° (botones, gesto de dos dedos y teclas Q/E)~~ (hecho 2026-10-17).
+  4. Inclinación ajustable.
 
 ## Hecho
 

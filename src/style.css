@@ -72,9 +72,21 @@ button.active { border-color: var(--accent); color: var(--accent); }
 .help { margin: 0; color: var(--muted); line-height: 1.6; font-size: 12px; }
 .help strong { color: var(--text); }
 
+#view-ctl {
+  top: calc(62px + env(safe-area-inset-top));
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+}
+#view-ctl button { padding: 4px 6px; font-size: 16px; }
+#compass { min-width: 26px; text-align: center; color: var(--accent); font-weight: bold; }
+
 #tile {
   top: calc(62px + env(safe-area-inset-top));
   left: 8px;
+  max-width: calc(100% - 140px);
   padding: 4px 8px;
   color: var(--muted);
   font-size: 12px;

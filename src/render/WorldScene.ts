@@ -5,17 +5,26 @@ import { isWalkable } from '../sim/pathfinding';
 import { GameSpeed, World } from '../sim/world';
 import { canvasPropRasterizer, paintGround, TILE } from './mapArt';
 import { liftOf, occludedFraction, pickTile, rowY, TILE_H, TOP_MARGIN } from './projection';
+import { fromView, normalizeRotation, Rotation, rotateMap, tileFromView, tileToView, toView } from './rotation';
 
 export { TILE };
 const MAP_TEXTURE = 'world-map';
 const MAX_ZOOM = 4;
 const COLONIST_DEPTH = 10;
 const UI_EMIT_MS = 200;
+/** Giro de los dedos (en radianes) que hace falta para girar la vista un cuarto de vuelta. */
+const TWIST_STEP = Math.PI / 4;
 
 type MoveKeys = Record<'up' | 'down' | 'left' | 'right' | 'w' | 'a' | 's' | 'd', Phaser.Input.Keyboard.Key>;
 
 export interface WorldSceneData {
   seed: number;
+}
+
+/** Punto continuo de la vista (en casillas). */
+interface ViewPoint {
+  x: number;
+  y: number;
 }
 
 /**
@@ -24,7 +33,16 @@ export interface WorldSceneData {
  */
 export class WorldScene extends Phaser.Scene {
   world!: World;
+  /** Mapa real: el que usa la simulación. */
   map!: GameMap;
+  /** Mapa girado tal como se dibuja. Igual a `map` sin giro. */
+  view!: GameMap;
+  /** Giro de la vista en cuartos de vuelta (se mantiene al generar un mapa nuevo). */
+  rotation: Rotation = 0;
+  private mapImage?: Phaser.GameObjects.Image;
+  /** Última X dibujada de cada colono, para saber hacia dónde mira con la vista girada. */
+  private lastViewX = new Map<number, number>();
+  private pinchStartAngle = 0;
   selectedId: number | null = null;
   private sprites = new Map<number, Phaser.GameObjects.Image>();
   /** Elevación dibujada de cada colono, suavizada al subir o bajar de nivel. */
@@ -49,18 +67,18 @@ export class WorldScene extends Phaser.Scene {
     this.selectedId = null;
     this.sprites.clear();
     this.spriteLift.clear();
+    this.lastViewX.clear();
+    this.mapImage = undefined;
+    this.view = rotateMap(this.map, this.rotation);
     this.drawMap();
-    this.add.image(0, -TOP_MARGIN, MAP_TEXTURE).setOrigin(0, 0);
     this.selectionGfx = this.add.graphics().setDepth(COLONIST_DEPTH - 1);
     this.createColonistSprites();
 
     const cam = this.cameras.main;
-    const worldW = this.map.width * TILE;
-    const worldH = this.map.height * TILE_H;
-    cam.setBounds(0, -TOP_MARGIN, worldW, worldH + TOP_MARGIN);
+    this.applyBounds();
     cam.setBackgroundColor('#141210');
     cam.setZoom(this.clampZoom(Math.max(this.minZoom(), 1.5)));
-    cam.centerOn((this.map.start.x + 0.5) * TILE, rowY(this.map.start.y + 0.5) - liftOf(this.map, this.map.start.x, this.map.start.y));
+    this.centerOnTile(this.map.start.x, this.map.start.y);
 
     this.setupInput();
     this.scale.on('resize', this.onResize, this);
@@ -68,6 +86,7 @@ export class WorldScene extends Phaser.Scene {
     this.game.events.emit('map-ready', this.map);
     this.game.events.emit('selection', null);
     this.emitClock();
+    this.game.events.emit('view-rotation', this.rotation);
   }
 
   update(_time: number, delta: number): void {
@@ -90,19 +109,78 @@ export class WorldScene extends Phaser.Scene {
     if (k.down.isDown || k.s.isDown) cam.scrollY += speed;
   }
 
-  /** Pinta suelo, paredes y objetos en una sola textura, fila a fila. */
+  /** Pinta suelo, paredes y objetos (del mapa girado) en una sola textura, fila a fila. */
   private drawMap(): void {
+    this.mapImage?.destroy();
+    this.mapImage = undefined;
     if (this.textures.exists(MAP_TEXTURE)) this.textures.remove(MAP_TEXTURE);
-    const w = this.map.width * TILE;
-    const h = this.map.height * TILE_H + TOP_MARGIN;
+    const w = this.view.width * TILE;
+    const h = this.view.height * TILE_H + TOP_MARGIN;
 
     const ground = this.textures.createCanvas(MAP_TEXTURE, w, h);
     if (!ground) throw new Error('No se pudo crear la textura del mapa');
     const gctx = ground.getContext();
     const img = gctx.createImageData(w, h);
-    paintGround(this.map, img, canvasPropRasterizer());
+    paintGround(this.view, img, canvasPropRasterizer());
     gctx.putImageData(img, 0, 0);
     ground.refresh();
+    this.mapImage = this.add.image(0, -TOP_MARGIN, MAP_TEXTURE).setOrigin(0, 0).setDepth(-1);
+  }
+
+  private applyBounds(): void {
+    this.cameras.main.setBounds(0, -TOP_MARGIN, this.view.width * TILE, this.view.height * TILE_H + TOP_MARGIN);
+  }
+
+  // --- Conversión entre el mapa real y la vista girada -------------------------
+
+  /** Posición continua real (en casillas) → punto de la vista. */
+  private toViewPoint(x: number, y: number): ViewPoint {
+    return toView(x, y, this.map.width, this.map.height, this.rotation);
+  }
+
+  /** Casilla real → casilla de la vista. */
+  private viewTile(tx: number, ty: number): ViewPoint {
+    return tileToView(tx, ty, this.map.width, this.map.height, this.rotation);
+  }
+
+  /** Elevación dibujada de una casilla real. */
+  private liftAt(tx: number, ty: number): number {
+    const v = this.viewTile(tx, ty);
+    return liftOf(this.view, v.x, v.y);
+  }
+
+  /** Casilla real bajo un punto del mundo (en píxeles), o null. */
+  private pickRealTile(wx: number, wy: number): ViewPoint | null {
+    const t = pickTile(this.view, wx, wy);
+    return t ? tileFromView(t.x, t.y, this.map.width, this.map.height, this.rotation) : null;
+  }
+
+  private centerOnTile(tx: number, ty: number): void {
+    const v = this.viewTile(tx, ty);
+    this.cameras.main.centerOn((v.x + 0.5) * TILE, rowY(v.y + 0.5) - liftOf(this.view, v.x, v.y));
+  }
+
+  /** Gira la vista un cuarto de vuelta (+1 horario, −1 antihorario) manteniendo centrado lo que se miraba. */
+  rotate(dir: 1 | -1): void {
+    const cam = this.cameras.main;
+    // Centro de la pantalla en el mundo (el zoom de Phaser se aplica respecto al centro).
+    const mid = { x: cam.scrollX + cam.width / 2, y: cam.scrollY + cam.height / 2 };
+    const tile = this.pickRealTile(mid.x, mid.y);
+    const center = tile ?? (() => {
+      const p = fromView(mid.x / TILE, mid.y / TILE_H, this.map.width, this.map.height, this.rotation);
+      return {
+        x: Phaser.Math.Clamp(Math.floor(p.x), 0, this.map.width - 1),
+        y: Phaser.Math.Clamp(Math.floor(p.y), 0, this.map.height - 1),
+      };
+    })();
+    this.rotation = normalizeRotation(this.rotation + dir);
+    this.view = rotateMap(this.map, this.rotation);
+    this.drawMap();
+    this.applyBounds();
+    cam.setZoom(this.clampZoom(cam.zoom));
+    this.centerOnTile(center.x, center.y);
+    this.lastViewX.clear();
+    this.game.events.emit('view-rotation', this.rotation);
   }
 
   private setupInput(): void {
@@ -168,6 +246,8 @@ export class WorldScene extends Phaser.Scene {
       kb.on('keydown-TWO', hotkey(() => this.setSpeed(2)));
       kb.on('keydown-THREE', hotkey(() => this.setSpeed(3)));
       kb.on('keydown-ESC', hotkey(() => this.select(null)));
+      kb.on('keydown-Q', hotkey(() => this.rotate(-1)));
+      kb.on('keydown-E', hotkey(() => this.rotate(1)));
     }
   }
 
@@ -184,6 +264,7 @@ export class WorldScene extends Phaser.Scene {
     this.lastPinchAt = this.time.now;
     this.pinchStartDist = Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
     this.pinchStartZoom = this.cameras.main.zoom;
+    this.pinchStartAngle = Math.atan2(b.y - a.y, b.x - a.x);
   }
 
   private updatePinch(): void {
@@ -193,6 +274,13 @@ export class WorldScene extends Phaser.Scene {
     const dist = Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
     this.lastPinchAt = this.time.now;
     if (this.pinchStartDist < 1) return;
+    // Girar los dos dedos gira la vista un cuarto de vuelta por cada 45°.
+    const angle = Math.atan2(b.y - a.y, b.x - a.x);
+    const twist = Phaser.Math.Angle.Wrap(angle - this.pinchStartAngle);
+    if (Math.abs(twist) >= TWIST_STEP) {
+      this.rotate(twist > 0 ? 1 : -1);
+      this.pinchStartAngle = angle;
+    }
     this.zoomAt(this.pinchStartZoom * (dist / this.pinchStartDist), (a.x + b.x) / 2, (a.y + b.y) / 2);
   }
 
@@ -213,7 +301,7 @@ export class WorldScene extends Phaser.Scene {
 
   private minZoom(): number {
     const { width, height } = this.scale.gameSize;
-    return Math.max(width / (this.map.width * TILE), height / (this.map.height * TILE_H + TOP_MARGIN));
+    return Math.max(width / (this.view.width * TILE), height / (this.view.height * TILE_H + TOP_MARGIN));
   }
 
   private clampZoom(z: number): number {
@@ -238,7 +326,9 @@ export class WorldScene extends Phaser.Scene {
   /** Centra la cámara en un colono. */
   focus(id: number): void {
     const c = this.world.colonists.find((k) => k.id === id);
-    if (c) this.cameras.main.pan(c.pos.x * TILE, rowY(c.pos.y) - this.colonistLift(c), 300, 'Sine.easeInOut');
+    if (!c) return;
+    const v = this.toViewPoint(c.pos.x, c.pos.y);
+    this.cameras.main.pan(v.x * TILE, rowY(v.y) - this.colonistLift(c), 300, 'Sine.easeInOut');
   }
 
   private selected(): Colonist | null {
@@ -259,7 +349,7 @@ export class WorldScene extends Phaser.Scene {
     }
     this.reportTile(p);
     if (this.selectedId === null) return;
-    const tile = pickTile(this.map, world.x, world.y);
+    const tile = this.pickRealTile(world.x, world.y);
     if (!tile) return;
     const { x: tx, y: ty } = tile;
     if (!isWalkable(this.map, tx, ty)) {
@@ -276,7 +366,8 @@ export class WorldScene extends Phaser.Scene {
   private flashTarget(tx: number, ty: number): void {
     const g = this.add.graphics().setDepth(COLONIST_DEPTH + 1);
     g.lineStyle(2, 0xf0d7b0, 1);
-    g.strokeRect(tx * TILE + 2, ty * TILE_H - liftOf(this.map, tx, ty) + 2, TILE - 4, TILE_H - 4);
+    const v = this.viewTile(tx, ty);
+    g.strokeRect(v.x * TILE + 2, v.y * TILE_H - liftOf(this.view, v.x, v.y) + 2, TILE - 4, TILE_H - 4);
     this.tweens.add({ targets: g, alpha: 0, duration: 600, onComplete: () => g.destroy() });
   }
 
@@ -284,9 +375,10 @@ export class WorldScene extends Phaser.Scene {
     for (const c of this.world.colonists) {
       const key = `colonist-${this.map.seed}-${c.id}`;
       if (!this.textures.exists(key)) drawColonistTexture(this, key, c);
-      const lift = liftOf(this.map, c.tile.x, c.tile.y);
+      const lift = this.liftAt(c.tile.x, c.tile.y);
       this.spriteLift.set(c.id, lift);
-      const img = this.add.image(c.pos.x * TILE, rowY(c.pos.y) - lift, key).setDepth(COLONIST_DEPTH).setOrigin(0.5, 0.75);
+      const v = this.toViewPoint(c.pos.x, c.pos.y);
+      const img = this.add.image(v.x * TILE, rowY(v.y) - lift, key).setDepth(COLONIST_DEPTH).setOrigin(0.5, 0.75);
       this.sprites.set(c.id, img);
     }
   }
@@ -299,19 +391,28 @@ export class WorldScene extends Phaser.Scene {
       const walking = c.path.length > 0 && this.world.speed > 0;
       const bob = walking ? Math.abs(Math.sin(t / 90 + c.id)) * -1.5 : 0;
       // Sube o baja de nivel poco a poco en lugar de saltar.
-      const target = liftOf(this.map, c.tile.x, c.tile.y);
+      const target = this.liftAt(c.tile.x, c.tile.y);
       const prev = this.spriteLift.get(c.id) ?? target;
       const lift = Math.abs(target - prev) < 0.3 ? target : prev + (target - prev) * 0.25;
       this.spriteLift.set(c.id, lift);
-      const footY = rowY(c.pos.y) - lift;
-      img.setPosition(c.pos.x * TILE, footY + bob);
-      img.setFlipX(c.facing < 0);
+      const v = this.toViewPoint(c.pos.x, c.pos.y);
+      const footY = rowY(v.y) - lift;
+      img.setPosition(v.x * TILE, footY + bob);
+      // Mira hacia donde se mueve en pantalla (con la vista girada no coincide con el mapa).
+      if (this.rotation === 0) {
+        img.setFlipX(c.facing < 0);
+      } else {
+        const prevX = this.lastViewX.get(c.id);
+        if (prevX !== undefined && Math.abs(v.x - prevX) > 0.001) img.setFlipX(v.x < prevX);
+      }
+      this.lastViewX.set(c.id, v.x);
       // Detrás de una meseta o pared: se ve como silueta translúcida para no perderlo.
-      const hidden = occludedFraction(this.map, c.pos.x * TILE, footY, c.tile.y);
+      const vt = this.viewTile(c.tile.x, c.tile.y);
+      const hidden = occludedFraction(this.view, v.x * TILE, footY, vt.y);
       img.setAlpha(1 - hidden * 0.6);
       if (hidden > 0) img.setTint(0xb8c4d0);
       else img.clearTint();
-      img.setDepth(COLONIST_DEPTH + c.pos.y / 1000);
+      img.setDepth(COLONIST_DEPTH + v.y / 1000);
     }
   }
 
@@ -321,29 +422,34 @@ export class WorldScene extends Phaser.Scene {
     const c = this.selected();
     if (!c) return;
     const lift = this.colonistLift(c);
+    const here = this.toViewPoint(c.pos.x, c.pos.y);
     if (c.path.length > 0) {
       g.lineStyle(1.5, 0xf0d7b0, 0.6);
       g.beginPath();
-      g.moveTo(c.pos.x * TILE, rowY(c.pos.y) - lift);
-      for (const p of c.path) g.lineTo((p.x + 0.5) * TILE, rowY(p.y + 0.5) - liftOf(this.map, p.x, p.y));
+      g.moveTo(here.x * TILE, rowY(here.y) - lift);
+      for (const p of c.path) {
+        const v = this.viewTile(p.x, p.y);
+        g.lineTo((v.x + 0.5) * TILE, rowY(v.y + 0.5) - liftOf(this.view, v.x, v.y));
+      }
       g.strokePath();
-      const end = c.path[c.path.length - 1];
-      g.strokeRect(end.x * TILE + 3, end.y * TILE_H - liftOf(this.map, end.x, end.y) + 2, TILE - 6, TILE_H - 4);
+      const last = c.path[c.path.length - 1];
+      const end = this.viewTile(last.x, last.y);
+      g.strokeRect(end.x * TILE + 3, end.y * TILE_H - liftOf(this.view, end.x, end.y) + 2, TILE - 6, TILE_H - 4);
     }
     g.lineStyle(2, 0xd96c2c, 1);
-    g.strokeEllipse(c.pos.x * TILE, rowY(c.pos.y) - lift + 2, TILE * 0.95, TILE_H * 0.45);
+    g.strokeEllipse(here.x * TILE, rowY(here.y) - lift + 2, TILE * 0.95, TILE_H * 0.45);
   }
 
   private reportTile(p: Phaser.Input.Pointer): void {
     const world = this.cameras.main.getWorldPoint(p.x, p.y);
-    const tile = pickTile(this.map, world.x, world.y);
+    const tile = this.pickRealTile(world.x, world.y);
     if (!tile || !inBounds(this.map, tile.x, tile.y)) return;
     this.game.events.emit('tile-info', describeTile(this.map, tile.x, tile.y));
   }
 
   /** Elevación con la que se dibuja ahora mismo un colono. */
   private colonistLift(c: Colonist): number {
-    return this.spriteLift.get(c.id) ?? liftOf(this.map, c.tile.x, c.tile.y);
+    return this.spriteLift.get(c.id) ?? this.liftAt(c.tile.x, c.tile.y);
   }
 
   /** Colono dibujado bajo un punto del mundo (en píxeles), el de más delante si hay varios. */
@@ -352,7 +458,8 @@ export class WorldScene extends Phaser.Scene {
     let bestDist = TILE * 0.9;
     for (const c of this.world.colonists) {
       // Centro del cuerpo: el sprite se ancla en los pies.
-      const d = Math.hypot(c.pos.x * TILE - wx, rowY(c.pos.y) - this.colonistLift(c) - 4 - wy);
+      const v = this.toViewPoint(c.pos.x, c.pos.y);
+      const d = Math.hypot(v.x * TILE - wx, rowY(v.y) - this.colonistLift(c) - 4 - wy);
       if (d <= bestDist) {
         best = c;
         bestDist = d;

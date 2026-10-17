@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { WorldScene } from './render/WorldScene';
+import { northLabel, Rotation } from './render/rotation';
 import { seedFromString } from './sim/rng';
 import { Colonist, activityLabel } from './sim/colonist';
 import { SKILLS, SKILL_NAMES } from './data/colonists';
@@ -71,6 +72,11 @@ game.events.on('clock', (label: string, speed: GameSpeed) => {
   clock.textContent = speed === 0 ? `${label} · en pausa` : label;
   speedButtons.forEach((b) => b.classList.toggle('active', Number(b.dataset.speed) === speed));
 });
+
+// --- Giro de la vista -------------------------------------------------------
+$('rot-left').addEventListener('click', () => scene().rotate(-1));
+$('rot-right').addEventListener('click', () => scene().rotate(1));
+game.events.on('view-rotation', (r: Rotation) => ($('compass').textContent = `↑${northLabel(r)}`));
 
 // --- Menú --------------------------------------------------------------------
 const menu = $('menu');
