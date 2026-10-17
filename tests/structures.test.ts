@@ -225,3 +225,27 @@ describe('suelos (capa aparte)', () => {
     expect(isPassable(world.map, 12, 12)).toBe(false);
   });
 });
+
+describe('no encerrarse al construir (#8)', () => {
+  it('quien pone la última pieza de un cuarto pequeño desde dentro sale por fuera', () => {
+    const world = flatWorld();
+    // Cuarto de 3×3 por dentro sin puerta; el colono está dentro, junto al último hueco.
+    const st = world.structures;
+    for (let y = 10; y <= 14; y++) for (let x = 10; x <= 14; x++) {
+      if (!(x === 10 || x === 14 || y === 10 || y === 14) || (x === 12 && y === 10)) continue;
+      st.place(x, y, 'muro_madera');
+      const s = st.at(x, y)!;
+      st.deliver(s, 'madera', 5);
+      world.completeStructure(s);
+    }
+    const c = world.colonists[0];
+    c.tile = { x: 12, y: 11 };
+    c.pos = { x: 12.5, y: 11.5 };
+    st.place(12, 10, 'muro_madera');
+    const last = st.at(12, 10)!;
+    st.deliver(last, 'madera', 5);
+    world.completeStructure(last);
+    expect(c.tile).toEqual({ x: 12, y: 9 });
+    expect(checkWorld(world).filter((p) => p.key.startsWith('trapped'))).toEqual([]);
+  });
+});

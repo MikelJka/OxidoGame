@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (noche, 3) — Gente: raids, prisioneros, comercio y muerte
+
+- **Salud**: cada persona tiene salud y heridas en partes del cuerpo; las heridas sangran hasta que las cura alguien con la tarea nueva **Curar** (usa Medicina). Malherido, cae al suelo y no se mueve hasta recuperarse. Sin comer (unos 2 días) o sin beber (1 día) se muere. Si mueren todos, se acaba la partida (con cementerio y botón para empezar otra).
+- **Raids**: desde el día 5 llegan saqueadores por el borde, más cuanto más rica es la colonia. Pelean cuerpo a cuerpo; los colonos devuelven los golpes y, reclutados (🎖), van a por los que estén cerca. Heridos, huyen. Barra de salud sobre quien esté herido.
+- **Prisioneros**: los saqueadores caídos los captura quien tenga la tarea nueva **Carcelero** (usa Trato, habilidad nueva) y los lleva a una **cama de prisionero** (🏗 → Muebles) si la hay. En 📜 → Prisioneros: Retener, Convencer (charla cada 6 h; baja su resistencia y al final se une) o Liberar. El carcelero les da comida y agua.
+- **Supervivientes**: de vez en cuando alguien pide unirse: aceptar o rechazar.
+- **Caravanas**: llega un comerciante con recursos y a veces esclavos. Tocarlo (o 📜 → Comercio) abre el trueque: comprar y vender por valor, comprar esclavos (pasan a ser prisioneros para convencer) y vender prisioneros.
+- **📜 Diario**: lo que pasa queda apuntado y se avisa en pantalla. Todo se guarda con la partida.
+- **3D**: botón «3D» junto a los giros de la vista y el botón central del ratón en 2D pasa a la vista 3D.
+- Qué probar: esperar al día 5 (o jugar rápido) para el primer raid; reclutar a los colonos; capturar a un saqueador caído y convencerlo; comerciar con la caravana del día 4.
+- Siguiente: cocina, dificultad al empezar, armas y combate a distancia.
+
 ## 2026-10-17 (noche, 2) — Sed y agua; construir sobre suelos
 
 - **Construir sobre suelos** (Mikel: no dejaba construir sobre losas de piedra): los suelos son una capa aparte. Encima se puede poner cualquier construcción salvo las de agua; la construcción manda en el paso y, al demolerla, vuelve el suelo. Los huertos no van sobre suelo. Cada trabajo sabe ya a qué construcción va (por su identificador), aunque haya un suelo y un muro en la misma casilla.

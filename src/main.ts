@@ -12,6 +12,9 @@ import type { GameMap } from './sim/map';
 import { checkWorld, ProgressMark } from './sim/diagnostics';
 import { installErrorCapture, mountReportPanel, onNewError, recordError } from './ui/bugReport';
 import { mountDevPanel } from './ui/devPanel';
+import { mountPeople } from './ui/people';
+import { makePrisoner, offerWanderer, startRaid, startTrader } from './sim/people';
+import { healthLabel } from './sim/health';
 import { downloadWorld, pickSaveFile, readBackupSave, readStoredSave, storeWorld } from './ui/saveGame';
 import { parseSave } from './sim/save';
 import { reachableResources } from './sim/resources';
@@ -110,7 +113,7 @@ async function setView3D(on: boolean): Promise<void> {
       view3d = new mod.View3D($('game'), () => game.scene.getScene('world') as WorldScene);
     } catch (err) {
       recordError('error', `No se pudo abrir la vista 3D: ${err instanceof Error ? err.message : String(err)}`);
-      showToast('⚠️ No se pudo abrir la vista 3D en este navegador', 4000);
+      showToast(`⚠️ No se pudo abrir la vista 3D: ${err instanceof Error ? err.message : String(err)}. ¿Está activada la aceleración por hardware del navegador?`, 7000);
       return;
     }
   }
@@ -126,6 +129,8 @@ async function setView3D(on: boolean): Promise<void> {
     s.cameraKeysEnabled = true;
   }
   document.body.classList.toggle('mode-3d', on);
+  $('view3d-quick').textContent = on ? '2D' : '3D';
+  $('view3d-quick').classList.toggle('active', on);
   view3dBtn.textContent = on ? '🗺 Volver a la vista 2D' : '🧊 Vista 3D (en pruebas)';
   try {
     localStorage.setItem(VIEW3D_KEY, on ? '1' : '0');
@@ -133,6 +138,12 @@ async function setView3D(on: boolean): Promise<void> {
     // sin almacenamiento: no se recuerda
   }
 }
+$('view3d-quick').addEventListener('click', () => void setView3D(!view3d?.active));
+game.events.on('request-3d', () => {
+  if (view3d?.active) return;
+  showToast('🧊 Vista 3D: mantén el botón central para pivotar', 2500);
+  void setView3D(true);
+});
 view3dBtn.addEventListener('click', () => {
   menu.hidden = true;
   void setView3D(!view3d?.active);
@@ -172,12 +183,15 @@ $('dev-btn').addEventListener('click', () => {
   report.hidden = true;
 });
 mountDevPanel(devPanel, $('dev-btn'));
-$('new-map').addEventListener('click', () => {
-  if (!window.confirm('¿Empezar un mapa nuevo? La partida actual se perderá (puedes exportarla antes con ⬇).')) return;
+function startNewMap(): void {
   seed = Math.floor(Math.random() * 1_000_000);
   menu.hidden = true;
   tile.textContent = '';
   scene().scene.restart({ seed });
+}
+$('new-map').addEventListener('click', () => {
+  if (!window.confirm('¿Empezar un mapa nuevo? La partida actual se perderá (puedes exportarla antes con ⬇).')) return;
+  startNewMap();
 });
 
 let view3dRestored = false;
@@ -646,8 +660,47 @@ window.setInterval(() => {
   }
 }, 2000);
 
+// --- Gente: diario, prisioneros, comercio, supervivientes y fin de partida -------------
+const people = mountPeople({
+  getWorld: () => (game.scene.getScene('world') as WorldScene | null)?.world ?? null,
+  toast: (text, ms) => showToast(text, ms),
+  newGame: () => startNewMap(),
+  focus: (x, y) => {
+    scene().focusTile(x, y);
+    view3d?.lookAt(x + 0.5, y + 0.5);
+  },
+});
+game.events.on('pawn-tap', (c: Colonist) => people.openFor(c));
+// Para las pruebas automáticas (scripts/smoke.mjs): provocar sucesos sin esperar días.
+(window as unknown as { oxidoPrueba: unknown }).oxidoPrueba = {
+  raid: (n = 2) => startRaid(scene().world, n),
+  caravana: () => startTrader(scene().world),
+  superviviente: () => offerWanderer(scene().world),
+  prisionero: () => {
+    const w = scene().world;
+    const [r] = startRaid(w, 1);
+    if (r) makePrisoner(r, 0.6);
+    return r?.name;
+  },
+  abrirGente: (c: Colonist) => people.openFor(c),
+};
+
 // --- Lista de colonos ----------------------------------------------------------
 const roster = $('roster');
+// Llegan colonos nuevos (supervivientes, prisioneros convencidos) o mueren: se rehace la lista.
+let rosterKey = '';
+window.setInterval(() => {
+  const s = game.scene.getScene('world') as WorldScene | null;
+  if (!s || !s.world) return;
+  const key = s.world.colonists.map((c) => c.id).join(',');
+  if (key === rosterKey) return;
+  const first = rosterKey === '';
+  rosterKey = key;
+  if (!first) {
+    renderRoster();
+    s.refreshSelection();
+  }
+}, 500);
 /** Tiempo de pulsación (ms) en la lista para añadir o quitar un colono de la selección. */
 const LONG_PRESS_MS = 450;
 function renderRoster(): void {
@@ -818,6 +871,9 @@ game.events.on('selection', (c: Colonist | null, group: Colonist[] = c ? [c] : [
   panel.classList.remove('group');
   lastGroupKey = groupKey;
   $('cp-activity').textContent = activityLabel(c);
+  $('cp-health').textContent = c.wounds.length || c.health < 0.999
+    ? `❤ ${healthLabel(c)} (${Math.round(c.health * 100)} %)${c.wounds.length ? ` · heridas: ${c.wounds.map((w) => `${w.part}${w.bleeding ? ' 🩸' : ''}`).join(', ')}` : ''}`
+    : '';
   renderNeeds(c);
   renderPriorities(c);
   if (lastPanelId === c.id) return; // el resto no cambia mientras siga seleccionado

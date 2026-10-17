@@ -10,6 +10,15 @@ import { GameMap, index, isPassable, PROP_INFO, Prop } from './map';
 import { findPath, Point } from './pathfinding';
 import { harvestAt, Stockpile } from './resources';
 import { needsWorkFactor } from './needs';
+import { TICKS_PER_HOUR } from './time';
+
+/** Horas entre charlas con un prisionero. */
+export const TALK_HOURS = 6;
+
+/** Puede tocarle charla a un prisionero. */
+export function canTalk(tick: number, o: Colonist): boolean {
+  return !!o.prisoner && o.prisoner.mode === 'convencer' && !o.downed && tick - o.prisoner.lastTalk >= TALK_HOURS * TICKS_PER_HOUR;
+}
 import { Structure, Structures } from './structures';
 import { StorageZones } from './zones';
 import { GrowZones } from './farming';
@@ -85,6 +94,10 @@ export interface JobContext {
   terrain: TerrainOrders;
   /** Lo que tiene la colonia (para saber si un taller tiene que seguir fabricando). */
   inventory(): Stockpile;
+  colonists: Colonist[];
+  /** Saqueadores, prisioneros y comerciantes. */
+  others: Colonist[];
+  tick: number;
 }
 
 /** Un taller tiene que seguir: orden activa y la colonia aún no tiene lo que pide. */
@@ -291,6 +304,44 @@ function fabricateCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   return out;
 }
 
+/** Trabajo junto a una persona: el médico o el carcelero va hasta ella. */
+function pawnJob(ctx: JobContext, c: Colonist, o: Colonist, kind: 'curar' | 'carcelero', work: number, warden?: 'capturar' | 'alimentar' | 'convencer'): JobPlan | null {
+  const near = Math.max(Math.abs(c.tile.x - o.tile.x), Math.abs(c.tile.y - o.tile.y)) <= 1;
+  const route = near ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, [o.tile]);
+  if (!route) return null;
+  return { job: { kind, x: o.tile.x, y: o.tile.y, pid: o.id, stand: route.stand, progress: 0, work, warden }, path: route.path };
+}
+
+const reservedByOther = (ctx: JobContext, c: Colonist, o: Colonist) =>
+  ctx.colonists.some((k) => k !== c && k.job?.pid === o.id);
+
+/** Médico: cura las heridas que sangran (de colonos y prisioneros). */
+function doctorCandidates(ctx: JobContext, c: Colonist): Candidate[] {
+  if (c.priorities.curar === 0) return [];
+  const patients = [...ctx.colonists.filter((k) => k !== c), ...ctx.others.filter((k) => k.role === 'prisionero')];
+  return patients
+    .filter((p) => p.wounds.some((w) => w.bleeding) && !reservedByOther(ctx, c, p))
+    .map((p) => ({ kind: 'curar' as const, x: p.tile.x, y: p.tile.y, dist: manhattan(c.tile, p.tile.x, p.tile.y), make: () => pawnJob(ctx, c, p, 'curar', 120) }));
+}
+
+/** Carcelero: captura a los saqueadores caídos, da de comer a los prisioneros y habla con ellos. */
+function wardenCandidates(ctx: JobContext, c: Colonist): Candidate[] {
+  if (c.priorities.carcelero === 0) return [];
+  const out: Candidate[] = [];
+  const inv = ctx.inventory();
+  const food = inv.patata + inv.maiz + inv.setas;
+  for (const o of ctx.others) {
+    if (o.carriedBy !== undefined || reservedByOther(ctx, c, o)) continue;
+    const add = (work: number, warden: 'capturar' | 'alimentar' | 'convencer') =>
+      out.push({ kind: 'carcelero', x: o.tile.x, y: o.tile.y, dist: manhattan(c.tile, o.tile.x, o.tile.y), make: () => pawnJob(ctx, c, o, 'carcelero', work, warden) });
+    if (o.role === 'saqueador' && o.downed) add(90, 'capturar');
+    if (o.role !== 'prisionero' || !o.prisoner || o.prisoner.mode === 'liberar') continue;
+    if (food > 0 && (o.needs.food < 0.45 || o.needs.water < 0.45)) add(60, 'alimentar');
+    else if (canTalk(ctx.tick, o)) add(150, 'convencer');
+  }
+  return out;
+}
+
 function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   if (c.priorities.construir === 0) return [];
   const out: Candidate[] = [];
@@ -395,6 +446,7 @@ function terrainCandidates(ctx: JobContext, c: Colonist): Candidate[] {
  */
 export function findJob(ctx: JobContext, c: Colonist): JobPlan | null {
   const all = [
+    ...doctorCandidates(ctx, c), ...wardenCandidates(ctx, c),
     ...buildCandidates(ctx, c), ...farmCandidates(ctx, c), ...fabricateCandidates(ctx, c), ...terrainCandidates(ctx, c),
     ...harvestCandidates(ctx, c), ...haulCandidates(ctx, c),
   ];
@@ -426,6 +478,7 @@ export function findJobAt(ctx: JobContext, c: Colonist, x: number, y: number): J
   // Para una orden directa vale cualquier tipo de trabajo, aunque tenga la prioridad a 0.
   const forced: Colonist = { ...c, priorities: Object.fromEntries(WORK_TYPES.map((w) => [w, 1])) as Colonist['priorities'] };
   const all = [
+    ...doctorCandidates(ctx, forced), ...wardenCandidates(ctx, forced),
     ...buildCandidates(ctx, forced), ...farmCandidates(ctx, forced), ...fabricateCandidates(ctx, forced),
     ...terrainCandidates(ctx, forced), ...harvestCandidates(ctx, forced),
   ].filter((k) => k.x === x && k.y === y);
@@ -442,6 +495,8 @@ export function reservePlan(r: Reservations, c: Colonist, job: ColonistJob): boo
     r.releaseAll(c.id);
     return false;
   };
+  // Los trabajos con personas no reservan casilla (la persona se puede mover): se evita repetir por id.
+  if (job.pid !== undefined) return true;
   if (job.kind !== 'transportar' && !r.reserve(job.x, job.y, c.id, 'work')) return fail();
   const h = job.haul;
   if (h) {

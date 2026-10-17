@@ -595,6 +595,25 @@ function openPasses(map: GameMap): void {
   }
 }
 
+/** Casillas alcanzables a pie desde (x, y), contando como mucho hasta `limit`. */
+export function countReachable(map: GameMap, x: number, y: number, limit: number): number {
+  if (!isPassable(map, x, y)) return 0;
+  const seen = new Set<number>([y * map.width + x]);
+  const queue = [[x, y]];
+  for (let head = 0; head < queue.length && seen.size < limit; head++) {
+    const [cx, cy] = queue[head];
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = cx + dx;
+      const ny = cy + dy;
+      const k = ny * map.width + nx;
+      if (seen.has(k) || !isPassable(map, nx, ny)) continue;
+      seen.add(k);
+      queue.push([nx, ny]);
+    }
+  }
+  return seen.size;
+}
+
 /** Casillas alcanzables a pie (4 direcciones) desde (sx, sy). */
 export function reachableFrom(map: GameMap, sx: number, sy: number): Uint8Array {
   const { width } = map;

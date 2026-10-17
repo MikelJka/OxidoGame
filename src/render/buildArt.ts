@@ -292,6 +292,11 @@ function drawFlat(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number,
     px(3, 2, tile - 6, 3, '#d8d0bc');
     px(3, tileH - 5, tile - 6, 2, top);
   }
+  if (def.id === 'cama_prision') {
+    // Grilletes: una cadena gris a los pies.
+    const fy = tile > tileH * 1.3 ? Math.floor(tileH / 2) : tileH - 3;
+    for (let x = 2; x < tile - 2; x += 2) px(x, fy, 1, 1, '#9aa0a8');
+  }
 }
 
 /** Portón: hoja alta de tablones o chapa, pensado para ponerse en línea (las casillas se juntan). */

@@ -625,6 +625,29 @@
     ]
   },
   {
+    "id": "cama_prision",
+    "name": "Cama de prisionero",
+    "category": "mueble",
+    "cost": {
+      "madera": 12,
+      "chatarra": 3
+    },
+    "work": 280,
+    "hp": 80,
+    "blocks": false,
+    "moveCost": 1.2,
+    "height": 0,
+    "size": [
+      2,
+      1
+    ],
+    "colors": {
+      "top": "#7a6a5a",
+      "face": "#5a4a3a",
+      "dark": "#3a2a1c"
+    }
+  },
+  {
     "id": "horno",
     "name": "Horno de fundición",
     "category": "taller",

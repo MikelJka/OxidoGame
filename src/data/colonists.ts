@@ -8,6 +8,7 @@ export const SKILLS = [
   'combate',
   'investigacion',
   'medicina',
+  'social',
 ] as const;
 
 export type Skill = (typeof SKILLS)[number];
@@ -20,6 +21,7 @@ export const SKILL_NAMES: Record<Skill, string> = {
   combate: 'Combate',
   investigacion: 'Investigación',
   medicina: 'Medicina',
+  social: 'Trato',
 };
 
 export interface TraitDef {

@@ -16,7 +16,7 @@ function buildNow(world: ReturnType<typeof flatWorld>, x: number, y: number, id:
 
 describe('necesidades', () => {
   it('con hambre, un colono va a por comida y se la come', () => {
-    const world = flatWorld();
+    const world = flatWorld(1, { needs: true });
     const c = world.colonists[0];
     world.items.addAt(10, 10, 'patata', 20);
     c.needs.food = 0.2;
@@ -32,7 +32,7 @@ describe('necesidades', () => {
   });
 
   it('sin comida no se queda atascado: sigue con su vida y lo intenta de nuevo', () => {
-    const world = flatWorld();
+    const world = flatWorld(1, { needs: true });
     const c = world.colonists[0];
     c.needs.food = 0.2;
     for (let t = 0; t < 2000; t++) world.step();
@@ -41,7 +41,7 @@ describe('necesidades', () => {
   });
 
   it('cansado, duerme en una cama libre y se despierta descansado', () => {
-    const world = flatWorld();
+    const world = flatWorld(1, { needs: true });
     const c = world.colonists[0];
     buildNow(world, 12, 12, 'cama');
     c.needs.rest = 0.1;
@@ -61,7 +61,7 @@ describe('necesidades', () => {
   });
 
   it('sin cama duerme en el suelo, y eso baja el ánimo', () => {
-    const world = flatWorld();
+    const world = flatWorld(1, { needs: true });
     const c = world.colonists[0];
     c.needs.rest = 0.1;
     c.needs.food = 1;
@@ -71,7 +71,7 @@ describe('necesidades', () => {
   });
 
   it('el hambre y el cansancio bajan el ánimo y el ritmo de trabajo', () => {
-    const world = flatWorld();
+    const world = flatWorld(1, { needs: true });
     const c = world.colonists[0];
     c.traits = [];
     c.needs = { food: 1, water: 1, badWaterUntil: 0, rest: 1, sleptIn: null };
@@ -83,7 +83,7 @@ describe('necesidades', () => {
   });
 
   it('en una partida de varios días con comida y camas, nadie pasa hambre y no se rompe nada', () => {
-    const world = flatWorld(3);
+    const world = flatWorld(3, { needs: true });
     world.items.drop(4, 20, 'patata', 150);
     for (const y of [14, 16, 18]) buildNow(world, 10, y, 'cama'); // camas de 2×1
     for (let t = 0; t < TICKS_PER_DAY * 3; t++) {
@@ -95,7 +95,7 @@ describe('necesidades', () => {
   });
 
   it('las necesidades se guardan con la partida', () => {
-    const world = flatWorld();
+    const world = flatWorld(1, { needs: true });
     world.colonists[0].needs = { food: 0.33, water: 0.5, badWaterUntil: 0, rest: 0.44, sleptIn: 'cama' };
     const loaded = loadWorld(JSON.stringify(serializeWorld(world)));
     expect(loaded.colonists[0].needs).toEqual({ food: 0.33, water: 0.5, badWaterUntil: 0, rest: 0.44, sleptIn: 'cama' });
@@ -104,7 +104,7 @@ describe('necesidades', () => {
 
 describe('sed y agua', () => {
   it('con sed va al agua limpia más cercana y bebe', () => {
-    const world = flatWorld();
+    const world = flatWorld(1, { needs: true });
     const m = world.map;
     m.terrain[index(m, 15, 5)] = Terrain.Water;
     const c = world.colonists[0];
@@ -116,8 +116,9 @@ describe('sed y agua', () => {
   });
 
   it('si solo hay agua contaminada, la bebe pero le sienta mal', () => {
-    const world = flatWorld();
+    const world = flatWorld(1, { needs: true });
     const m = world.map;
+    m.terrain[index(m, 1, 1)] = Terrain.Soil; // sin la charca limpia de la ayuda
     m.terrain[index(m, 15, 5)] = Terrain.Water;
     m.contaminated[index(m, 15, 5)] = 1;
     const c = world.colonists[0];
@@ -129,8 +130,9 @@ describe('sed y agua', () => {
   });
 
   it('un pozo da agua limpia lejos del río; la depuradora tiene que ir junto al agua', () => {
-    const world = flatWorld();
+    const world = flatWorld(1, { needs: true });
     const m = world.map;
+    m.terrain[index(m, 1, 1)] = Terrain.Soil;
     m.terrain[index(m, 25, 25)] = Terrain.Water;
     m.contaminated[index(m, 25, 25)] = 1;
     expect(world.structures.place(10, 10, 'depuradora')).toBe(false);

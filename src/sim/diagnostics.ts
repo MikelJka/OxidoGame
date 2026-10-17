@@ -1,4 +1,4 @@
-import { inBounds } from './map';
+import { countReachable, inBounds } from './map';
 import { canDesignate } from './designations';
 import { canZone } from './zones';
 import { isWalkable } from './pathfinding';
@@ -98,7 +98,7 @@ export function checkWorld(world: World, progress = new Map<number, ProgressMark
       if (c.carrying) problems.push({ key: `carry-nojob-${c.id}`, message: `${c.name} (#${c.id}) lleva ${c.carrying.resource} sin tener trabajo` });
       continue;
     }
-    if (j.kind !== 'transportar' && world.reservations.holder(j.x, j.y) !== c.id) {
+    if (j.kind !== 'transportar' && j.pid === undefined && world.reservations.holder(j.x, j.y) !== c.id) {
       problems.push({ key: `job-unreserved-${c.id}`, message: `${c.name} (#${c.id}) trabaja en (${j.x}, ${j.y}) sin tenerlo reservado` });
     }
     if (j.haul && !j.haul.picked && world.reservations.holder(j.haul.from.x, j.haul.from.y, 'pickup') !== c.id) {
@@ -142,24 +142,6 @@ export function checkWorld(world: World, progress = new Map<number, ProgressMark
 
 /** Menos casillas alcanzables que esto = encerrado. */
 export const TRAPPED_TILES = 30;
-
-/** Casillas alcanzables a pie desde (x, y), contando como mucho hasta `limit`. */
-function countReachable(map: World['map'], x: number, y: number, limit: number): number {
-  const seen = new Set<number>([y * map.width + x]);
-  const queue = [[x, y]];
-  for (let head = 0; head < queue.length && seen.size < limit; head++) {
-    const [cx, cy] = queue[head];
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const nx = cx + dx;
-      const ny = cy + dy;
-      const k = ny * map.width + nx;
-      if (seen.has(k) || !isWalkable(map, nx, ny)) continue;
-      seen.add(k);
-      queue.push([nx, ny]);
-    }
-  }
-  return seen.size;
-}
 
 export interface ProgressMark {
   tileKey: number;

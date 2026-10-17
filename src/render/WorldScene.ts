@@ -15,7 +15,7 @@ import { fertilityAt, plantStage } from '../sim/farming';
 import { TERRAIN_JOB_NAMES, terrainBlocker, TerrainJob } from '../sim/terrain';
 import { CropDef } from '../data/crops';
 import { drawBuilding, faceHeight, wallHeight } from './buildArt';
-import { COLONIST_SIZE, CROP_SIZE, ITEM_H, ITEM_W, paintColonist, paintCrop, paintItem } from './spriteArt';
+import { colonistLookKey, COLONIST_SIZE, CROP_SIZE, ITEM_H, ITEM_W, paintColonist, paintCrop, paintItem } from './spriteArt';
 import { canvasPropRasterizer, paintGround, PropRasterizer, TILE } from './mapArt';
 import { LIFT, liftOf, occludedFraction, pickTile, rowY, setTilt, TILE_H, tiltIndex, TILTS, TOP_MARGIN } from './projection';
 import { fromView, normalizeRotation, Rotation, rotateMap, tileFromView, tileToView, toView } from './rotation';
@@ -47,6 +47,8 @@ export const DESIGN_COLORS: Record<WorkType | TerrainJob | 'cancelar' | 'almacen
   cultivo: 0x8fc060,
   terreno: 0xc09060,
   fabricar: 0xd0a060,
+  curar: 0xe06a6a,
+  carcelero: 0xd09040,
   talar: 0x9bc45a,
   minar: 0x8fb4d8,
   saquear: 0xe0913a,
@@ -393,6 +395,11 @@ export class WorldScene extends Phaser.Scene {
     const cam = this.cameras.main;
 
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      // El botón central es para pivotar la vista libremente: eso lo hace la vista 3D.
+      if (p.middleButtonDown()) {
+        this.game.events.emit('request-3d');
+        return;
+      }
       if (this.isPinching()) {
         this.clearDesignDrag();
         this.startPinch();
@@ -652,6 +659,24 @@ export class WorldScene extends Phaser.Scene {
     this.game.events.emit('selection', this.selected(), this.world.colonists.filter((c) => ids.includes(c.id)));
   }
 
+  /** Quita de la selección a quien ya no es colono (ha muerto o se ha ido) y avisa a la interfaz. */
+  refreshSelection(): void {
+    const alive = new Set(this.world.colonists.map((c) => c.id));
+    for (const id of [...this.extraIds]) if (!alive.has(id)) this.extraIds.delete(id);
+    if (this.selectedId !== null && !alive.has(this.selectedId)) {
+      const next = [...this.extraIds][0] ?? null;
+      if (next !== null) this.extraIds.delete(next);
+      this.selectedId = next;
+    }
+    this.emitSelection();
+  }
+
+  /** Centra la cámara en una casilla. */
+  focusTile(x: number, y: number): void {
+    const v = this.toViewPoint(x + 0.5, y + 0.5);
+    this.cameras.main.pan(v.x * TILE, rowY(v.y) - this.liftAt(x, y), 300, 'Sine.easeInOut');
+  }
+
   /** Centra la cámara en un colono. */
   focus(id: number): void {
     const c = this.world.colonists.find((k) => k.id === id);
@@ -684,6 +709,11 @@ export class WorldScene extends Phaser.Scene {
    * panel de lo tocado, mandar a los elegidos u ordenar un trabajo. Lo usan la vista 2D y la 3D.
    */
   tapAt(hit: Colonist | undefined, t: { x: number; y: number } | null, opts: { right: boolean; additive: boolean }): void {
+    if (hit && hit.role !== 'colono' && !opts.right) {
+      // Saqueador, prisionero o comerciante: su panel.
+      this.game.events.emit('pawn-tap', hit);
+      return;
+    }
     if (hit && !opts.right) {
       if (opts.additive) this.toggleSelect(hit.id);
       else this.select(hit.id);
@@ -734,22 +764,38 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private createColonistSprites(): void {
-    for (const c of this.world.colonists) {
-      const key = `colonist-${this.map.seed}-${c.id}`;
-      if (!this.textures.exists(key)) drawColonistTexture(this, key, c);
+    for (const c of this.world.pawns()) this.ensureSprite(c);
+  }
+
+  /** Sprite de una persona (colono, saqueador, prisionero, comerciante); lo crea o cambia si hace falta. */
+  private ensureSprite(c: Colonist): Phaser.GameObjects.Image {
+    const key = `colonist-${this.map.seed}-${colonistLookKey(c)}`;
+    if (!this.textures.exists(key)) drawColonistTexture(this, key, c);
+    let img = this.sprites.get(c.id);
+    if (!img) {
       const lift = this.liftAt(c.tile.x, c.tile.y);
       this.spriteLift.set(c.id, lift);
       const v = this.toViewPoint(c.pos.x, c.pos.y);
-      const img = this.add.image(v.x * TILE, rowY(v.y) - lift, key).setDepth(COLONIST_DEPTH).setOrigin(0.5, 0.75);
+      img = this.add.image(v.x * TILE, rowY(v.y) - lift, key).setDepth(COLONIST_DEPTH).setOrigin(0.5, 0.75);
       this.sprites.set(c.id, img);
-    }
+    } else if (img.texture.key !== key) img.setTexture(key);
+    return img;
   }
 
   private syncColonists(): void {
     const t = this.time.now;
-    for (const c of this.world.colonists) {
-      const img = this.sprites.get(c.id);
-      if (!img) continue;
+    const pawns = this.world.pawns();
+    // Quien se ha ido (o ha muerto) deja de dibujarse.
+    const alive = new Set(pawns.map((c) => c.id));
+    for (const [id, img] of this.sprites) {
+      if (alive.has(id)) continue;
+      img.destroy();
+      this.sprites.delete(id);
+      this.carrySprites.get(id)?.destroy();
+      this.carrySprites.delete(id);
+    }
+    for (const c of pawns) {
+      const img = this.ensureSprite(c);
       const walking = c.path.length > 0 && this.world.speed > 0;
       const working = c.activity === 'working' && this.world.speed > 0;
       // Al trabajar, golpes cortos (hacha, pico o palanca); al andar, el paso.
@@ -776,9 +822,10 @@ export class WorldScene extends Phaser.Scene {
       img.setAlpha(1 - hidden * 0.6);
       if (hidden > 0) img.setTint(0xb8c4d0);
       else img.clearTint();
-      img.setDepth(COLONIST_DEPTH + v.y / 1000);
-      // Durmiendo: tumbado.
-      img.setAngle(c.activity === 'sleeping' ? -90 : 0);
+      img.setDepth(COLONIST_DEPTH + v.y / 1000 + (c.carriedBy !== undefined ? 0.01 : 0));
+      // Durmiendo o caído: tumbado. A cuestas: un poco más arriba.
+      img.setAngle(c.activity === 'sleeping' || c.downed || c.carriedBy !== undefined ? -90 : 0);
+      if (c.carriedBy !== undefined) img.y -= 7;
       this.syncCarried(c, img);
     }
   }
@@ -1268,6 +1315,17 @@ export class WorldScene extends Phaser.Scene {
     const g = this.selectionGfx;
     g.clear();
     this.drawJobProgress(g);
+    // Barra de salud sobre quien está herido.
+    for (const k of this.world.pawns()) {
+      if (k.health >= 0.999 || k.carriedBy !== undefined) continue;
+      const v = this.toViewPoint(k.pos.x, k.pos.y);
+      const top = rowY(v.y) - this.colonistLift(k) - (k.downed ? 10 : 19);
+      const w = 12;
+      g.fillStyle(0x1a1410, 0.9);
+      g.fillRect(v.x * TILE - w / 2 - 1, top - 1, w + 2, 4);
+      g.fillStyle(k.health > 0.5 ? 0x7fae5a : k.health > 0.25 ? 0xd9a22b : 0xc8442c, 1);
+      g.fillRect(v.x * TILE - w / 2, top, Math.max(1, Math.round(w * k.health)), 2);
+    }
     // Los reclutados llevan un banderín sobre la cabeza.
     for (const k of this.world.colonists) {
       if (!k.drafted) continue;
@@ -1367,7 +1425,7 @@ export class WorldScene extends Phaser.Scene {
   private colonistAtScreen(wx: number, wy: number): Colonist | undefined {
     let best: Colonist | undefined;
     let bestDist = TILE * 0.9;
-    for (const c of this.world.colonists) {
+    for (const c of this.world.pawns()) {
       // Centro del cuerpo: el sprite se ancla en los pies.
       const v = this.toViewPoint(c.pos.x, c.pos.y);
       const d = Math.hypot(v.x * TILE - wx, rowY(v.y) - this.colonistLift(c) - 4 - wy);

@@ -19,6 +19,7 @@ function runUntil(world: World, done: () => boolean, maxTicks = 20000): number {
 describe('zonas de almacén', () => {
   it('se crean sobre casillas libres, sin solaparse, y se pueden recortar', () => {
     const world = flatWorld();
+    world.map.terrain[index(world.map, 1, 1)] = Terrain.Soil;
     world.map.terrain[index(world.map, 2, 2)] = Terrain.Water;
     const zones = new StorageZones(world.map);
     const a = zones.create({ x0: 0, y0: 0, x1: 3, y1: 3 })!;

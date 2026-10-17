@@ -6,6 +6,7 @@ import { WORK_NAMES, WORK_TYPES, WORK_VERBS, WorkType } from '../data/work';
 import { Point } from './pathfinding';
 import type { TerrainJob } from './terrain';
 import { defaultNeeds, Needs } from './needs';
+import type { Wound } from './health';
 import { Rng } from './rng';
 
 export type ColonistActivity = 'idle' | 'wandering' | 'moving' | 'toJob' | 'working' | 'toNeed' | 'eating' | 'sleeping';
@@ -50,6 +51,12 @@ export interface ColonistJob {
   demolish?: boolean;
   /** Construcción a la que va el trabajo (construir, demoler, fabricar). */
   sid?: number;
+  /** Persona a la que va el trabajo (curar, capturar, alimentar, convencer). */
+  pid?: number;
+  /** Qué hace el carcelero. */
+  warden?: 'capturar' | 'alimentar' | 'convencer';
+  /** Capturar: ya lo lleva a cuestas hacia una cama de prisionero. */
+  escorting?: boolean;
 }
 
 export interface HaulInfo {
@@ -104,6 +111,44 @@ export interface Colonist {
   needs: Needs;
   /** Comiendo o durmiendo (o yendo a ello). */
   need: NeedTask | null;
+  /** Salud de 0 (muerto) a 1. */
+  health: number;
+  /** Heridas abiertas. */
+  wounds: Wound[];
+  /** En el suelo, sin poder moverse (salud muy baja). */
+  downed: boolean;
+  /** Quién es: de la colonia, saqueador, prisionero o comerciante. */
+  role: PawnRole;
+  /** Prisionero: resistencia a unirse y qué hacer con él. */
+  prisoner?: PrisonerInfo;
+  /** Saqueador: si huye. */
+  raider?: { fleeing: boolean; leaveAt: number };
+  /** Comerciante: lo que vende, a quién vende y cuándo se va. */
+  trader?: TraderInfo;
+  /** Ticks hasta poder volver a golpear. */
+  attackCooldown?: number;
+  /** Lo lleva a cuestas un colono (id): se mueve con él. */
+  carriedBy?: number;
+}
+
+export interface TraderInfo {
+  stock: Partial<Record<ResourceId, number>>;
+  /** Personas en venta (esclavos). */
+  slaves: Colonist[];
+  /** Tick en que se marcha. */
+  leaveAt: number;
+  leaving: boolean;
+}
+
+export type PawnRole = 'colono' | 'saqueador' | 'prisionero' | 'comerciante';
+
+export interface PrisonerInfo {
+  /** 0–1: cuánto le falta para dejarse convencer. */
+  resistance: number;
+  /** Qué hacer con él: tenerlo retenido, intentar convencerlo o soltarlo. */
+  mode: 'retener' | 'convencer' | 'liberar';
+  /** Tick de la última charla (los carceleros no le hablan más de una vez cada pocas horas). */
+  lastTalk: number;
 }
 
 export function createColonist(id: number, at: Point, rng: Rng): Colonist {
@@ -136,6 +181,10 @@ export function createColonist(id: number, at: Point, rng: Rng): Colonist {
     drafted: false,
     needs: defaultNeeds(),
     need: null,
+    health: 1,
+    wounds: [],
+    downed: false,
+    role: 'colono',
   };
 }
 
@@ -144,6 +193,7 @@ export function walkSpeedMultiplier(c: Colonist): number {
 }
 
 export function activityLabel(c: Colonist): string {
+  if (c.downed) return 'En el suelo, malherido';
   if (c.need) {
     if (c.activity === 'eating') return c.need.type === 'beber' ? 'Bebiendo' : 'Comiendo';
     if (c.activity === 'sleeping') return c.need.bed ? 'Durmiendo en la cama' : 'Durmiendo en el suelo';
@@ -154,11 +204,13 @@ export function activityLabel(c: Colonist): string {
     case 'moving': return 'Yendo a una orden';
     case 'toJob':
       if (!c.job) return 'Yendo a trabajar';
+      if (c.job.escorting) return 'Llevando al prisionero a su cama';
       if (c.job.haul) return c.job.haul.picked ? (c.job.haul.toBlueprint ? 'Llevando material a un plano' : 'Llevando al almacén') : 'Yendo a recoger';
       return `Yendo a ${WORK_NAMES[c.job.kind].toLowerCase()}`;
     case 'working': {
       if (!c.job) return 'Trabajando';
-      const verb = c.job.farm === 'sembrar' ? 'Sembrando' : c.job.farm === 'cosechar' ? 'Cosechando' : WORK_VERBS[c.job.kind];
+      const WARDEN = { capturar: 'Capturando', alimentar: 'Dando de comer al prisionero', convencer: 'Hablando con el prisionero' } as const;
+      const verb = c.job.farm === 'sembrar' ? 'Sembrando' : c.job.farm === 'cosechar' ? 'Cosechando' : c.job.warden ? WARDEN[c.job.warden] : WORK_VERBS[c.job.kind];
       return `${verb} (${Math.floor((c.job.progress / c.job.work) * 100)} %)`;
     }
     case 'wandering': return 'Deambulando';

@@ -8,7 +8,7 @@ import type { Colonist } from '../sim/colonist';
 import type { WorldScene } from '../render/WorldScene';
 import { DESIGN_COLORS } from '../render/WorldScene';
 import { drawProp, GROUND, PROP_HEADROOM } from '../render/mapArt';
-import { COLONIST_SIZE, CROP_SIZE, ITEM_H, ITEM_W, paintColonist, paintCrop, paintItem } from '../render/spriteArt';
+import { colonistLookKey, COLONIST_SIZE, CROP_SIZE, ITEM_H, ITEM_W, paintColonist, paintCrop, paintItem } from '../render/spriteArt';
 import { plantStage } from '../sim/farming';
 import { footprintTiles } from '../sim/structures';
 import { BuildingDef, buildingDef } from '../data/buildings';
@@ -510,7 +510,7 @@ export class View3D {
   }
 
   private colonistTexture(c: Colonist): THREE.CanvasTexture {
-    const key = `colonist-${c.id}-${c.look.shirt}-${c.look.hair}`;
+    const key = `colonist-${colonistLookKey(c)}`;
     let t = this.textureCache.get(key);
     if (!t) {
       const { c: cv, ctx } = canvas(COLONIST_SIZE, COLONIST_SIZE);
@@ -523,11 +523,15 @@ export class View3D {
 
   private syncColonists(scene: WorldScene): void {
     const w = scene.world;
-    const alive = new Set(w.colonists.map((c) => c.id));
+    const pawns = w.pawns();
+    const alive = new Set(pawns.map((c) => c.id));
     for (const [id, s] of this.colonistSprites) {
       if (!alive.has(id)) {
         this.scene3.remove(s);
         this.colonistSprites.delete(id);
+        const carry = this.carrySprites.get(id);
+        if (carry) this.scene3.remove(carry);
+        this.carrySprites.delete(id);
       }
     }
     const selected = new Set(scene.selectedIds());
@@ -536,7 +540,7 @@ export class View3D {
     this.extraRings = [];
     this.flags = [];
     this.ring.visible = false;
-    for (const c of w.colonists) {
+    for (const c of pawns) {
       let s = this.colonistSprites.get(c.id);
       if (!s) {
         s = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.colonistTexture(c), alphaTest: 0.5 }));
@@ -552,8 +556,15 @@ export class View3D {
       if (st && st.built && st.def.category === 'torre') y += st.def.height * WALL_H + 0.1;
       const t = performance.now();
       const bob = c.activity === 'working' && w.speed > 0 ? Math.max(0, Math.sin(t / 70 + c.id)) * 0.08 : 0;
-      s.position.set(c.pos.x, y + bob, c.pos.y);
-      (s.material as THREE.SpriteMaterial).rotation = c.activity === 'sleeping' ? Math.PI / 2 : 0;
+      const mat = s.material as THREE.SpriteMaterial;
+      const tex = this.colonistTexture(c);
+      if (mat.map !== tex) {
+        mat.map = tex;
+        mat.needsUpdate = true;
+      }
+      const carried = c.carriedBy !== undefined;
+      s.position.set(c.pos.x, y + bob + (carried ? 0.55 : 0), c.pos.y);
+      mat.rotation = c.activity === 'sleeping' || c.downed || carried ? Math.PI / 2 : 0;
       // Lo que lleva encima.
       let carry = this.carrySprites.get(c.id);
       if (c.carrying) {
@@ -616,7 +627,7 @@ export class View3D {
     const rect = this.renderer.domElement.getBoundingClientRect();
     let best: Colonist | undefined;
     let bestD = 28;
-    for (const c of this.world.colonists) {
+    for (const c of this.world.pawns()) {
       const s = this.colonistSprites.get(c.id);
       if (!s) continue;
       const p = s.position.clone().add(new THREE.Vector3(0, 0.45, 0)).project(this.camera);

@@ -11,7 +11,8 @@ import { WORK_TYPES, WorkType } from '../data/work';
 import { Colonist, DEFAULT_PRIORITY, WorkPriority } from './colonist';
 import { GameMap, isPassable } from './map';
 import type { StoragePriority } from './zones';
-import { GameSpeed, World } from './world';
+import { GameSpeed, TICKS_PER_DAY, World } from './world';
+import { initialSchedule } from './storyteller';
 
 /** Versión del formato. Súbela solo si un cambio no se puede leer de forma tolerante, y añade la migración. */
 export const SAVE_VERSION = 1;
@@ -49,6 +50,14 @@ export interface SaveData {
   /** Huertos (desde que existe el cultivo; las partidas anteriores no los tienen). */
   farms?: { id: number; name: string; crop: string; tiles: number[] }[];
   plants?: { i: number; crop: string; growth: number }[];
+  /** Saqueadores, prisioneros y comerciantes (desde que existen). */
+  others?: SavedColonist[];
+  log?: { tick: number; text: string; kind: string }[];
+  graveyard?: { name: string; cause: string; day: number }[];
+  gameOver?: { day: number; cause: string } | null;
+  offer?: { pawn: SavedColonist; until: number } | null;
+  schedule?: { nextWanderer: number; nextRaid: number; nextTrader: number };
+  nextPawnId?: number;
 }
 
 interface SavedColonist {
@@ -66,6 +75,42 @@ interface SavedColonist {
   carrying: { resource: string; amount: number } | null;
   drafted?: boolean;
   needs?: { food: number; rest: number; sleptIn: string | null; water?: number; badWaterUntil?: number };
+  health?: number;
+  wounds?: { part: string; severity: number; bleeding: boolean; treated: boolean }[];
+  downed?: boolean;
+  role?: string;
+  prisoner?: { resistance: number; mode: string; lastTalk: number };
+  raider?: { fleeing: boolean; leaveAt: number };
+  trader?: { stock: Record<string, number>; slaves: SavedColonist[]; leaveAt: number; leaving: boolean };
+}
+
+function savePawn(c: Colonist): SavedColonist {
+  return {
+    id: c.id,
+    name: c.name,
+    nickname: c.nickname,
+    age: c.age,
+    skills: { ...c.skills },
+    passions: { ...c.passions },
+    traits: c.traits.map((t) => t.id),
+    look: { ...c.look },
+    tile: { ...c.tile },
+    facing: c.facing,
+    priorities: { ...c.priorities },
+    // Los trabajos en curso no se guardan: al cargar, cada colono busca uno nuevo.
+    carrying: c.carrying ? { ...c.carrying } : null,
+    drafted: c.drafted,
+    needs: { ...c.needs },
+    health: c.health,
+    wounds: c.wounds.map((w) => ({ ...w })),
+    downed: c.downed,
+    role: c.role,
+    prisoner: c.prisoner ? { ...c.prisoner } : undefined,
+    raider: c.raider ? { ...c.raider } : undefined,
+    trader: c.trader
+      ? { stock: { ...c.trader.stock } as Record<string, number>, slaves: c.trader.slaves.map(savePawn), leaveAt: c.trader.leaveAt, leaving: c.trader.leaving }
+      : undefined,
+  };
 }
 
 // --- Codificación de arrays en base64 ------------------------------------------
@@ -102,23 +147,14 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     speed: world.speed,
     rng: world.rng.getState(),
     map: { width: m.width, height: m.height, start: { ...m.start }, u8, f32 },
-    colonists: world.colonists.map((c) => ({
-      id: c.id,
-      name: c.name,
-      nickname: c.nickname,
-      age: c.age,
-      skills: { ...c.skills },
-      passions: { ...c.passions },
-      traits: c.traits.map((t) => t.id),
-      look: { ...c.look },
-      tile: { ...c.tile },
-      facing: c.facing,
-      priorities: { ...c.priorities },
-      // Los trabajos en curso no se guardan: al cargar, cada colono busca uno nuevo.
-      carrying: c.carrying ? { ...c.carrying } : null,
-      drafted: c.drafted,
-      needs: { ...c.needs },
-    })),
+    colonists: world.colonists.map(savePawn),
+    others: world.others.map(savePawn),
+    log: world.log.map((l) => ({ ...l })),
+    graveyard: world.graveyard.map((g) => ({ ...g })),
+    gameOver: world.gameOver ? { ...world.gameOver } : null,
+    offer: world.offer ? { pawn: savePawn(world.offer.pawn), until: world.offer.until } : null,
+    schedule: { ...world.schedule },
+    nextPawnId: world.nextPawnId,
     items: world.items.list().map((s) => ({ x: s.x, y: s.y, resource: s.resource, amount: s.amount })),
     designations: world.designations.list().map((d) => ({ ...d })),
     zones: world.zones.all().map((z) => ({ id: z.id, name: z.name, priority: z.priority, accepts: { ...z.accepts }, tiles: [...z.tiles] })),
@@ -233,6 +269,28 @@ function restoreColonist(s: SavedColonist): Colonist {
     job: null,
     carrying: null,
     drafted: !!s.drafted,
+    health: Math.max(0.01, Math.min(1, num(s.health, 1))),
+    wounds: (s.wounds ?? []).map((w) => ({
+      part: String(w.part ?? 'el cuerpo'), severity: Math.max(0, Math.min(1, num(w.severity, 0))), bleeding: !!w.bleeding, treated: !!w.treated,
+    })),
+    downed: !!s.downed,
+    role: (['colono', 'saqueador', 'prisionero', 'comerciante'] as const).find((r) => r === s.role) ?? 'colono',
+    prisoner: s.prisoner
+      ? {
+          resistance: Math.max(0, Math.min(1, num(s.prisoner.resistance, 0.5))),
+          mode: (['retener', 'convencer', 'liberar'] as const).find((m) => m === s.prisoner!.mode) ?? 'retener',
+          lastTalk: num(s.prisoner.lastTalk, -1e9),
+        }
+      : undefined,
+    raider: s.raider ? { fleeing: !!s.raider.fleeing, leaveAt: num(s.raider.leaveAt, 0) } : undefined,
+    trader: s.trader
+      ? {
+          stock: Object.fromEntries(Object.entries(s.trader.stock ?? {}).filter(([r]) => isResource(r)).map(([r, n]) => [r, Math.max(0, num(n, 0))])),
+          slaves: (s.trader.slaves ?? []).map(restoreColonist),
+          leaveAt: num(s.trader.leaveAt, 0),
+          leaving: !!s.trader.leaving,
+        }
+      : undefined,
     needs: {
       food: Math.max(0, Math.min(1, num(s.needs?.food, 0.8))),
       water: Math.max(0, Math.min(1, num(s.needs?.water, 0.85))),
@@ -275,7 +333,27 @@ export function loadWorld(input: string | unknown): World {
       world.structures.setBill(restored, { recipe, target: Math.max(0, Math.floor(num(s.bill!.target, 10))), paused: !!s.bill!.paused });
     }
   }
-  for (const sc of d.colonists ?? []) world.colonists.push(restoreColonist(sc));
+  for (const sc of d.colonists ?? []) world.colonists.push({ ...restoreColonist(sc), role: 'colono' });
+  for (const sc of d.others ?? []) {
+    const o = restoreColonist(sc);
+    if (o.role === 'colono') continue;
+    if (o.role === 'prisionero' && !o.prisoner) o.prisoner = { resistance: 0.5, mode: 'retener', lastTalk: -1e9 };
+    if (o.role === 'comerciante' && !o.trader) continue;
+    world.others.push(o);
+  }
+  for (const l of d.log ?? []) {
+    const kind = (['info', 'bueno', 'malo'] as const).find((k) => k === l.kind) ?? 'info';
+    world.log.push({ tick: num(l.tick, 0), text: String(l.text ?? ''), kind });
+  }
+  for (const g of d.graveyard ?? []) world.graveyard.push({ name: String(g.name ?? ''), cause: String(g.cause ?? ''), day: num(g.day, 1) });
+  world.gameOver = d.gameOver ? { day: num(d.gameOver.day, 1), cause: String(d.gameOver.cause ?? '') } : null;
+  if (d.offer?.pawn) world.offer = { kind: 'superviviente', pawn: { ...restoreColonist(d.offer.pawn), role: 'colono' }, until: num(d.offer.until, world.tick) };
+  // Partidas de antes del narrador: los sucesos empiezan a contar desde ahora.
+  world.schedule = d.schedule
+    ? { nextWanderer: num(d.schedule.nextWanderer, 0), nextRaid: num(d.schedule.nextRaid, 0), nextTrader: num(d.schedule.nextTrader, 0) }
+    : initialSchedule(TICKS_PER_DAY, world.tick);
+  const ids = [...world.colonists, ...world.others, ...world.others.flatMap((o) => o.trader?.slaves ?? []), ...(world.offer ? [world.offer.pawn] : [])].map((c) => c.id);
+  world.nextPawnId = Math.max(num(d.nextPawnId, 1), ...ids.map((i) => i + 1), 1);
   for (const it of d.items ?? []) {
     if (!isResource(it.resource)) continue;
     // En su casilla; si ya no cabe ahí (p. ej. ahora hay un muro), al lado.

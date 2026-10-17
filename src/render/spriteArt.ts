@@ -44,6 +44,24 @@ export function paintColonist(ctx: CanvasRenderingContext2D, c: Colonist): void 
   px(5, 2, 1, 2, hex(c.look.hair));
   // Ojo (mira a la derecha; el sprite se voltea)
   px(9, 4, 1, 1, outline);
+  // Quien no es de la colonia se distingue de un vistazo.
+  if (c.role === 'saqueador') {
+    px(5, 3, 6, 1, '#b02a1a'); // pañuelo rojo
+    px(4, 3, 1, 2, '#b02a1a');
+    px(5, 6, 6, 1, '#5a1a12');
+  } else if (c.role === 'prisionero') {
+    px(5, 6, 6, 5, '#d9822b'); // mono naranja
+    px(5, 8, 6, 1, '#8a4a1a');
+    px(4, 9, 8, 1, '#9aa0a8'); // grilletes
+  } else if (c.role === 'comerciante') {
+    px(3, 1, 10, 1, '#5a3f22'); // sombrero de ala ancha
+    px(5, 0, 6, 1, '#7a5a32');
+  }
+}
+
+/** Clave de textura: cambia si cambia su papel (un prisionero que se une ya no lleva mono). */
+export function colonistLookKey(c: Colonist): string {
+  return `${c.id}-${c.role}-${c.look.shirt}-${c.look.hair}`;
 }
 
 /** Dibuja un montón pixel art de 12×10 para un recurso. */

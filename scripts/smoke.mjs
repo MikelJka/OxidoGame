@@ -94,6 +94,27 @@ try {
     await page.click('#view3d-btn');
     await sleep(1500);
     await page.screenshot({ path: `smoke/${d.name}-vuelta-2d.png` });
+    // Gente: superviviente, raid, prisionero y caravana (provocados) y sus paneles.
+    await page.evaluate(() => window.oxidoPrueba.superviviente());
+    await sleep(800);
+    await page.screenshot({ path: `smoke/${d.name}-gente-oferta.png` });
+    await page.click('#offer-panel button');
+    await page.evaluate(() => {
+      window.oxidoPrueba.raid(2);
+      window.oxidoPrueba.prisionero();
+      window.oxidoPrueba.caravana();
+    });
+    await sleep(1500);
+    await page.click('#people-btn');
+    await sleep(600);
+    await page.screenshot({ path: `smoke/${d.name}-gente-diario.png` });
+    await page.click('#pp-tabs button:nth-child(2)');
+    await sleep(600);
+    await page.screenshot({ path: `smoke/${d.name}-gente-prisioneros.png` });
+    await page.click('#pp-tabs button:nth-child(3)');
+    await sleep(600);
+    await page.screenshot({ path: `smoke/${d.name}-gente-comercio.png` });
+    await page.click('#pp-close');
     // Errores que el propio juego ha registrado (botón 🐞).
     const flagged = await page.$('#report-btn .badge.error');
     if (flagged) errors.push(`el juego registró errores (🐞): ${(await flagged.textContent())?.trim()}`);

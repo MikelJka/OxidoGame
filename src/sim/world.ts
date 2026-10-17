@@ -1,5 +1,5 @@
 import { Colonist, createColonist, walkSpeedMultiplier } from './colonist';
-import { GameMap, generateMap, isPassable, isWater, Prop, Terrain, tileMoveCost } from './map';
+import { countReachable, GameMap, generateMap, isPassable, isWater, Prop, Terrain, tileMoveCost } from './map';
 import { findPath, isWalkable, Point } from './pathfinding';
 import { Rng } from './rng';
 import { GroundItems } from './items';
@@ -10,6 +10,10 @@ import { StorageZones } from './zones';
 import { GrowZones } from './farming';
 import { regrowNature } from './nature';
 import { Rooms } from './rooms';
+import { tickHealth, treatWounds } from './health';
+import { initialSchedule, StorySchedule } from './storyteller';
+import { canTalk, colonistFight, makePrisoner, runStoryteller, talkToPrisoner, updateOthers } from './people';
+import { TRAPPED_TILES } from './diagnostics';
 import {
   BAD_WATER_TICKS_DAYS, DEHYDRATED, DRINK_TICKS, EAT_TICKS, EXHAUSTED, foodDecay, HUNGRY, isFood, NUTRITION, restDecay,
   restGain, STARVING, THIRSTY, TIRED, waterDecay,
@@ -19,11 +23,8 @@ import { Structure, Structures } from './structures';
 import type { TileRect } from './designations';
 import { RESOURCES, STARTING_SUPPLIES } from '../data/resources';
 
-/** Ticks de simulación por segundo real a velocidad x1. */
-export const TICKS_PER_SECOND = 30;
-/** Un día de juego dura 6 minutos reales a x1. */
-export const TICKS_PER_DAY = TICKS_PER_SECOND * 60 * 6;
-export const TICKS_PER_HOUR = TICKS_PER_DAY / 24;
+import { TICKS_PER_DAY, TICKS_PER_HOUR, TICKS_PER_SECOND } from './time';
+export { TICKS_PER_DAY, TICKS_PER_HOUR, TICKS_PER_SECOND };
 /** Casillas por segundo (a x1) de un colono normal en terreno de coste 1. */
 const BASE_WALK_SPEED = 3;
 /** La partida empieza a las 7:00 del día 1. */
@@ -50,12 +51,44 @@ export interface WorldOptions {
   map?: GameMap;
   /** Hambre y sueño (por defecto, sí). */
   needs?: boolean;
+  /** Sucesos del narrador: supervivientes, raids, caravanas (por defecto, sí). */
+  events?: boolean;
+}
+
+/** Una línea del diario de la colonia. */
+export interface LogEntry {
+  tick: number;
+  text: string;
+  kind: 'info' | 'bueno' | 'malo';
+}
+
+/** Algo que el jugador tiene que decidir (p. ej. aceptar a un superviviente). */
+export interface Offer {
+  kind: 'superviviente';
+  pawn: Colonist;
+  /** Tick hasta el que espera respuesta. */
+  until: number;
 }
 
 export class World implements JobContext {
   readonly map: GameMap;
   readonly rng: Rng;
   readonly colonists: Colonist[] = [];
+  /** Personas que no son de la colonia: saqueadores, prisioneros, comerciantes. */
+  readonly others: Colonist[] = [];
+  /** Diario: lo que ha pasado (el más reciente al final). */
+  readonly log: LogEntry[] = [];
+  /** Colonos muertos: nombre, causa y día. */
+  readonly graveyard: { name: string; cause: string; day: number }[] = [];
+  /** La partida ha terminado (no queda nadie). */
+  gameOver: { day: number; cause: string } | null = null;
+  /** Decisión pendiente para el jugador. */
+  offer: Offer | null = null;
+  /** Cuándo pasan las cosas. */
+  schedule: StorySchedule;
+  eventsEnabled: boolean;
+  /** Siguiente id para una persona nueva. */
+  nextPawnId = 1;
   /** Montones de recursos en el suelo. */
   readonly items: GroundItems;
   /** Casillas marcadas para talar, picar o saquear. */
@@ -90,9 +123,12 @@ export class World implements JobContext {
 
   constructor(opts: WorldOptions) {
     this.needsEnabled = opts.needs ?? true;
+    this.eventsEnabled = opts.events ?? true;
+    this.schedule = initialSchedule(TICKS_PER_DAY, 0);
     this.map = opts.map ?? generateMap({ width: opts.width ?? MAP_SIZE, height: opts.height ?? MAP_SIZE, seed: opts.seed });
     this.rng = new Rng(opts.seed ^ 0x51ed270b);
     if (!opts.map) this.spawnColonists(opts.colonists ?? 3);
+    this.nextPawnId = this.colonists.length + 1;
     this.items = new GroundItems(this.map);
     // Una estantería terminada multiplica lo que cabe en su casilla.
     this.items.capacityAt = (x, y) => {
@@ -176,7 +212,111 @@ export class World implements JobContext {
       const h = this.hour;
       this.farms.grow(TICKS_PER_SECOND, h >= 6 && h < 20, TICKS_PER_DAY);
     }
+    // Salud: cada segundo (hambre, sed, heridas y recuperación).
+    if (this.tick % TICKS_PER_SECOND === 0) {
+      for (const c of [...this.colonists, ...this.others]) {
+        const r = tickHealth(c, TICKS_PER_SECOND, TICKS_PER_DAY, c.activity === 'sleeping');
+        if (r.died) this.killPawn(c, r.cause ?? 'heridas');
+      }
+    }
+    if (this.eventsEnabled && this.tick % TICKS_PER_HOUR === 0) runStoryteller(this);
     for (const c of this.colonists) this.updateColonist(c);
+    updateOthers(this);
+  }
+
+  // --- Personas: diario, muertes y llegadas ------------------------------------------
+
+  addLog(text: string, kind: LogEntry['kind'] = 'info'): void {
+    this.log.push({ tick: this.tick, text, kind });
+    if (this.log.length > 200) this.log.splice(0, this.log.length - 200);
+  }
+
+  /** Todas las personas del mapa. */
+  pawns(): Colonist[] {
+    return [...this.colonists, ...this.others];
+  }
+
+  /** Una persona muere: deja lo que llevaba y se apunta en el diario. */
+  killPawn(c: Colonist, cause: string): void {
+    if (c.role === 'colono') {
+      this.dropJob(c);
+      if (c.need) this.endNeed(c);
+      const i = this.colonists.indexOf(c);
+      if (i >= 0) this.colonists.splice(i, 1);
+      this.graveyard.push({ name: c.name, cause, day: this.day });
+      this.addLog(`💀 ${c.name} «${c.nickname}» ha muerto (${cause}).`, 'malo');
+      if (this.colonists.length === 0 && !this.gameOver) {
+        this.gameOver = { day: this.day, cause };
+        this.addLog('La colonia ha caído: no queda nadie.', 'malo');
+      }
+    } else {
+      this.reservations.releaseAll(c.id);
+      const i = this.others.indexOf(c);
+      if (i >= 0) this.others.splice(i, 1);
+      if (c.carrying) this.items.drop(c.tile.x, c.tile.y, c.carrying.resource, c.carrying.amount);
+      const who = c.role === 'saqueador' ? 'Un saqueador' : c.role === 'prisionero' ? 'El prisionero' : 'Alguien';
+      this.addLog(`${who} (${c.name}) ha muerto (${cause}).`, 'info');
+    }
+  }
+
+  /** Persona nueva (aún sin colocar). */
+  makePawn(role: Colonist['role']): Colonist {
+    const c = createColonist(this.nextPawnId++, { x: 0, y: 0 }, this.rng);
+    c.role = role;
+    return c;
+  }
+
+  /** Coloca a una persona en una casilla transitable del borde del mapa (desde donde se llegue al inicio). */
+  placeAtEdge(c: Colonist): boolean {
+    const m = this.map;
+    for (let tries = 0; tries < 200; tries++) {
+      const side = this.rng.int(0, 3);
+      const k = this.rng.int(0, (side % 2 === 0 ? m.width : m.height) - 1);
+      const p = side === 0 ? { x: k, y: 0 } : side === 1 ? { x: m.width - 1, y: k } : side === 2 ? { x: k, y: m.height - 1 } : { x: 0, y: k };
+      if (!isPassable(m, p.x, p.y)) continue;
+      if (!findPath(m, p, m.start, 60000)) continue;
+      c.tile = { ...p };
+      c.pos = { x: p.x + 0.5, y: p.y + 0.5 };
+      c.path = [];
+      return true;
+    }
+    return false;
+  }
+
+  /** El jugador acepta lo que se le ofrece. */
+  acceptOffer(): void {
+    const o = this.offer;
+    if (!o) return;
+    this.offer = null;
+    if (o.kind === 'superviviente') this.joinColony(o.pawn, 'se une a la colonia');
+  }
+
+  rejectOffer(): void {
+    if (!this.offer) return;
+    this.addLog(`${this.offer.pawn.name} sigue su camino.`, 'info');
+    this.offer = null;
+  }
+
+  /** Alguien pasa a ser de la colonia (superviviente, prisionero convencido…). */
+  joinColony(c: Colonist, why: string): void {
+    const i = this.others.indexOf(c);
+    if (i >= 0) this.others.splice(i, 1);
+    this.reservations.releaseAll(c.id);
+    c.role = 'colono';
+    c.prisoner = undefined;
+    c.drafted = false;
+    c.job = null;
+    c.need = null;
+    if (c.pos.x === 0.5 && c.pos.y === 0.5 && c.tile.x === 0 && c.tile.y === 0) this.placeAtEdge(c);
+    // Que nadie comparta id.
+    if (this.colonists.some((k) => k.id === c.id)) c.id = this.nextPawnId++;
+    this.colonists.push(c);
+    const path = findPath(this.map, c.tile, this.map.start, 60000);
+    if (path) {
+      c.path = path;
+      c.activity = 'moving';
+    }
+    this.addLog(`🙂 ${c.name} «${c.nickname}» ${why}.`, 'bueno');
   }
 
   /** Orden directa: el colono va a la casilla indicada. Devuelve false si no hay camino. */
@@ -249,6 +389,16 @@ export class World implements JobContext {
   }
 
   private updateColonist(c: Colonist): void {
+    if (c.downed) {
+      // En el suelo: no hace nada hasta recuperarse (o hasta que lo curen).
+      if (c.job) this.dropJob(c);
+      if (c.need) this.endNeed(c);
+      c.path = [];
+      c.activity = 'idle';
+      return;
+    }
+    // Si hay un saqueador al lado, se defiende (y si está reclutado, va a por los cercanos).
+    if (colonistFight(this, c)) return;
     if (this.needsEnabled) {
       this.decayNeeds(c);
       if (c.need) {
@@ -426,7 +576,7 @@ export class World implements JobContext {
   }
 
   /** Deja de comer o dormir (terminado o imposible) y suelta lo reservado. */
-  private endNeed(c: Colonist): void {
+  endNeed(c: Colonist): void {
     this.reservations.releaseAll(c.id);
     c.need = null;
     c.path = [];
@@ -503,7 +653,8 @@ export class World implements JobContext {
 
   /** Busca trabajo (si toca) y lo empieza. true si ahora tiene uno. */
   private tryStartJob(c: Colonist): boolean {
-    if (this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.structures.stations().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0) return false;
+    const people = this.others.length > 0 || this.colonists.some((k) => k.wounds.some((w) => w.bleeding));
+    if (!people && this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.structures.stations().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0) return false;
     if (this.tick < (this.nextJobScan.get(c.id) ?? 0)) return false;
     const plan = findJob(this, c);
     if (!plan || !reservePlan(this.reservations, c, plan.job)) {
@@ -518,13 +669,17 @@ export class World implements JobContext {
   }
 
   /** Deja el trabajo actual (terminado, cancelado o imposible): suelta reservas y lo que lleve encima. */
-  private dropJob(c: Colonist): void {
+  dropJob(c: Colonist): void {
     this.reservations.releaseAll(c.id);
     if (c.carrying) {
       this.items.drop(c.tile.x, c.tile.y, c.carrying.resource, c.carrying.amount);
       c.carrying = null;
     }
     if (!c.job) return;
+    if (c.job.escorting) {
+      // Suelta a quien llevaba a la celda donde esté.
+      for (const o of this.others) if (o.carriedBy === c.id) o.carriedBy = undefined;
+    }
     c.job = null;
     c.path = [];
     c.activity = 'idle';
@@ -540,6 +695,16 @@ export class World implements JobContext {
   private jobStillValid(c: Colonist): boolean {
     const j = c.job!;
     const h = j.haul;
+    if (j.kind === 'curar' || j.kind === 'carcelero') {
+      const o = this.pawns().find((k) => k.id === j.pid);
+      if (!o) return false;
+      if (j.kind === 'curar') return o.wounds.some((w) => w.bleeding);
+      if (j.escorting) return o.role === 'prisionero';
+      if (j.warden === 'capturar') return o.role === 'saqueador' && o.downed;
+      if (o.role !== 'prisionero' || o.prisoner?.mode === 'liberar') return false;
+      if (j.warden === 'alimentar') return this.foodStack() !== null;
+      return canTalk(this.tick, o);
+    }
     if (j.kind === 'construir') {
       const s = this.jobStructure(j);
       if (j.demolish) return !!s && s.built && !!s.demolish;
@@ -593,6 +758,10 @@ export class World implements JobContext {
       this.updateHaul(c);
       return;
     }
+    if (j.kind === 'curar' || j.kind === 'carcelero') {
+      this.updatePawnJob(c);
+      return;
+    }
     const building = j.kind === 'construir' || j.kind === 'fabricar';
     const target = building ? this.jobStructure(j) : undefined;
     const inPlace = building ? !!target && this.structures.isBesideStructure(c.tile, target) : canWorkFrom(this.map, c.tile, j.x, j.y);
@@ -640,6 +809,88 @@ export class World implements JobContext {
       else this.harvest(j.x, j.y);
       this.dropJob(c);
     }
+  }
+
+  /** Primer montón de comida que haya (para dar de comer a los prisioneros). */
+  private foodStack(): { x: number; y: number } | null {
+    return this.items.list().find((s) => isFood(s.resource)) ?? null;
+  }
+
+  /** Cama de prisionero terminada y libre (sin nadie encima ni reservada para traer a alguien). */
+  freePrisonBed(): Point | null {
+    for (const s of this.structures.all()) {
+      if (!s.built || s.def.id !== 'cama_prision') continue;
+      const busy = this.others.some((o) => o.role === 'prisionero' && o.carriedBy === undefined && o.tile.x === s.x && o.tile.y === s.y) ||
+        this.colonists.some((k) => k.job?.escorting && k.job.x === s.x && k.job.y === s.y);
+      if (!busy) return { x: s.x, y: s.y };
+    }
+    return null;
+  }
+
+  /** Trabajos con personas: curar, capturar, dar de comer, convencer y llevar a la celda. */
+  private updatePawnJob(c: Colonist): void {
+    const j = c.job!;
+    const o = this.pawns().find((k) => k.id === j.pid)!;
+    if (j.escorting) {
+      // Ha llegado a la cama: deja al prisionero en ella.
+      o.carriedBy = undefined;
+      o.tile = { x: j.x, y: j.y };
+      o.pos = { x: j.x + 0.5, y: j.y + 0.5 };
+      this.addLog(`⛓ ${c.name} deja a ${o.name} en su celda.`, 'info');
+      this.dropJob(c);
+      return;
+    }
+    if (Math.max(Math.abs(c.tile.x - o.tile.x), Math.abs(c.tile.y - o.tile.y)) > 1) {
+      const route = this.routeTo(c, [o.tile]);
+      if (!route) {
+        this.dropJob(c);
+        this.nextJobScan.set(c.id, this.tick + JOB_RETRY_TICKS);
+        return;
+      }
+      c.path = route.path;
+      if (c.path.length === 0) this.dropJob(c);
+      return;
+    }
+    c.activity = 'working';
+    const dx = o.pos.x - c.pos.x;
+    if (Math.abs(dx) > 0.01) c.facing = dx > 0 ? 1 : -1;
+    j.progress += workSpeed(c, j.kind);
+    if (j.progress < j.work) return;
+    if (j.kind === 'curar') {
+      const n = treatWounds(o);
+      this.addLog(`🩹 ${c.name} cura ${n === 1 ? 'una herida' : `${n} heridas`} de ${o.name}.`, 'bueno');
+      this.dropJob(c);
+      return;
+    }
+    if (j.warden === 'capturar') {
+      makePrisoner(o, 0.45 + this.rng.next() * 0.45);
+      this.addLog(`⛓ ${c.name} captura a ${o.name}. Está en 👥 → Prisioneros.`, 'bueno');
+      const bed = this.freePrisonBed();
+      const path = bed ? findPath(this.map, c.tile, bed, 60000) : null;
+      if (bed && path) {
+        o.carriedBy = c.id;
+        j.escorting = true;
+        j.x = bed.x;
+        j.y = bed.y;
+        c.path = path;
+        c.activity = 'toJob';
+        return;
+      }
+      this.dropJob(c);
+      return;
+    }
+    if (j.warden === 'alimentar') {
+      const st = this.foodStack();
+      if (st) {
+        const got = this.items.take(st.x, st.y, 3);
+        if (got) o.needs.food = Math.min(1, o.needs.food + (NUTRITION[got.resource] ?? 0.1) * got.amount);
+        o.needs.water = 1;
+      }
+      this.dropJob(c);
+      return;
+    }
+    talkToPrisoner(this, c, o);
+    this.dropJob(c);
   }
 
   /** Termina una obra de terreno: cambia el nivel (o hace la rampa) y repinta alrededor. */
@@ -753,7 +1004,7 @@ export class World implements JobContext {
     c.path = path;
   }
 
-  private routeTo(c: Colonist, targets: Point[]): { stand: Point; path: Point[] } | null {
+  routeTo(c: Colonist, targets: Point[]): { stand: Point; path: Point[] } | null {
     const sorted = [...targets].sort((a, b) => Math.abs(a.x - c.tile.x) + Math.abs(a.y - c.tile.y) - (Math.abs(b.x - c.tile.x) + Math.abs(b.y - c.tile.y)));
     for (const t of sorted) {
       if (t.x === c.tile.x && t.y === c.tile.y) return { stand: t, path: [] };
@@ -891,6 +1142,18 @@ export class World implements JobContext {
     for (const c of this.colonists) {
       if (on(c.tile)) this.moveOutOfTheWay(c);
     }
+    // Quien lo levantaba desde dentro de un hueco que acaba de cerrarse sale por el otro lado
+    // (como si cruzara antes de poner la última pieza): nadie se queda encerrado al construir.
+    for (const c of this.colonists) {
+      if (!this.structures.isBesideStructure(c.tile, s)) continue;
+      if (countReachable(this.map, c.tile.x, c.tile.y, TRAPPED_TILES) >= TRAPPED_TILES) continue;
+      const out = this.structures.sidesOf(s).find((t) => countReachable(this.map, t.x, t.y, TRAPPED_TILES) >= TRAPPED_TILES);
+      if (out) {
+        c.tile = { ...out };
+        c.pos = { x: out.x + 0.5, y: out.y + 0.5 };
+        c.path = [];
+      }
+    }
     // Los caminos que pasaban por ahí se recalculan.
     for (const c of this.colonists) {
       if (!c.path.some(on)) continue;
@@ -937,7 +1200,7 @@ export class World implements JobContext {
     c.waitTicks = this.rng.int(30, 90);
   }
 
-  private moveAlongPath(c: Colonist): void {
+  moveAlongPath(c: Colonist): void {
     const next = c.path[0];
     const cost = this.terrainCost(next);
     let budget = (BASE_WALK_SPEED * walkSpeedMultiplier(c)) / TICKS_PER_SECOND / cost;

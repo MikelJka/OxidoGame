@@ -18,6 +18,7 @@
         <button type="button" data-speed="2" title="Velocidad x2 (2)">▶▶</button>
         <button type="button" data-speed="3" title="Velocidad x3 (3)">▶▶▶</button>
       </div>
+      <button id="people-btn" type="button" title="Diario, prisioneros y comercio">📜</button>
       <button id="report-btn" type="button" title="Informar de un bug, petición o cambio">🐞</button>
       <button id="menu-btn" type="button" title="Menú">☰</button>
     </header>
@@ -27,6 +28,7 @@
       <span id="compass" title="Punto cardinal que queda arriba">↑N</span>
       <button id="rot-right" type="button" title="Girar la vista a la derecha (E)">⟳</button>
       <button id="tilt-btn" type="button" title="Cambiar la inclinación (R / F)">∠3</button>
+      <button id="view3d-quick" type="button" title="Vista 3D con giro libre (botón central del ratón para pivotar)">3D</button>
     </div>
 
     <div id="orders" class="panel" role="group" aria-label="Órdenes y construcción">
@@ -137,6 +139,7 @@
         <button id="cp-close" type="button" title="Deseleccionar">✕</button>
       </div>
       <div id="cp-activity"></div>
+      <div id="cp-health"></div>
       <div id="cp-needs"></div>
       <div id="cp-mood" class="muted"></div>
       <button id="cp-draft" type="button" title="Reclutado: deja de trabajar y solo obedece tus órdenes (tecla G)">🎖 Reclutar (G)</button>
@@ -145,6 +148,16 @@
       <div id="cp-traits"></div>
       <div id="cp-skills"></div>
     </section>
+
+    <section id="people-panel" class="panel" hidden>
+      <div class="cp-head">
+        <div id="pp-tabs" class="zp-row"></div>
+        <button id="pp-close" type="button" title="Cerrar">✕</button>
+      </div>
+      <div id="pp-body"></div>
+    </section>
+    <section id="offer-panel" class="panel" hidden></section>
+    <section id="gameover" class="panel" hidden></section>
 
     <section id="zone-panel" class="panel" hidden>
       <div class="cp-head">

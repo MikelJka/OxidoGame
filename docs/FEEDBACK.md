@@ -11,6 +11,10 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Hecho
 
+- [x] **Más colonos, prisioneros y comerciantes con esclavos** (2026-10-17): llegan supervivientes que piden unirse (aceptar o rechazar); los saqueadores caídos se capturan y se pueden retener, convencer o liberar; las caravanas venden recursos y esclavos y compran prisioneros. Menú completo en 📜 → Prisioneros y 📜 → Comercio.
+- [x] **No veo la 3D** (2026-10-17): botón «3D» junto a los giros de la vista, y el botón central del ratón en la vista 2D también pasa a la 3D. Si el navegador no tiene WebGL (aceleración por hardware desactivada) avisa de ello.
+- [x] **#8 Colono encerrado** (2026-10-17, 🐞): Tania se quedaba encerrada en una fila de 6 casillas al cerrarse una construcción a su alrededor. Ahora, quien está dentro de un hueco que se cierra al terminar una obra sale fuera.
+
 - [x] **Construir encima de los suelos** (2026-10-17): los suelos van en su propia capa; encima se puede poner de todo (muros, camas, talleres…) menos lo del agua (pozo, depuradora), y los huertos no van sobre suelo. Al demoler lo de encima, el suelo sigue ahí.
 
 - [x] **Vista previa en blanco de lo que se construye y girar con R** (2026-10-17): al elegir algo en 🏗 se ve un fantasma blanco bajo el ratón y en todo el área arrastrada (2D y 3D); R gira camas, talleres, puertas…
