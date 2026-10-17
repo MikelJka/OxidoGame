@@ -83,6 +83,7 @@ export function rotateMap(map: GameMap, r: Rotation): GameMap {
     level: u8(map.level),
     cliff: u8(map.cliff),
     slope: u8(map.slope),
+    stock: u8(map.stock),
     start: tileToView(map.start.x, map.start.y, map.width, map.height, r),
   };
 }

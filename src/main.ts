@@ -6,9 +6,12 @@ import { seedFromString } from './sim/rng';
 import { Colonist, activityLabel } from './sim/colonist';
 import { SKILLS, SKILL_NAMES } from './data/colonists';
 import type { GameSpeed } from './sim/world';
+import type { GameMap } from './sim/map';
 import { checkWorld, ProgressMark } from './sim/diagnostics';
 import { installErrorCapture, mountReportPanel, onNewError, recordError } from './ui/bugReport';
 import { mountDevPanel } from './ui/devPanel';
+import { reachableResources } from './sim/resources';
+import { RESOURCE_ICONS, RESOURCE_NAMES } from './data/resources';
 import './style.css';
 
 // Primero de todo: cualquier fallo a partir de aquí queda registrado.
@@ -107,8 +110,12 @@ $('new-map').addEventListener('click', () => {
   scene().scene.restart({ seed });
 });
 
-game.events.on('map-ready', () => {
+game.events.on('map-ready', (map: GameMap) => {
   $('seed').textContent = `Mapa · semilla ${seed}`;
+  const near = reachableResources(map);
+  $('map-resources').textContent = 'Al alcance: ' + (['madera', 'piedra', 'chatarra'] as const)
+    .map((r) => `${RESOURCE_ICONS[r]} ${RESOURCE_NAMES[r].toLowerCase()} ${near[r]}`)
+    .join(' · ');
   const url = new URL(window.location.href);
   url.searchParams.set('seed', String(seed));
   window.history.replaceState(null, '', url);

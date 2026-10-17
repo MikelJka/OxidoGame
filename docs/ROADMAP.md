@@ -33,7 +33,7 @@ Terminado: puedo mover la cámara y ver a 3 colonos caminar por el mapa; el tiem
 
 Terminado: marco árboles y los colonos los talan y guardan la madera solos.
 
-- [ ] Recursos en el mapa: árboles muertos (madera), rocas (piedra), chatarra en ruinas
+- [x] Recursos en el mapa: árboles muertos (madera), rocas (piedra), chatarra en ruinas
 - [ ] Inventario de la colonia y objetos en el suelo
 - [ ] Herramienta de designación: talar, minar, saquear (arrastrar un área; en móvil, modo selección)
 - [ ] Sistema de trabajos: cola, reserva de tareas, prioridades por colono

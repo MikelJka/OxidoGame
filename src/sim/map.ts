@@ -1,5 +1,6 @@
 import { Rng } from './rng';
 import { ValueNoise } from './noise';
+import { AmountRange, HarvestJob, ResourceId } from '../data/resources';
 
 /**
  * Suelo de cada casilla. Es la capa base: pocos tipos, con transiciones suaves al dibujar.
@@ -54,30 +55,82 @@ export enum Prop {
   Tires = 14,
 }
 
+/** Cómo se aprovecha un objeto del mapa: qué da, cuánto trabajo cuesta y qué deja. */
+export interface HarvestInfo {
+  job: HarvestJob;
+  resource: ResourceId;
+  /** Unidades del recurso que tiene el objeto al generarse el mapa. */
+  amount: AmountRange;
+  /** Ticks de trabajo de un colono normal para terminarlo. */
+  work: number;
+  /** Objeto que queda en la casilla al terminar (None = nada). */
+  leaves: Prop;
+  /** Recurso extra que puede salir (p. ej. componentes al desguazar un coche). */
+  bonus?: { resource: ResourceId; amount: AmountRange };
+}
+
 export interface PropInfo {
   name: string;
   /** Impide el paso. */
   blocks: boolean;
   /** Multiplicador de coste al atravesarlo (si no bloquea). */
   moveCost: number;
+  /** Recurso que se obtiene de él, si se puede aprovechar. */
+  harvest?: HarvestInfo;
 }
 
 export const PROP_INFO: Record<Prop, PropInfo> = {
   [Prop.None]: { name: '', blocks: false, moveCost: 1 },
-  [Prop.DeadTree]: { name: 'Árbol seco', blocks: true, moveCost: 1 },
-  [Prop.Stump]: { name: 'Tocón', blocks: false, moveCost: 1.3 },
-  [Prop.Bush]: { name: 'Matorral', blocks: false, moveCost: 1.6 },
-  [Prop.Boulder]: { name: 'Roca grande', blocks: true, moveCost: 1 },
-  [Prop.Stones]: { name: 'Piedras', blocks: false, moveCost: 1.3 },
-  [Prop.ScrapPile]: { name: 'Montón de chatarra', blocks: true, moveCost: 1 },
-  [Prop.CarWreck]: { name: 'Coche abandonado', blocks: true, moveCost: 1 },
-  [Prop.RuinWall]: { name: 'Muro derruido', blocks: true, moveCost: 1 },
-  [Prop.Rubble]: { name: 'Escombros', blocks: false, moveCost: 1.5 },
+  [Prop.DeadTree]: {
+    name: 'Árbol seco', blocks: true, moveCost: 1,
+    harvest: { job: 'talar', resource: 'madera', amount: [15, 30], work: 300, leaves: Prop.Stump },
+  },
+  [Prop.Stump]: {
+    name: 'Tocón', blocks: false, moveCost: 1.3,
+    harvest: { job: 'talar', resource: 'madera', amount: [4, 8], work: 120, leaves: Prop.None },
+  },
+  [Prop.Bush]: {
+    name: 'Matorral', blocks: false, moveCost: 1.6,
+    harvest: { job: 'talar', resource: 'madera', amount: [1, 3], work: 60, leaves: Prop.None },
+  },
+  [Prop.Boulder]: {
+    name: 'Roca grande', blocks: true, moveCost: 1,
+    harvest: { job: 'minar', resource: 'piedra', amount: [20, 35], work: 450, leaves: Prop.Stones },
+  },
+  [Prop.Stones]: {
+    name: 'Piedras', blocks: false, moveCost: 1.3,
+    harvest: { job: 'minar', resource: 'piedra', amount: [5, 10], work: 150, leaves: Prop.None },
+  },
+  [Prop.ScrapPile]: {
+    name: 'Montón de chatarra', blocks: true, moveCost: 1,
+    harvest: {
+      job: 'saquear', resource: 'chatarra', amount: [15, 30], work: 300, leaves: Prop.None,
+      bonus: { resource: 'componentes', amount: [0, 2] },
+    },
+  },
+  [Prop.CarWreck]: {
+    name: 'Coche abandonado', blocks: true, moveCost: 1,
+    harvest: {
+      job: 'saquear', resource: 'chatarra', amount: [30, 50], work: 600, leaves: Prop.None,
+      bonus: { resource: 'componentes', amount: [1, 4] },
+    },
+  },
+  [Prop.RuinWall]: {
+    name: 'Muro derruido', blocks: true, moveCost: 1,
+    harvest: { job: 'minar', resource: 'piedra', amount: [10, 20], work: 400, leaves: Prop.Rubble },
+  },
+  [Prop.Rubble]: {
+    name: 'Escombros', blocks: false, moveCost: 1.5,
+    harvest: { job: 'saquear', resource: 'chatarra', amount: [3, 8], work: 120, leaves: Prop.None },
+  },
   [Prop.ToxicBarrel]: { name: 'Barril tóxico', blocks: true, moveCost: 1 },
   [Prop.GlowPuddle]: { name: 'Charco radiactivo', blocks: false, moveCost: 1.2 },
   [Prop.Spring]: { name: 'Manantial', blocks: true, moveCost: 1 },
   [Prop.Bones]: { name: 'Huesos', blocks: false, moveCost: 1 },
-  [Prop.Tires]: { name: 'Neumáticos', blocks: false, moveCost: 1.4 },
+  [Prop.Tires]: {
+    name: 'Neumáticos', blocks: false, moveCost: 1.4,
+    harvest: { job: 'saquear', resource: 'chatarra', amount: [2, 5], work: 90, leaves: Prop.None },
+  },
 };
 
 export interface MapOptions {
@@ -106,6 +159,8 @@ export interface GameMap {
   cliff: Uint8Array;
   /** 1 si la casilla es una pendiente entre dos niveles: se cruza, pero más despacio. */
   slope: Uint8Array;
+  /** Unidades de recurso que quedan en el objeto de cada casilla (0 si no tiene). */
+  stock: Uint8Array;
   /** Casilla sugerida para empezar la colonia. */
   start: { x: number; y: number };
 }
@@ -163,7 +218,10 @@ export function describeTile(map: GameMap, x: number, y: number): string {
   else if (map.slope[i]) parts.push('pendiente');
   if (!isWater(t)) parts.push(LEVEL_NAMES[map.level[i]] ?? '');
   const p = map.props[i] as Prop;
-  if (p !== Prop.None) parts.unshift(PROP_INFO[p].name);
+  if (p !== Prop.None) {
+    const h = PROP_INFO[p].harvest;
+    parts.unshift(h && map.stock[i] > 0 ? `${PROP_INFO[p].name} (${h.resource} ${map.stock[i]})` : PROP_INFO[p].name);
+  }
   if (!isWater(t) && map.radiation[i] > RADIATION_THRESHOLD) parts.push('irradiado');
   return parts.filter(Boolean).join(' · ');
 }
@@ -192,6 +250,7 @@ export function generateMap(opts: MapOptions): GameMap {
     level: new Uint8Array(size),
     cliff: new Uint8Array(size),
     slope: new Uint8Array(size),
+    stock: new Uint8Array(size),
     start: { x: 0, y: 0 },
   };
   const { terrain, elevation, moisture, radiation } = map;
@@ -254,7 +313,19 @@ export function generateMap(opts: MapOptions): GameMap {
   openPasses(map);
   // 11. Vados: si el agua separa una zona grande del inicio, se abre un vado por el tramo más corto.
   if (openFords(map)) openPasses(map);
+  // 12. Recursos de cada objeto aprovechable (con su propia semilla: no altera lo anterior).
+  fillStock(map, new Rng(seed ^ 0x6b3a91c5));
   return map;
+}
+
+/** Unidades iniciales de recurso de un objeto (0 si no se aprovecha). */
+export function rollStock(prop: Prop, rng: Rng): number {
+  const h = PROP_INFO[prop].harvest;
+  return h ? rng.int(h.amount[0], h.amount[1]) : 0;
+}
+
+function fillStock(map: GameMap, rng: Rng): void {
+  for (let i = 0; i < map.props.length; i++) map.stock[i] = rollStock(map.props[i] as Prop, rng);
 }
 
 /** Zonas a pie de al menos este tamaño deben poder alcanzarse desde el inicio. */
