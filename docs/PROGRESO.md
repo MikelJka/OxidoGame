@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (noche, 4) — Vista 3D más bonita
+
+- Mikel: «al mover a 3D se ve así de feo». Cambios:
+- **Suelo con textura** pixel art vista desde arriba (granulado, guijarros, matas, arena con ondas, losas con juntas, vetas en la roca) y bordes entre suelos irregulares, en lugar de bloques de un solo color.
+- **Taludes** de tierra, arena o roca con estratos donde una casilla está más alta que la de al lado.
+- **Agua** translúcida con brillos del sol.
+- **Muros y muebles con su material**: tablones de madera, sillares de piedra, chapa remendada con óxido, metal ondulado, bloques de hormigón; las camas se ven con su manta y su almohada.
+- **Sombras del sol**, tonos más naturales, niebla en la distancia y noches con luz de luna (se ve menos, pero se ve). Los árboles, rocas y ruinas ya no salen negros a contraluz.
+- Qué probar: pasar a 3D con el fuerte de muros de madera y girar la cámara; mirar también de noche.
+
 ## 2026-10-17 (noche, 3) — Gente: raids, prisioneros, comercio y muerte
 
 - **Salud**: cada persona tiene salud y heridas en partes del cuerpo; las heridas sangran hasta que las cura alguien con la tarea nueva **Curar** (usa Medicina). Malherido, cae al suelo y no se mueve hasta recuperarse. Sin comer (unos 2 días) o sin beber (1 día) se muere. Si mueren todos, se acaba la partida (con cementerio y botón para empezar otra).
