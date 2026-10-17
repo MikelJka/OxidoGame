@@ -43,6 +43,7 @@ export const DESIGN_COLORS: Record<WorkType | TerrainJob | 'cancelar' | 'almacen
   cultivar: 0x8fc060,
   cultivo: 0x8fc060,
   terreno: 0xc09060,
+  fabricar: 0xd0a060,
   talar: 0x9bc45a,
   minar: 0x8fb4d8,
   saquear: 0xe0913a,
@@ -162,6 +163,7 @@ export class WorldScene extends Phaser.Scene {
     this.carrySprites.clear();
     this.selectedZoneId = null;
     this.selectedFarmId = null;
+    this.selectedStation = null;
     this.farmVersion = -1;
     this.plantSprites = [];
     this.plantsVersion = -1;
@@ -207,6 +209,7 @@ export class WorldScene extends Phaser.Scene {
       this.uiTimer = 0;
       this.emitClock();
       if (this.selectedId !== null) this.emitSelection();
+      if (this.selectedStation) this.game.events.emit('station-tick', this.selectedStation);
     }
     if (!this.keys || isTyping()) return;
     const cam = this.cameras.main;
@@ -562,6 +565,7 @@ export class WorldScene extends Phaser.Scene {
     if (id !== null) {
       this.selectZone(null);
       this.selectFarm(null);
+      this.selectStation(null);
     }
     this.selectedId = id;
     this.extraIds.clear();
@@ -648,8 +652,10 @@ export class WorldScene extends Phaser.Scene {
       const t = this.pickRealTile(world.x, world.y);
       const z = t ? this.world.zones.at(t.x, t.y) : undefined;
       const f = t ? this.world.farms.at(t.x, t.y) : undefined;
+      const st = t ? this.world.structures.at(t.x, t.y) : undefined;
       this.selectZone(z ? z.id : null);
       this.selectFarm(f ? f.id : null);
+      this.selectStation(st && st.built && st.def.category === 'taller' ? st : null);
       return;
     }
     const tile = this.pickRealTile(world.x, world.y);
@@ -742,6 +748,7 @@ export class WorldScene extends Phaser.Scene {
       this.select(null);
       this.selectZone(null);
       this.selectFarm(null);
+      this.selectStation(null);
     }
     this.game.events.emit('design-mode', mode);
   }
@@ -929,6 +936,23 @@ export class WorldScene extends Phaser.Scene {
     const z = this.selectedZoneId === null ? undefined : this.world.zones.get(this.selectedZoneId);
     if (!z) this.selectedZoneId = null;
     this.game.events.emit('zone-select', z ?? null);
+  }
+
+  /** Taller cuyo panel está abierto. */
+  selectedStation: Structure | null = null;
+
+  /** Abre (o cierra con null) el panel de un taller. */
+  selectStation(s: Structure | null): void {
+    if (this.selectedStation === s) return;
+    this.selectedStation = s;
+    this.game.events.emit('station-select', s);
+  }
+
+  /** Avisa a la interfaz de que el taller abierto ha cambiado. */
+  refreshStation(): void {
+    const s = this.selectedStation;
+    if (s && this.world.structures.at(s.x, s.y) !== s) this.selectedStation = null;
+    this.game.events.emit('station-select', this.selectedStation);
   }
 
   /** Abre (o cierra con null) el panel de un huerto. */
@@ -1291,6 +1315,14 @@ function drawItemTexture(scene: Phaser.Scene, key: string, r: ResourceId): void 
       for (const [x, y] of [[3, 3], [5, 2], [7, 3], [4, 4], [8, 4]]) px(x, y, 2, 1, fill[(x + y) % 2]);
       break;
     }
+    case 'metal':
+      // Lingotes apilados.
+      for (const [x, y] of [[1, 5], [6, 5], [3, 2]]) {
+        px(x, y, 5, 3, '#1a1410');
+        px(x + 1, y, 3, 2, '#9aa0a6');
+        px(x + 1, y, 3, 1, '#c8ccd0');
+      }
+      break;
     case 'fibra':
       // Madejas de fibra atadas.
       px(1, 3, 10, 6, '#1a1410');

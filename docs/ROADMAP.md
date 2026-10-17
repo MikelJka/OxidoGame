@@ -49,11 +49,11 @@ Terminado: diseño un refugio cerrado y los colonos lo construyen con recursos.
 
 - [x] Definiciones de edificios en JSON (coste, tiempo, terreno permitido)
 - [x] Planos: colocar, cancelar y demoler (ratón y táctil)
-- [ ] Muros, puertas, portones, suelos y camas (hechos); banco de trabajo
+- [x] Muros, puertas, portones, suelos, camas y banco de trabajo
 - [x] Construcción como trabajo que consume recursos
 - [ ] Habitaciones cerradas detectadas (para ánimo y temperatura futura)
 - [ ] Máquinas de producción: cantera (piedra) y recicladora (chatarra a partir de basura y restos), para cuando se agoten los del mapa
-- [ ] Materiales: metal (fundiendo chatarra) y hormigón, además de madera, piedra y chatarra
+- [ ] Materiales: metal (hecho: se funde chatarra en el horno) y hormigón
 - [x] Muros altos para perímetros y torres de vigía (madera, piedra y chatarra; las de metal, con el metal)
 - [ ] Defensas: pinchos y barricadas (hechos); zanjas (con el trabajo de terreno)
 - [ ] Mobiliario de almacén: estanterías, armarios y armeros de pared

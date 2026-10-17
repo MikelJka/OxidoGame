@@ -102,6 +102,40 @@
     }
   },
   {
+    "id": "muro_metal",
+    "name": "Muro de metal",
+    "category": "muro",
+    "cost": {
+      "metal": 5
+    },
+    "work": 380,
+    "hp": 700,
+    "blocks": true,
+    "height": 1,
+    "colors": {
+      "top": "#9aa0a6",
+      "face": "#6e747a",
+      "dark": "#3e4246"
+    }
+  },
+  {
+    "id": "muro_alto_metal",
+    "name": "Muro alto de metal",
+    "category": "muro",
+    "cost": {
+      "metal": 10
+    },
+    "work": 700,
+    "hp": 1400,
+    "blocks": true,
+    "height": 2,
+    "colors": {
+      "top": "#9aa0a6",
+      "face": "#6e747a",
+      "dark": "#3e4246"
+    }
+  },
+  {
     "id": "porton_madera",
     "name": "Portón de madera",
     "category": "porton",
@@ -136,6 +170,25 @@
       "top": "#8e8c86",
       "face": "#6a6862",
       "dark": "#3d3c38"
+    }
+  },
+  {
+    "id": "porton_metal",
+    "name": "Portón blindado",
+    "category": "porton",
+    "cost": {
+      "metal": 16,
+      "componentes": 2
+    },
+    "work": 800,
+    "hp": 1200,
+    "blocks": false,
+    "moveCost": 1.4,
+    "height": 2,
+    "colors": {
+      "top": "#9aa0a6",
+      "face": "#6e747a",
+      "dark": "#3e4246"
     }
   },
   {
@@ -174,6 +227,25 @@
     },
     "height": 1,
     "moveCost": 1.3
+  },
+  {
+    "id": "puerta_metal",
+    "name": "Puerta blindada",
+    "category": "puerta",
+    "cost": {
+      "metal": 8,
+      "componentes": 1
+    },
+    "work": 500,
+    "hp": 600,
+    "blocks": false,
+    "moveCost": 1.3,
+    "height": 1,
+    "colors": {
+      "top": "#9aa0a6",
+      "face": "#6e747a",
+      "dark": "#3e4246"
+    }
   },
   {
     "id": "torre_madera",
@@ -235,6 +307,26 @@
     "moveCost": 1.5
   },
   {
+    "id": "torre_metal",
+    "name": "Torre de vigía de metal",
+    "category": "torre",
+    "cost": {
+      "metal": 20,
+      "componentes": 2
+    },
+    "work": 1000,
+    "hp": 1000,
+    "blocks": false,
+    "moveCost": 1.5,
+    "height": 3,
+    "sight": 11,
+    "colors": {
+      "top": "#9aa0a6",
+      "face": "#6e747a",
+      "dark": "#3e4246"
+    }
+  },
+  {
     "id": "barricada_madera",
     "name": "Barricada de madera",
     "category": "defensa",
@@ -286,6 +378,42 @@
       "top": "#b89a6a",
       "face": "#7a5634",
       "dark": "#4e3520"
+    }
+  },
+  {
+    "id": "barricada_metal",
+    "name": "Barricada de metal",
+    "category": "defensa",
+    "cost": {
+      "metal": 5
+    },
+    "work": 220,
+    "hp": 450,
+    "blocks": false,
+    "moveCost": 2.5,
+    "height": 1,
+    "colors": {
+      "top": "#9aa0a6",
+      "face": "#6e747a",
+      "dark": "#3e4246"
+    }
+  },
+  {
+    "id": "pinchos_metal",
+    "name": "Pinchos de metal",
+    "category": "defensa",
+    "cost": {
+      "metal": 4
+    },
+    "work": 160,
+    "hp": 200,
+    "blocks": false,
+    "moveCost": 3,
+    "height": 0,
+    "colors": {
+      "top": "#c8ccd0",
+      "face": "#8a9096",
+      "dark": "#4a4e52"
     }
   },
   {
@@ -358,6 +486,42 @@
       "top": "#8a6a4a",
       "face": "#5a6b4a",
       "dark": "#3a2a1c"
+    }
+  },
+  {
+    "id": "horno",
+    "name": "Horno de fundición",
+    "category": "taller",
+    "cost": {
+      "piedra": 25,
+      "chatarra": 10
+    },
+    "work": 800,
+    "hp": 400,
+    "blocks": true,
+    "height": 1,
+    "colors": {
+      "top": "#8a877f",
+      "face": "#6a5a4a",
+      "dark": "#3a302a"
+    }
+  },
+  {
+    "id": "banco_trabajo",
+    "name": "Banco de trabajo",
+    "category": "taller",
+    "cost": {
+      "madera": 20,
+      "chatarra": 10
+    },
+    "work": 600,
+    "hp": 200,
+    "blocks": true,
+    "height": 1,
+    "colors": {
+      "top": "#9a7448",
+      "face": "#6a4a2c",
+      "dark": "#3e2a18"
     }
   }
 ]

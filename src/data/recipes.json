@@ -1,0 +1,42 @@
+[
+  {
+    "id": "fundir_chatarra",
+    "name": "Fundir chatarra",
+    "station": "horno",
+    "inputs": {
+      "chatarra": 10
+    },
+    "outputs": {
+      "metal": 5
+    },
+    "work": 400,
+    "description": "10 de chatarra dan 5 de metal."
+  },
+  {
+    "id": "montar_componentes",
+    "name": "Montar componentes",
+    "station": "banco_trabajo",
+    "inputs": {
+      "metal": 3,
+      "chatarra": 4
+    },
+    "outputs": {
+      "componentes": 1
+    },
+    "work": 500,
+    "description": "Piezas mecánicas para puertas, portones, torres y máquinas."
+  },
+  {
+    "id": "cortar_tablones",
+    "name": "Recuperar madera",
+    "station": "banco_trabajo",
+    "inputs": {
+      "fibra": 10
+    },
+    "outputs": {
+      "madera": 4
+    },
+    "work": 250,
+    "description": "Fibra de cáñamo prensada en tablones: madera cuando escasean los árboles."
+  }
+]

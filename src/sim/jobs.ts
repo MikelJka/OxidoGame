@@ -8,7 +8,7 @@ import { Designations } from './designations';
 import { GroundItems } from './items';
 import { GameMap, index, isPassable, PROP_INFO, Prop } from './map';
 import { findPath, Point } from './pathfinding';
-import { harvestAt } from './resources';
+import { harvestAt, Stockpile } from './resources';
 import { Structure, Structures } from './structures';
 import { StorageZones } from './zones';
 import { GrowZones } from './farming';
@@ -82,6 +82,16 @@ export interface JobContext {
   structures: Structures;
   farms: GrowZones;
   terrain: TerrainOrders;
+  /** Lo que tiene la colonia (para saber si un taller tiene que seguir fabricando). */
+  inventory(): Stockpile;
+}
+
+/** Un taller tiene que seguir: orden activa y la colonia aún no tiene lo que pide. */
+export function stationWantsWork(ctx: JobContext, s: Structure): boolean {
+  const b = s.bill;
+  if (!s.built || !b || b.paused || s.demolish) return false;
+  const inv = ctx.inventory();
+  return (Object.entries(b.recipe.outputs) as [ResourceId, number][]).some(([r]) => inv[r] < b.target);
 }
 
 /** Casillas desde las que se puede trabajar un objeto: la suya si se pisa, si no las de los lados. */
@@ -246,6 +256,40 @@ function nearestMaterial(ctx: JobContext, s: Structure, near: Point): { x: numbe
   return best;
 }
 
+function fabricateCandidates(ctx: JobContext, c: Colonist): Candidate[] {
+  if (c.priorities.fabricar === 0) return [];
+  const out: Candidate[] = [];
+  for (const s of ctx.structures.stations()) {
+    const holder = ctx.reservations.holder(s.x, s.y);
+    if ((holder !== undefined && holder !== c.id) || !stationWantsWork(ctx, s)) continue;
+    out.push({
+      kind: 'fabricar', x: s.x, y: s.y, dist: manhattan(c.tile, s.x, s.y),
+      make: () => {
+        const sides = sideTiles(ctx.map, s.x, s.y);
+        if (ctx.structures.needsAny(s)) {
+          // Primero, traer los materiales de la tanda.
+          const mat = nearestMaterial(ctx, s, c.tile);
+          if (!mat) return null;
+          const route = pathToNearest(ctx.map, c.tile, [{ x: mat.x, y: mat.y }]);
+          if (!route || !pathToNearest(ctx.map, { x: mat.x, y: mat.y }, sides)) return null;
+          return {
+            job: {
+              kind: 'fabricar', x: s.x, y: s.y, stand: route.stand, progress: 0, work: 0,
+              haul: { resource: mat.resource, amount: mat.amount, from: { x: mat.x, y: mat.y }, to: { x: s.x, y: s.y }, toBlueprint: true, picked: false },
+            },
+            path: route.path,
+          };
+        }
+        const here = isBeside(c.tile, s.x, s.y);
+        const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, sides);
+        if (!route) return null;
+        return { job: { kind: 'fabricar', x: s.x, y: s.y, stand: route.stand, progress: 0, work: s.bill!.recipe.work }, path: route.path };
+      },
+    });
+  }
+  return out;
+}
+
 function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   if (c.priorities.construir === 0) return [];
   const out: Candidate[] = [];
@@ -350,7 +394,7 @@ function terrainCandidates(ctx: JobContext, c: Colonist): Candidate[] {
  */
 export function findJob(ctx: JobContext, c: Colonist): JobPlan | null {
   const all = [
-    ...buildCandidates(ctx, c), ...farmCandidates(ctx, c), ...terrainCandidates(ctx, c),
+    ...buildCandidates(ctx, c), ...farmCandidates(ctx, c), ...fabricateCandidates(ctx, c), ...terrainCandidates(ctx, c),
     ...harvestCandidates(ctx, c), ...haulCandidates(ctx, c),
   ];
   const byPriority = new Map<number, Candidate[]>();
@@ -381,8 +425,8 @@ export function findJobAt(ctx: JobContext, c: Colonist, x: number, y: number): J
   // Para una orden directa vale cualquier tipo de trabajo, aunque tenga la prioridad a 0.
   const forced: Colonist = { ...c, priorities: Object.fromEntries(WORK_TYPES.map((w) => [w, 1])) as Colonist['priorities'] };
   const all = [
-    ...buildCandidates(ctx, forced), ...farmCandidates(ctx, forced), ...terrainCandidates(ctx, forced),
-    ...harvestCandidates(ctx, forced),
+    ...buildCandidates(ctx, forced), ...farmCandidates(ctx, forced), ...fabricateCandidates(ctx, forced),
+    ...terrainCandidates(ctx, forced), ...harvestCandidates(ctx, forced),
   ].filter((k) => k.x === x && k.y === y);
   for (const cand of all) {
     const plan = cand.make();

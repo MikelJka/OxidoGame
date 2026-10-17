@@ -2,6 +2,7 @@
 // materiales y trabajando. Al terminarse, los muros bloquean el paso y las puertas lo frenan.
 import { BuildingDef, buildingDef } from '../data/buildings';
 import { RESOURCES, ResourceId } from '../data/resources';
+import type { RecipeDef } from '../data/recipes';
 import { BLOCK_SOLID, walkableStructureCode, GameMap, inBounds, index, isWater, Prop, TERRAIN_INFO, Terrain } from './map';
 import type { TileRect } from './designations';
 import type { Stockpile } from './resources';
@@ -19,6 +20,15 @@ export interface Structure {
   hp: number;
   /** Marcada para demoler (solo las terminadas). */
   demolish?: boolean;
+  /** Taller: qué fabricar y hasta cuánto. En un taller, `delivered` guarda los materiales ya traídos. */
+  bill?: Bill;
+}
+
+/** Orden de fabricación de un taller: hacer la receta hasta que la colonia tenga `target` del producto. */
+export interface Bill {
+  recipe: RecipeDef;
+  target: number;
+  paused: boolean;
 }
 
 /** Parte del coste que se recupera al demoler. */
@@ -82,7 +92,8 @@ export class Structures {
     this.version++;
     const back: Partial<Stockpile> = {};
     for (const r of RESOURCES) {
-      const n = Math.floor((s.def.cost[r] ?? 0) * DEMOLISH_REFUND);
+      // La mitad del material y, en un taller, todo lo que tenía dentro.
+      const n = Math.floor((s.def.cost[r] ?? 0) * DEMOLISH_REFUND) + (s.delivered[r] ?? 0);
       if (n > 0) back[r] = n;
     }
     return back;
@@ -136,14 +147,37 @@ export class Structures {
     return { ...s.delivered };
   }
 
-  /** Lo que falta por llevar a un plano. */
+  /** Lo que falta por llevar a un plano o, en un taller con orden, para la siguiente tanda. */
   needs(s: Structure): Partial<Stockpile> {
     const out: Partial<Stockpile> = {};
+    const wanted = s.built ? (s.bill && !s.bill.paused ? s.bill.recipe.inputs : {}) : s.def.cost;
     for (const r of RESOURCES) {
-      const want = (s.def.cost[r] ?? 0) - (s.delivered[r] ?? 0);
+      const want = (wanted[r] ?? 0) - (s.delivered[r] ?? 0);
       if (want > 0) out[r] = want;
     }
     return out;
+  }
+
+  /** Talleres terminados. */
+  stations(): Structure[] {
+    return this.all().filter((s) => s.built && s.def.category === 'taller');
+  }
+
+  /** Pone (o quita con null) la orden de fabricación de un taller. */
+  setBill(s: Structure, bill: Bill | null): void {
+    s.bill = bill ?? undefined;
+    this.version++;
+  }
+
+  /** Gasta los materiales de una tanda. false si no estaban todos. */
+  consumeInputs(s: Structure): boolean {
+    if (!s.bill || this.needsAny(s)) return false;
+    for (const [r, n] of Object.entries(s.bill.recipe.inputs) as [ResourceId, number][]) {
+      s.delivered[r] = (s.delivered[r] ?? 0) - n;
+      if (!s.delivered[r]) delete s.delivered[r];
+    }
+    this.version++;
+    return true;
   }
 
   needsAny(s: Structure): boolean {
@@ -162,19 +196,22 @@ export class Structures {
   }
 
   /** Vuelve a poner una construcción guardada (al cargar una partida). */
-  restore(def: BuildingDef, x: number, y: number, built: boolean, delivered: Partial<Stockpile>, progress: number, hp: number): void {
-    if (!inBounds(this.map, x, y)) return;
-    const s: Structure = { def, x, y, built: false, delivered: { ...delivered }, progress, hp };
+  restore(def: BuildingDef, x: number, y: number, built: boolean, delivered: Partial<Stockpile>, progress: number, hp: number): Structure | undefined {
+    if (!inBounds(this.map, x, y)) return undefined;
+    const s: Structure = { def, x, y, built: false, delivered: {}, progress, hp };
     this.byTile.set(index(this.map, x, y), s);
     if (built) this.complete(s);
+    s.delivered = { ...delivered };
     s.progress = progress;
     this.version++;
+    return s;
   }
 
   /** Termina una construcción: deja de ser plano y bloquea o frena el paso. */
   complete(s: Structure): void {
     if (s.built) return;
     s.built = true;
+    s.delivered = {}; // el material ya es la construcción; en un taller, aquí irán sus materiales
     s.progress = s.def.work;
     this.map.blocked[index(this.map, s.x, s.y)] = s.def.blocks ? BLOCK_SOLID : walkableStructureCode(s.def.moveCost ?? 1);
     this.version++;

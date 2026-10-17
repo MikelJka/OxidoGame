@@ -2,7 +2,7 @@
 import raw from './buildings.json';
 import { RESOURCES, ResourceId } from './resources';
 
-export type BuildingCategory = 'muro' | 'puerta' | 'porton' | 'torre' | 'suelo' | 'defensa' | 'mueble';
+export type BuildingCategory = 'muro' | 'puerta' | 'porton' | 'torre' | 'suelo' | 'defensa' | 'mueble' | 'taller';
 
 export const BUILDING_CATEGORY_NAMES: Record<BuildingCategory, string> = {
   muro: 'Muros',
@@ -12,6 +12,7 @@ export const BUILDING_CATEGORY_NAMES: Record<BuildingCategory, string> = {
   suelo: 'Suelos',
   defensa: 'Defensas',
   mueble: 'Muebles',
+  taller: 'Talleres',
 };
 
 export interface BuildingDef {

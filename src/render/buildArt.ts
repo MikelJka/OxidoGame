@@ -34,6 +34,10 @@ export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, ti
     drawFlat(ctx, def, tile, tileH);
     return;
   }
+  if (def.category === 'taller') {
+    drawStation(ctx, def, tile, tileH, wallH);
+    return;
+  }
   if (def.category === 'porton') {
     drawGate(ctx, def, tile, tileH, wallH);
     return;
@@ -112,6 +116,39 @@ function drawTower(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number
   px(1, 1, tile - 2, tileH - 2, top);
   for (let x = 2; x < tile - 2; x += 3) px(x, 2, 1, tileH - 4, dark);
   px(0, tileH - 2, tile, 2, dark);
+}
+
+/** Talleres: horno de fundición (boca encendida y chimenea) o banco de trabajo (tablero con herramientas). */
+function drawStation(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, wallH: number): void {
+  const { top, face, dark } = def.colors;
+  const px = painter(ctx);
+  const h = tileH + wallH;
+  ctx.clearRect(0, 0, tile, h);
+  if (def.id === 'horno') {
+    px(1, 1, tile - 2, h - 1, '#1a1410');
+    px(2, 2, tile - 4, tileH - 3, top);
+    px(2, tileH - 1, tile - 4, wallH - 1, face);
+    for (let y = tileH + 2; y < h - 2; y += 3) px(2, y, tile - 4, 1, dark);
+    // Boca con brasas.
+    const my = tileH + Math.max(1, Math.floor(wallH / 3));
+    px(5, my, 6, Math.max(2, wallH - (my - tileH) - 2), '#2a1a10');
+    px(6, my + 1, 4, 1, '#e07a2a');
+    px(6, my + 2, 4, 1, '#f0b040');
+    // Chimenea.
+    px(10, 0, 3, 4, '#1a1410');
+    px(11, 0, 1, 3, dark);
+    return;
+  }
+  // Banco: tablero, patas y herramientas encima.
+  px(0, 1, tile, tileH - 1, '#1a1410');
+  px(1, 2, tile - 2, tileH - 3, top);
+  px(1, tileH - 1, tile - 2, 2, face);
+  px(1, tileH + 1, 2, wallH - 1, dark);
+  px(tile - 3, tileH + 1, 2, wallH - 1, dark);
+  px(3, 3, 5, 1, '#8a9096'); // sierra
+  px(10, 3, 1, 4, '#5a4228'); // martillo
+  px(9, 3, 3, 1, '#8a9096');
+  px(4, tileH - 4, 3, 2, '#c08040');
 }
 
 type Px = (x: number, y: number, w: number, h: number, color: string) => void;

@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (tarde, 9) — Talleres y metal
+
+- Sin incidencias nuevas en 🐞.
+- **Talleres** (🏗 → Talleres): horno de fundición (🪨25 🔩10) y banco de trabajo (🪵20 🔩10). Al tocar un taller se elige qué fabricar y hasta cuánto («hasta tener 20»), con −5/+5 y pausa; se ve cuánto hay y qué tiene dentro. Trabajo nuevo «fabricar» (habilidad Construcción): los colonos llevan el material de cada tanda al taller y la fabrican; el producto sale al lado y se lleva al almacén. Se para solo al llegar al objetivo. Recetas en `src/data/recipes.json`: fundir chatarra (🔩10 → 🔗5 metal), montar componentes (🔗3 🔩4 → ⚙️1) y recuperar madera (🧵10 → 🪵4).
+- **Metal** 🔗 (recurso nuevo): muro de metal (el más resistente), muro alto de metal, puerta y portón blindados, torre de vigía de metal (vista 11), barricada y pinchos de metal.
+- Demoler un taller devuelve también lo que tenía dentro. Las órdenes de los talleres se guardan con la partida.
+- Qué probar: construir un horno, ponerle «fundir chatarra hasta 10» con chatarra en el almacén y ver cómo funden; con ese metal, un tramo de muro de metal.
+- Siguiente: zanjas; mobiliario de almacén (estanterías); hormigón. Después, fase 4 (necesidades: comer y dormir).
+
 ## 2026-10-17 (tarde, 8) — Reclutar, demoler, mover tierra y árboles que rebrotan
 
 - Incidencias de 🐞: #4 (reclutar y órdenes concretas), #5 (demoler) y #6 (colono atrapado entre desniveles; con #2, subir y bajar el terreno). Las tres cerradas con comentario.

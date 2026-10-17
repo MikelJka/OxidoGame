@@ -73,7 +73,7 @@
         Arriba a la izquierda: inventario de la colonia (los montones del suelo)<br />
         Órdenes ⚒ (tecla T): elegir talar, picar, saquear o almacén y arrastrar un área (o tocar una casilla); con dos dedos se mueve la cámara · Esc: salir<br />
         Construir 🏗 (tecla B): elegir muro o puerta y arrastrar; los colonos llevan el material y lo levantan<br />
-        Tocar un almacén: su prioridad y qué se guarda en él · Tocar un huerto: qué se planta<br />
+        Tocar un almacén: su prioridad y qué se guarda en él · Tocar un huerto: qué se planta · Tocar un taller: qué fabrica<br />
         Girar la vista: botones ⟲ ⟳, girar dos dedos o teclas Q y E<br />
         Inclinar la vista: botón ∠, deslizar dos dedos arriba o abajo o teclas R y F<br />
         PC: clic derecho también da la orden · Espacio, 1, 2, 3: velocidad · Esc: deseleccionar
@@ -152,6 +152,24 @@
       <div class="zp-label">Qué se guarda</div>
       <div id="zp-filter" class="zp-row"></div>
       <button id="zp-delete" type="button">🗑 Borrar almacén</button>
+    </section>
+
+    <section id="station-panel" class="panel" hidden>
+      <div class="cp-head">
+        <div>
+          <div id="sp-name"></div>
+          <div id="sp-status" class="muted"></div>
+        </div>
+        <button id="sp-close" type="button" title="Cerrar">✕</button>
+      </div>
+      <div class="zp-label">Qué fabricar (los colonos traen el material y lo hacen solos; trabajo «fabricar»)</div>
+      <div id="sp-recipes"></div>
+      <div id="sp-controls" class="zp-row" hidden>
+        <button id="sp-minus" type="button">−5</button>
+        <span id="sp-target"></span>
+        <button id="sp-plus" type="button">+5</button>
+        <button id="sp-pause" type="button">⏸ Pausar</button>
+      </div>
     </section>
 
     <section id="farm-panel" class="panel" hidden>

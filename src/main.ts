@@ -16,6 +16,9 @@ import { parseSave } from './sim/save';
 import { reachableResources } from './sim/resources';
 import { BASE_RESOURCES, HarvestJob, RESOURCE_ICONS, RESOURCE_NAMES, RESOURCES } from './data/resources';
 import { CROPS } from './data/crops';
+import { recipesFor } from './data/recipes';
+import type { ResourceId } from './data/resources';
+import type { Structure } from './sim/structures';
 import type { GrowZone } from './sim/farming';
 import { BUILDING_CATEGORY_NAMES, BUILDINGS, buildingDef } from './data/buildings';
 import { STORAGE_PRIORITIES, STORAGE_PRIORITY_NAMES, StorageZone } from './sim/zones';
@@ -342,6 +345,72 @@ window.addEventListener('keydown', (e) => {
   if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return;
   if (e.key === 't' || e.key === 'T') showMenu(orderModes.hidden ? 'orders' : null);
   if (e.key === 'b' || e.key === 'B') showMenu(buildModes.hidden ? 'build' : null);
+});
+
+// --- Panel de un taller: qué fabricar y hasta cuánto ---------------------------
+const stationPanel = $('station-panel');
+$('sp-close').addEventListener('click', () => scene().selectStation(null));
+/** Pasos del objetivo de una orden de fabricación. */
+const TARGET_STEP = 5;
+function renderStationStatus(s: Structure): void {
+  const b = s.bill;
+  const inv = scene().world.inventory();
+  const inside = RESOURCES.filter((r) => (s.delivered[r] ?? 0) > 0).map((r) => `${RESOURCE_ICONS[r]}${s.delivered[r]}`).join(' ');
+  if (!b) {
+    $('sp-status').textContent = 'Sin orden: elige qué fabricar.';
+    return;
+  }
+  const out = (Object.keys(b.recipe.outputs) as ResourceId[]).map((r) => `${RESOURCE_ICONS[r]} ${inv[r]}/${b.target}`).join(' ');
+  const state = b.paused ? '⏸ En pausa' : (Object.keys(b.recipe.outputs) as ResourceId[]).every((r) => inv[r] >= b.target) ? '✔ Objetivo cumplido' : '⚙ Fabricando';
+  $('sp-status').textContent = `${state} · tiene ${out}${inside ? ` · dentro: ${inside}` : ''}`;
+}
+game.events.on('station-tick', (s: Structure) => renderStationStatus(s));
+game.events.on('station-select', (s: Structure | null) => {
+  stationPanel.hidden = !s;
+  if (!s) return;
+  $('sp-name').textContent = `🛠 ${s.def.name}`;
+  renderStationStatus(s);
+  const list = $('sp-recipes');
+  list.replaceChildren(
+    ...recipesFor(s.def.id).map((r) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'crop-btn';
+      b.classList.toggle('active', s.bill?.recipe.id === r.id);
+      const fmt = (part: Partial<Record<ResourceId, number>>) =>
+        (Object.entries(part) as [ResourceId, number][]).map(([res, n]) => `${RESOURCE_ICONS[res]}${n}`).join(' ');
+      const title = document.createElement('strong');
+      title.textContent = `${r.name}: ${fmt(r.inputs)} → ${fmt(r.outputs)}`;
+      const info = document.createElement('span');
+      info.textContent = ` · ${r.description}`;
+      b.append(title, info);
+      b.addEventListener('click', () => {
+        const sc = scene();
+        sc.world.structures.setBill(s, s.bill?.recipe.id === r.id ? null : { recipe: r, target: s.bill?.target ?? 20, paused: false });
+        sc.refreshStation();
+      });
+      return b;
+    }),
+  );
+  const ctl = $('sp-controls');
+  ctl.hidden = !s.bill;
+  if (s.bill) $('sp-target').textContent = `Hasta tener ${s.bill.target}`;
+  $('sp-pause').textContent = s.bill?.paused ? '▶ Reanudar' : '⏸ Pausar';
+});
+$('sp-minus').addEventListener('click', () => {
+  const s = scene().selectedStation;
+  if (s?.bill) s.bill.target = Math.max(0, s.bill.target - TARGET_STEP);
+  scene().refreshStation();
+});
+$('sp-plus').addEventListener('click', () => {
+  const s = scene().selectedStation;
+  if (s?.bill) s.bill.target += TARGET_STEP;
+  scene().refreshStation();
+});
+$('sp-pause').addEventListener('click', () => {
+  const s = scene().selectedStation;
+  if (s?.bill) s.bill.paused = !s.bill.paused;
+  scene().refreshStation();
 });
 
 // --- Panel de un huerto: qué se planta -------------------------------------------

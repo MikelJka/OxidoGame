@@ -4,7 +4,7 @@ import { findPath, isWalkable, Point } from './pathfinding';
 import { Rng } from './rng';
 import { GroundItems } from './items';
 import { Designations } from './designations';
-import { canWorkFrom, findJob, findJobAt, isBeside, JOB_PATH_NODES, JobContext, reservePlan, Reservations, sideTiles, workSpeed } from './jobs';
+import { canWorkFrom, findJob, findJobAt, isBeside, stationWantsWork, JOB_PATH_NODES, JobContext, reservePlan, Reservations, sideTiles, workSpeed } from './jobs';
 import { harvestAt, harvestTile, Stockpile } from './resources';
 import { StorageZones } from './zones';
 import { GrowZones } from './farming';
@@ -245,7 +245,7 @@ export class World implements JobContext {
 
   /** Busca trabajo (si toca) y lo empieza. true si ahora tiene uno. */
   private tryStartJob(c: Colonist): boolean {
-    if (this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0) return false;
+    if (this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.structures.stations().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0) return false;
     if (this.tick < (this.nextJobScan.get(c.id) ?? 0)) return false;
     const plan = findJob(this, c);
     if (!plan || !reservePlan(this.reservations, c, plan.job)) {
@@ -287,6 +287,15 @@ export class World implements JobContext {
       }
       return true;
     }
+    if (j.kind === 'fabricar') {
+      const s = this.structures.at(j.x, j.y);
+      if (!s || !stationWantsWork(this, s)) return false;
+      if (h && !h.picked) {
+        const st = this.items.at(h.from.x, h.from.y);
+        return !!st && st.resource === h.resource && (this.structures.needs(s)[h.resource] ?? 0) > 0;
+      }
+      return h ? true : !this.structures.needsAny(s);
+    }
     if (j.kind === 'terreno') {
       return this.terrain.at(j.x, j.y) === j.terrain && !terrainBlocker(this.map, j.x, j.y, j.terrain!, !!this.structures.at(j.x, j.y));
     }
@@ -321,7 +330,7 @@ export class World implements JobContext {
       this.updateHaul(c);
       return;
     }
-    const building = j.kind === 'construir';
+    const building = j.kind === 'construir' || j.kind === 'fabricar';
     const inPlace = building ? isBeside(c.tile, j.x, j.y) : canWorkFrom(this.map, c.tile, j.x, j.y);
     if (!inPlace) {
       const path = findPath(this.map, c.tile, j.stand, JOB_PATH_NODES);
@@ -340,6 +349,14 @@ export class World implements JobContext {
     if (building && j.demolish) {
       if (j.progress >= j.work) {
         this.demolishStructure(this.structures.at(j.x, j.y)!);
+        this.dropJob(c);
+      }
+      return;
+    }
+    if (j.kind === 'fabricar') {
+      if (j.progress >= j.work) {
+        const s = this.structures.at(j.x, j.y)!;
+        if (this.structures.consumeInputs(s)) this.items.dropAll(s.x, s.y, s.bill!.recipe.outputs);
         this.dropJob(c);
       }
       return;
