@@ -4,11 +4,12 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Pendiente
 
-- [ ] **Mobiliario de almacén** (2026-10-17): las estanterías ya están; armarios y armeros de pared llegarán con las armas (fase 4).
+- [ ] **Mobiliario de almacén** (2026-10-17): estanterías y armarios ya están; los armeros de pared llegarán con las armas (fase 4).
 
-- [ ] **Máquinas que generan recursos: canteras y recicladoras** (2026-10-17): para cuando se acaben la piedra y la chatarra iniciales del mapa. Van en la fase 3 (construcción), en el roadmap.
 
 ## Hecho
+
+- [x] **Máquinas que generan recursos: canteras y recicladoras** (2026-10-17): 🏗 → Talleres. La cantera saca piedra y la recicladora chatarra (y componentes), sin materiales, despacio.
 
 - [x] **#7 Óscar encerrado en una casilla** (aviso automático, 2026-10-17): lo más probable es que rebrotaran árboles en los tocones de alrededor de un colono quieto (reclutado o descansando). Ahora no nace nada a menos de 2 casillas de un colono ni en su camino. Para sacarlo de esa partida: elegirlo y tocar uno de los árboles de al lado (lo tala desde dentro), o ⚒ → Rampa/Rebajar.
 

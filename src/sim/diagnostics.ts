@@ -107,7 +107,7 @@ export function checkWorld(world: World, progress = new Map<number, ProgressMark
   }
   for (const r of world.reservations.list()) {
     const c = world.colonists.find((k) => k.id === r.colonistId);
-    if (!c || !c.job) {
+    if (!c || (!c.job && !c.need)) {
       problems.push({ key: `reservation-orphan-${r.x}-${r.y}-${r.slot}`, message: `La casilla (${r.x}, ${r.y}) está reservada (${r.slot}) por #${r.colonistId}, que no tiene trabajo` });
     }
   }

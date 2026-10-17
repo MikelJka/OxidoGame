@@ -65,6 +65,7 @@ interface SavedColonist {
   priorities: Record<string, number>;
   carrying: { resource: string; amount: number } | null;
   drafted?: boolean;
+  needs?: { food: number; rest: number; sleptIn: string | null };
 }
 
 // --- Codificación de arrays en base64 ------------------------------------------
@@ -116,6 +117,7 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
       // Los trabajos en curso no se guardan: al cargar, cada colono busca uno nuevo.
       carrying: c.carrying ? { ...c.carrying } : null,
       drafted: c.drafted,
+      needs: { ...c.needs },
     })),
     items: world.items.list().map((s) => ({ x: s.x, y: s.y, resource: s.resource, amount: s.amount })),
     designations: world.designations.list().map((d) => ({ ...d })),
@@ -230,6 +232,12 @@ function restoreColonist(s: SavedColonist): Colonist {
     job: null,
     carrying: null,
     drafted: !!s.drafted,
+    needs: {
+      food: Math.max(0, Math.min(1, num(s.needs?.food, 0.8))),
+      rest: Math.max(0, Math.min(1, num(s.needs?.rest, 0.85))),
+      sleptIn: (['cama', 'suelo', 'habitacion'] as const).find((k) => k === s.needs?.sleptIn) ?? null,
+    },
+    need: null,
   };
 }
 

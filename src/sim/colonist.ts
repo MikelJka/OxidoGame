@@ -5,9 +5,22 @@ import { ResourceId } from '../data/resources';
 import { WORK_NAMES, WORK_TYPES, WORK_VERBS, WorkType } from '../data/work';
 import { Point } from './pathfinding';
 import type { TerrainJob } from './terrain';
+import { defaultNeeds, Needs } from './needs';
 import { Rng } from './rng';
 
-export type ColonistActivity = 'idle' | 'wandering' | 'moving' | 'toJob' | 'working';
+export type ColonistActivity = 'idle' | 'wandering' | 'moving' | 'toJob' | 'working' | 'toNeed' | 'eating' | 'sleeping';
+
+/** Lo que hace por sí mismo para cubrir una necesidad: comer (en un montón de comida) o dormir. */
+export interface NeedTask {
+  type: 'comer' | 'dormir';
+  /** Casilla del montón de comida o de la cama (o donde duerme en el suelo). */
+  x: number;
+  y: number;
+  /** Duerme en una cama. */
+  bed: boolean;
+  /** Ticks que lleva comiendo. */
+  progress: number;
+}
 
 /** Prioridad de un trabajo para un colono: 0 = no lo hace, 1 = el primero … 4 = el último. */
 export type WorkPriority = 0 | 1 | 2 | 3 | 4;
@@ -83,6 +96,10 @@ export interface Colonist {
   carrying: Carried | null;
   /** Reclutado: no trabaja ni deambula; solo obedece órdenes directas. */
   drafted: boolean;
+  /** Comida, descanso y dónde durmió. */
+  needs: Needs;
+  /** Comiendo o durmiendo (o yendo a ello). */
+  need: NeedTask | null;
 }
 
 export function createColonist(id: number, at: Point, rng: Rng): Colonist {
@@ -113,6 +130,8 @@ export function createColonist(id: number, at: Point, rng: Rng): Colonist {
     job: null,
     carrying: null,
     drafted: false,
+    needs: defaultNeeds(),
+    need: null,
   };
 }
 
@@ -121,6 +140,11 @@ export function walkSpeedMultiplier(c: Colonist): number {
 }
 
 export function activityLabel(c: Colonist): string {
+  if (c.need) {
+    if (c.activity === 'eating') return 'Comiendo';
+    if (c.activity === 'sleeping') return c.need.bed ? 'Durmiendo en la cama' : 'Durmiendo en el suelo';
+    return c.need.type === 'comer' ? 'Yendo a comer' : 'Yendo a dormir';
+  }
   if (c.drafted && !c.job) return c.path.length > 0 ? 'Reclutado · yendo' : 'Reclutado · esperando órdenes';
   switch (c.activity) {
     case 'moving': return 'Yendo a una orden';

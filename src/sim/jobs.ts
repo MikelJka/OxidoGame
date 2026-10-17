@@ -9,6 +9,7 @@ import { GroundItems } from './items';
 import { GameMap, index, isPassable, PROP_INFO, Prop } from './map';
 import { findPath, Point } from './pathfinding';
 import { harvestAt, Stockpile } from './resources';
+import { needsWorkFactor } from './needs';
 import { Structure, Structures } from './structures';
 import { StorageZones } from './zones';
 import { GrowZones } from './farming';
@@ -24,7 +25,7 @@ const SIDES: readonly Point[] = [{ x: 0, y: 1 }, { x: 1, y: 0 }, { x: -1, y: 0 }
 /** Velocidad de trabajo de un colono (1 = normal): de ×0,6 con habilidad 0 a ×1,6 con 20. */
 export function workSpeed(c: Colonist, kind: WorkType): number {
   const skill = WORK_SKILL[kind];
-  return skill ? 0.6 + c.skills[skill] * 0.05 : 1;
+  return (skill ? 0.6 + c.skills[skill] * 0.05 : 1) * needsWorkFactor(c);
 }
 
 /** Huecos de reserva de una casilla: el trabajo en ella, recoger su montón o dejar algo en ella. */

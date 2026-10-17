@@ -337,3 +337,13 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 #sp-controls { align-items: center; }
 #sp-target { min-width: 110px; text-align: center; font-size: 12px; }
 #sp-name { font-size: 15px; }
+
+/* --- Necesidades ------------------------------------------------------------------- */
+#cp-needs { display: flex; flex-direction: column; gap: 3px; margin: 4px 0; }
+.need { display: grid; grid-template-columns: 70px 1fr 28px; align-items: center; gap: 6px; font-size: 12px; }
+.need .bar { height: 6px; background: #2a241e; border-radius: 3px; overflow: hidden; }
+.need .bar span { display: block; height: 100%; }
+.need .num { text-align: right; color: var(--muted); }
+#cp-mood { font-size: 11px; margin-bottom: 4px; }
+#cp-mood:empty { display: none; }
+#colonist-panel.group #cp-needs, #colonist-panel.group #cp-mood { display: none; }

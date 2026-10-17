@@ -51,19 +51,19 @@ Terminado: diseño un refugio cerrado y los colonos lo construyen con recursos.
 - [x] Planos: colocar, cancelar y demoler (ratón y táctil)
 - [x] Muros, puertas, portones, suelos, camas y banco de trabajo
 - [x] Construcción como trabajo que consume recursos
-- [ ] Habitaciones cerradas detectadas (para ánimo y temperatura futura)
-- [ ] Máquinas de producción: cantera (piedra) y recicladora (chatarra a partir de basura y restos), para cuando se agoten los del mapa
-- [ ] Materiales: metal (hecho: se funde chatarra en el horno) y hormigón
+- [x] Habitaciones cerradas detectadas (para ánimo y temperatura futura)
+- [x] Máquinas de producción: cantera (piedra) y recicladora (chatarra a partir de basura y restos), para cuando se agoten los del mapa
+- [x] Materiales: metal (se funde chatarra en el horno) y hormigón
 - [x] Muros altos para perímetros y torres de vigía (madera, piedra y chatarra; las de metal, con el metal)
 - [x] Defensas: pinchos, barricadas y zanjas
-- [ ] Mobiliario de almacén: estanterías (hechas); armarios y armeros de pared (con las armas)
+- [ ] Mobiliario de almacén: estanterías y armarios (hechos); armeros de pared (con las armas)
 - [x] Terreno: aplanar y subir o bajar el nivel de las casillas (trabajo de los colonos) y rampas en los acantilados
 
 ## Fase 4 — Necesidades y raids (primera versión jugable)
 
 Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed o por un raid.
 
-- [ ] Hambre, sed, sueño, ánimo; colonos que comen, beben y duermen solos
+- [ ] Hambre, sed, sueño, ánimo; colonos que comen, beben y duermen solos (hechos: hambre, sueño y ánimo; falta la sed, con el agua)
 - [ ] Cultivos (hechos: patatas, maíz, setas y cáñamo) y cocina
 - [ ] Salud: heridas localizadas, tratamiento, infecciones
 - [ ] Dificultad configurable al empezar (días sin raids, dureza)

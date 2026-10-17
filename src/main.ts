@@ -4,6 +4,7 @@ import { northLabel, Rotation } from './render/rotation';
 import { DEFAULT_TILT, TILTS } from './render/projection';
 import { seedFromString } from './sim/rng';
 import { Colonist, activityLabel, WorkPriority } from './sim/colonist';
+import { moodOf, STARVING } from './sim/needs';
 import { WORK_NAMES, WORK_TYPES } from './data/work';
 import { SKILLS, SKILL_NAMES } from './data/colonists';
 import type { GameSpeed } from './sim/world';
@@ -535,6 +536,20 @@ mountReportPanel({
     };
   },
 });
+// Aviso de hambre: si alguien se muere de hambre y no queda comida.
+let lastHungerWarning = 0;
+window.setInterval(() => {
+  const s = game.scene.getScene('world') as WorldScene | null;
+  if (!s || !s.world || s.world.speed === 0 || Date.now() - lastHungerWarning < 60_000) return;
+  const inv = s.world.inventory();
+  const food = inv.patata + inv.maiz + inv.setas;
+  const starving = s.world.colonists.filter((c) => c.needs.food < STARVING);
+  if (starving.length && food === 0) {
+    lastHungerWarning = Date.now();
+    showToast(`⚠️ ${starving.map((c) => c.name).join(', ')} pasa${starving.length > 1 ? 'n' : ''} hambre y no queda comida: haz un huerto 🌱`, 5000);
+  }
+}, 5000);
+
 onNewError(() => showToast('⚠️ Se ha detectado un error. Toca 🐞 para enviarlo.', 3500));
 
 // Comprobación periódica del estado de la simulación (colonos atascados, fuera del mapa…).
@@ -621,6 +636,36 @@ function renderRoster(): void {
 $('cp-draft').addEventListener('click', () => scene().toggleDraftSelected());
 
 // --- Ficha del colono ------------------------------------------------------------
+/** Barras de comida, descanso y ánimo, con los motivos del ánimo. */
+function renderNeeds(c: Colonist): void {
+  const { mood, reasons } = moodOf(c);
+  const bars: [string, number, string][] = [
+    ['Comida', c.needs.food, '#c8a040'],
+    ['Descanso', c.needs.rest, '#6fa8dc'],
+    ['Ánimo', mood, '#8fc060'],
+  ];
+  $('cp-needs').replaceChildren(
+    ...bars.map(([name, v, color]) => {
+      const row = document.createElement('div');
+      row.className = 'need';
+      const label = document.createElement('span');
+      label.textContent = name;
+      const bar = document.createElement('div');
+      bar.className = 'bar';
+      const fill = document.createElement('span');
+      fill.style.width = `${Math.round(v * 100)}%`;
+      fill.style.background = v < 0.25 ? '#d9534f' : color;
+      bar.append(fill);
+      const pct = document.createElement('span');
+      pct.className = 'num';
+      pct.textContent = `${Math.round(v * 100)}`;
+      row.append(label, bar, pct);
+      return row;
+    }),
+  );
+  $('cp-mood').textContent = reasons.map((r) => `${r.value > 0 ? '+' : '−'} ${r.text}`).join(' · ');
+}
+
 /** Texto de cada prioridad de trabajo (0 = no lo hace). */
 const PRIORITY_LABELS = ['—', '1', '2', '3', '4'];
 let lastPriorityKey = '';
@@ -698,6 +743,7 @@ game.events.on('selection', (c: Colonist | null, group: Colonist[] = c ? [c] : [
   panel.classList.remove('group');
   lastGroupKey = groupKey;
   $('cp-activity').textContent = activityLabel(c);
+  renderNeeds(c);
   renderPriorities(c);
   if (lastPanelId === c.id) return; // el resto no cambia mientras siga seleccionado
   lastPanelId = c.id;

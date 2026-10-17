@@ -38,5 +38,54 @@
     },
     "work": 250,
     "description": "Fibra de cáñamo prensada en tablones: madera cuando escasean los árboles."
+  },
+  {
+    "id": "hacer_hormigon",
+    "name": "Hacer hormigón",
+    "station": "horno",
+    "inputs": {
+      "piedra": 6,
+      "chatarra": 1
+    },
+    "outputs": {
+      "hormigon": 5
+    },
+    "work": 350,
+    "description": "Piedra molida y cocida con un poco de chatarra de armazón."
+  },
+  {
+    "id": "extraer_piedra",
+    "name": "Extraer piedra",
+    "station": "cantera",
+    "inputs": {},
+    "outputs": {
+      "piedra": 6
+    },
+    "work": 700,
+    "description": "Piedra sin fin, para cuando se acaben las rocas del mapa. Lento."
+  },
+  {
+    "id": "reciclar_restos",
+    "name": "Reciclar restos",
+    "station": "recicladora",
+    "inputs": {},
+    "outputs": {
+      "chatarra": 4
+    },
+    "work": 900,
+    "description": "Saca chatarra de la basura y los restos de la colonia. Lento."
+  },
+  {
+    "id": "reciclar_componentes",
+    "name": "Recuperar componentes",
+    "station": "recicladora",
+    "inputs": {
+      "chatarra": 12
+    },
+    "outputs": {
+      "componentes": 1
+    },
+    "work": 700,
+    "description": "Desguaza chatarra fina hasta sacar piezas útiles."
   }
 ]

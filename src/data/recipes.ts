@@ -22,8 +22,10 @@ export function validateRecipe(d: unknown): RecipeDef {
   };
   if (!r || !r.id || !r.name) fail('falta id o nombre');
   if (!BUILDINGS.some((b) => b.id === r.station && b.category === 'taller')) fail(`taller desconocido ${r.station}`);
+  // Las de extracción (cantera, recicladora) pueden no tener entradas; todas tienen salida.
+  if (!r.outputs || Object.keys(r.outputs).length === 0) fail('sin salidas');
+  if (!r.inputs) fail('sin entradas');
   for (const part of [r.inputs, r.outputs]) {
-    if (!part || Object.keys(part).length === 0) fail('sin entradas o salidas');
     for (const [res, n] of Object.entries(part)) {
       if (!RESOURCES.includes(res as ResourceId)) fail(`recurso desconocido ${res}`);
       if (!Number.isInteger(n) || (n as number) <= 0) fail(`cantidad de ${res}`);

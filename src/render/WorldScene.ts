@@ -749,6 +749,8 @@ export class WorldScene extends Phaser.Scene {
       if (hidden > 0) img.setTint(0xb8c4d0);
       else img.clearTint();
       img.setDepth(COLONIST_DEPTH + v.y / 1000);
+      // Durmiendo: tumbado.
+      img.setAngle(c.activity === 'sleeping' ? -90 : 0);
       this.syncCarried(c, img);
     }
   }
@@ -1194,6 +1196,8 @@ export class WorldScene extends Phaser.Scene {
     if (job) text += ` · orden: ${HARVEST_JOB_NAMES[job].toLowerCase()}`;
     const zone = this.world.zones.at(tile.x, tile.y);
     if (zone) text = `${zone.name} (${STORAGE_PRIORITY_NAMES[zone.priority].toLowerCase()}) · ${text}`;
+    const room = this.world.rooms.at(tile.x, tile.y);
+    if (room) text = `Habitación (${room.tiles.length} casillas, ${room.doors} ${room.doors === 1 ? 'puerta' : 'puertas'}) · ${text}`;
     const farm = this.world.farms.at(tile.x, tile.y);
     const plant = this.world.farms.plantAt(tile.x, tile.y);
     if (plant) text = `${plant.crop.name} ${plant.growth >= 1 ? 'maduras' : `${Math.floor(plant.growth * 100)} %`} · ${text}`;
@@ -1338,6 +1342,14 @@ function drawItemTexture(scene: Phaser.Scene, key: string, r: ResourceId): void 
       for (const [x, y] of [[3, 3], [5, 2], [7, 3], [4, 4], [8, 4]]) px(x, y, 2, 1, fill[(x + y) % 2]);
       break;
     }
+    case 'hormigon':
+      // Bloques de hormigón.
+      for (const [x, y] of [[1, 5], [6, 5], [3, 2]]) {
+        px(x, y, 5, 3, '#1a1410');
+        px(x + 1, y, 3, 2, '#a8a49c');
+        px(x + 1, y + 1, 1, 1, '#86827a');
+      }
+      break;
     case 'metal':
       // Lingotes apilados.
       for (const [x, y] of [[1, 5], [6, 5], [3, 2]]) {

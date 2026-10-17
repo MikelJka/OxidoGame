@@ -128,6 +128,30 @@ function drawStation(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: numb
   const px = painter(ctx);
   const h = tileH + wallH;
   ctx.clearRect(0, 0, tile, h);
+  if (def.id === 'cantera') {
+    // Pila de bloques cortados con un trípode de poleas.
+    px(1, tileH - 2, tile - 2, wallH + 2, '#1a1410');
+    for (let y = tileH - 1, row = 0; y < h - 1; y += 3, row++) {
+      for (let x = 2 + (row % 2) * 2; x < tile - 3; x += 4) px(x, y, 3, 2, row % 2 ? top : face);
+    }
+    px(3, 0, 1, tileH, '#5a4228');
+    px(12, 0, 1, tileH, '#5a4228');
+    px(3, 0, 10, 1, '#5a4228');
+    px(8, 1, 1, tileH - 2, '#8a9096'); // cuerda
+    return;
+  }
+  if (def.id === 'recicladora') {
+    // Tolva con una cinta y chatarra cayendo.
+    px(1, 1, tile - 2, h - 1, '#1a1410');
+    px(2, 2, tile - 4, tileH - 3, top);
+    px(4, 3, tile - 8, tileH - 5, '#2a2420');
+    px(2, tileH - 1, tile - 4, wallH - 1, face);
+    px(2, h - 4, tile - 4, 2, dark);
+    for (let x = 3; x < tile - 3; x += 3) px(x, h - 4, 1, 2, '#8a9096');
+    px(6, 4, 2, 1, '#c27a3e');
+    px(9, 5, 2, 1, '#8a9096');
+    return;
+  }
   if (def.id === 'horno') {
     px(1, 1, tile - 2, h - 1, '#1a1410');
     px(2, 2, tile - 4, tileH - 3, top);
@@ -166,6 +190,16 @@ function drawShelf(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number
   px(tile - 2, 0, 2, h, '#1a1410');
   px(0, 0, 1, h, face);
   px(tile - 2, 0, 1, h, face);
+  if (def.id === 'armario') {
+    // Armario cerrado: dos puertas con tiradores.
+    px(1, 0, tile - 2, h, '#1a1410');
+    px(2, 1, tile - 4, tileH - 2, top);
+    px(2, tileH - 1, tile - 4, wallH, face);
+    px(Math.floor(tile / 2), tileH - 1, 1, wallH, dark);
+    px(Math.floor(tile / 2) - 2, tileH + Math.floor(wallH / 2), 1, 2, '#d8c27a');
+    px(Math.floor(tile / 2) + 2, tileH + Math.floor(wallH / 2), 1, 2, '#d8c27a');
+    return;
+  }
   // Baldas.
   for (let y = 1; y < h - 2; y += Math.max(3, Math.floor(h / 4))) {
     px(1, y, tile - 2, 2, '#1a1410');

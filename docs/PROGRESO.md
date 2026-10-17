@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (tarde, 12) — Fin de la fase 3 y primeras necesidades (fase 4)
+
+- **Habitaciones**: el juego detecta los cuartos cerrados por muros (las puertas y portones los separan); al tocar dentro se ve «Habitación (12 casillas, 1 puerta)». Servirán para el ánimo y la temperatura.
+- **Cantera** (🪵20 🪨10) y **recicladora** (🔩20 ⚙️2) en 🏗 → Talleres: sacan piedra y chatarra sin materiales, despacio (para cuando se acaben las del mapa); la recicladora también saca componentes de la chatarra.
+- **Hormigón** 🧱: el horno lo hace con piedra y un poco de chatarra. Muro y muro alto de hormigón (muy resistentes y baratos), barricada y suelo de hormigón. **Armario** (caben 2 montones).
+- **Fase 3 terminada**: se cumple el criterio («diseño un refugio cerrado y los colonos lo construyen con recursos»), comprobado con un test que pone los planos de un cuarto con puerta, deja que los colonos lo levanten y detecta la habitación. Queda pendiente de la fase 3 solo el armero (llegará con las armas).
+- **Fase 4 empieza — necesidades** (`src/sim/needs.ts`, con tests): cada colono tiene comida y descanso. Con hambre va al montón de comida más cercano (patatas, maíz, setas) y come; cansado, o de noche, duerme en una cama libre o, si no hay, en el suelo. Si el hambre o el agotamiento son graves, deja lo que esté haciendo. Ánimo con sus motivos (hambre, cansancio, dónde durmió —mejor en una cama dentro de una habitación—, rasgos optimista/pesimista); el ánimo bajo y el agotamiento hacen trabajar más despacio. Los rasgos «trabajador», «perezoso» y «glotón» ya tienen efecto.
+- La colonia empieza con 60 patatas. Aviso en pantalla si alguien pasa hambre y no queda comida. En la ficha del colono: barras de comida, descanso y ánimo, y los motivos. Los que duermen se ven tumbados.
+- Todo se guarda con la partida (las anteriores empiezan con los colonos bien comidos y descansados).
+- Qué probar: hacer camas dentro de un cuarto y ver que duermen ahí de noche; dejar que se acaben las patatas y ver el aviso; tener un huerto para no pasar hambre.
+- Siguiente: sed y agua (recoger agua, filtrar la contaminada), cocina, y después salud, raids y combate.
+
 ## 2026-10-17 (tarde, 11) — Colono encerrado por árboles que rebrotan (#7)
 
 - Aviso automático #7 desde el móvil: «Óscar está encerrado: solo llega a 1 casilla». No se reproduce con la partida sola, así que la causa más probable es la novedad de hoy: los tocones que rodeaban a un colono quieto (reclutado o descansando) rebrotaron como árboles y le cerraron el paso.

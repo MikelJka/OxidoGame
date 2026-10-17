@@ -9,6 +9,8 @@ import { harvestAt, harvestTile, Stockpile } from './resources';
 import { StorageZones } from './zones';
 import { GrowZones } from './farming';
 import { regrowNature } from './nature';
+import { Rooms } from './rooms';
+import { EAT_TICKS, EXHAUSTED, foodDecay, HUNGRY, isFood, NUTRITION, restDecay, restGain, STARVING, TIRED } from './needs';
 import { applyTerrainJob, LOWER_STONE, terrainBlocker, TerrainJob, TerrainOrders } from './terrain';
 import { Structure, Structures } from './structures';
 import type { TileRect } from './designations';
@@ -41,6 +43,8 @@ export interface WorldOptions {
   colonists?: number;
   /** Mapa ya hecho (al cargar una partida): no se genera ni se reparten provisiones. */
   map?: GameMap;
+  /** Hambre y sueño (por defecto, sí). */
+  needs?: boolean;
 }
 
 export class World implements JobContext {
@@ -61,10 +65,18 @@ export class World implements JobContext {
   readonly farms: GrowZones;
   /** Obras de terreno pendientes (rebajar, elevar, rampas). */
   readonly terrain: TerrainOrders;
+  /** Habitaciones cerradas (se recalculan solas cuando cambian construcciones o relieve). */
+  readonly rooms: Rooms;
   /** Casillas cuyo objeto ha cambiado desde la última vez que se preguntó (para repintarlas). */
   private changedTiles: number[] = [];
   /** Cambia cuando cambia el relieve (el dibujado recoloca lo que va encima del suelo). */
   terrainVersion = 0;
+  /** Cambia cuando cambia algún objeto del mapa (talado, rebrotado…). */
+  propsVersion = 0;
+  /** Tick a partir del cual cada colono vuelve a mirar si puede comer o dormir. */
+  private nextNeedScan = new Map<number, number>();
+  /** Hambre y sueño activados (se pueden quitar en pruebas que no van de eso). */
+  needsEnabled: boolean;
   /** Tick a partir del cual cada colono vuelve a buscar trabajo. */
   private nextJobScan = new Map<number, number>();
   tick = 0;
@@ -72,6 +84,7 @@ export class World implements JobContext {
   private accumulator = 0;
 
   constructor(opts: WorldOptions) {
+    this.needsEnabled = opts.needs ?? true;
     this.map = opts.map ?? generateMap({ width: opts.width ?? MAP_SIZE, height: opts.height ?? MAP_SIZE, seed: opts.seed });
     this.rng = new Rng(opts.seed ^ 0x51ed270b);
     if (!opts.map) this.spawnColonists(opts.colonists ?? 3);
@@ -87,7 +100,15 @@ export class World implements JobContext {
     this.structures = new Structures(this.map);
     this.farms = new GrowZones(this.map);
     this.terrain = new TerrainOrders(this.map);
+    this.rooms = new Rooms(this.map, this.structures, () => `${this.structures.version}:${this.terrainVersion}:${this.propsVersion}`);
     if (!opts.map) this.dropStartingSupplies();
+  }
+
+  /** Apunta casillas que hay que repintar (y que pueden cambiar las habitaciones). */
+  private markChanged(...tiles: number[]): void {
+    if (tiles.length === 0) return;
+    this.changedTiles.push(...tiles);
+    this.propsVersion++;
   }
 
   /** Devuelve (y olvida) las casillas cuyo objeto ha cambiado: el dibujado las repinta. */
@@ -111,7 +132,7 @@ export class World implements JobContext {
   harvest(x: number, y: number): Partial<Stockpile> | null {
     const gains = harvestTile(this.map, x, y, this.rng);
     if (gains) {
-      this.changedTiles.push(y * this.map.width + x);
+      this.markChanged(y * this.map.width + x);
       this.items.dropAll(x, y, gains);
       // Lo que queda (p. ej. un tocón) no sigue designado: hay que volver a marcarlo.
       this.designations.remove(x, y);
@@ -143,7 +164,7 @@ export class World implements JobContext {
         // Nada nace a menos de 2 casillas de un colono ni en su camino: un árbol que rebrota no puede encerrarlo.
         !this.colonists.some((c) => Math.abs(c.tile.x - x) <= 2 && Math.abs(c.tile.y - y) <= 2) &&
         !this.colonists.some((c) => c.path.some((p) => p.x === x && p.y === y)));
-      this.changedTiles.push(...grown);
+      this.markChanged(...grown);
     }
     // Las plantas crecen a saltos de un segundo (basta y cuesta poco).
     if (this.tick % TICKS_PER_SECOND === 0) {
@@ -160,6 +181,7 @@ export class World implements JobContext {
     const path = findPath(this.map, c.tile, target);
     if (!path) return false;
     this.dropJob(c); // la orden directa manda sobre el trabajo
+    if (c.need) this.endNeed(c); // y sobre comer o dormir
     c.path = path;
     c.activity = 'moving';
     c.waitTicks = 0;
@@ -222,6 +244,14 @@ export class World implements JobContext {
   }
 
   private updateColonist(c: Colonist): void {
+    if (this.needsEnabled) {
+      this.decayNeeds(c);
+      if (c.need) {
+        this.updateNeed(c);
+        return;
+      }
+      if (!c.drafted && this.tryStartNeed(c)) return;
+    }
     if (c.job) {
       this.updateJob(c);
       return;
@@ -248,6 +278,141 @@ export class World implements JobContext {
       return;
     }
     this.startWander(c);
+  }
+
+  // --- Necesidades: comer y dormir --------------------------------------------------
+
+  private decayNeeds(c: Colonist): void {
+    const n = c.needs;
+    n.food = Math.max(0, n.food - foodDecay(c, TICKS_PER_DAY));
+    if (c.activity !== 'sleeping') n.rest = Math.max(0, n.rest - restDecay(TICKS_PER_HOUR));
+  }
+
+  /** Es de noche (22:00–6:00): hora de dormir. */
+  private get isNight(): boolean {
+    const h = this.hour;
+    return h >= 22 || h < 6;
+  }
+
+  /** Empieza a comer o a dormir si hace falta. Lo urgente interrumpe el trabajo. */
+  private tryStartNeed(c: Colonist): boolean {
+    const n = c.needs;
+    const busy = c.job !== null || c.activity === 'moving';
+    const wantsSleep = n.rest < (busy ? EXHAUSTED : TIRED) || (!busy && this.isNight && n.rest < 0.75);
+    const wantsFood = n.food < (busy ? STARVING : HUNGRY);
+    if (!wantsSleep && !wantsFood) return false;
+    if (this.tick < (this.nextNeedScan.get(c.id) ?? 0)) return false;
+    // Primero lo más grave.
+    const order: ('comer' | 'dormir')[] = n.food < n.rest ? ['comer', 'dormir'] : ['dormir', 'comer'];
+    for (const what of order) {
+      if (what === 'comer' && !wantsFood) continue;
+      if (what === 'dormir' && !wantsSleep) continue;
+      if (what === 'comer' ? this.startEating(c) : this.startSleeping(c)) return true;
+    }
+    this.nextNeedScan.set(c.id, this.tick + JOB_RETRY_TICKS);
+    return false;
+  }
+
+  /** Va al montón de comida más cercano al que se llega. */
+  private startEating(c: Colonist): boolean {
+    const foods = this.items
+      .list()
+      .filter((s) => isFood(s.resource) && this.reservations.holder(s.x, s.y, 'pickup') === undefined)
+      .sort((a, b) => Math.abs(a.x - c.tile.x) + Math.abs(a.y - c.tile.y) - (Math.abs(b.x - c.tile.x) + Math.abs(b.y - c.tile.y)));
+    for (const f of foods.slice(0, 6)) {
+      const route = this.routeTo(c, [{ x: f.x, y: f.y }]);
+      if (!route) continue;
+      if (c.job) this.dropJob(c);
+      this.reservations.reserve(f.x, f.y, c.id, 'pickup');
+      c.need = { type: 'comer', x: f.x, y: f.y, bed: false, progress: 0 };
+      c.path = route.path;
+      c.activity = 'toNeed';
+      return true;
+    }
+    return false;
+  }
+
+  /** Va a la cama libre más cercana; si no hay, duerme donde está. */
+  private startSleeping(c: Colonist): boolean {
+    const beds = this.structures
+      .all()
+      .filter((s) => s.built && s.def.id === 'cama' && this.reservations.holder(s.x, s.y) === undefined)
+      .sort((a, b) => Math.abs(a.x - c.tile.x) + Math.abs(a.y - c.tile.y) - (Math.abs(b.x - c.tile.x) + Math.abs(b.y - c.tile.y)));
+    if (c.job) this.dropJob(c);
+    for (const b of beds.slice(0, 4)) {
+      const route = this.routeTo(c, [{ x: b.x, y: b.y }]);
+      if (!route) continue;
+      this.reservations.reserve(b.x, b.y, c.id, 'work');
+      c.need = { type: 'dormir', x: b.x, y: b.y, bed: true, progress: 0 };
+      c.path = route.path;
+      c.activity = 'toNeed';
+      return true;
+    }
+    c.need = { type: 'dormir', x: c.tile.x, y: c.tile.y, bed: false, progress: 0 };
+    c.path = [];
+    c.activity = 'sleeping';
+    return true;
+  }
+
+  /** Deja de comer o dormir (terminado o imposible) y suelta lo reservado. */
+  private endNeed(c: Colonist): void {
+    this.reservations.releaseAll(c.id);
+    c.need = null;
+    c.path = [];
+    c.activity = 'idle';
+    c.waitTicks = 10;
+  }
+
+  private updateNeed(c: Colonist): void {
+    const t = c.need!;
+    if (c.path.length > 0) {
+      this.moveAlongPath(c);
+      return;
+    }
+    if (t.type === 'comer') {
+      const stack = this.items.at(t.x, t.y);
+      if (!stack || !isFood(stack.resource)) {
+        this.endNeed(c);
+        return;
+      }
+      if (c.tile.x !== t.x || c.tile.y !== t.y) {
+        const path = findPath(this.map, c.tile, t, JOB_PATH_NODES);
+        if (!path || path.length === 0) this.endNeed(c);
+        else c.path = path;
+        return;
+      }
+      c.activity = 'eating';
+      t.progress++;
+      if (t.progress < EAT_TICKS) return;
+      const per = NUTRITION[stack.resource] ?? 0.1;
+      const units = Math.max(1, Math.ceil((1 - c.needs.food) / per));
+      const got = this.items.take(t.x, t.y, units);
+      if (got) c.needs.food = Math.min(1, c.needs.food + got.amount * per);
+      this.endNeed(c);
+      return;
+    }
+    // Dormir.
+    if (t.bed) {
+      const bed = this.structures.at(t.x, t.y);
+      if (!bed || !bed.built) {
+        this.endNeed(c);
+        return;
+      }
+      if (c.tile.x !== t.x || c.tile.y !== t.y) {
+        const path = findPath(this.map, c.tile, t, JOB_PATH_NODES);
+        if (!path || path.length === 0) this.endNeed(c);
+        else c.path = path;
+        return;
+      }
+    }
+    c.activity = 'sleeping';
+    c.needs.rest = Math.min(1, c.needs.rest + restGain(t.bed, TICKS_PER_HOUR));
+    // Se despierta descansado (o, de día, bastante descansado) o si el hambre aprieta.
+    const rested = c.needs.rest >= 0.99 || (!this.isNight && c.needs.rest >= 0.85);
+    if (rested || c.needs.food < STARVING) {
+      c.needs.sleptIn = t.bed ? (this.rooms.at(t.x, t.y) ? 'habitacion' : 'cama') : 'suelo';
+      this.endNeed(c);
+    }
   }
 
   /** Busca trabajo (si toca) y lo empieza. true si ahora tiene uno. */
@@ -389,7 +554,7 @@ export class World implements JobContext {
   finishTerrainWork(x: number, y: number, job: TerrainJob): void {
     this.terrain.remove(x, y);
     const changed = applyTerrainJob(this.map, x, y, job);
-    this.changedTiles.push(...changed);
+    this.markChanged(...changed);
     this.terrainVersion++;
     if (job === 'rebajar') this.items.drop(x, y, 'piedra', LOWER_STONE);
     // En una zanja no se guarda nada: lo que hubiera se aparta.
@@ -539,6 +704,7 @@ export class World implements JobContext {
     if (!c || c.drafted === drafted) return;
     c.drafted = drafted;
     this.dropJob(c);
+    if (c.need) this.endNeed(c);
     c.path = [];
     c.activity = 'idle';
     c.waitTicks = drafted ? 0 : 30;
@@ -557,6 +723,7 @@ export class World implements JobContext {
     const other = this.colonists.find((k) => k !== c && k.job && k.job.x === x && k.job.y === y);
     if (other) this.dropJob(other);
     this.dropJob(c);
+    if (c.need) this.endNeed(c);
     const plan = findJobAt(this, c, x, y);
     if (!plan || !reservePlan(this.reservations, c, plan.job)) {
       if (addedMark) this.designations.remove(x, y);

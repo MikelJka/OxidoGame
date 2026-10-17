@@ -136,6 +136,40 @@
     }
   },
   {
+    "id": "muro_hormigon",
+    "name": "Muro de hormigón",
+    "category": "muro",
+    "cost": {
+      "hormigon": 4
+    },
+    "work": 350,
+    "hp": 900,
+    "blocks": true,
+    "height": 1,
+    "colors": {
+      "top": "#a8a49c",
+      "face": "#86827a",
+      "dark": "#5a5751"
+    }
+  },
+  {
+    "id": "muro_alto_hormigon",
+    "name": "Muro alto de hormigón",
+    "category": "muro",
+    "cost": {
+      "hormigon": 8
+    },
+    "work": 650,
+    "hp": 1800,
+    "blocks": true,
+    "height": 2,
+    "colors": {
+      "top": "#a8a49c",
+      "face": "#86827a",
+      "dark": "#5a5751"
+    }
+  },
+  {
     "id": "porton_madera",
     "name": "Portón de madera",
     "category": "porton",
@@ -417,6 +451,24 @@
     }
   },
   {
+    "id": "barricada_hormigon",
+    "name": "Barricada de hormigón",
+    "category": "defensa",
+    "cost": {
+      "hormigon": 4
+    },
+    "work": 220,
+    "hp": 650,
+    "blocks": false,
+    "moveCost": 2.5,
+    "height": 1,
+    "colors": {
+      "top": "#a8a49c",
+      "face": "#86827a",
+      "dark": "#5a5751"
+    }
+  },
+  {
     "id": "suelo_madera",
     "name": "Suelo de madera",
     "category": "suelo",
@@ -468,6 +520,24 @@
       "top": "#7c7a74",
       "face": "#5e5c57",
       "dark": "#45433f"
+    }
+  },
+  {
+    "id": "suelo_hormigon",
+    "name": "Suelo de hormigón",
+    "category": "suelo",
+    "cost": {
+      "hormigon": 2
+    },
+    "work": 90,
+    "hp": 200,
+    "blocks": false,
+    "moveCost": 0.8,
+    "height": 0,
+    "colors": {
+      "top": "#9a978f",
+      "face": "#85827a",
+      "dark": "#6a675f"
     }
   },
   {
@@ -527,6 +597,26 @@
     }
   },
   {
+    "id": "armario",
+    "name": "Armario",
+    "category": "mueble",
+    "cost": {
+      "madera": 15,
+      "chatarra": 4
+    },
+    "work": 300,
+    "hp": 120,
+    "blocks": false,
+    "moveCost": 1.5,
+    "height": 1,
+    "storage": 2,
+    "colors": {
+      "top": "#8a6a4a",
+      "face": "#6a4a2c",
+      "dark": "#3e2a18"
+    }
+  },
+  {
     "id": "horno",
     "name": "Horno de fundición",
     "category": "taller",
@@ -560,6 +650,42 @@
       "top": "#9a7448",
       "face": "#6a4a2c",
       "dark": "#3e2a18"
+    }
+  },
+  {
+    "id": "cantera",
+    "name": "Cantera",
+    "category": "taller",
+    "cost": {
+      "madera": 20,
+      "piedra": 10
+    },
+    "work": 700,
+    "hp": 300,
+    "blocks": true,
+    "height": 1,
+    "colors": {
+      "top": "#9a958c",
+      "face": "#6a5a4a",
+      "dark": "#3a302a"
+    }
+  },
+  {
+    "id": "recicladora",
+    "name": "Recicladora",
+    "category": "taller",
+    "cost": {
+      "chatarra": 20,
+      "componentes": 2
+    },
+    "work": 800,
+    "hp": 300,
+    "blocks": true,
+    "height": 1,
+    "colors": {
+      "top": "#8a7a6a",
+      "face": "#6a5a4a",
+      "dark": "#3a302a"
     }
   }
 ]
