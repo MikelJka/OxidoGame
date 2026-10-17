@@ -74,7 +74,13 @@ export function mountGodMode(opts: Options): GodPanel {
     tool = t;
     hint.textContent = t ? `${help}. Toca otra vez la herramienta para dejarla.` : 'Elige una herramienta y toca el mapa, o usa los atajos.';
     opts.setTap(t ? apply : null);
+    btn.classList.toggle('active', !!t);
     renderTools();
+    // En el móvil el panel tapa el mapa: se recoge y el 🪄 (resaltado) lo vuelve a abrir.
+    if (t && window.innerWidth < 700) {
+      panel.hidden = true;
+      opts.toast(`🪄 ${help}. Toca 🪄 para volver al panel.`, 2500);
+    }
   }
 
   function apply(tile: { x: number; y: number }, hit: Colonist | undefined): boolean {
@@ -154,8 +160,13 @@ export function mountGodMode(opts: Options): GodPanel {
   );
 
   btn.addEventListener('click', () => {
-    panel.hidden = !panel.hidden;
-    if (panel.hidden) setTool(null);
+    // Con una herramienta en uso y el panel recogido, el 🪄 solo vuelve a abrirlo.
+    if (panel.hidden) {
+      panel.hidden = false;
+      return;
+    }
+    panel.hidden = true;
+    setTool(null);
   });
   document.getElementById('gp-close')!.addEventListener('click', () => {
     panel.hidden = true;

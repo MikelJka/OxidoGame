@@ -129,6 +129,7 @@ try {
     await sleep(300);
     await page.click('#gp-tools button');
     await page.mouse.click(d.viewport.width / 2, d.viewport.height / 2);
+    if (await page.isHidden('#god-panel')) await page.click('#god-btn');
     await page.click('#gp-actions button:nth-child(4)');
     await sleep(500);
     await page.screenshot({ path: `smoke/${d.name}-dios.png` });
