@@ -326,6 +326,10 @@ export class View3D {
     }
     const geo = new THREE.PlaneGeometry(1, 2);
     geo.translate(0, 1, 0);
+    // Normales hacia arriba: se iluminan como el suelo de al lado (si no, a contraluz salen negros).
+    const nor = geo.getAttribute('normal') as THREE.BufferAttribute;
+    for (let i = 0; i < nor.count; i++) nor.setXYZ(i, 0, 1, 0);
+    nor.needsUpdate = true;
     for (const g of groups.values()) {
       const mat = new THREE.MeshLambertMaterial({ map: this.propTexture(g.p, g.variant), transparent: true, alphaTest: 0.5, side: THREE.DoubleSide });
       const mesh = new THREE.InstancedMesh(geo, mat, g.pos.length);
