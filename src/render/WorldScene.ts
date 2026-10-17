@@ -15,6 +15,7 @@ import { fertilityAt, plantStage } from '../sim/farming';
 import { TERRAIN_JOB_NAMES, terrainBlocker, TerrainJob } from '../sim/terrain';
 import { CropDef } from '../data/crops';
 import { drawBuilding, faceHeight, wallHeight } from './buildArt';
+import { COLONIST_SIZE, CROP_SIZE, ITEM_H, ITEM_W, paintColonist, paintCrop, paintItem } from './spriteArt';
 import { canvasPropRasterizer, paintGround, PropRasterizer, TILE } from './mapArt';
 import { LIFT, liftOf, occludedFraction, pickTile, rowY, setTilt, TILE_H, tiltIndex, TILTS, TOP_MARGIN } from './projection';
 import { fromView, normalizeRotation, Rotation, rotateMap, tileFromView, tileToView, toView } from './rotation';
@@ -101,6 +102,8 @@ export class WorldScene extends Phaser.Scene {
   private pinchStartAngle = 0;
   private pinchStartY: [number, number] = [0, 0];
   selectedId: number | null = null;
+  /** false mientras se usa la vista 3D: las teclas y botones de cámara son suyos. */
+  cameraKeysEnabled = true;
   /** Colonos elegidos además del principal (selección de grupo). */
   extraIds = new Set<number>();
   private sprites = new Map<number, Phaser.GameObjects.Image>();
@@ -220,7 +223,7 @@ export class WorldScene extends Phaser.Scene {
       if (this.selectedId !== null) this.emitSelection();
       if (this.selectedStation) this.game.events.emit('station-tick', this.selectedStation);
     }
-    if (!this.keys || isTyping()) return;
+    if (!this.keys || isTyping() || !this.cameraKeysEnabled) return;
     const cam = this.cameras.main;
     const speed = (0.6 * delta) / cam.zoom;
     const k = this.keys;
@@ -477,10 +480,12 @@ export class WorldScene extends Phaser.Scene {
       kb.on('keydown-THREE', hotkey(() => this.setSpeed(3)));
       kb.on('keydown-ESC', hotkey(() => (this.designMode ? this.setDesignMode(null) : this.select(null))));
       kb.on('keydown-G', hotkey(() => this.toggleDraftSelected()));
-      kb.on('keydown-Q', hotkey(() => this.rotate(-1)));
-      kb.on('keydown-E', hotkey(() => this.rotate(1)));
-      kb.on('keydown-R', hotkey(() => this.tilt(-1)));
-      kb.on('keydown-F', hotkey(() => this.tilt(1)));
+      // Con la vista 3D, las teclas de cámara las lleva ella.
+      const cam2d = (fn: () => void) => hotkey(() => this.cameraKeysEnabled && fn());
+      kb.on('keydown-Q', cam2d(() => this.rotate(-1)));
+      kb.on('keydown-E', cam2d(() => this.rotate(1)));
+      kb.on('keydown-R', cam2d(() => this.tilt(-1)));
+      kb.on('keydown-F', cam2d(() => this.tilt(1)));
     }
   }
 
@@ -656,17 +661,26 @@ export class WorldScene extends Phaser.Scene {
   /** Toque o clic sin arrastrar: seleccionar colono, dar orden o deseleccionar. */
   private handleTap(p: Phaser.Input.Pointer): void {
     const world = this.cameras.main.getWorldPoint(p.x, p.y);
-    const hit = this.colonistAtScreen(world.x, world.y);
-    if (hit && !p.rightButtonReleased()) {
-      const ev = p.event as MouseEvent | undefined;
-      if (ev && (ev.shiftKey || ev.ctrlKey || ev.metaKey)) this.toggleSelect(hit.id);
+    const ev = p.event as MouseEvent | undefined;
+    this.tapAt(this.colonistAtScreen(world.x, world.y), this.pickRealTile(world.x, world.y), {
+      right: p.rightButtonReleased(),
+      additive: !!ev && (ev.shiftKey || ev.ctrlKey || ev.metaKey),
+    });
+  }
+
+  /**
+   * Toque o clic (sin arrastrar) sobre un colono o una casilla real: elegir colono, abrir el
+   * panel de lo tocado, mandar a los elegidos u ordenar un trabajo. Lo usan la vista 2D y la 3D.
+   */
+  tapAt(hit: Colonist | undefined, t: { x: number; y: number } | null, opts: { right: boolean; additive: boolean }): void {
+    if (hit && !opts.right) {
+      if (opts.additive) this.toggleSelect(hit.id);
       else this.select(hit.id);
       return;
     }
-    this.reportTile(p);
+    if (t) this.reportTileAt(t);
     if (this.selectedId === null) {
       // Sin colono elegido, tocar un almacén abre su panel (filtro y prioridad).
-      const t = this.pickRealTile(world.x, world.y);
       const z = t ? this.world.zones.at(t.x, t.y) : undefined;
       const f = t ? this.world.farms.at(t.x, t.y) : undefined;
       const st = t ? this.world.structures.at(t.x, t.y) : undefined;
@@ -675,7 +689,7 @@ export class WorldScene extends Phaser.Scene {
       this.selectStation(st && st.built && st.def.category === 'taller' ? st : null);
       return;
     }
-    const tile = this.pickRealTile(world.x, world.y);
+    const tile = t;
     if (!tile) return;
     const { x: tx, y: ty } = tile;
     const ids = this.selectedIds();
@@ -700,6 +714,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private flashTarget(tx: number, ty: number): void {
+    if (!this.scene.isVisible()) return; // con la vista 3D, la 2D no se dibuja
     const g = this.add.graphics().setDepth(COLONIST_DEPTH + 1);
     g.lineStyle(2, 0xf0d7b0, 1);
     const v = this.viewTile(tx, ty);
@@ -770,6 +785,34 @@ export class WorldScene extends Phaser.Scene {
       this.selectStation(null);
     }
     this.game.events.emit('design-mode', mode);
+  }
+
+  /** Vista 3D: empieza, sigue y termina un arrastre de órdenes en casillas reales. */
+  designBegin(t: { x: number; y: number } | null): void {
+    this.designStart = t;
+    this.designEnd = t;
+    this.drawDesignPreview();
+  }
+
+  designUpdate(t: { x: number; y: number } | null): void {
+    if (!this.designStart || !t) return;
+    this.designEnd = t;
+    this.drawDesignPreview();
+  }
+
+  designFinish(apply: boolean): void {
+    if (apply) this.applyDesignDrag();
+    this.clearDesignDrag();
+  }
+
+  /** Área que se está arrastrando (para la vista previa de la vista 3D). */
+  currentDesignRect(): TileRect | null {
+    return this.designRect();
+  }
+
+  /** ¿Se marcaría esta casilla con el modo y el área actuales? (vista previa de la 3D). */
+  designHitAt(x: number, y: number, edge: boolean): boolean {
+    return this.designHit(x, y, edge);
   }
 
   private clearDesignDrag(): void {
@@ -857,7 +900,6 @@ export class WorldScene extends Phaser.Scene {
     const ya = Math.max(0, Math.min(r.y0, r.y1));
     const yb = Math.min(this.map.height - 1, Math.max(r.y0, r.y1));
     const color = DESIGN_COLORS[mode];
-    const d = this.world.designations;
     const st = this.world.structures;
     // Construcción de varias casillas: se ve lo que ocupará (verde si cabe, rojo si no).
     if (mode === 'construir') {
@@ -872,7 +914,28 @@ export class WorldScene extends Phaser.Scene {
         return;
       }
     }
-    const hitAt = (x: number, y: number, edge: boolean): boolean => {
+    const hitAt = (x: number, y: number, edge: boolean): boolean => this.designHit(x, y, edge);
+    for (let y = ya; y <= yb; y++) {
+      for (let x = xa; x <= xb; x++) {
+        const edge = x === xa || x === xb || y === ya || y === yb;
+        const hit = hitAt(x, y, edge);
+        if (hit) {
+          g.fillStyle(color, 0.55);
+          this.fillTile(g, x, y, 1);
+        } else if (edge) {
+          g.fillStyle(0xf0d7b0, 0.22);
+          this.fillTile(g, x, y);
+        }
+      }
+    }
+  }
+
+  /** Casilla que se marcaría con el modo de órdenes actual. */
+  private designHit(x: number, y: number, edge: boolean): boolean {
+    const mode = this.designMode;
+    if (!mode) return false;
+    const d = this.world.designations;
+    const st = this.world.structures;
       switch (mode) {
         case 'cancelar': return d.at(x, y) !== undefined || this.world.terrain.at(x, y) !== undefined;
         case 'rebajar':
@@ -887,20 +950,6 @@ export class WorldScene extends Phaser.Scene {
         case 'quitarPlano': return st.at(x, y) !== undefined;
         default: return canDesignate(this.map, x, y, mode);
       }
-    };
-    for (let y = ya; y <= yb; y++) {
-      for (let x = xa; x <= xb; x++) {
-        const edge = x === xa || x === xb || y === ya || y === yb;
-        const hit = hitAt(x, y, edge);
-        if (hit) {
-          g.fillStyle(color, 0.55);
-          this.fillTile(g, x, y, 1);
-        } else if (edge) {
-          g.fillStyle(0xf0d7b0, 0.22);
-          this.fillTile(g, x, y);
-        }
-      }
-    }
   }
 
   /** Rehace las marcas de las casillas designadas si han cambiado. */
@@ -1209,7 +1258,12 @@ export class WorldScene extends Phaser.Scene {
   private reportTile(p: Phaser.Input.Pointer): void {
     const world = this.cameras.main.getWorldPoint(p.x, p.y);
     const tile = this.pickRealTile(world.x, world.y);
-    if (!tile || !inBounds(this.map, tile.x, tile.y)) return;
+    if (tile) this.reportTileAt(tile);
+  }
+
+  /** Muestra la información de una casilla real. */
+  reportTileAt(tile: { x: number; y: number }): void {
+    if (!inBounds(this.map, tile.x, tile.y)) return;
     const stack = this.world.items.at(tile.x, tile.y);
     const job = this.world.designations.at(tile.x, tile.y);
     let text = describeTile(this.map, tile.x, tile.y);
@@ -1262,133 +1316,11 @@ function isTyping(): boolean {
   return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || (el instanceof HTMLElement && el.isContentEditable);
 }
 
-/** Dibuja un colono pixel art de 16×16 con sus colores. */
-function drawColonistTexture(scene: Phaser.Scene, key: string, c: Colonist): void {
-  const tex = scene.textures.createCanvas(key, 16, 16);
-  if (!tex) return;
-  const ctx = tex.getContext();
-  const hex = (n: number, shade = 0) => {
-    const r = Math.max(0, Math.min(255, ((n >> 16) & 255) + shade));
-    const g = Math.max(0, Math.min(255, ((n >> 8) & 255) + shade));
-    const b = Math.max(0, Math.min(255, (n & 255) + shade));
-    return `rgb(${r},${g},${b})`;
-  };
-  const px = (x: number, y: number, w: number, h: number, color: string) => {
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, w, h);
-  };
-  const outline = '#1a1410';
-  // Sombra
-  px(4, 14, 8, 1, 'rgba(0,0,0,0.35)');
-  // Piernas
-  px(6, 11, 2, 3, '#3a3028');
-  px(9, 11, 2, 3, '#3a3028');
-  // Cuerpo (camisa) con contorno
-  px(4, 6, 8, 6, outline);
-  px(5, 6, 6, 5, hex(c.look.shirt));
-  px(5, 6, 6, 1, hex(c.look.shirt, 25));
-  px(10, 7, 1, 4, hex(c.look.shirt, -30));
-  // Brazos
-  px(4, 7, 1, 3, hex(c.look.skin, -20));
-  px(11, 7, 1, 3, hex(c.look.skin, -20));
-  // Cabeza
-  px(5, 1, 6, 6, outline);
-  px(6, 2, 4, 4, hex(c.look.skin));
-  // Pelo
-  px(6, 1, 4, 2, hex(c.look.hair));
-  px(5, 2, 1, 2, hex(c.look.hair));
-  // Ojo (mira a la derecha; el sprite se voltea)
-  px(9, 4, 1, 1, outline);
-  tex.refresh();
-}
 
 function itemTextureKey(r: ResourceId): string {
   return `item-${r}`;
 }
 
-/** Dibuja un montón pixel art de 12×10 para un recurso. */
-function drawItemTexture(scene: Phaser.Scene, key: string, r: ResourceId): void {
-  const tex = scene.textures.createCanvas(key, 12, 10);
-  if (!tex) return;
-  const ctx = tex.getContext();
-  const px = (x: number, y: number, w: number, h: number, color: string) => {
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, w, h);
-  };
-  px(1, 9, 10, 1, 'rgba(0,0,0,0.35)'); // sombra
-  switch (r) {
-    case 'madera':
-      // Tres troncos apilados con las puntas claras.
-      for (const [x, y] of [[1, 5], [6, 5], [3, 1]]) {
-        px(x, y, 5, 4, '#1a1410');
-        px(x + 1, y + 1, 3, 2, '#7a5634');
-        px(x + 1, y + 1, 1, 2, '#c9a26a');
-      }
-      break;
-    case 'piedra':
-      // Bloques de piedra grises.
-      for (const [x, y, w] of [[1, 5, 5], [6, 5, 5], [3, 1, 6]]) {
-        px(x, y, w, 4, '#22201e');
-        px(x + 1, y + 1, w - 2, 2, '#8c8a84');
-        px(x + 1, y + 1, w - 2, 1, '#b4b1a8');
-      }
-      break;
-    case 'chatarra':
-      // Chapas y barras oxidadas.
-      px(1, 5, 10, 4, '#1a1410');
-      px(2, 6, 8, 2, '#8a4a26');
-      px(3, 6, 2, 1, '#c27a3e');
-      px(7, 7, 2, 1, '#5c5a56');
-      px(4, 2, 5, 3, '#1a1410');
-      px(5, 3, 3, 1, '#a35a2c');
-      px(9, 1, 1, 4, '#6e6c66');
-      break;
-    case 'componentes':
-      // Caja con un engranaje.
-      px(1, 2, 10, 7, '#1a1410');
-      px(2, 3, 8, 5, '#5a6b4a');
-      px(2, 3, 8, 1, '#7d8f68');
-      px(5, 4, 2, 3, '#d8c27a');
-      px(4, 5, 4, 1, '#d8c27a');
-      break;
-    case 'patata':
-    case 'maiz':
-    case 'setas': {
-      // Cesto de mimbre con la cosecha encima.
-      const fill = r === 'patata' ? ['#b08a52', '#8a6a3a'] : r === 'maiz' ? ['#e0c040', '#a08a20'] : ['#c8b8a0', '#a85a3a'];
-      px(1, 5, 10, 4, '#1a1410');
-      px(2, 5, 8, 3, '#8a6a3a');
-      for (let x = 2; x < 10; x += 2) px(x, 6, 1, 2, '#6a4e2a');
-      px(2, 2, 8, 3, '#1a1410');
-      for (const [x, y] of [[3, 3], [5, 2], [7, 3], [4, 4], [8, 4]]) px(x, y, 2, 1, fill[(x + y) % 2]);
-      break;
-    }
-    case 'hormigon':
-      // Bloques de hormigón.
-      for (const [x, y] of [[1, 5], [6, 5], [3, 2]]) {
-        px(x, y, 5, 3, '#1a1410');
-        px(x + 1, y, 3, 2, '#a8a49c');
-        px(x + 1, y + 1, 1, 1, '#86827a');
-      }
-      break;
-    case 'metal':
-      // Lingotes apilados.
-      for (const [x, y] of [[1, 5], [6, 5], [3, 2]]) {
-        px(x, y, 5, 3, '#1a1410');
-        px(x + 1, y, 3, 2, '#9aa0a6');
-        px(x + 1, y, 3, 1, '#c8ccd0');
-      }
-      break;
-    case 'fibra':
-      // Madejas de fibra atadas.
-      px(1, 3, 10, 6, '#1a1410');
-      px(2, 4, 8, 4, '#8ac06a');
-      px(2, 5, 8, 1, '#5a8a44');
-      px(5, 3, 2, 6, '#c8a060');
-      break;
-  }
-  tex.refresh();
-}
 
 /** Texto de una construcción o plano para la información de casilla. */
 function structureLabel(st: Structures, s: Structure): string {
@@ -1417,57 +1349,24 @@ function loadOrNew(save: string, seed: number, game: Phaser.Game): World {
   }
 }
 
-/** Dibuja una planta de 16×16 en una de sus fases (0 sembrada … 3 madura). */
-function drawCropTexture(scene: Phaser.Scene, key: string, crop: CropDef, stage: number): void {
-  const tex = scene.textures.createCanvas(key, 16, 16);
+
+function drawColonistTexture(scene: Phaser.Scene, key: string, c: Colonist): void {
+  const tex = scene.textures.createCanvas(key, COLONIST_SIZE, COLONIST_SIZE);
   if (!tex) return;
-  const ctx = tex.getContext();
-  const px = (x: number, y: number, w: number, h: number, color: string) => {
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, w, h);
-  };
-  const { leaf, dark, fruit } = crop.colors;
-  // Montoncito de tierra removida.
-  px(3, 13, 10, 2, '#3a2a1a');
-  px(4, 12, 8, 1, '#5a4228');
-  if (stage === 0) {
-    px(6, 12, 1, 1, '#8a6a40');
-    px(9, 12, 1, 1, '#8a6a40');
-    tex.refresh();
-    return;
-  }
-  if (crop.id === 'setas') {
-    // Setas: pies claros y sombreros que crecen.
-    const caps = stage === 1 ? [[7, 10, 2]] : stage === 2 ? [[5, 9, 3], [9, 10, 2]] : [[3, 7, 4], [8, 8, 4], [6, 10, 3]];
-    for (const [x, y, w] of caps) {
-      px(x + Math.floor(w / 2), y + 1, 1, 12 - y, leaf);
-      px(x, y, w, 2, stage === 3 ? fruit : dark);
-      px(x, y, w, 1, stage === 3 ? '#d08060' : leaf);
-    }
-    tex.refresh();
-    return;
-  }
-  const h = stage === 1 ? 3 : stage === 2 ? 7 : crop.id === 'maiz' || crop.id === 'canamo' ? 12 : 9;
-  // Tallo y hojas alternas.
-  px(7, 13 - h, 2, h, dark);
-  for (let k = 1; k < h; k += 2) {
-    const y = 13 - k;
-    px(k % 4 === 1 ? 4 : 9, y, 3, 1, leaf);
-  }
-  px(6, 13 - h, 4, 1, leaf);
-  if (stage === 3) {
-    if (crop.id === 'maiz') {
-      px(9, 5, 2, 4, fruit);
-      px(5, 7, 2, 3, fruit);
-    } else if (crop.id === 'patata') {
-      px(4, 11, 2, 2, fruit);
-      px(10, 11, 2, 2, fruit);
-      px(6, 4, 1, 1, '#e0e0c0');
-      px(9, 5, 1, 1, '#e0e0c0');
-    } else {
-      px(5, 2, 6, 2, fruit);
-      px(4, 4, 8, 1, fruit);
-    }
-  }
+  paintColonist(tex.getContext(), c);
+  tex.refresh();
+}
+
+function drawItemTexture(scene: Phaser.Scene, key: string, r: ResourceId): void {
+  const tex = scene.textures.createCanvas(key, ITEM_W, ITEM_H);
+  if (!tex) return;
+  paintItem(tex.getContext(), r);
+  tex.refresh();
+}
+
+function drawCropTexture(scene: Phaser.Scene, key: string, crop: CropDef, stage: number): void {
+  const tex = scene.textures.createCanvas(key, CROP_SIZE, CROP_SIZE);
+  if (!tex) return;
+  paintCrop(tex.getContext(), crop, stage);
   tex.refresh();
 }

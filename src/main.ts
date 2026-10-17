@@ -97,13 +97,63 @@ game.events.on('clock', (label: string, speed: GameSpeed) => {
 });
 
 // --- Giro de la vista -------------------------------------------------------
-$('rot-left').addEventListener('click', () => scene().rotate(-1));
-$('rot-right').addEventListener('click', () => scene().rotate(1));
+// --- Vista 3D (en pruebas) ------------------------------------------------------
+type View3DType = import('./render3d/View3D').View3D;
+let view3d: View3DType | null = null;
+const VIEW3D_KEY = 'oxido.vista3d';
+const view3dBtn = $<HTMLButtonElement>('view3d-btn');
+async function setView3D(on: boolean): Promise<void> {
+  const s = scene();
+  if (on && !view3d) {
+    try {
+      const mod = await import('./render3d/View3D');
+      view3d = new mod.View3D($('game'), () => game.scene.getScene('world') as WorldScene);
+    } catch (err) {
+      recordError('error', `No se pudo abrir la vista 3D: ${err instanceof Error ? err.message : String(err)}`);
+      showToast('⚠️ No se pudo abrir la vista 3D en este navegador', 4000);
+      return;
+    }
+  }
+  if (on) {
+    view3d!.start();
+    game.canvas.style.display = 'none';
+    s.scene.setVisible(false);
+    s.cameraKeysEnabled = false;
+  } else {
+    view3d?.stop();
+    game.canvas.style.display = '';
+    s.scene.setVisible(true);
+    s.cameraKeysEnabled = true;
+  }
+  document.body.classList.toggle('mode-3d', on);
+  view3dBtn.textContent = on ? '🗺 Volver a la vista 2D' : '🧊 Vista 3D (en pruebas)';
+  try {
+    localStorage.setItem(VIEW3D_KEY, on ? '1' : '0');
+  } catch {
+    // sin almacenamiento: no se recuerda
+  }
+}
+view3dBtn.addEventListener('click', () => {
+  menu.hidden = true;
+  void setView3D(!view3d?.active);
+});
+window.setInterval(() => {
+  if (view3d?.active) $('compass').textContent = `↑${view3d.compass()}`;
+}, 250);
+
+$('rot-left').addEventListener('click', () => (view3d?.active ? view3d.rotateBy(Math.PI / 4) : scene().rotate(-1)));
+$('rot-right').addEventListener('click', () => (view3d?.active ? view3d.rotateBy(-Math.PI / 4) : scene().rotate(1)));
 game.events.on('view-rotation', (r: Rotation) => ($('compass').textContent = `↑${northLabel(r)}`));
 // El botón de inclinación recorre las inclinaciones, de mirar desde arriba a mirar de lado, y vuelve a empezar.
 const tiltBtn = $('tilt-btn');
 let tiltNow = DEFAULT_TILT;
-tiltBtn.addEventListener('click', () => scene().setTiltLevel((tiltNow + 1) % TILTS.length));
+tiltBtn.addEventListener('click', () => {
+  if (view3d?.active) {
+    view3d.tiltBy(0.25);
+    return;
+  }
+  scene().setTiltLevel((tiltNow + 1) % TILTS.length);
+});
 game.events.on('view-tilt', (i: number) => {
   tiltNow = i;
   tiltBtn.title = `Inclinación: ${TILTS[i].name} (${i + 1}/${TILTS.length}) · R / F`;
@@ -130,7 +180,18 @@ $('new-map').addEventListener('click', () => {
   scene().scene.restart({ seed });
 });
 
+let view3dRestored = false;
 game.events.on('map-ready', (map: GameMap) => {
+  if (!view3dRestored) {
+    view3dRestored = true;
+    let want = false;
+    try {
+      want = localStorage.getItem(VIEW3D_KEY) === '1';
+    } catch {
+      // nada
+    }
+    if (want) void setView3D(true);
+  }
   seed = map.seed;
   $('seed').textContent = `Mapa · semilla ${seed}`;
   const near = reachableResources(map);
@@ -633,7 +694,10 @@ function renderRoster(): void {
         s.toggleSelect(c.id);
         return;
       }
-      if (s.selectedId === c.id && s.extraIds.size === 0) s.focus(c.id);
+      if (s.selectedId === c.id && s.extraIds.size === 0) {
+        s.focus(c.id);
+        view3d?.lookAt(c.pos.x, c.pos.y);
+      }
       s.select(c.id);
     });
     b.addEventListener('dblclick', () => scene().focus(c.id));

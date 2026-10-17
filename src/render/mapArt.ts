@@ -5,9 +5,9 @@ import { LIFT, renderLevel, TILE, TILE_H, TOP_MARGIN } from './projection';
 
 export { TILE };
 
-type RGB = [number, number, number];
+export type RGB = [number, number, number];
 
-const GROUND: Record<Terrain, RGB> = {
+export const GROUND: Record<Terrain, RGB> = {
   [Terrain.DeepWater]: [30, 50, 66],
   [Terrain.Water]: [44, 78, 94],
   [Terrain.ShallowWater]: [74, 108, 112],
@@ -64,7 +64,8 @@ export interface PropSprite {
 /** Dibuja un objeto en un lienzo pequeño y devuelve sus píxeles; null si no hay lienzo (tests). */
 export type PropRasterizer = (p: Prop, rng: Rng) => PropSprite | null;
 
-const PROP_HEADROOM = 16;
+/** Píxeles que un objeto puede sobresalir por encima de su casilla. */
+export const PROP_HEADROOM = 16;
 
 /** Rasterizador con un lienzo del navegador: los objetos pueden sobresalir hacia arriba de su casilla. */
 export function canvasPropRasterizer(): PropRasterizer {
@@ -325,7 +326,8 @@ function shadeRelief(map: GameMap, c: RGB, pxl: number, py: number, g: number): 
   return out;
 }
 
-function drawProp(ctx: CanvasRenderingContext2D, p: Prop, x: number, y: number, rng: Rng): void {
+/** Dibuja un objeto del mapa (árbol, roca…) con su base en (x, y + 16). Lo usa también la vista 3D. */
+export function drawProp(ctx: CanvasRenderingContext2D, p: Prop, x: number, y: number, rng: Rng): void {
   const r = (dx: number, dy: number, w: number, h: number, color: string) => {
     ctx.fillStyle = color;
     ctx.fillRect(x + dx, y + dy, w, h);

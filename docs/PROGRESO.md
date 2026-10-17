@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (noche) — Vista 3D en pruebas
+
+- Primer paso de la vista libre que pidió Mikel: ☰ → 🧊 Vista 3D (en pruebas), hecha con Three.js (`src/render3d/`). El mismo mundo, ahora en 3D: terreno en bloques con sus alturas, árboles, rocas y demás de pie (siempre mirando a la cámara), construcciones como bloques de su material (de varias casillas, translúcidas y azuladas si son planos, rojizas si se van a demoler), montones, plantas, colonos (tumbados si duermen, con banderín si están reclutados), almacenes, huertos y órdenes marcados en el suelo, y luz de día y de noche.
+- Cámara libre: **botón central del ratón** (o Alt + arrastrar) para pivotar a cualquier ángulo e inclinación; arrastrar (izquierdo o derecho) o WASD para moverse; rueda para el zoom; Q/E giran, R/F inclinan. En el móvil: un dedo mueve, dos dedos hacen zoom, giran (girando los dedos) e inclinan (subiéndolos o bajándolos a la vez). Los botones ⟲ ⟳ giran 45° y ∠ inclina.
+- Se juega igual que en 2D: tocar colonos, mandarlos, órdenes concretas, arrastrar áreas de órdenes, almacenes, huertos y construcción (con la vista previa en el suelo), paneles de almacén, huerto y taller. La vista 2D sigue ahí (☰ → Volver a la vista 2D) y el juego recuerda cuál se usó.
+- Prueba de humo nueva en GitHub Actions: abre el juego en Chromium sin pantalla, en PC y en móvil, pasa por 2D y 3D, pivota con el botón central y falla si hay algún error; guarda capturas.
+- Pendiente de la 3D: barras de progreso, marcas de zona más vistosas, muros que se unan, sombras, y rendimiento en móviles antiguos.
+- Qué probar: activar la vista 3D en PC y en el móvil, pivotar, construir un cuarto y hacer un huerto desde ella.
+
 ## 2026-10-17 (tarde, 13) — Construcciones de varias casillas
 
 - Petición de Mikel: talleres y camas más grandes que 1×1, y poder girar la vista libremente.

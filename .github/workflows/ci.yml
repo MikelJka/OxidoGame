@@ -15,5 +15,16 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
       - run: npm test
       - run: npm run build
+      # Prueba de humo en Chromium sin pantalla: 2D y 3D, PC y móvil; capturas en «smoke».
+      - run: npx playwright install --with-deps chromium
+      - run: npm run smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capturas
+          path: smoke/
+          retention-days: 7
