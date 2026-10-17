@@ -4,7 +4,7 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Pendiente
 
-- [ ] **Armas** (2026-10-17, aprobado por Mikel): cuerpo a cuerpo (cuchillo, tubería, machete) y a distancia (arco, pistola casera, escopeta, rifle) fabricadas en el banco; las de fuego gastan munición (se fabrica con chatarra y componentes). Los colonos equipan la mejor que haya. Incluye los armeros de pared (fase 3).
+- [ ] **Armas** (2026-10-17, aprobado por Mikel): cuerpo a cuerpo (cuchillo, tubería, lanza, machete) y a distancia (arco; pistola casera, escopeta y rifle). Decidido con Mikel: cada colono coge solo la mejor arma libre y en su ficha se le puede fijar una o dejarlo desarmado; munición en dos tipos, flechas (madera + fibra) para el arco y balas (chatarra + componentes) para las de fuego; ahora se fabrican en el banco las de cuerpo a cuerpo y el arco, y **las de fuego se desbloquean con investigación (fase 5)**; los saqueadores llegan armados según el día (palos y cuchillos al principio, arcos y armas de fuego más adelante) y al caer sueltan el arma. Incluye los armeros de pared (fase 3). Los números (daño, alcance, costes) se proponen a Mikel antes de cerrarlos.
 
 - [ ] **Reglas de combate** (2026-10-17, aprobado por Mikel), en este orden: cobertura y alcance (muros, barricadas, rocas y árboles quitan acierto; la precisión baja con la distancia y sube con Combate); armadura (chalecos y cascos de chatarra o metal); moral y huida (los enemigos huyen al perder a la mitad o al líder; colonos con ánimo muy bajo pueden entrar en pánico); fuego amigo y posturas (mantener posición, atacar a un objetivo, retirarse).
 
