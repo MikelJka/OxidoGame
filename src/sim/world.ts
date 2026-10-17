@@ -4,7 +4,8 @@ import { findPath, isWalkable, Point } from './pathfinding';
 import { Rng } from './rng';
 import { GroundItems } from './items';
 import { Designations } from './designations';
-import { harvestTile, Stockpile } from './resources';
+import { canWorkFrom, findJob, Reservations, workSpeed } from './jobs';
+import { harvestAt, harvestTile, Stockpile } from './resources';
 import { RESOURCES, STARTING_SUPPLIES } from '../data/resources';
 
 /** Ticks de simulación por segundo real a velocidad x1. */
@@ -18,6 +19,10 @@ const BASE_WALK_SPEED = 3;
 const START_HOUR = 7;
 /** Máximo de ticks a simular por fotograma para no bloquear el navegador. */
 const MAX_TICKS_PER_UPDATE = 60;
+/** Ticks que espera un colono para volver a buscar trabajo si no encontró ninguno. */
+const JOB_RETRY_TICKS = 90;
+/** Ticks de pausa entre terminar un trabajo y empezar el siguiente. */
+const JOB_PAUSE_TICKS = 10;
 /** Lado (en casillas) de los mapas de partida. */
 export const MAP_SIZE = 140;
 
@@ -38,6 +43,10 @@ export class World {
   readonly items: GroundItems;
   /** Casillas marcadas para talar, picar o saquear. */
   readonly designations: Designations;
+  /** Qué colono hace cada casilla designada. */
+  readonly reservations: Reservations;
+  /** Tick a partir del cual cada colono vuelve a buscar trabajo. */
+  private nextJobScan = new Map<number, number>();
   tick = 0;
   speed: GameSpeed = 1;
   private accumulator = 0;
@@ -48,6 +57,7 @@ export class World {
     this.spawnColonists(opts.colonists ?? 3);
     this.items = new GroundItems(this.map);
     this.designations = new Designations(this.map);
+    this.reservations = new Reservations(this.map);
     this.dropStartingSupplies();
   }
 
@@ -96,6 +106,7 @@ export class World {
     if (!c) return false;
     const path = findPath(this.map, c.tile, target);
     if (!path) return false;
+    this.dropJob(c); // la orden directa manda sobre el trabajo
     c.path = path;
     c.activity = 'moving';
     c.waitTicks = 0;
@@ -158,10 +169,17 @@ export class World {
   }
 
   private updateColonist(c: Colonist): void {
+    if (c.job) {
+      this.updateJob(c);
+      return;
+    }
     if (c.path.length > 0) {
+      // Quien deambula deja de hacerlo si aparece trabajo; una orden directa no se interrumpe.
+      if (c.activity === 'wandering' && this.tryStartJob(c)) return;
       this.moveAlongPath(c);
       return;
     }
+    if (this.tryStartJob(c)) return;
     if (c.activity !== 'idle') {
       c.activity = 'idle';
       c.waitTicks = this.rng.int(60, 240);
@@ -171,6 +189,64 @@ export class World {
       return;
     }
     this.startWander(c);
+  }
+
+  /** Busca trabajo (si toca) y lo empieza. true si ahora tiene uno. */
+  private tryStartJob(c: Colonist): boolean {
+    if (this.designations.count === 0) return false;
+    if (this.tick < (this.nextJobScan.get(c.id) ?? 0)) return false;
+    const plan = findJob(this.map, c, this.designations, this.reservations);
+    if (!plan || !this.reservations.reserve(plan.job.x, plan.job.y, c.id)) {
+      this.nextJobScan.set(c.id, this.tick + JOB_RETRY_TICKS);
+      return false;
+    }
+    c.job = plan.job;
+    c.path = plan.path;
+    c.activity = 'toJob';
+    c.waitTicks = 0;
+    return true;
+  }
+
+  /** Deja el trabajo actual (terminado, cancelado o imposible) y suelta su reserva. */
+  private dropJob(c: Colonist): void {
+    if (!c.job) return;
+    this.reservations.release(c.job.x, c.job.y, c.id);
+    c.job = null;
+    c.path = [];
+    c.activity = 'idle';
+    c.waitTicks = JOB_PAUSE_TICKS;
+  }
+
+  private updateJob(c: Colonist): void {
+    const j = c.job!;
+    // La orden se ha quitado o el objeto ya no da nada: se deja.
+    if (this.designations.at(j.x, j.y) !== j.kind || harvestAt(this.map, j.x, j.y)?.job !== j.kind) {
+      this.dropJob(c);
+      return;
+    }
+    if (c.path.length > 0) {
+      c.activity = 'toJob';
+      this.moveAlongPath(c);
+      return;
+    }
+    if (!canWorkFrom(this.map, c.tile, j.x, j.y)) {
+      const path = findPath(this.map, c.tile, j.stand, 12000);
+      if (!path || path.length === 0) {
+        this.dropJob(c);
+        this.nextJobScan.set(c.id, this.tick + JOB_RETRY_TICKS);
+        return;
+      }
+      c.path = path;
+      return;
+    }
+    c.activity = 'working';
+    const dx = j.x + 0.5 - c.pos.x;
+    if (Math.abs(dx) > 0.01) c.facing = dx > 0 ? 1 : -1;
+    j.progress += workSpeed(c, j.kind);
+    if (j.progress >= j.work) {
+      this.harvest(j.x, j.y);
+      this.dropJob(c);
+    }
   }
 
   private startWander(c: Colonist): void {

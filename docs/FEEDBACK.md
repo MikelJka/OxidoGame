@@ -9,6 +9,8 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Hecho
 
+- [x] **Fases 0 y 1 confirmadas** (2026-10-17): Mikel confirma que todo funciona en la URL pública, en móvil y PC (mapa, cámara, colonos, selección y órdenes de movimiento).
+
 - [x] **Alturas menos caóticas** (2026-10-17): el terreno ya no cambia de altura cada dos casillas. Los niveles salen de la elevación suavizada y las manchas de menos de 40 casillas se funden con su entorno: el doble de zonas llanas amplias para construir (del 11 % al 31 % de la tierra en cuadrados de 7×7) y la mitad de bordes de nivel.
 - [x] **Mapas más grandes** (2026-10-17): de 100 × 100 a 140 × 140 casillas (casi el doble de superficie).
 - [x] **Vista con algo de 3D** (2026-10-17): relieve elevado con paredes, lo alto tapa lo de detrás, vista inclinada, giro en pasos de 90° (⟲ ⟳, girar dos dedos, Q/E) e inclinación ajustable en 4 pasos, de cenital a casi de lado (botón ∠, deslizar dos dedos arriba/abajo, R/F).

@@ -1,10 +1,29 @@
 import {
   FIRST_NAMES, HAIR_COLORS, NICKNAMES, SHIRT_COLORS, SKILLS, SKIN_COLORS, Skill, TRAITS, TRAIT_CONFLICTS, TraitDef,
 } from '../data/colonists';
+import { HARVEST_JOB_NAMES, HARVEST_JOB_VERBS, HarvestJob } from '../data/resources';
 import { Point } from './pathfinding';
 import { Rng } from './rng';
 
-export type ColonistActivity = 'idle' | 'wandering' | 'moving';
+export type ColonistActivity = 'idle' | 'wandering' | 'moving' | 'toJob' | 'working';
+
+/** Prioridad de un trabajo para un colono: 0 = no lo hace, 1 = el primero … 4 = el último. */
+export type WorkPriority = 0 | 1 | 2 | 3 | 4;
+export const DEFAULT_PRIORITY: WorkPriority = 3;
+
+/** Trabajo que tiene asignado un colono. */
+export interface ColonistJob {
+  kind: HarvestJob;
+  /** Casilla del objeto que se aprovecha. */
+  x: number;
+  y: number;
+  /** Casilla desde la que trabaja (la misma o una de al lado si el objeto bloquea el paso). */
+  stand: Point;
+  /** Ticks de trabajo acumulados (ya multiplicados por la velocidad del colono). */
+  progress: number;
+  /** Trabajo total que hace falta. */
+  work: number;
+}
 
 export interface Colonist {
   id: number;
@@ -26,6 +45,10 @@ export interface Colonist {
   waitTicks: number;
   /** Dirección a la que mira, para el sprite. */
   facing: 1 | -1;
+  /** Prioridad de cada trabajo. */
+  priorities: Record<HarvestJob, WorkPriority>;
+  /** Trabajo en curso, si tiene. */
+  job: ColonistJob | null;
 }
 
 export function createColonist(id: number, at: Point, rng: Rng): Colonist {
@@ -52,6 +75,8 @@ export function createColonist(id: number, at: Point, rng: Rng): Colonist {
     activity: 'idle',
     waitTicks: rng.int(10, 60),
     facing: 1,
+    priorities: { talar: DEFAULT_PRIORITY, minar: DEFAULT_PRIORITY, saquear: DEFAULT_PRIORITY },
+    job: null,
   };
 }
 
@@ -62,6 +87,8 @@ export function walkSpeedMultiplier(c: Colonist): number {
 export function activityLabel(c: Colonist): string {
   switch (c.activity) {
     case 'moving': return 'Yendo a una orden';
+    case 'toJob': return c.job ? `Yendo a ${HARVEST_JOB_NAMES[c.job.kind].toLowerCase()}` : 'Yendo a trabajar';
+    case 'working': return c.job ? `${HARVEST_JOB_VERBS[c.job.kind]} (${Math.floor((c.job.progress / c.job.work) * 100)} %)` : 'Trabajando';
     case 'wandering': return 'Deambulando';
     default: return 'Descansando';
   }

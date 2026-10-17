@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (tarde, 3) — Los colonos trabajan solos
+
+- Mikel confirma que todo funciona, también en móvil y PC: **fases 0 y 1 terminadas**.
+- Sistema de trabajos (`src/sim/jobs.ts`, con tests): cada colono libre busca trabajo entre lo designado, primero el de mejor prioridad y, dentro de ella, lo más cercano a lo que puede llegar andando. Reserva la casilla (dos colonos nunca hacen la misma), va hasta ella (o al lado si el objeto bloquea el paso, como árboles, rocas y coches), trabaja y, al terminar, los recursos caen al suelo, suben al inventario y la marca desaparece.
+- Velocidad de trabajo según la habilidad: talar con Cultivo, picar con Minería y saquear con Construcción (de ×0,6 con 0 puntos a ×1,6 con 20). Un árbol cuesta unos 10 s a x1 a un colono medio.
+- Prioridades por colono ya en la simulación (1 a 4, 0 = no lo hace; todas a 3 por ahora). El panel para cambiarlas es una tarea posterior.
+- Quitar la orden, o mandar al colono a otra casilla, hace que deje el trabajo y suelte la reserva. Quien deambula lo deja en cuanto aparece trabajo. Si algo no se alcanza, se ignora y se reintenta cada 3 s.
+- Se ve: el colono golpea mientras trabaja, encima del objeto hay una barra de progreso del color del trabajo y la ficha dice «Talando (45 %)» o «Yendo a talar». Las comprobaciones de 🐞 vigilan reservas y trabajos.
+- Qué probar: marcar unos árboles y rocas junto al inicio y ver cómo se reparten los tres colonos; quitar una orden a medias; mandar a un colono a otro sitio mientras trabaja.
+- Siguiente: zonas de almacén y transporte (los colonos llevan los montones a una zona). Con eso se cumple el criterio de la fase 2.
+
 ## 2026-10-17 (tarde, 2) — Órdenes: talar, picar y saquear
 
 - Mikel confirma que lo anterior funciona bien.

@@ -514,7 +514,9 @@ export class WorldScene extends Phaser.Scene {
       const img = this.sprites.get(c.id);
       if (!img) continue;
       const walking = c.path.length > 0 && this.world.speed > 0;
-      const bob = walking ? Math.abs(Math.sin(t / 90 + c.id)) * -1.5 : 0;
+      const working = c.activity === 'working' && this.world.speed > 0;
+      // Al trabajar, golpes cortos (hacha, pico o palanca); al andar, el paso.
+      const bob = walking ? Math.abs(Math.sin(t / 90 + c.id)) * -1.5 : working ? -Math.max(0, Math.sin(t / 70 + c.id)) * 2 : 0;
       // Sube o baja de nivel poco a poco en lugar de saltar.
       const target = this.liftAt(c.tile.x, c.tile.y);
       const prev = this.spriteLift.get(c.id) ?? target;
@@ -679,6 +681,7 @@ export class WorldScene extends Phaser.Scene {
   private drawSelection(): void {
     const g = this.selectionGfx;
     g.clear();
+    this.drawJobProgress(g);
     const c = this.selected();
     if (!c) return;
     const lift = this.colonistLift(c);
@@ -698,6 +701,23 @@ export class WorldScene extends Phaser.Scene {
     }
     g.lineStyle(2, 0xd96c2c, 1);
     g.strokeEllipse(here.x * TILE, rowY(here.y) - lift + 2, TILE * 0.95, TILE_H * 0.45);
+  }
+
+  /** Barra de progreso sobre cada objeto que se está trabajando. */
+  private drawJobProgress(g: Phaser.GameObjects.Graphics): void {
+    for (const c of this.world.colonists) {
+      const j = c.job;
+      if (!j || c.activity !== 'working') continue;
+      const v = this.viewTile(j.x, j.y);
+      const left = v.x * TILE + 1;
+      const top = v.y * TILE_H - liftOf(this.view, v.x, v.y) - 14;
+      const w = TILE - 2;
+      const frac = Math.min(1, j.progress / j.work);
+      g.fillStyle(0x1a1410, 0.9);
+      g.fillRect(left - 1, top - 1, w + 2, 4);
+      g.fillStyle(DESIGN_COLORS[j.kind], 1);
+      g.fillRect(left, top, Math.max(1, Math.round(w * frac)), 2);
+    }
   }
 
   private reportTile(p: Phaser.Input.Pointer): void {

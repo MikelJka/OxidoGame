@@ -11,7 +11,7 @@ Terminado: la URL pública muestra el mapa generado y se puede mover y hacer zoo
 - [x] Generador de mapas con semilla: lagos, ríos, colinas, roca, bosque muerto, ruinas, zonas irradiadas, manantiales, agua contaminada
 - [x] Dibujado pixel art del mapa y cámara (arrastrar, rueda, pellizco, teclado)
 - [x] Indicador de terreno al tocar o pasar el ratón; botón "Nuevo mapa"; semilla en la URL
-- [ ] Comprobar en la URL pública que funciona en móvil y PC (lo confirma Mikel en FEEDBACK.md)
+- [x] Comprobar en la URL pública que funciona en móvil y PC (lo confirma Mikel en FEEDBACK.md)
 
 ## Fase 1 — Mapa y colonos
 
@@ -27,7 +27,7 @@ Terminado: puedo mover la cámara y ver a 3 colonos caminar por el mapa; el tiem
 - [x] Ordenar a un colono seleccionado que vaya a una casilla (control directo)
 - [x] Suelo continuo con transiciones suaves y variedad mediante objetos (árboles secos, matorrales, rocas, chatarra, coches, muros, barriles tóxicos, charcos radiactivos, manantiales, huesos, neumáticos); carreteras viejas con ruinas; vados en los ríos
 - [x] Más geografía: terrazas de altura (llano bajo, llano, loma, meseta), acantilados, pendientes, pasos estrechos y vados garantizados; tests de variedad y conectividad
-- [ ] Comprobar en la URL pública que los colonos caminan, se seleccionan y se mueven en móvil y PC (lo confirma Mikel)
+- [x] Comprobar en la URL pública que los colonos caminan, se seleccionan y se mueven en móvil y PC (lo confirma Mikel)
 
 ## Fase 2 — Trabajos y recursos
 
@@ -36,7 +36,7 @@ Terminado: marco árboles y los colonos los talan y guardan la madera solos.
 - [x] Recursos en el mapa: árboles muertos (madera), rocas (piedra), chatarra en ruinas
 - [x] Inventario de la colonia y objetos en el suelo
 - [x] Herramienta de designación: talar, minar, saquear (arrastrar un área; en móvil, modo selección)
-- [ ] Sistema de trabajos: cola, reserva de tareas, prioridades por colono
+- [x] Sistema de trabajos: cola, reserva de tareas, prioridades por colono
 - [ ] Zonas de almacén y transporte
 - [ ] Panel de prioridades de trabajo
 - [ ] Los árboles vuelven a crecer con el tiempo (los tocones rebrotan y aparecen árboles nuevos cerca de otros)

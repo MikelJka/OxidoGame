@@ -79,6 +79,19 @@ export function checkWorld(world: World, progress = new Map<number, ProgressMark
       problems.push({ key: `item-amount-${s.x}-${s.y}`, message: `El montón de ${s.resource} en (${s.x}, ${s.y}) tiene ${s.amount} unidades` });
     }
   }
+  // Trabajos y reservas: cada trabajo en curso tiene su reserva y cada reserva, su colono.
+  for (const c of world.colonists) {
+    if (c.job && world.reservations.holder(c.job.x, c.job.y) !== c.id) {
+      problems.push({ key: `job-unreserved-${c.id}`, message: `${c.name} (#${c.id}) trabaja en (${c.job.x}, ${c.job.y}) sin tenerlo reservado` });
+    }
+  }
+  for (const r of world.reservations.list()) {
+    const c = world.colonists.find((k) => k.id === r.colonistId);
+    if (!c || !c.job || c.job.x !== r.x || c.job.y !== r.y) {
+      problems.push({ key: `reservation-orphan-${r.x}-${r.y}`, message: `La casilla (${r.x}, ${r.y}) está reservada por #${r.colonistId}, que no la está trabajando` });
+    }
+  }
+
   // Designaciones: solo sobre objetos que se aprovechan con ese trabajo.
   for (const d of world.designations.list()) {
     if (!canDesignate(map, d.x, d.y, d.job)) {

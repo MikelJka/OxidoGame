@@ -1,4 +1,5 @@
 /** Recursos de la colonia y trabajos para obtenerlos del mapa. Ampliar aquí, no en la lógica. */
+import type { Skill } from './colonists';
 
 export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes'] as const;
 
@@ -21,6 +22,22 @@ export const RESOURCE_ICONS: Record<ResourceId, string> = {
 
 /** Tipo de trabajo con el que se aprovecha un objeto del mapa. */
 export type HarvestJob = 'talar' | 'minar' | 'saquear';
+
+export const HARVEST_JOBS: readonly HarvestJob[] = ['talar', 'minar', 'saquear'];
+
+/** Habilidad que acelera cada trabajo. */
+export const HARVEST_JOB_SKILL: Record<HarvestJob, Skill> = {
+  talar: 'cultivo',
+  minar: 'mineria',
+  saquear: 'construccion',
+};
+
+/** Texto de la actividad de un colono mientras hace el trabajo. */
+export const HARVEST_JOB_VERBS: Record<HarvestJob, string> = {
+  talar: 'Talando',
+  minar: 'Picando',
+  saquear: 'Saqueando',
+};
 
 export const HARVEST_JOB_NAMES: Record<HarvestJob, string> = {
   talar: 'Talar',
