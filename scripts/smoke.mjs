@@ -51,6 +51,16 @@ try {
     await page.click('#build-btn');
     await sleep(300);
     await page.screenshot({ path: `smoke/${d.name}-2d-construir.png` });
+    if (!d.isMobile) {
+      // Fantasma blanco de una cama (girada con R) bajo el ratón.
+      await page.click('#build-modes button[data-build="cama"]');
+      await page.mouse.move(d.viewport.width / 2, d.viewport.height / 2);
+      await page.keyboard.press('r');
+      await page.mouse.move(d.viewport.width / 2 + 5, d.viewport.height / 2 + 5);
+      await sleep(400);
+      await page.screenshot({ path: `smoke/${d.name}-2d-fantasma.png` });
+      await page.keyboard.press('Escape');
+    }
     await page.click('#build-btn');
     // Vista 3D.
     await page.click('#menu-btn');
@@ -70,6 +80,15 @@ try {
       await page.mouse.click(600, 450);
       await sleep(1500);
       await page.screenshot({ path: `smoke/${d.name}-3d-orden.png` });
+      // Fantasma en 3D de un muro de piedra.
+      await page.click('#build-btn');
+      await page.click('#build-modes button[data-build="muro_piedra"]');
+      await page.mouse.move(640, 420);
+      await page.mouse.move(650, 430);
+      await sleep(600);
+      await page.screenshot({ path: `smoke/${d.name}-3d-fantasma.png` });
+      await page.keyboard.press('Escape');
+      await page.click('#build-btn');
     }
     await page.click('#menu-btn');
     await page.click('#view3d-btn');

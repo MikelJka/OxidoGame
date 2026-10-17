@@ -3,8 +3,11 @@ name: Probar rama
 # Prueba las ramas antes de llevarlas a main (las sesiones sin npm local lo usan).
 on:
   push:
-    branches-ignore: [main]
+    branches-ignore: [main, capturas]
   pull_request:
+
+permissions:
+  contents: write
 
 jobs:
   test:
@@ -28,3 +31,13 @@ jobs:
           name: capturas
           path: smoke/
           retention-days: 7
+      # Las capturas también se guardan en la rama «capturas» (las sesiones las miran desde ahí).
+      - name: Subir capturas a la rama «capturas»
+        if: always()
+        run: |
+          cd smoke
+          git init -q
+          git checkout -q -b capturas
+          git add .
+          git -c user.name=ci -c user.email=ci@localhost commit -qm "Capturas de ${GITHUB_REF_NAME} (${GITHUB_SHA::7})"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" capturas

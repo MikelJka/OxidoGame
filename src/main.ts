@@ -379,6 +379,7 @@ $('build-rot').addEventListener('click', () => rotateBuild());
 function rotateBuild(): void {
   const s = scene();
   s.buildRot = s.buildRot ? 0 : 1;
+  s.refreshDesignPreview();
   showToast(`Construcción girada (${s.buildRot ? 'en vertical' : 'en horizontal'})`, 1000);
 }
 shapeBtn.addEventListener('click', () => {
@@ -420,6 +421,8 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 't' || e.key === 'T') showMenu(orderModes.hidden ? 'orders' : null);
   if (e.key === 'b' || e.key === 'B') showMenu(buildModes.hidden ? 'build' : null);
   if (e.key === 'x' || e.key === 'X') rotateBuild();
+  // R también gira lo que se va a construir (fuera del modo construir, R inclina la vista).
+  if ((e.key === 'r' || e.key === 'R') && scene().designMode === 'construir') rotateBuild();
 });
 
 // --- Panel de un taller: qué fabricar y hasta cuánto ---------------------------

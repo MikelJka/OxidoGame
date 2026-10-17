@@ -200,7 +200,7 @@ export class Structures {
     const [w, h] = def.size ?? [1, 1];
     if (w * h > 1) return this.place(r.x0, r.y0, defId, rot) ? 1 : 0;
     let n = 0;
-    for (const t of Structures.areaTiles(r, shape)) if (this.place(t.x, t.y, defId)) n++;
+    for (const t of Structures.areaTiles(r, shape)) if (this.place(t.x, t.y, defId, rot)) n++;
     return n;
   }
 

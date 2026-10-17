@@ -11,7 +11,7 @@ import { drawProp, GROUND, PROP_HEADROOM } from '../render/mapArt';
 import { COLONIST_SIZE, CROP_SIZE, ITEM_H, ITEM_W, paintColonist, paintCrop, paintItem } from '../render/spriteArt';
 import { plantStage } from '../sim/farming';
 import { footprintTiles } from '../sim/structures';
-import { buildingDef } from '../data/buildings';
+import { BuildingDef, buildingDef } from '../data/buildings';
 import { Rng } from '../sim/rng';
 import { cameraPosition, clampOrbit, northLabel3d, OrbitState, panOrbit } from './camera3d';
 
@@ -76,6 +76,7 @@ export class View3D {
   private itemGroup = new THREE.Group();
   private itemsVersion = -1;
   private plantGroup = new THREE.Group();
+  private ghostGroup = new THREE.Group();
   private plantsVersion = -1;
   private overlay?: THREE.InstancedMesh;
   private overlayKey = '';
@@ -111,7 +112,7 @@ export class View3D {
     el.addEventListener('pointercancel', (e: PointerEvent) => this.pointerUp(e, true));
     el.addEventListener('wheel', (e: WheelEvent) => this.wheel(e), { passive: false });
     this.sun.position.set(-40, 80, -30);
-    this.scene3.add(this.sun, this.ambient, this.propGroup, this.structGroup, this.itemGroup, this.plantGroup);
+    this.scene3.add(this.sun, this.ambient, this.propGroup, this.structGroup, this.itemGroup, this.plantGroup, this.ghostGroup);
     this.ring.rotation.x = -Math.PI / 2;
     this.scene3.add(this.ring);
   }
@@ -341,7 +342,17 @@ export class View3D {
   private buildStructures(w: World): void {
     this.clearGroup(this.structGroup);
     for (const s of w.structures.all()) {
-      const tiles = w.structures.tilesOf(s);
+      for (const mesh of this.structureMeshes(w, s.def, w.structures.tilesOf(s), s.built ? (s.demolish ? 'demoler' : 'hecho') : 'plano', s.rot)) {
+        this.structGroup.add(mesh);
+      }
+    }
+  }
+
+  /** Bloques de una construcción. `look`: terminada, plano (azulado), a demoler (rojiza) o fantasma (blanco). */
+  private structureMeshes(w: World, def: BuildingDef, tiles: { x: number; y: number }[], look: 'hecho' | 'plano' | 'demoler' | 'fantasma', rot: 0 | 1 = 0): THREE.Mesh[] {
+    const out: THREE.Mesh[] = [];
+    const s = { def, x: tiles[0].x, y: tiles[0].y };
+    {
       const xs = tiles.map((t) => t.x);
       const ys = tiles.map((t) => t.y);
       const x0 = Math.min(...xs);
@@ -358,31 +369,35 @@ export class View3D {
       if (cat === 'taller') height = 0.8;
       if (cat === 'puerta' || cat === 'porton') inset = 0.3;
       if (cat === 'torre') inset = 0.12;
-      const face = new THREE.Color(s.def.colors.face);
-      const top = new THREE.Color(s.def.colors.top);
+      const ghost = look === 'fantasma';
+      const face = new THREE.Color(ghost ? 0xffffff : s.def.colors.face);
+      const top = new THREE.Color(ghost ? 0xffffff : s.def.colors.top);
       const mats = [face, face, top, face, face, face].map((c) =>
         new THREE.MeshLambertMaterial({
           color: c,
-          transparent: !s.built,
-          opacity: s.built ? 1 : 0.45,
-          emissive: s.built ? (s.demolish ? new THREE.Color(0x601010) : new THREE.Color(0)) : new THREE.Color(0x1a3a6a),
+          transparent: look === 'plano' || ghost,
+          opacity: ghost ? 0.55 : look === 'plano' ? 0.45 : 1,
+          depthWrite: !ghost,
+          emissive: new THREE.Color(look === 'demoler' ? 0x601010 : look === 'plano' ? 0x1a3a6a : ghost ? 0x777777 : 0),
         }),
       );
       // Puertas y portones, más finos en el sentido del paso.
-      const along = sw >= sh;
+      // Una puerta de una casilla girada se cruza de este a oeste en vez de norte a sur.
+      const along = sw === sh ? rot === 0 : sw > sh;
       const gx = along ? sw : sw - inset * 2;
       const gz = along ? sh - inset * 2 : sh;
       const geo = new THREE.BoxGeometry(cat === 'torre' ? sw - inset * 2 : gx, height, cat === 'torre' ? sh - inset * 2 : gz);
       const mesh = new THREE.Mesh(geo, mats);
       mesh.position.set(x0 + sw / 2, base + height / 2, y0 + sh / 2);
-      this.structGroup.add(mesh);
+      out.push(mesh);
       if (cat === 'torre') {
         // Plataforma con barandilla.
-        const plat = new THREE.Mesh(new THREE.BoxGeometry(sw + 0.1, 0.1, sh + 0.1), new THREE.MeshLambertMaterial({ color: top }));
+        const plat = new THREE.Mesh(new THREE.BoxGeometry(sw + 0.1, 0.1, sh + 0.1), new THREE.MeshLambertMaterial({ color: top, transparent: ghost, opacity: ghost ? 0.55 : 1 }));
         plat.position.set(x0 + sw / 2, base + height + 0.05, y0 + sh / 2);
-        this.structGroup.add(plat);
+        out.push(plat);
       }
     }
+    return out;
   }
 
   private itemTexture(r: string): THREE.CanvasTexture {
@@ -461,6 +476,14 @@ export class View3D {
             else if (edge) marks.push({ x, y, color: 0xf0d7b0, alpha: 0.35 });
           }
         }
+      }
+    }
+    // Fantasmas en blanco de lo que se va a construir.
+    this.clearGroup(this.ghostGroup);
+    if (rect && scene.designMode === 'construir') {
+      const def = buildingDef(scene.buildDefId);
+      for (const tiles of scene.ghostGroups(rect)) {
+        for (const mesh of this.structureMeshes(w, def, tiles, 'fantasma', scene.buildRot)) this.ghostGroup.add(mesh);
       }
     }
     if (this.overlay) {
@@ -645,7 +668,9 @@ export class View3D {
       // Sin pulsar: información de la casilla bajo el ratón.
       if (e.pointerType === 'mouse') {
         const t = this.pickTile(e.clientX, e.clientY);
-        if (t) this.getScene().reportTileAt(t);
+        const scene = this.getScene();
+        if (t) scene.reportTileAt(t);
+        if (scene.designMode) scene.setDesignHover(t);
       }
       return;
     }
@@ -717,7 +742,8 @@ export class View3D {
     this.keys.add(k);
     if (k === 'q') this.rotateBy(Math.PI / 8);
     if (k === 'e') this.rotateBy(-Math.PI / 8);
-    if (k === 'r') this.tiltBy(0.12);
+    // Al construir, R gira lo que se va a poner (lo hace main.ts).
+    if (k === 'r' && this.getScene().designMode !== 'construir') this.tiltBy(0.12);
     if (k === 'f') this.tiltBy(-0.12);
   }
 

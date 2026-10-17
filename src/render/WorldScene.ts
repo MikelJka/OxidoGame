@@ -120,6 +120,10 @@ export class WorldScene extends Phaser.Scene {
   private designGfx!: Phaser.GameObjects.Graphics;
   private designPreview!: Phaser.GameObjects.Graphics;
   private designVersion = -1;
+  /** Fantasmas de la vista previa de construcción. */
+  private ghostSprites: Phaser.GameObjects.Image[] = [];
+  /** Casilla bajo el ratón en modo de órdenes (sin pulsar). */
+  private designHover: { x: number; y: number } | null = null;
   private seenTerrainVersion = 0;
   /** Construcción que se coloca en el modo «construir» y forma del área. */
   buildDefId = 'muro_madera';
@@ -181,6 +185,8 @@ export class WorldScene extends Phaser.Scene {
     this.plantsVersion = -1;
     this.designStart = null;
     this.designEnd = null;
+    this.designHover = null;
+    this.ghostSprites = [];
     this.view = rotateMap(this.map, this.rotation);
     this.drawMap();
     this.selectionGfx = this.add.graphics().setDepth(COLONIST_DEPTH - 1);
@@ -412,6 +418,10 @@ export class WorldScene extends Phaser.Scene {
         return;
       }
       if (this.designMode) {
+        if (!p.isDown) {
+          const w = cam.getWorldPoint(p.x, p.y);
+          this.setDesignHover(this.pickRealTile(w.x, w.y));
+        }
         // Solo sigue un área empezada con un toque nuevo (no el dedo que queda tras pellizcar).
         if (p.isDown && this.designStart) {
           const w = cam.getWorldPoint(p.x, p.y);
@@ -484,7 +494,8 @@ export class WorldScene extends Phaser.Scene {
       const cam2d = (fn: () => void) => hotkey(() => this.cameraKeysEnabled && fn());
       kb.on('keydown-Q', cam2d(() => this.rotate(-1)));
       kb.on('keydown-E', cam2d(() => this.rotate(1)));
-      kb.on('keydown-R', cam2d(() => this.tilt(-1)));
+      // Al construir, R gira lo que se va a poner (lo hace main.ts); si no, inclina la vista.
+      kb.on('keydown-R', cam2d(() => this.designMode !== 'construir' && this.tilt(-1)));
       kb.on('keydown-F', cam2d(() => this.tilt(1)));
     }
   }
@@ -777,6 +788,7 @@ export class WorldScene extends Phaser.Scene {
   /** Activa un modo de órdenes (o lo quita con null). */
   setDesignMode(mode: DesignMode): void {
     this.designMode = mode;
+    this.designHover = null;
     this.clearDesignDrag();
     if (mode) {
       this.select(null);
@@ -805,9 +817,55 @@ export class WorldScene extends Phaser.Scene {
     this.clearDesignDrag();
   }
 
-  /** Área que se está arrastrando (para la vista previa de la vista 3D). */
+  /** Área que se está arrastrando, o la casilla bajo el ratón al construir (vista previa; también la 3D). */
   currentDesignRect(): TileRect | null {
-    return this.designRect();
+    return this.previewRect();
+  }
+
+  private previewRect(): TileRect | null {
+    const r = this.designRect();
+    if (r) return r;
+    const h = this.designHover;
+    return h && this.designMode === 'construir' ? { x0: h.x, y0: h.y, x1: h.x, y1: h.y } : null;
+  }
+
+  /** Vuelve a dibujar la vista previa (p. ej. al girar lo que se va a construir). */
+  refreshDesignPreview(): void {
+    this.drawDesignPreview();
+  }
+
+  /** Casilla bajo el ratón (sin pulsar) en modo construir: ahí se ve el fantasma de lo que se va a poner. */
+  setDesignHover(t: { x: number; y: number } | null): void {
+    if (t?.x === this.designHover?.x && t?.y === this.designHover?.y) return;
+    this.designHover = t;
+    if (this.designMode === 'construir' && !this.designStart) this.drawDesignPreview();
+  }
+
+  /** Casillas de cada construcción que se pondría con el área de la vista previa (máx. 300). */
+  ghostGroups(r: TileRect): { x: number; y: number }[][] {
+    const def = buildingDef(this.buildDefId);
+    const st = this.world.structures;
+    const [w, h] = def.size ?? [1, 1];
+    const groups: { x: number; y: number }[][] = [];
+    if (w * h > 1) {
+      if (st.canPlaceDef(def, r.x0, r.y0, this.buildRot)) groups.push(footprintTiles(def, r.x0, r.y0, this.buildRot));
+    } else {
+      for (const t of Structures.areaTiles(r, this.buildShape)) {
+        if (groups.length >= 300) break;
+        if (st.canPlace(t.x, t.y)) groups.push([t]);
+      }
+    }
+    return groups;
+  }
+
+  /** Lo que se va a construir, en blanco translúcido, en cada casilla donde cabe. */
+  private drawGhosts(r: TileRect): void {
+    const def = buildingDef(this.buildDefId);
+    for (const tiles of this.ghostGroups(r)) {
+      const img = this.buildingImage(def, tiles).setTintFill(0xffffff).setAlpha(0.55);
+      img.setDepth(img.depth + 0.0001);
+      this.ghostSprites.push(img);
+    }
   }
 
   /** ¿Se marcaría esta casilla con el modo y el área actuales? (vista previa de la 3D). */
@@ -892,9 +950,12 @@ export class WorldScene extends Phaser.Scene {
     const g = this.designPreview;
     if (!g) return;
     g.clear();
-    const r = this.designRect();
+    for (const img of this.ghostSprites) img.destroy();
+    this.ghostSprites = [];
+    const r = this.previewRect();
     const mode = this.designMode;
     if (!r || !mode) return;
+    if (mode === 'construir' && this.scene.isVisible()) this.drawGhosts(r);
     const xa = Math.max(0, Math.min(r.x0, r.x1));
     const xb = Math.min(this.map.width - 1, Math.max(r.x0, r.x1));
     const ya = Math.max(0, Math.min(r.y0, r.y1));
@@ -1129,30 +1190,33 @@ export class WorldScene extends Phaser.Scene {
     this.structVersion = st.version;
     for (const img of this.structSprites) img.destroy();
     this.structSprites = [];
-    const unitH = wallHeight(LIFT);
     for (const s of st.all()) {
-      // Lo que ocupa, visto con el giro de la vista.
-      const vt = st.tilesOf(s).map((t) => this.viewTile(t.x, t.y));
-      const vx0 = Math.min(...vt.map((t) => t.x));
-      const vy0 = Math.min(...vt.map((t) => t.y));
-      const vw = Math.max(...vt.map((t) => t.x)) - vx0 + 1;
-      const vh = Math.max(...vt.map((t) => t.y)) - vy0 + 1;
-      const key = `build-${s.def.id}-${TILE_H}-${unitH}-${vw}x${vh}`;
-      if (!this.textures.exists(key)) drawBuildingTexture(this, key, s.def, unitH, vw, vh);
-      const v = { x: vx0, y: vy0 + vh - 1 };
-      const top = vy0 * TILE_H - liftOf(this.view, vx0, vy0);
-      const img = this.add.image(vx0 * TILE, top - faceHeight(s.def, LIFT), key).setOrigin(0, 0);
-      // Delante de lo que está en su fila y en las de detrás; detrás de lo que está más al sur.
-      // Las torres, justo por debajo de los colonos de su fila: quien sube se ve encima.
-      const flat = s.def.height === 0;
-      // Torres, cosas a ras de suelo y estanterías, por debajo de lo que tienen encima o delante.
-      const rowOffset = s.def.category === 'torre' || flat || s.def.storage ? 0.3 : 0.99;
-      // Los suelos van pegados al suelo, debajo de montones y colonos.
-      img.setDepth(s.def.category === 'suelo' ? ZONE_DEPTH - 0.1 : COLONIST_DEPTH + (v.y + rowOffset) / 1000);
+      const img = this.buildingImage(s.def, st.tilesOf(s));
       if (!s.built) img.setAlpha(0.45).setTint(0x8fc0ff); // plano: translúcido y azulado
       else if (s.demolish) img.setTint(0xff8a7a); // marcada para demoler: rojiza
       this.structSprites.push(img);
     }
+  }
+
+  /** Imagen de una construcción que ocupa esas casillas reales (vista con el giro actual). */
+  private buildingImage(def: BuildingDef, tiles: { x: number; y: number }[]): Phaser.GameObjects.Image {
+    const unitH = wallHeight(LIFT);
+    const vt = tiles.map((t) => this.viewTile(t.x, t.y));
+    const vx0 = Math.min(...vt.map((t) => t.x));
+    const vy0 = Math.min(...vt.map((t) => t.y));
+    const vw = Math.max(...vt.map((t) => t.x)) - vx0 + 1;
+    const vh = Math.max(...vt.map((t) => t.y)) - vy0 + 1;
+    const key = `build-${def.id}-${TILE_H}-${unitH}-${vw}x${vh}`;
+    if (!this.textures.exists(key)) drawBuildingTexture(this, key, def, unitH, vw, vh);
+    const top = vy0 * TILE_H - liftOf(this.view, vx0, vy0);
+    const img = this.add.image(vx0 * TILE, top - faceHeight(def, LIFT), key).setOrigin(0, 0);
+    // Delante de lo que está en su fila y en las de detrás; detrás de lo que está más al sur.
+    // Torres, cosas a ras de suelo y estanterías, por debajo de lo que tienen encima o delante.
+    const flat = def.height === 0;
+    const rowOffset = def.category === 'torre' || flat || def.storage ? 0.3 : 0.99;
+    // Los suelos van pegados al suelo, debajo de montones y colonos.
+    img.setDepth(def.category === 'suelo' ? ZONE_DEPTH - 0.1 : COLONIST_DEPTH + (vy0 + vh - 1 + rowOffset) / 1000);
+    return img;
   }
 
   /** Dibuja lo que lleva cada colono encima de la cabeza. */

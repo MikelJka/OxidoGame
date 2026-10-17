@@ -8,6 +8,7 @@ Diario de sesiones, la más reciente arriba.
 - Cámara libre: **botón central del ratón** (o Alt + arrastrar) para pivotar a cualquier ángulo e inclinación; arrastrar (izquierdo o derecho) o WASD para moverse; rueda para el zoom; Q/E giran, R/F inclinan. En el móvil: un dedo mueve, dos dedos hacen zoom, giran (girando los dedos) e inclinan (subiéndolos o bajándolos a la vez). Los botones ⟲ ⟳ giran 45° y ∠ inclina.
 - Se juega igual que en 2D: tocar colonos, mandarlos, órdenes concretas, arrastrar áreas de órdenes, almacenes, huertos y construcción (con la vista previa en el suelo), paneles de almacén, huerto y taller. La vista 2D sigue ahí (☰ → Volver a la vista 2D) y el juego recuerda cuál se usó.
 - Prueba de humo nueva en GitHub Actions: abre el juego en Chromium sin pantalla, en PC y en móvil, pasa por 2D y 3D, pivota con el botón central y falla si hay algún error; guarda capturas.
+- Al construir se ve en blanco translúcido lo que se va a poner (cama, muro, pinchos…), bajo el ratón o en todo el área que se arrastra, en 2D y en 3D. R (o X, o ↻) gira lo que se va a construir; las puertas giradas se cruzan de este a oeste.
 - Pendiente de la 3D: barras de progreso, marcas de zona más vistosas, muros que se unan, sombras, y rendimiento en móviles antiguos.
 - Qué probar: activar la vista 3D en PC y en el móvil, pivotar, construir un cuarto y hacer un huerto desde ella.
 
