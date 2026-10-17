@@ -403,6 +403,13 @@ export class View3D {
       if (cat === 'taller') height = 0.8;
       if (cat === 'puerta' || cat === 'porton') inset = 0.3;
       if (cat === 'torre') inset = 0.12;
+      if (cat === 'electricidad') {
+        if (s.def.conduit) inset = 0.4;
+        else if (s.def.light) {
+          inset = 0.38;
+          height = 0.9;
+        } else height = 0.7;
+      }
       const ghost = look === 'fantasma' || look === 'no-cabe';
       const ghostColor = look === 'no-cabe' ? 0xff6a5a : 0xffffff;
       const face = new THREE.Color(ghost ? ghostColor : s.def.colors.face);

@@ -311,6 +311,34 @@ function fabricateCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   return out;
 }
 
+/** Generadores con menos de la mitad de combustible: alguien con «Transportar» les lleva más. */
+function refuelCandidates(ctx: JobContext, c: Colonist): Candidate[] {
+  if (c.priorities.transportar === 0) return [];
+  const out: Candidate[] = [];
+  for (const s of ctx.structures.all()) {
+    const f = s.def.fuel;
+    if (!f || !s.built || s.demolish) continue;
+    if ((s.fuel ?? 0) + (s.delivered[f.resource] ?? 0) >= f.capacity / 2) continue;
+    out.push({
+      kind: 'transportar', x: s.x, y: s.y, dist: manhattan(c.tile, s.x, s.y),
+      make: () => {
+        const mat = nearestMaterial(ctx, s, c.tile);
+        if (!mat) return null;
+        const route = pathToNearest(ctx.map, c.tile, [{ x: mat.x, y: mat.y }]);
+        if (!route || !pathToNearest(ctx.map, { x: mat.x, y: mat.y }, ctx.structures.sidesOf(s))) return null;
+        return {
+          job: {
+            kind: 'transportar', sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: 0, work: 0,
+            haul: { resource: mat.resource, amount: mat.amount, from: { x: mat.x, y: mat.y }, to: { x: s.x, y: s.y }, toBlueprint: true, picked: false },
+          },
+          path: route.path,
+        };
+      },
+    });
+  }
+  return out;
+}
+
 /** Trabajo junto a una persona: el médico o el carcelero va hasta ella. */
 function pawnJob(ctx: JobContext, c: Colonist, o: Colonist, kind: 'curar' | 'carcelero', work: number, warden?: 'capturar' | 'alimentar' | 'convencer'): JobPlan | null {
   const near = Math.max(Math.abs(c.tile.x - o.tile.x), Math.abs(c.tile.y - o.tile.y)) <= 1;
@@ -455,7 +483,7 @@ export function findJob(ctx: JobContext, c: Colonist): JobPlan | null {
   const all = [
     ...doctorCandidates(ctx, c), ...wardenCandidates(ctx, c),
     ...buildCandidates(ctx, c), ...farmCandidates(ctx, c), ...fabricateCandidates(ctx, c), ...terrainCandidates(ctx, c),
-    ...harvestCandidates(ctx, c), ...haulCandidates(ctx, c),
+    ...harvestCandidates(ctx, c), ...refuelCandidates(ctx, c), ...haulCandidates(ctx, c),
   ];
   const byPriority = new Map<number, Candidate[]>();
   for (const cand of all) {

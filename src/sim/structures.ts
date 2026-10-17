@@ -27,6 +27,12 @@ export interface Structure {
   demolish?: boolean;
   /** Taller: qué fabricar y hasta cuánto. En un taller, `delivered` guarda los materiales ya traídos. */
   bill?: Bill;
+  /** Electricidad: le llega corriente (consumidores) o está produciendo (generadores). No se guarda. */
+  powered?: boolean;
+  /** Batería: vatios-hora guardados. */
+  stored?: number;
+  /** Generador: unidades de combustible dentro (se gastan poco a poco). */
+  fuel?: number;
 }
 
 /** Orden de fabricación de un taller: hacer la receta hasta que la colonia tenga `target` del producto. */
@@ -75,11 +81,18 @@ export function isFloor(def: BuildingDef): boolean {
   return def.category === 'suelo';
 }
 
+/** Los cables van en otra capa, por debajo de todo (también de suelos y muros). */
+export function isCable(def: BuildingDef): boolean {
+  return !!def.conduit;
+}
+
 export class Structures {
   /** Construcciones (muros, muebles, talleres…), una por casilla. */
   private byTile = new Map<number, Structure>();
   /** Suelos, debajo de lo anterior. */
   private floorByTile = new Map<number, Structure>();
+  /** Cables, debajo de todo. */
+  private cableByTile = new Map<number, Structure>();
   private byId = new Map<number, Structure>();
   private nextId = 1;
   /** Aumenta con cada cambio: el dibujado lo usa para saber cuándo repintar. */
@@ -91,7 +104,7 @@ export class Structures {
   at(x: number, y: number): Structure | undefined {
     if (!inBounds(this.map, x, y)) return undefined;
     const i = index(this.map, x, y);
-    return this.byTile.get(i) ?? this.floorByTile.get(i);
+    return this.byTile.get(i) ?? this.floorByTile.get(i) ?? this.cableByTile.get(i);
   }
 
   /** Solo la construcción (no el suelo). */
@@ -104,6 +117,11 @@ export class Structures {
     return inBounds(this.map, x, y) ? this.floorByTile.get(index(this.map, x, y)) : undefined;
   }
 
+  /** Solo el cable. */
+  cableAt(x: number, y: number): Structure | undefined {
+    return inBounds(this.map, x, y) ? this.cableByTile.get(index(this.map, x, y)) : undefined;
+  }
+
   get(id: number): Structure | undefined {
     return this.byId.get(id);
   }
@@ -113,7 +131,11 @@ export class Structures {
   }
 
   private layer(s: Structure): Map<number, Structure> {
-    return isFloor(s.def) ? this.floorByTile : this.byTile;
+    return this.layerFor(s.def);
+  }
+
+  private layerFor(def: BuildingDef): Map<number, Structure> {
+    return isCable(def) ? this.cableByTile : isFloor(def) ? this.floorByTile : this.byTile;
   }
 
   /** Código de paso de una casilla según lo terminado en ella (la construcción manda sobre el suelo). */
@@ -169,7 +191,7 @@ export class Structures {
 
   /** Marca (o desmarca) una construcción terminada para demolerla (si hay construcción y suelo, la construcción). */
   markDemolish(x: number, y: number, on = true): boolean {
-    const s = this.mainAt(x, y)?.built ? this.mainAt(x, y) : this.floorAt(x, y);
+    const s = this.mainAt(x, y)?.built ? this.mainAt(x, y) : this.floorAt(x, y)?.built ? this.floorAt(x, y) : this.cableAt(x, y);
     if (!s || !s.built || !!s.demolish === on) return false;
     s.demolish = on;
     this.version++;
@@ -200,8 +222,11 @@ export class Structures {
    * Sobre un suelo se puede construir de todo menos lo del agua; un suelo va donde no haya otro.
    */
   canPlace(x: number, y: number, def?: BuildingDef): boolean {
-    if (buildBlocker(this.map, x, y) !== null) return false;
+    const blocker = buildBlocker(this.map, x, y);
+    // Los cables también van por las pendientes.
+    if (blocker !== null && !(blocker === 'pendiente' && def && isCable(def))) return false;
     if (!def) return !this.at(x, y);
+    if (isCable(def)) return !this.cableAt(x, y);
     if (isFloor(def)) return !this.floorAt(x, y);
     if (def.category === 'agua' && this.floorAt(x, y)) return false;
     return !this.mainAt(x, y);
@@ -268,7 +293,8 @@ export class Structures {
   cancel(x: number, y: number): Partial<Stockpile> | null {
     // Primero el plano de construcción; si no hay, el de suelo.
     const main = this.mainAt(x, y);
-    const s = main && !main.built ? main : this.floorAt(x, y);
+    const floor = this.floorAt(x, y);
+    const s = main && !main.built ? main : floor && !floor.built ? floor : this.cableAt(x, y);
     if (!s || s.built) return null;
     this.byId.delete(s.id);
     for (const t of this.tilesOf(s)) this.layer(s).delete(index(this.map, t.x, t.y));
@@ -279,6 +305,13 @@ export class Structures {
   /** Lo que falta por llevar a un plano o, en un taller con orden, para la siguiente tanda. */
   needs(s: Structure): Partial<Stockpile> {
     const out: Partial<Stockpile> = {};
+    // Generador: el combustible que le falta para llenarse.
+    if (s.built && s.def.fuel) {
+      const f = s.def.fuel;
+      const want = f.capacity - Math.ceil(s.fuel ?? 0) - (s.delivered[f.resource] ?? 0);
+      if (want > 0) out[f.resource] = want;
+      return out;
+    }
     const wanted = s.built ? (s.bill && !s.bill.paused ? s.bill.recipe.inputs : {}) : s.def.cost;
     for (const r of RESOURCES) {
       const want = (wanted[r] ?? 0) - (s.delivered[r] ?? 0);
@@ -327,7 +360,7 @@ export class Structures {
   /** Vuelve a poner una construcción guardada (al cargar una partida). */
   restore(def: BuildingDef, x: number, y: number, built: boolean, delivered: Partial<Stockpile>, progress: number, hp: number, rot: 0 | 1 = 0): Structure | undefined {
     const tiles = footprintTiles(def, x, y, rot);
-    const layer = isFloor(def) ? this.floorByTile : this.byTile;
+    const layer = this.layerFor(def);
     // Si ya no cabe (p. ej. ahora ocupa más casillas que cuando se guardó), no se pone.
     if (tiles.some((t) => !inBounds(this.map, t.x, t.y) || layer.has(index(this.map, t.x, t.y)))) return undefined;
     const s: Structure = { id: this.nextId++, def, x, y, rot, built: false, delivered: {}, progress, hp };

@@ -2,6 +2,20 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (noche, 16) — Electricidad (primera parte)
+
+- Con los números aprobados por Mikel. Nueva pestaña 🏗 → **Electricidad**:
+  - **Cable** (🔩1): va en su propia capa, por debajo de suelos, muros y máquinas, y también por las pendientes. Los cables que se tocan forman una red.
+  - **Generador de leña** (🔩20 ⚙️2, 2×2): 1 000 W mientras le quede leña; gasta 1 de madera cada 2 h y caben 10. Cuando le queda menos de la mitad, quien tenga «Transportar» le lleva madera.
+  - **Batería** (🔩10 ⚙️2): guarda hasta 6 000 Wh de lo que sobra y lo da cuando falta.
+  - **Lámpara** (50 W; coste provisional 🔩3 ⚙️1, no estaba en la tabla): ilumina 3 casillas alrededor.
+- Una máquina se conecta con un cable debajo o pegado. Si no llega la corriente para todo, se apaga primero lo último que se conectó.
+- **Luz**: de 20:00 a 6:00, sin luz se trabaja un 20 % más despacio; junto a una lámpara encendida, normal.
+- Al tocar una casilla se ve el estado: en marcha o sin leña, encendida o sin corriente, carga de la batería y lo que produce y gasta su red.
+- Se guardan la carga de las baterías y la leña de los generadores. Tests en `tests/power.test.ts`.
+- Qué probar: un generador, una fila de cables hasta un cuarto con dos lámparas y una batería; mirar de noche que se trabaja normal junto a las lámparas y ver cómo se descarga la batería cuando se acaba la leña.
+- Siguiente: placas solares, molino y máquinas eléctricas (con recicladora y depuradora pasando a pedir corriente).
+
 ## 2026-10-17 (noche, 15) — Armadura
 
 - Segunda regla de combate, con los números aprobados por Mikel. En el banco de trabajo: chaleco de cuero (🧵8, −15 % de daño), de chapa (🔩12, −25 %, −5 % al andar), de metal (🔗8 ⚙️1, −35 %, −10 % al andar), casco de chapa (🔩6, −10 %) y de metal (🔗4, −15 %). Lo que quitan se suma.

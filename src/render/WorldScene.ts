@@ -1325,7 +1325,8 @@ export class WorldScene extends Phaser.Scene {
     const flat = def.height === 0;
     const rowOffset = def.category === 'torre' || flat || def.storage ? 0.3 : 0.99;
     // Los suelos van pegados al suelo, debajo de montones y colonos.
-    img.setDepth(def.category === 'suelo' ? ZONE_DEPTH - 0.1 : COLONIST_DEPTH + (vy0 + vh - 1 + rowOffset) / 1000);
+    // Los cables, encima de los suelos.
+    img.setDepth(def.category === 'suelo' ? ZONE_DEPTH - 0.1 : def.conduit ? ZONE_DEPTH - 0.05 : COLONIST_DEPTH + (vy0 + vh - 1 + rowOffset) / 1000);
     return img;
   }
 
@@ -1465,7 +1466,9 @@ export class WorldScene extends Phaser.Scene {
     const floor = this.world.structures.floorAt(tile.x, tile.y);
     const s = this.world.structures.mainAt(tile.x, tile.y);
     if (floor) text = `${structureLabel(this.world.structures, floor)} · ${text}`;
-    if (s) text = `${structureLabel(this.world.structures, s)}${s.built && s.def.sight ? ` (vista ${s.def.sight} casillas)` : ''} · ${text}`;
+    const cable = this.world.structures.cableAt(tile.x, tile.y);
+    if (cable) text = `${structureLabel(this.world.structures, cable)}${cable.built ? powerLabel(this.world, cable) : ''} · ${text}`;
+    if (s) text = `${structureLabel(this.world.structures, s)}${s.built && s.def.sight ? ` (vista ${s.def.sight} casillas)` : ''}${s.built ? powerLabel(this.world, s) : ''} · ${text}`;
     this.game.events.emit('tile-info', text);
   }
 
@@ -1517,6 +1520,21 @@ function structureLabel(st: Structures, s: Structure): string {
     (r) => `${RESOURCE_NAMES[r].toLowerCase()} ${(s.def.cost[r] ?? 0) - (needs[r] ?? 0)}/${s.def.cost[r]}`,
   );
   return `Plano: ${s.def.name} (${parts.join(', ')})`;
+}
+
+/** Estado eléctrico de una construcción y de su red, para la información de la casilla. */
+function powerLabel(w: World, s: Structure): string {
+  const parts: string[] = [];
+  const f = s.def.fuel;
+  if (f) parts.push(s.powered ? 'en marcha' : `sin ${RESOURCE_NAMES[f.resource].toLowerCase()}`, `${RESOURCE_NAMES[f.resource].toLowerCase()} ${Math.ceil(s.fuel ?? 0)}/${f.capacity}`);
+  else if (s.def.battery) parts.push(`${Math.round(s.stored ?? 0)}/${s.def.battery} Wh`);
+  else if ((s.def.power ?? 0) < 0) parts.push(s.powered ? 'encendida' : 'sin corriente');
+  if (s.def.power || s.def.battery || s.def.conduit) {
+    const net = w.powerNetOf(s);
+    if (net) parts.push(`red: produce ${net.production} W, gasta ${net.supplied} de ${net.demand} W, baterías ${Math.round(net.stored)}/${net.capacity} Wh`);
+    else if (!s.def.conduit) parts.push('sin cable: no está conectado');
+  }
+  return parts.length ? ` (${parts.join(' · ')})` : '';
 }
 
 function drawBuildingTexture(scene: Phaser.Scene, key: string, def: BuildingDef, unitH: number, vw = 1, vh = 1): void {

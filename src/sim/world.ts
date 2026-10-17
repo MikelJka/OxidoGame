@@ -22,6 +22,7 @@ import {
 } from './needs';
 import { applyTerrainJob, LOWER_STONE, terrainBlocker, TerrainJob, TerrainOrders } from './terrain';
 import { Structure, Structures } from './structures';
+import { litTiles, PowerNet, updatePower } from './power';
 import type { TileRect } from './designations';
 import { RESOURCES, ResourceId, STARTING_SUPPLIES } from '../data/resources';
 
@@ -39,6 +40,8 @@ const DRINK_SEARCH_TILES = 12000;
 const JOB_RETRY_TICKS = 90;
 /** Ticks de pausa entre terminar un trabajo y empezar el siguiente. */
 const JOB_PAUSE_TICKS = 10;
+/** Velocidad de trabajo de noche sin luz. */
+const DARK_WORK = 0.8;
 /** Cada cuánto mira un colono, entre trabajos, si hay un arma mejor o le faltan flechas. */
 const GEAR_SCAN_TICKS = TICKS_PER_SECOND * 5;
 /** Cada cuánto se mira si alguien se ha quedado encerrado (10 minutos de juego). */
@@ -136,6 +139,10 @@ export class World implements JobContext {
    * un colono al que se ha sacado. La comprobación de 🐞 los recoge.
    */
   readonly incidents: string[] = [];
+  /** Redes eléctricas (se recalculan cada segundo; no se guardan). */
+  powerNets: PowerNet[] = [];
+  /** Casillas iluminadas por lámparas encendidas. */
+  lit = new Set<number>();
   /** Arqueros reclutados que van a una casilla con cobertura (no se guarda). */
   readonly coverMoves = new Set<number>();
   tick = 0;
@@ -255,6 +262,11 @@ export class World implements JobContext {
     }
     if (this.eventsEnabled && this.tick % TICKS_PER_HOUR === 0) runStoryteller(this);
     if (this.tick % RESCUE_TICKS === 0) this.rescueTrapped();
+    // Electricidad: cada segundo se reparte la corriente y se encienden o apagan las lámparas.
+    if (this.tick % TICKS_PER_SECOND === 0) {
+      this.powerNets = updatePower(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR);
+      this.lit = litTiles(this.structures);
+    }
     for (const c of this.colonists) this.updateColonist(c);
     updateOthers(this);
   }
@@ -830,7 +842,7 @@ export class World implements JobContext {
   /** Busca trabajo (si toca) y lo empieza. true si ahora tiene uno. */
   private tryStartJob(c: Colonist): boolean {
     const people = this.others.length > 0 || this.colonists.some((k) => k.wounds.some((w) => w.bleeding));
-    if (!people && this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.structures.stations().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0) return false;
+    if (!people && this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.structures.stations().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0 && !this.structures.all().some((s) => s.built && !!s.def.fuel)) return false;
     if (this.tick < (this.nextJobScan.get(c.id) ?? 0)) return false;
     const plan = findJob(this, c);
     if (!plan || !reservePlan(this.reservations, c, plan.job)) {
@@ -908,6 +920,16 @@ export class World implements JobContext {
       const z = this.farms.at(j.x, j.y);
       return !!z && !this.farms.plantAt(j.x, j.y) && this.farms.canSow(j.x, j.y, z.crop) && !this.structures.at(j.x, j.y);
     }
+    if (j.kind === 'transportar' && j.sid !== undefined) {
+      // Llevar combustible a un generador.
+      const s = this.structures.get(j.sid);
+      if (!s || !s.built || s.demolish || !h) return false;
+      if (!h.picked) {
+        const st = this.items.at(h.from.x, h.from.y);
+        return !!st && st.resource === h.resource && (this.structures.needs(s)[h.resource] ?? 0) > 0;
+      }
+      return true;
+    }
     if (j.kind === 'transportar') {
       if (!h) return false;
       if (!h.picked) {
@@ -954,7 +976,7 @@ export class World implements JobContext {
     c.activity = 'working';
     const dx = j.x + 0.5 - c.pos.x;
     if (Math.abs(dx) > 0.01) c.facing = dx > 0 ? 1 : -1;
-    j.progress += workSpeed(c, j.kind);
+    j.progress += workSpeed(c, j.kind) * this.lightFactor(c.tile);
     if (building && j.demolish) {
       if (j.progress >= j.work) {
         this.demolishStructure(this.jobStructure(j)!);
@@ -1030,7 +1052,7 @@ export class World implements JobContext {
     c.activity = 'working';
     const dx = o.pos.x - c.pos.x;
     if (Math.abs(dx) > 0.01) c.facing = dx > 0 ? 1 : -1;
-    j.progress += workSpeed(c, j.kind);
+    j.progress += workSpeed(c, j.kind) * this.lightFactor(c.tile);
     if (j.progress < j.work) return;
     if (j.kind === 'curar') {
       const n = treatWounds(o);
@@ -1413,6 +1435,19 @@ export class World implements JobContext {
     if (!isPassable(m, p.x, p.y)) out.add(`su propia casilla (${this.structures.mainAt(p.x, p.y)?.def.name ?? PROP_INFO[m.props[p.y * m.width + p.x] as Prop].name ?? 'bloqueada'})`);
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) add(p.x + dx, p.y + dy);
     return [...out].join(', ') || 'algo desconocido';
+  }
+
+  /** De noche (20:00–6:00), sin luz se trabaja un 20 % más despacio; con una lámpara cerca, normal. */
+  lightFactor(p: Point): number {
+    const h = this.hour;
+    if (h >= 6 && h < 20) return 1;
+    return this.lit.has(p.y * this.map.width + p.x) ? 1 : DARK_WORK;
+  }
+
+  /** Red eléctrica de una construcción (la de un cable suyo o pegado), si tiene. */
+  powerNetOf(s: Structure): PowerNet | undefined {
+    return this.powerNets.find((n) => n.producers.includes(s) || n.consumers.includes(s) || n.batteries.includes(s) ||
+      (!!s.def.conduit && n.tiles.includes(s.y * this.map.width + s.x)));
   }
 
   /** Aparta a un colono a la casilla libre más cercana (cuando se levanta un muro donde está). */

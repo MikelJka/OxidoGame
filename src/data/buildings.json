@@ -819,5 +819,91 @@
       "face": "#6a6862",
       "dark": "#3d3c38"
     }
+  },
+  {
+    "id": "cable",
+    "name": "Cable",
+    "category": "electricidad",
+    "cost": {
+      "chatarra": 1
+    },
+    "work": 40,
+    "hp": 30,
+    "blocks": false,
+    "height": 0,
+    "conduit": true,
+    "colors": {
+      "top": "#c27a3e",
+      "face": "#8a4a26",
+      "dark": "#2a1a10"
+    }
+  },
+  {
+    "id": "generador_lena",
+    "name": "Generador de leña",
+    "category": "electricidad",
+    "cost": {
+      "chatarra": 20,
+      "componentes": 2
+    },
+    "work": 600,
+    "hp": 200,
+    "blocks": true,
+    "height": 1,
+    "size": [
+      2,
+      2
+    ],
+    "power": 1000,
+    "fuel": {
+      "resource": "madera",
+      "hoursPerUnit": 2,
+      "capacity": 10
+    },
+    "colors": {
+      "top": "#5c5a56",
+      "face": "#3e3c38",
+      "dark": "#1e1c1a"
+    }
+  },
+  {
+    "id": "bateria",
+    "name": "Batería",
+    "category": "electricidad",
+    "cost": {
+      "chatarra": 10,
+      "componentes": 2
+    },
+    "work": 300,
+    "hp": 120,
+    "blocks": true,
+    "height": 1,
+    "battery": 6000,
+    "colors": {
+      "top": "#4a5a3a",
+      "face": "#33402a",
+      "dark": "#1a2014"
+    }
+  },
+  {
+    "id": "lampara",
+    "name": "Lámpara",
+    "category": "electricidad",
+    "cost": {
+      "chatarra": 3,
+      "componentes": 1
+    },
+    "work": 120,
+    "hp": 40,
+    "blocks": false,
+    "moveCost": 1.2,
+    "height": 1,
+    "power": -50,
+    "light": 3,
+    "colors": {
+      "top": "#d8c27a",
+      "face": "#6e6c66",
+      "dark": "#2a2826"
+    }
   }
 ]

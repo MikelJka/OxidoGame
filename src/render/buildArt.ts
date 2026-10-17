@@ -34,6 +34,10 @@ export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, ti
     drawShelf(ctx, def, tile, tileH, wallH);
     return;
   }
+  if (def.category === 'electricidad') {
+    drawElectric(ctx, def, tile, tileH, wallH);
+    return;
+  }
   if (def.category === 'suelo' || def.category === 'mueble' || (def.category === 'defensa' && def.height === 0)) {
     drawFlat(ctx, def, tile, tileH);
     return;
@@ -366,4 +370,45 @@ function lighten(hex: string): string {
   const n = parseInt(hex.slice(1), 16);
   const c = (v: number) => Math.min(255, v + 30);
   return `rgb(${c((n >> 16) & 255)},${c((n >> 8) & 255)},${c(n & 255)})`;
+}
+
+/** Electricidad: cable a ras de suelo, generador, batería y lámpara. */
+function drawElectric(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, wallH: number): void {
+  const { top, face, dark } = def.colors;
+  const px = painter(ctx);
+  const h = tileH + wallH;
+  ctx.clearRect(0, 0, tile, h);
+  if (def.conduit) {
+    // Cable de cobre en cruz con un empalme en el centro (se une con los de al lado).
+    const cy = Math.floor(tileH / 2);
+    const cx = Math.floor(tile / 2);
+    px(0, cy, tile, 2, dark);
+    px(cx - 1, 0, 2, tileH, dark);
+    px(0, cy, tile, 1, top);
+    px(cx - 1, 0, 1, tileH, top);
+    px(cx - 2, cy - 1, 4, 4, face);
+    return;
+  }
+  if (def.light) {
+    // Farola: poste fino con la bombilla arriba.
+    const cx = Math.floor(tile / 2);
+    px(cx - 3, h - 3, 6, 2, '#1a1410');
+    px(cx - 1, 2, 2, h - 4, face);
+    px(cx - 3, 0, 6, 4, '#1a1410');
+    px(cx - 2, 1, 4, 2, top);
+    return;
+  }
+  // Máquinas: caja con rejilla; el generador, con su chimenea; la batería, con sus bornes.
+  px(1, 1, tile - 2, h - 1, '#1a1410');
+  px(2, 2, tile - 4, tileH - 3, top);
+  px(2, tileH - 1, tile - 4, wallH - 1, face);
+  for (let x = 4; x < tile - 4; x += 3) px(x, tileH + 1, 1, Math.max(1, wallH - 3), dark);
+  if (def.fuel) {
+    px(tile - 7, 0, 3, 4, '#2a2826');
+    px(4, 4, 4, 3, '#c27a3e'); // fuego por la portezuela
+  } else if (def.battery) {
+    px(4, 2, 2, 2, '#d9534f');
+    px(tile - 6, 2, 2, 2, '#e0e4e0');
+    px(4, tileH, tile - 8, 1, '#8fc060');
+  }
 }

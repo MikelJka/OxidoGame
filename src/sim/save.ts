@@ -46,7 +46,7 @@ export interface SaveData {
   items: { x: number; y: number; resource: string; amount: number }[];
   designations: { x: number; y: number; job: string }[];
   zones: { id: number; name: string; priority: number; accepts: Record<string, boolean>; tiles: number[] }[];
-  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number; demolish?: boolean; bill?: { recipe: string; target: number; paused: boolean }; rot?: number }[];
+  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number; demolish?: boolean; bill?: { recipe: string; target: number; paused: boolean }; rot?: number; stored?: number; fuel?: number }[];
   /** Obras de terreno pendientes (desde que existen). */
   terrain?: { x: number; y: number; job: string }[];
   /** Huertos (desde que existe el cultivo; las partidas anteriores no los tienen). */
@@ -186,6 +186,8 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
       demolish: s.demolish || undefined,
       rot: s.rot || undefined,
       bill: s.bill ? { recipe: s.bill.recipe.id, target: s.bill.target, paused: s.bill.paused } : undefined,
+      stored: s.stored || undefined,
+      fuel: s.fuel || undefined,
     })),
     terrain: world.terrain.list().map((o) => ({ ...o })),
   };
@@ -358,6 +360,9 @@ export function loadWorld(input: string | unknown): World {
       continue;
     }
     if (s.demolish) world.structures.markDemolish(s.x, s.y);
+    // Electricidad (desde que existe): carga de las baterías y combustible de los generadores.
+    if (def.battery) restored.stored = Math.max(0, Math.min(def.battery, num(s.stored, 0)));
+    if (def.fuel) restored.fuel = Math.max(0, Math.min(def.fuel.capacity, num(s.fuel, 0)));
     const recipe = s.bill ? recipeDef(String(s.bill.recipe)) : undefined;
     if (restored && recipe && recipe.station === def.id) {
       world.structures.setBill(restored, { recipe, target: Math.max(0, Math.floor(num(s.bill!.target, 10))), paused: !!s.bill!.paused });

@@ -2,7 +2,7 @@
 import raw from './buildings.json';
 import { RESOURCES, ResourceId } from './resources';
 
-export type BuildingCategory = 'muro' | 'puerta' | 'porton' | 'torre' | 'suelo' | 'defensa' | 'mueble' | 'taller' | 'agua';
+export type BuildingCategory = 'muro' | 'puerta' | 'porton' | 'torre' | 'suelo' | 'defensa' | 'mueble' | 'taller' | 'agua' | 'electricidad';
 
 export const BUILDING_CATEGORY_NAMES: Record<BuildingCategory, string> = {
   muro: 'Muros',
@@ -14,6 +14,7 @@ export const BUILDING_CATEGORY_NAMES: Record<BuildingCategory, string> = {
   mueble: 'Muebles',
   taller: 'Talleres',
   agua: 'Agua',
+  electricidad: 'Electricidad',
 };
 
 export interface BuildingDef {
@@ -40,6 +41,16 @@ export interface BuildingDef {
   storage?: number;
   /** Solo guarda esto (armero: armas y munición). */
   storageFor?: 'armas';
+  /** Cable eléctrico: va en su propia capa, debajo de suelos, muros y máquinas. */
+  conduit?: boolean;
+  /** Vatios: positivo si produce, negativo si consume. */
+  power?: number;
+  /** Batería: vatios-hora que guarda. */
+  battery?: number;
+  /** Combustible que gasta para producir: qué, cuántas horas dura cada unidad y cuántas caben. */
+  fuel?: { resource: ResourceId; hoursPerUnit: number; capacity: number };
+  /** Lámpara: casillas que ilumina alrededor. */
+  light?: number;
   /** Casillas de vista desde lo alto (torres; servirá para ver venir a los enemigos). */
   sight?: number;
   /** Colores del dibujo: cara de arriba, frente y sombra. */
