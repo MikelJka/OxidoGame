@@ -830,7 +830,7 @@ export class View3D {
     if (!d) return;
     const scene = this.getScene();
     if (d.design) {
-      scene.designFinish(!cancelled);
+      scene.designFinish(!cancelled, e.pointerType !== 'mouse');
       return;
     }
     if (cancelled || d.moved || d.button === 1) return;

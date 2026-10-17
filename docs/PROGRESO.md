@@ -2,6 +2,14 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (noche, 10) — Construir con el dedo: ver antes de colocar; nueva forma de trabajar
+
+- **Bug** (Mikel): en el móvil, al tocar se colocaba la construcción sin verla antes. Ahora, con el dedo, tocar o arrastrar deja el fantasma blanco (verde/rojo si es grande) y en la barra de 🏗 salen **✔ Colocar** y **✖**. Antes de confirmar se puede girar (↻) o tocar en otro sitio para moverlo. Igual en la vista 3D. Con ratón sigue como antes.
+- **Nueva forma de trabajar** (orden de Mikel): todo lo nuevo lo aprueba él. Las sesiones solo hacen bugs y lo que está en «Pendiente» de `FEEDBACK.md`; lo demás lo proponen en «Propuestas para Mikel» y le avisan. Actualizados `CLAUDE.md` y la tarea programada.
+- Aprobado por Mikel y en cola: **armas** (cuerpo a cuerpo y a distancia con munición, fabricadas en el banco), **reglas de combate** (cobertura y alcance, armadura, moral y huida, fuego amigo y posturas) y **vehículos** de asedio y combate (de colonos y asaltantes; antes hay que proponerle cómo funcionan).
+- Qué probar: en el móvil, 🏗 → Muebles → Cama, tocar el suelo, girarla y pulsar ✔ Colocar.
+- Siguiente: armas, primera parte (definiciones, fabricación en el banco, equipar la mejor y combate cuerpo a cuerpo con arma).
+
 ## 2026-10-17 (noche, 9) — Construir y Órdenes, más claros y cómodos en el móvil
 
 - Segunda parte de rehacer los menús de la partida (Mikel): **🏗 Construir** y **⚒ Órdenes**.

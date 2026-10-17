@@ -437,6 +437,18 @@ for (const b of modeButtons) {
   });
 }
 $('build-rot').addEventListener('click', () => rotateBuild());
+// Con el dedo, lo que se va a construir espera a ✔ Colocar (o ✖) para que se vea antes dónde va.
+const buildOk = $<HTMLButtonElement>('build-ok');
+const buildCancel = $<HTMLButtonElement>('build-cancel');
+buildOk.addEventListener('click', () => scene().confirmPendingBuild());
+buildCancel.addEventListener('click', () => scene().cancelPendingBuild());
+game.events.on('build-pending', (on: boolean) => {
+  buildOk.hidden = !on;
+  buildCancel.hidden = !on;
+  shapeBtn.hidden = on;
+  buildModes.querySelector<HTMLElement>('.ts-tools [data-mode="quitarPlano"]')!.hidden = on;
+  if (on) designHint.textContent = '¿Aquí? ↻ para girar, toca otro sitio para moverlo · ✔ Colocar o ✖';
+});
 function rotateBuild(): void {
   const s = scene();
   s.buildRot = s.buildRot ? 0 : 1;
@@ -475,7 +487,8 @@ game.events.on('design-mode', (mode: DesignMode) => {
   if (mode === 'construir') {
     const def = buildingDef(s.buildDefId);
     const how = s.buildShape === 'contorno' ? 'arrastra un rectángulo para su contorno (o una línea)' : 'arrastra o toca las casillas';
-    designHint.textContent = `${def.name}: ${how} · solo en suelo llano y libre · dos dedos: mover la cámara`;
+    const touchFirst = window.matchMedia('(pointer: coarse)').matches;
+    designHint.textContent = `${def.name}: ${how}${touchFirst ? ', míralo y pulsa ✔ Colocar' : ''} · solo en suelo llano y libre · dos dedos: mover la cámara`;
   } else if (mode) {
     designHint.textContent = `${DESIGN_HINTS[mode]} o toca una casilla · dos dedos: mover la cámara`;
   }

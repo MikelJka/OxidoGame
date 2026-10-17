@@ -4,6 +4,12 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Pendiente
 
+- [ ] **Armas** (2026-10-17, aprobado por Mikel): cuerpo a cuerpo (cuchillo, tubería, machete) y a distancia (arco, pistola casera, escopeta, rifle) fabricadas en el banco; las de fuego gastan munición (se fabrica con chatarra y componentes). Los colonos equipan la mejor que haya. Incluye los armeros de pared (fase 3).
+
+- [ ] **Reglas de combate** (2026-10-17, aprobado por Mikel), en este orden: cobertura y alcance (muros, barricadas, rocas y árboles quitan acierto; la precisión baja con la distancia y sube con Combate); armadura (chalecos y cascos de chatarra o metal); moral y huida (los enemigos huyen al perder a la mitad o al líder; colonos con ánimo muy bajo pueden entrar en pánico); fuego amigo y posturas (mantener posición, atacar a un objetivo, retirarse).
+
+- [ ] **Vehículos de asedio y de combate** (2026-10-17, pedido por Mikel), de los colonos y de los asaltantes. Antes de hacerlo hay que proponerle a Mikel cómo funcionan (qué vehículos, combustible, cómo se fabrican, qué pueden romper).
+
 - [ ] **Menús de la partida más accesibles e intuitivos** (2026-10-17): rehacer los menús dentro de la partida (☰, 🏗, ⚒, 📜, fichas y paneles) para que se entiendan mejor y funcionen bien en el móvil en vertical y en horizontal. Hechos el menú de inicio, ☰, 🏗 Construir y ⚒ Órdenes; faltan 📜, la ficha del colono y los paneles de almacén, huerto y taller.
 
 - [ ] **Girar la vista libremente** (2026-10-17): pivotar la cámara a cualquier ángulo e inclinación con el botón central del ratón (y con dos dedos en el móvil), no solo los 4 giros fijos. Decidido: pasar a 3D real con Three.js. Primera versión jugable en ☰ → 🧊 Vista 3D (en pruebas); falta pulirla antes de que sea la vista por defecto.
@@ -11,7 +17,13 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 - [ ] **Mobiliario de almacén** (2026-10-17): estanterías y armarios ya están; los armeros de pared llegarán con las armas (fase 4).
 
 
+## Propuestas para Mikel
+
+Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat o con 🐞).
+
 ## Hecho
+
+- [x] **Bug: en el móvil no se veía la previsualización al construir** (2026-10-17): con el dedo, tocar o arrastrar deja el fantasma blanco y en la barra salen ✔ Colocar y ✖; antes de confirmar se puede girar o tocar en otro sitio para moverlo (también en 3D).
 
 - [x] **Nuevo menú de inicio** (2026-10-17): pantalla de inicio rehecha, con botones grandes, adaptada al móvil en vertical y en horizontal, y la nueva partida por apartados (mapa, colonia, dificultad, opciones).
 

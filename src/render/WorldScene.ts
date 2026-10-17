@@ -134,6 +134,11 @@ export class WorldScene extends Phaser.Scene {
   private ghostSprites: Phaser.GameObjects.Image[] = [];
   /** Casilla bajo el ratón en modo de órdenes (sin pulsar). */
   private designHover: { x: number; y: number } | null = null;
+  /**
+   * Con el dedo, lo que se va a construir no se pone al levantarlo: queda aquí, en blanco, hasta
+   * que se confirma (✔) o se cancela (✖). Se puede girar o volver a tocar en otro sitio antes.
+   */
+  private pendingBuild: TileRect | null = null;
   private seenTerrainVersion = 0;
   /** Construcción que se coloca en el modo «construir» y forma del área. */
   buildDefId = 'muro_madera';
@@ -199,6 +204,7 @@ export class WorldScene extends Phaser.Scene {
     this.designStart = null;
     this.designEnd = null;
     this.designHover = null;
+    this.pendingBuild = null;
     this.ghostSprites = [];
     this.view = rotateMap(this.map, this.rotation);
     this.drawMap();
@@ -470,7 +476,7 @@ export class WorldScene extends Phaser.Scene {
       const moved = Phaser.Math.Distance.Between(p.downX, p.downY, p.upX, p.upY);
       const wasPinch = this.pinchStartDist > 0 || this.time.now - this.lastPinchAt < 350;
       if (this.designMode) {
-        if (!wasPinch) this.applyDesignDrag();
+        if (!wasPinch) this.finishDesignDrag(p.wasTouch);
         this.clearDesignDrag();
       } else if (moved < 8 && !wasPinch) {
         this.handleTap(p);
@@ -849,6 +855,7 @@ export class WorldScene extends Phaser.Scene {
   setDesignMode(mode: DesignMode): void {
     this.designMode = mode;
     this.designHover = null;
+    this.setPendingBuild(null);
     this.clearDesignDrag();
     if (mode) {
       this.select(null);
@@ -872,9 +879,47 @@ export class WorldScene extends Phaser.Scene {
     this.drawDesignPreview();
   }
 
-  designFinish(apply: boolean): void {
-    if (apply) this.applyDesignDrag();
+  designFinish(apply: boolean, touch = false): void {
+    if (apply) this.finishDesignDrag(touch);
     this.clearDesignDrag();
+  }
+
+  /** Al soltar: con el dedo y al construir, deja la construcción pendiente de confirmar; si no, la aplica. */
+  private finishDesignDrag(touch: boolean): void {
+    const r = this.designRect();
+    if (touch && this.designMode === 'construir' && r) {
+      this.setPendingBuild(r);
+      return;
+    }
+    this.applyDesignDrag();
+  }
+
+  private setPendingBuild(r: TileRect | null): void {
+    const had = !!this.pendingBuild;
+    this.pendingBuild = r;
+    if (had || r) this.game.events.emit('build-pending', !!r);
+  }
+
+  /** ¿Hay una construcción esperando ✔ o ✖? */
+  get hasPendingBuild(): boolean {
+    return !!this.pendingBuild;
+  }
+
+  /** ✔ Pone la construcción pendiente. */
+  confirmPendingBuild(): void {
+    const r = this.pendingBuild;
+    if (!r || this.designMode !== 'construir') return;
+    this.designStart = { x: r.x0, y: r.y0 };
+    this.designEnd = { x: r.x1, y: r.y1 };
+    this.applyDesignDrag();
+    this.setPendingBuild(null);
+    this.clearDesignDrag();
+  }
+
+  /** ✖ Quita la construcción pendiente sin ponerla. */
+  cancelPendingBuild(): void {
+    this.setPendingBuild(null);
+    this.drawDesignPreview();
   }
 
   /** Área que se está arrastrando, o la casilla bajo el ratón al construir (vista previa; también la 3D). */
@@ -885,6 +930,7 @@ export class WorldScene extends Phaser.Scene {
   private previewRect(): TileRect | null {
     const r = this.designRect();
     if (r) return r;
+    if (this.pendingBuild && this.designMode === 'construir') return this.pendingBuild;
     const h = this.designHover;
     return h && this.designMode === 'construir' ? { x0: h.x, y0: h.y, x1: h.x, y1: h.y } : null;
   }
@@ -898,7 +944,7 @@ export class WorldScene extends Phaser.Scene {
   setDesignHover(t: { x: number; y: number } | null): void {
     if (t?.x === this.designHover?.x && t?.y === this.designHover?.y) return;
     this.designHover = t;
-    if (this.designMode === 'construir' && !this.designStart) this.drawDesignPreview();
+    if (this.designMode === 'construir' && !this.designStart && !this.pendingBuild) this.drawDesignPreview();
   }
 
   /** Casillas de cada construcción que se pondría con el área de la vista previa (máx. 300). */
