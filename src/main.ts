@@ -21,6 +21,7 @@ import { downloadWorld, pickSaveFile, readBackupSave, readStoredSave, storeWorld
 import { parseSave } from './sim/save';
 import { reachableResources } from './sim/resources';
 import { BASE_RESOURCES, HarvestJob, RESOURCE_ICONS, RESOURCE_NAMES, RESOURCES } from './data/resources';
+import { isWeapon, WEAPON_IDS, WEAPONS } from './data/weapons';
 import { CROPS } from './data/crops';
 import { recipesFor } from './data/recipes';
 import type { ResourceId } from './data/resources';
@@ -889,6 +890,30 @@ function renderRoster(): void {
 }
 $('cp-draft').addEventListener('click', () => scene().toggleDraftSelected());
 
+// Arma del colono: la mejor libre (sola), una concreta o ninguna.
+const weaponSelect = $<HTMLSelectElement>('cp-weapon');
+weaponSelect.append(
+  new Option('Arma: la mejor libre', 'auto'),
+  new Option('Sin arma', 'ninguna'),
+  ...WEAPON_IDS.map((id) => new Option(`Solo ${RESOURCE_NAMES[id].toLowerCase()}`, id)),
+);
+let weaponPawnId: number | null = null;
+weaponSelect.addEventListener('change', () => {
+  const w = scene().world;
+  const c = w.colonists.find((k) => k.id === weaponPawnId);
+  const v = weaponSelect.value;
+  if (c && (v === 'auto' || v === 'ninguna' || isWeapon(v))) w.setWeaponChoice(c, v);
+});
+function renderWeapon(c: Colonist): void {
+  weaponPawnId = c.id;
+  const def = c.weapon ? WEAPONS[c.weapon] : null;
+  const ammo = def?.ammo ? ` · ${RESOURCE_ICONS.flechas} ${c.ammo}` : '';
+  $('cp-weapon-now').textContent = c.weapon
+    ? `${RESOURCE_ICONS[c.weapon]} ${RESOURCE_NAMES[c.weapon]} (×${String(def!.damage).replace('.', ',')}, ${def!.speedLabel}${def!.reach > 1 ? `, alcance ${def!.reach}` : ''})${ammo}`
+    : '✊ Sin arma (puños)';
+  if (document.activeElement !== weaponSelect) weaponSelect.value = c.weaponChoice;
+}
+
 // --- Ficha del colono ------------------------------------------------------------
 /** Barras de comida, descanso y ánimo, con los motivos del ánimo. */
 function renderNeeds(c: Colonist): void {
@@ -1002,6 +1027,7 @@ game.events.on('selection', (c: Colonist | null, group: Colonist[] = c ? [c] : [
     ? `❤ ${healthLabel(c)} (${Math.round(c.health * 100)} %)${c.wounds.length ? ` · heridas: ${c.wounds.map((w) => `${w.part}${w.bleeding ? ' 🩸' : ''}`).join(', ')}` : ''}`
     : '';
   renderNeeds(c);
+  renderWeapon(c);
   renderPriorities(c);
   if (lastPanelId === c.id) return; // el resto no cambia mientras siga seleccionado
   lastPanelId = c.id;

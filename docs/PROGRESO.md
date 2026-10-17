@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (noche, 12) — Armas (primera parte)
+
+- Decidido con Mikel: los colonos cogen solos la mejor arma libre y en la ficha se les puede fijar una o dejarlos sin arma; flechas para el arco y balas para las de fuego; las de fuego, con la investigación (fase 5); saqueadores armados según el día.
+- **Armas nuevas** (🏗 → Talleres → banco de trabajo → elegir receta): palo (🪵4, ×1,4), cuchillo (🔩6, ×1,8, rápido), tubería (🔩8, ×2,2, lenta), lanza (🪵6 🔩3, ×2, pega desde 2 casillas), machete (🔗5, ×2,8), arco (🪵8 🧵4, ×1,6, lento, dispara a 8 casillas) y flechas (🪵2 🧵1 → 10). Se guardan en el almacén como cualquier recurso.
+- **Equiparse**: entre trabajo y trabajo, cada colono va a por la mejor arma libre (deja la suya en su lugar); quien lleva arco coge hasta 20 flechas y vuelve a por más cuando le quedan menos de 5. Sin flechas, pelea con los puños. En la ficha: qué arma lleva y un selector (la mejor libre, sin arma o una concreta).
+- **Combate**: el daño y el tiempo entre golpes dependen del arma; la lanza alcanza 2 casillas; con arco se dispara desde lejos y se acierta menos cuanto más lejos (cada disparo gasta una flecha). Reclutados, se acercan hasta tener al enemigo a su alcance.
+- **Saqueadores**: palos y cuchillos hasta el día 8; tuberías y lanzas después; arcos desde el día 12. Al caer sueltan el arma y sus flechas.
+- Se guarda con la partida (las antiguas empiezan sin armas y en «la mejor libre»). Tests en `tests/weapons.test.ts`.
+- Qué probar: con 🪄 dejar un machete y un arco con flechas junto a los colonos y ver que se los quedan; fijar «Sin arma» en la ficha; esperar un raid y ver cómo pelean.
+- Siguiente: armeros de pared, y después las reglas de combate (cobertura y alcance primero).
+
 ## 2026-10-17 (noche, 11) — #9: nadie se queda encerrado; la 3D no se cuelga sin memoria
 
 - **#9** (🐞 de Mikel): Óscar volvió a quedarse encerrado en una casilla (semilla 785971, día 6) y la 3D falló en el móvil por falta de memoria gráfica.

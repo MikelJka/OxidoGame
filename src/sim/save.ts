@@ -13,6 +13,7 @@ import { GameMap, isPassable } from './map';
 import type { StoragePriority } from './zones';
 import { GameSpeed, TICKS_PER_DAY, World } from './world';
 import { initialSchedule, makeDifficulty } from './storyteller';
+import { isWeapon } from '../data/weapons';
 
 /** Versión del formato. Súbela solo si un cambio no se puede leer de forma tolerante, y añade la migración. */
 export const SAVE_VERSION = 1;
@@ -86,6 +87,10 @@ interface SavedColonist {
   prisoner?: { resistance: number; mode: string; lastTalk: number };
   raider?: { fleeing: boolean; leaveAt: number };
   trader?: { stock: Record<string, number>; slaves: SavedColonist[]; leaveAt: number; leaving: boolean };
+  /** Arma, la que prefiere y munición (desde que hay armas). */
+  weapon?: string | null;
+  weaponChoice?: string;
+  ammo?: number;
 }
 
 function savePawn(c: Colonist): SavedColonist {
@@ -114,6 +119,9 @@ function savePawn(c: Colonist): SavedColonist {
     trader: c.trader
       ? { stock: { ...c.trader.stock } as Record<string, number>, slaves: c.trader.slaves.map(savePawn), leaveAt: c.trader.leaveAt, leaving: c.trader.leaving }
       : undefined,
+    weapon: c.weapon,
+    weaponChoice: c.weaponChoice,
+    ammo: c.ammo,
   };
 }
 
@@ -306,6 +314,10 @@ function restoreColonist(s: SavedColonist): Colonist {
       lastMeal: (['cocinada', 'cruda'] as const).find((k) => k === s.needs?.lastMeal) ?? null,
     },
     need: null,
+    // Partidas de antes de las armas: sin arma, eligiendo sola la mejor.
+    weapon: typeof s.weapon === 'string' && isWeapon(s.weapon) ? s.weapon : null,
+    weaponChoice: s.weaponChoice === 'ninguna' || (typeof s.weaponChoice === 'string' && isWeapon(s.weaponChoice)) ? s.weaponChoice : 'auto',
+    ammo: Math.max(0, Math.round(num(s.ammo, 0))),
   };
 }
 

@@ -1,3 +1,4 @@
+import type { WeaponId } from '../data/weapons';
 import {
   FIRST_NAMES, HAIR_COLORS, NICKNAMES, SHIRT_COLORS, SKILLS, SKIN_COLORS, Skill, TRAITS, TRAIT_CONFLICTS, TraitDef,
 } from '../data/colonists';
@@ -129,7 +130,17 @@ export interface Colonist {
   attackCooldown?: number;
   /** Lo lleva a cuestas un colono (id): se mueve con él. */
   carriedBy?: number;
+  /** Arma que lleva (null = puños). */
+  weapon: WeaponId | null;
+  /** Qué arma quiere: la mejor libre («auto»), ninguna, o una concreta (se elige en la ficha). */
+  weaponChoice: WeaponChoice;
+  /** Munición que lleva encima (flechas). */
+  ammo: number;
+  /** Va a recoger un arma o munición del suelo o del almacén. */
+  gearTask?: { x: number; y: number; resource: ResourceId };
 }
+
+export type WeaponChoice = 'auto' | 'ninguna' | WeaponId;
 
 export interface TraderInfo {
   stock: Partial<Record<ResourceId, number>>;
@@ -185,6 +196,9 @@ export function createColonist(id: number, at: Point, rng: Rng): Colonist {
     wounds: [],
     downed: false,
     role: 'colono',
+    weapon: null,
+    weaponChoice: 'auto',
+    ammo: 0,
   };
 }
 

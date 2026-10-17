@@ -152,6 +152,41 @@ export function paintItem(ctx: CanvasRenderingContext2D, r: ResourceId): void {
       px(4, 1, 1, 2, 'rgba(230,230,230,0.6)');
       px(7, 0, 1, 3, 'rgba(230,230,230,0.6)');
       break;
+    // --- Armas: tumbadas en el suelo, en diagonal ---
+    case 'palo':
+      for (let i = 0; i < 8; i++) px(2 + i, 8 - i, 2, 2, i < 3 ? '#3a2a1a' : '#7a5634');
+      break;
+    case 'cuchillo':
+      px(2, 7, 3, 2, '#3a2a1a'); // mango
+      for (let i = 0; i < 5; i++) px(5 + i, 6 - i, 1, 2, '#c8c8c0');
+      break;
+    case 'tuberia':
+      for (let i = 0; i < 8; i++) px(2 + i, 8 - i, 2, 2, '#5c5a56');
+      px(2, 8, 2, 1, '#8a4a26');
+      px(9, 1, 2, 2, '#8a8780');
+      break;
+    case 'lanza':
+      for (let i = 0; i < 9; i++) px(1 + i, 9 - i, 1, 1, '#7a5634');
+      px(9, 0, 2, 2, '#b4b1a8');
+      px(10, 0, 1, 1, '#e0ded6');
+      break;
+    case 'machete':
+      px(1, 7, 3, 2, '#1a1410');
+      for (let i = 0; i < 6; i++) px(4 + i, 6 - i, 2, 2, '#a8aca8');
+      px(9, 1, 1, 1, '#e0e4e0');
+      break;
+    case 'arco':
+      // Arco de madera con su cuerda.
+      for (let i = 0; i < 8; i++) px(3 + Math.round(Math.sin((i / 7) * Math.PI) * 3), 1 + i, 2, 1, '#7a5634');
+      px(3, 1, 1, 8, 'rgba(220,210,190,0.8)');
+      break;
+    case 'flechas':
+      for (const y of [3, 5, 7]) {
+        px(2, y, 7, 1, '#9a7650');
+        px(9, y - 1, 1, 3, '#b4b1a8');
+        px(1, y - 1, 1, 3, '#d8c27a');
+      }
+      break;
   }
 }
 

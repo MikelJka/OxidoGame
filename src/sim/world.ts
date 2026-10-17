@@ -12,7 +12,8 @@ import { regrowNature } from './nature';
 import { Rooms } from './rooms';
 import { tickHealth, treatWounds } from './health';
 import { Difficulty, initialSchedule, makeDifficulty, scaledSupplies, StorySchedule } from './storyteller';
-import { canTalk, colonistFight, makePrisoner, runStoryteller, talkToPrisoner, updateOthers } from './people';
+import { canTalk, colonistFight, dropGear, makePrisoner, runStoryteller, talkToPrisoner, updateOthers } from './people';
+import { AMMO_CARRY, AMMO_LOW, isWeapon, WEAPON_IDS, WEAPONS, weaponScore } from '../data/weapons';
 import { TRAPPED_TILES } from './diagnostics';
 import {
   BAD_WATER_TICKS_DAYS, DEHYDRATED, DRINK_TICKS, EAT_TICKS, EXHAUSTED, foodDecay, foodPreference, HUNGRY, isFood, isRawFood, NUTRITION, restDecay,
@@ -21,7 +22,7 @@ import {
 import { applyTerrainJob, LOWER_STONE, terrainBlocker, TerrainJob, TerrainOrders } from './terrain';
 import { Structure, Structures } from './structures';
 import type { TileRect } from './designations';
-import { RESOURCES, STARTING_SUPPLIES } from '../data/resources';
+import { RESOURCES, ResourceId, STARTING_SUPPLIES } from '../data/resources';
 
 import { TICKS_PER_DAY, TICKS_PER_HOUR, TICKS_PER_SECOND } from './time';
 export { TICKS_PER_DAY, TICKS_PER_HOUR, TICKS_PER_SECOND };
@@ -37,6 +38,8 @@ const DRINK_SEARCH_TILES = 12000;
 const JOB_RETRY_TICKS = 90;
 /** Ticks de pausa entre terminar un trabajo y empezar el siguiente. */
 const JOB_PAUSE_TICKS = 10;
+/** Cada cuánto mira un colono, entre trabajos, si hay un arma mejor o le faltan flechas. */
+const GEAR_SCAN_TICKS = TICKS_PER_SECOND * 5;
 /** Cada cuánto se mira si alguien se ha quedado encerrado (10 minutos de juego). */
 const RESCUE_TICKS = TICKS_PER_HOUR / 6;
 /** Distancia máxima a la que se saca a alguien encerrado. */
@@ -123,6 +126,8 @@ export class World implements JobContext {
   private nextNeedScan = new Map<number, number>();
   /** Hambre y sueño activados (se pueden quitar en pruebas que no van de eso). */
   needsEnabled: boolean;
+  /** Tick a partir del cual cada colono vuelve a mirar si hay un arma mejor o le faltan flechas. */
+  private nextGearScan = new Map<number, number>();
   /** Tick a partir del cual cada colono vuelve a buscar trabajo. */
   private nextJobScan = new Map<number, number>();
   /**
@@ -262,6 +267,7 @@ export class World implements JobContext {
 
   /** Una persona muere: deja lo que llevaba y se apunta en el diario. */
   killPawn(c: Colonist, cause: string): void {
+    dropGear(this, c);
     if (c.role === 'colono') {
       this.dropJob(c);
       if (c.need) this.endNeed(c);
@@ -350,6 +356,7 @@ export class World implements JobContext {
     const path = findPath(this.map, c.tile, target);
     if (!path) return false;
     this.dropJob(c); // la orden directa manda sobre el trabajo
+    c.gearTask = undefined;
     if (c.need) this.endNeed(c); // y sobre comer o dormir
     c.path = path;
     c.activity = 'moving';
@@ -416,6 +423,7 @@ export class World implements JobContext {
   private updateColonist(c: Colonist): void {
     if (c.downed) {
       // En el suelo: no hace nada hasta recuperarse (o hasta que lo curen).
+      c.gearTask = undefined;
       if (c.job) this.dropJob(c);
       if (c.need) this.endNeed(c);
       c.path = [];
@@ -436,12 +444,18 @@ export class World implements JobContext {
       this.updateJob(c);
       return;
     }
+    if (c.gearTask) {
+      this.updateGear(c);
+      return;
+    }
     if (c.drafted) {
       // Reclutado: solo se mueve si se le manda; si no, espera quieto.
       if (c.path.length > 0) this.moveAlongPath(c);
       else c.activity = 'idle';
       return;
     }
+    // Entre trabajo y trabajo (no en mitad de una orden directa), coge un arma mejor o flechas.
+    if ((c.path.length === 0 || c.activity === 'wandering') && this.tryStartGear(c)) return;
     if (c.path.length > 0) {
       // Quien deambula deja de hacerlo si aparece trabajo; una orden directa no se interrumpe.
       if (c.activity === 'wandering' && this.tryStartJob(c)) return;
@@ -458,6 +472,97 @@ export class World implements JobContext {
       return;
     }
     this.startWander(c);
+  }
+
+  // --- Armas: coger la mejor libre y flechas ---------------------------------------------
+
+  /** Lo que quiere ir a coger: un arma mejor que la suya, la que se le ha elegido, o flechas. */
+  wantedGear(c: Colonist): ResourceId | null {
+    const inv = this.items.totals();
+    if (c.weaponChoice === 'ninguna') return null;
+    if (c.weaponChoice !== 'auto') {
+      if (c.weapon !== c.weaponChoice && inv[c.weaponChoice] > 0) return c.weaponChoice;
+    } else {
+      const arrows = c.ammo > 0 || inv.flechas > 0;
+      let best = c.weapon;
+      let bestScore = weaponScore(c.weapon, arrows);
+      for (const id of WEAPON_IDS) {
+        if (inv[id] <= 0) continue;
+        const sc = weaponScore(id, arrows);
+        if (sc > bestScore + 0.05) {
+          best = id;
+          bestScore = sc;
+        }
+      }
+      if (best !== c.weapon) return best;
+    }
+    if (c.weapon && WEAPONS[c.weapon].ammo && c.ammo < AMMO_LOW && inv.flechas > 0) return 'flechas';
+    return null;
+  }
+
+  /** Aplica lo elegido en la ficha: sin arma, la suelta (y la llevan al almacén). */
+  setWeaponChoice(c: Colonist, choice: Colonist['weaponChoice']): void {
+    c.weaponChoice = choice;
+    c.gearTask = undefined;
+    this.nextGearScan.delete(c.id);
+    if (choice === 'ninguna' || (choice !== 'auto' && c.weapon && c.weapon !== choice)) {
+      if (c.weapon) this.items.drop(c.tile.x, c.tile.y, c.weapon, 1);
+      if (c.ammo > 0) this.items.drop(c.tile.x, c.tile.y, 'flechas', c.ammo);
+      c.weapon = null;
+      c.ammo = 0;
+    }
+  }
+
+  private tryStartGear(c: Colonist): boolean {
+    if (this.tick < (this.nextGearScan.get(c.id) ?? 0)) return false;
+    this.nextGearScan.set(c.id, this.tick + GEAR_SCAN_TICKS);
+    const want = this.wantedGear(c);
+    if (!want) return false;
+    const stacks = this.items
+      .list()
+      .filter((s) => s.resource === want)
+      .sort((a, b) => Math.abs(a.x - c.tile.x) + Math.abs(a.y - c.tile.y) - (Math.abs(b.x - c.tile.x) + Math.abs(b.y - c.tile.y)))
+      .slice(0, 3);
+    for (const s of stacks) {
+      const here = s.x === c.tile.x && s.y === c.tile.y;
+      const path = here ? [] : findPath(this.map, c.tile, { x: s.x, y: s.y }, JOB_PATH_NODES);
+      if (!here && !path) continue;
+      c.gearTask = { x: s.x, y: s.y, resource: want };
+      c.path = path ?? [];
+      c.activity = 'moving';
+      return true;
+    }
+    return false;
+  }
+
+  private updateGear(c: Colonist): void {
+    const t = c.gearTask!;
+    if (c.tile.x === t.x && c.tile.y === t.y && c.path.length === 0) {
+      c.gearTask = undefined;
+      c.activity = 'idle';
+      if (t.resource === 'flechas') {
+        const got = this.items.at(t.x, t.y)?.resource === 'flechas' ? this.items.take(t.x, t.y, AMMO_CARRY - c.ammo) : null;
+        if (got) c.ammo += got.amount;
+        return;
+      }
+      if (!isWeapon(t.resource) || this.items.at(t.x, t.y)?.resource !== t.resource) return;
+      const got = this.items.take(t.x, t.y, 1);
+      if (!got) return;
+      // Deja la que llevaba (y sus flechas, si la nueva no las usa) donde estaba la nueva.
+      if (c.weapon) this.items.drop(t.x, t.y, c.weapon, 1);
+      if (c.ammo > 0 && !WEAPONS[t.resource].ammo) {
+        this.items.drop(t.x, t.y, 'flechas', c.ammo);
+        c.ammo = 0;
+      }
+      c.weapon = t.resource;
+      return;
+    }
+    if (c.path.length === 0) {
+      // Ya no se puede llegar (o lo han apartado): lo intentará más tarde.
+      c.gearTask = undefined;
+      return;
+    }
+    this.moveAlongPath(c);
   }
 
   // --- Necesidades: comer y dormir --------------------------------------------------
@@ -1085,6 +1190,7 @@ export class World implements JobContext {
     const c = this.colonists.find((k) => k.id === colonistId);
     if (!c || c.drafted === drafted) return;
     c.drafted = drafted;
+    c.gearTask = undefined;
     this.dropJob(c);
     if (c.need) this.endNeed(c);
     c.path = [];

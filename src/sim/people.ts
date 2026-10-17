@@ -3,6 +3,7 @@
 // prisioneros (retener, convencer, liberar) y caravanas de comerciantes (con esclavos).
 import { RESOURCES, ResourceId } from '../data/resources';
 import { personValue, RESOURCE_VALUES } from '../data/values';
+import { isGear, raiderWeaponPool, WEAPONS, WeaponDef } from '../data/weapons';
 import type { Colonist } from './colonist';
 import { BODY_PARTS, hurt } from './health';
 import { findPath, Point } from './pathfinding';
@@ -75,8 +76,12 @@ export function startRaid(w: World, n: number): Colonist[] {
     r.pos = { x: spot.x + 0.5, y: spot.y + 0.5 };
     out.push(r);
   }
+  // Armados según el día: palos y cuchillos al principio; tuberías, lanzas y arcos más adelante.
+  const pool = raiderWeaponPool(w.day);
   for (const r of out) {
     r.skills.combate = Math.max(r.skills.combate, w.rng.int(3, 10));
+    r.weapon = pool[w.rng.int(0, pool.length - 1)];
+    r.ammo = r.weapon && WEAPONS[r.weapon].ammo ? 15 : 0;
     w.others.push(r);
   }
   w.addLog(`⚔️ ¡Raid! ${n} ${n === 1 ? 'saqueador llega' : 'saqueadores llegan'}. Recluta a los colonos (🎖) para defenderos.`, 'malo');
@@ -88,7 +93,8 @@ export function startTrader(w: World): Colonist | null {
   const t = w.makePawn('comerciante');
   if (!w.placeAtEdge(t)) return null;
   const stock: Partial<Record<ResourceId, number>> = {};
-  for (const r of RESOURCES) if (w.rng.chance(0.5)) stock[r] = w.rng.int(10, 60);
+  // Las caravanas todavía no venden armas.
+  for (const r of RESOURCES) if (!isGear(r) && w.rng.chance(0.5)) stock[r] = w.rng.int(10, 60);
   stock.componentes = w.rng.int(2, 10);
   const slaves: Colonist[] = [];
   const nSlaves = w.rng.int(0, 2);
@@ -115,17 +121,43 @@ function nearFree(w: World, p: Point): Point | null {
 
 // --- Combate ------------------------------------------------------------------------
 
-/** Un golpe cuerpo a cuerpo. Devuelve true si acierta. */
+/** Arma que puede usar ahora (un arco sin flechas no dispara: se pelea con los puños). */
+export function usableWeapon(c: Colonist): WeaponDef | null {
+  if (!c.weapon) return null;
+  const def = WEAPONS[c.weapon];
+  return def.ammo && c.ammo <= 0 ? null : def;
+}
+
+/** Casillas de alcance de una persona con lo que lleva. */
+export function reachOf(c: Colonist): number {
+  return usableWeapon(c)?.reach ?? 1;
+}
+
+/** Distancia en casillas (en diagonal cuenta como una). */
+export function tileDistance(a: Colonist, b: Colonist): number {
+  return Math.max(Math.abs(a.tile.x - b.tile.x), Math.abs(a.tile.y - b.tile.y));
+}
+
+const inReach = (a: Colonist, b: Colonist) => tileDistance(a, b) <= reachOf(a);
+
+/** Un golpe (o un disparo, con arco). Devuelve true si acierta. */
 export function attack(w: World, a: Colonist, b: Colonist): boolean {
-  a.attackCooldown = ATTACK_COOLDOWN;
+  const weapon = usableWeapon(a);
+  a.attackCooldown = Math.round(ATTACK_COOLDOWN * (weapon?.cooldown ?? 1));
   const dx = b.pos.x - a.pos.x;
   if (Math.abs(dx) > 0.01) a.facing = dx > 0 ? 1 : -1;
-  const hitChance = Math.min(0.95, 0.55 + a.skills.combate * 0.02);
+  const dist = tileDistance(a, b);
+  let hitChance = Math.min(0.95, 0.55 + a.skills.combate * 0.02);
+  if (weapon?.ammo) {
+    a.ammo--;
+    // A distancia se acierta menos cuanto más lejos.
+    hitChance = Math.max(0.2, hitChance * (1 - 0.06 * Math.max(0, dist - 1)));
+  }
   if (!w.rng.chance(hitChance)) return false;
   const tough = b.traits.some((t) => t.id === 'duro') ? 0.75 : 1;
   // La dureza de la partida solo cambia los golpes de los saqueadores.
   const hard = a.role === 'saqueador' ? DIFFICULTIES[w.difficulty.level].enemyDamage : 1;
-  const dmg = (0.08 + w.rng.next() * 0.1) * (1 + a.skills.combate * 0.03) * tough * hard;
+  const dmg = (0.08 + w.rng.next() * 0.1) * (1 + a.skills.combate * 0.03) * tough * hard * (weapon?.damage ?? 1);
   const part = BODY_PARTS[w.rng.int(0, BODY_PARTS.length - 1)];
   const wasDown = b.downed;
   hurt(b, dmg, part);
@@ -135,15 +167,14 @@ export function attack(w: World, a: Colonist, b: Colonist): boolean {
   return true;
 }
 
-const adjacent = (a: Colonist, b: Colonist) => Math.max(Math.abs(a.tile.x - b.tile.x), Math.abs(a.tile.y - b.tile.y)) <= 1;
-
 /** Defensa de un colono: golpea a un saqueador pegado a él; reclutado, además va a por los cercanos. true si ha actuado. */
 export function colonistFight(w: World, c: Colonist): boolean {
   if (c.downed) return false;
   if (c.attackCooldown && c.attackCooldown > 0) c.attackCooldown--;
   const enemies = w.others.filter(hostile);
   if (enemies.length === 0) return false;
-  const near = enemies.find((e) => adjacent(c, e));
+  // El enemigo más cercano a su alcance (pegado, o más lejos con lanza o arco).
+  const near = enemies.filter((e) => inReach(c, e)).sort((x, y) => tileDistance(c, x) - tileDistance(c, y))[0];
   if (near) {
     if (!c.attackCooldown) attack(w, c, near);
     if (c.drafted || c.job === null) {
@@ -181,12 +212,21 @@ export function updateOthers(w: World): void {
     if (o.downed) {
       o.path = [];
       o.activity = 'idle';
+      dropGear(w, o);
       continue;
     }
     if (o.role === 'saqueador') updateRaider(w, o);
     else if (o.role === 'comerciante') updateTrader(w, o);
     else if (o.role === 'prisionero') updatePrisoner(w, o);
   }
+}
+
+/** Suelta el arma y la munición que lleva en su casilla (se pueden recoger). */
+export function dropGear(w: World, c: Colonist): void {
+  if (c.weapon) w.items.drop(c.tile.x, c.tile.y, c.weapon, 1);
+  if (c.ammo > 0) w.items.drop(c.tile.x, c.tile.y, 'flechas', c.ammo);
+  c.weapon = null;
+  c.ammo = 0;
 }
 
 function leaveMap(w: World, o: Colonist, why: string): void {
@@ -255,7 +295,7 @@ function updateRaider(w: World, o: Colonist): void {
     return;
   }
   const target = targets.sort((a, b) => Math.abs(a.tile.x - o.tile.x) + Math.abs(a.tile.y - o.tile.y) - (Math.abs(b.tile.x - o.tile.x) + Math.abs(b.tile.y - o.tile.y)))[0];
-  if (adjacent(o, target)) {
+  if (inReach(o, target)) {
     o.path = [];
     o.activity = 'working';
     if (!o.attackCooldown) attack(w, o, target);

@@ -126,5 +126,99 @@
     },
     "work": 700,
     "description": "Desguaza chatarra fina hasta sacar piezas útiles."
+  },
+  {
+    "id": "fabricar_palo",
+    "name": "Palo",
+    "station": "banco_trabajo",
+    "inputs": {
+      "madera": 4
+    },
+    "outputs": {
+      "palo": 1
+    },
+    "work": 150,
+    "description": "Un garrote de madera: ×1,4 de daño."
+  },
+  {
+    "id": "fabricar_cuchillo",
+    "name": "Cuchillo",
+    "station": "banco_trabajo",
+    "inputs": {
+      "chatarra": 6
+    },
+    "outputs": {
+      "cuchillo": 1
+    },
+    "work": 250,
+    "description": "Rápido: ×1,8 de daño y golpea antes."
+  },
+  {
+    "id": "fabricar_tuberia",
+    "name": "Tubería",
+    "station": "banco_trabajo",
+    "inputs": {
+      "chatarra": 8
+    },
+    "outputs": {
+      "tuberia": 1
+    },
+    "work": 250,
+    "description": "Lenta pero dura: ×2,2 de daño."
+  },
+  {
+    "id": "fabricar_lanza",
+    "name": "Lanza",
+    "station": "banco_trabajo",
+    "inputs": {
+      "madera": 6,
+      "chatarra": 3
+    },
+    "outputs": {
+      "lanza": 1
+    },
+    "work": 300,
+    "description": "×2 de daño; pega desde 2 casillas."
+  },
+  {
+    "id": "fabricar_machete",
+    "name": "Machete",
+    "station": "banco_trabajo",
+    "inputs": {
+      "metal": 5
+    },
+    "outputs": {
+      "machete": 1
+    },
+    "work": 350,
+    "description": "×2,8 de daño (necesita metal del horno)."
+  },
+  {
+    "id": "fabricar_arco",
+    "name": "Arco",
+    "station": "banco_trabajo",
+    "inputs": {
+      "madera": 8,
+      "fibra": 4
+    },
+    "outputs": {
+      "arco": 1
+    },
+    "work": 350,
+    "description": "Dispara a 8 casillas (×1,6, lento); gasta flechas."
+  },
+  {
+    "id": "fabricar_flechas",
+    "name": "Flechas (10)",
+    "station": "banco_trabajo",
+    "inputs": {
+      "madera": 2,
+      "fibra": 1
+    },
+    "outputs": {
+      "flechas": 10
+    },
+    "work": 150,
+    "description": "Munición para el arco."
   }
 ]

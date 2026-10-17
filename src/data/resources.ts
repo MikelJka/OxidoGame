@@ -1,7 +1,7 @@
 /** Recursos de la colonia y trabajos para obtenerlos del mapa. Ampliar aquí, no en la lógica. */
 import type { Skill } from './colonists';
 
-export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra', 'metal', 'hormigon', 'comida'] as const;
+export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra', 'metal', 'hormigon', 'comida', 'palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'flechas'] as const;
 
 export type ResourceId = (typeof RESOURCES)[number];
 
@@ -17,6 +17,13 @@ export const RESOURCE_NAMES: Record<ResourceId, string> = {
   metal: 'Metal',
   hormigon: 'Hormigón',
   comida: 'Comida cocinada',
+  palo: 'Palo',
+  cuchillo: 'Cuchillo',
+  tuberia: 'Tubería',
+  lanza: 'Lanza',
+  machete: 'Machete',
+  arco: 'Arco',
+  flechas: 'Flechas',
 };
 
 /** Recursos que se muestran siempre en el inventario (los demás, solo si hay). */
@@ -39,6 +46,13 @@ export const RESOURCE_ICONS: Record<ResourceId, string> = {
   metal: '🔗',
   hormigon: '🧱',
   comida: '🍲',
+  palo: '🏏',
+  cuchillo: '🔪',
+  tuberia: '🪈',
+  lanza: '🔱',
+  machete: '🗡️',
+  arco: '🏹',
+  flechas: '➶',
 };
 
 /** Tipo de trabajo con el que se aprovecha un objeto del mapa. */
@@ -82,6 +96,13 @@ export const MAX_STACK: Record<ResourceId, number> = {
   metal: 50,
   hormigon: 50,
   comida: 25,
+  palo: 10,
+  cuchillo: 10,
+  tuberia: 10,
+  lanza: 10,
+  machete: 10,
+  arco: 10,
+  flechas: 100,
 };
 
 /** Provisiones con las que llega la colonia: se dejan en el suelo junto al punto de inicio. */

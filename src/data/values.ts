@@ -13,6 +13,13 @@ export const RESOURCE_VALUES: Record<ResourceId, number> = {
   metal: 4,
   hormigon: 2.5,
   comida: 5,
+  palo: 5,
+  cuchillo: 12,
+  tuberia: 16,
+  lanza: 14,
+  machete: 28,
+  arco: 22,
+  flechas: 0.6,
 };
 
 /** Valor de una persona en venta (un esclavo) según sus habilidades. */
