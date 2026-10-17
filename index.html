@@ -29,6 +29,17 @@
       <button id="tilt-btn" type="button" title="Cambiar la inclinación (R / F)">∠3</button>
     </div>
 
+    <div id="orders" class="panel" role="group" aria-label="Órdenes">
+      <button id="orders-btn" type="button" title="Órdenes: talar, picar, saquear (T)">⚒</button>
+      <div id="order-modes" hidden>
+        <button type="button" data-mode="talar" title="Talar árboles y matorrales">🪓 Talar <span class="n"></span></button>
+        <button type="button" data-mode="minar" title="Picar rocas y muros">⛏ Picar <span class="n"></span></button>
+        <button type="button" data-mode="saquear" title="Saquear chatarra, coches y escombros">🔩 Saquear <span class="n"></span></button>
+        <button type="button" data-mode="cancelar" title="Quitar órdenes">✖ Quitar</button>
+      </div>
+    </div>
+    <div id="design-hint" class="panel" hidden></div>
+
     <div id="menu" class="panel" hidden>
       <div id="seed"></div>
       <div id="map-resources" class="muted"></div>
@@ -39,6 +50,7 @@
         Arrastrar: mover la cámara · Rueda o pellizco: zoom<br />
         Tocar un colono: seleccionarlo · Tocar el suelo: mandarlo allí<br />
         Arriba a la izquierda: inventario de la colonia (los montones del suelo)<br />
+        Órdenes ⚒ (tecla T): elegir talar, picar o saquear y arrastrar un área (o tocar una casilla); con dos dedos se mueve la cámara · Esc: salir<br />
         Girar la vista: botones ⟲ ⟳, girar dos dedos o teclas Q y E<br />
         Inclinar la vista: botón ∠, deslizar dos dedos arriba o abajo o teclas R y F<br />
         PC: clic derecho también da la orden · Espacio, 1, 2, 3: velocidad · Esc: deseleccionar

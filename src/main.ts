@@ -11,7 +11,8 @@ import { checkWorld, ProgressMark } from './sim/diagnostics';
 import { installErrorCapture, mountReportPanel, onNewError, recordError } from './ui/bugReport';
 import { mountDevPanel } from './ui/devPanel';
 import { reachableResources } from './sim/resources';
-import { RESOURCE_ICONS, RESOURCE_NAMES, RESOURCES } from './data/resources';
+import { HARVEST_JOB_NAMES, HarvestJob, RESOURCE_ICONS, RESOURCE_NAMES, RESOURCES } from './data/resources';
+import type { DesignMode } from './render/WorldScene';
 import type { Stockpile } from './sim/resources';
 import './style.css';
 
@@ -139,6 +140,52 @@ game.events.on('inventory', (inv: Stockpile) => {
       return el;
     }),
   );
+});
+
+// --- Órdenes: talar, picar, saquear --------------------------------------------
+const orderModes = $('order-modes');
+const ordersBtn = $('orders-btn');
+const designHint = $('design-hint');
+const modeButtons = Array.from(orderModes.querySelectorAll<HTMLButtonElement>('button[data-mode]'));
+const DESIGN_HINTS: Record<HarvestJob | 'cancelar', string> = {
+  talar: 'árboles, tocones y matorrales',
+  minar: 'rocas, piedras y muros',
+  saquear: 'chatarra, coches, escombros y neumáticos',
+  cancelar: 'las órdenes que quieras quitar',
+};
+function toggleOrders(open: boolean = orderModes.hidden !== false): void {
+  orderModes.hidden = !open;
+  ordersBtn.classList.toggle('active', open);
+  if (!open) scene().setDesignMode(null);
+}
+ordersBtn.addEventListener('click', () => toggleOrders());
+for (const b of modeButtons) {
+  b.addEventListener('click', () => {
+    const mode = b.dataset.mode as Exclude<DesignMode, null>;
+    // Volver a tocar el modo activo lo desactiva.
+    scene().setDesignMode(scene().designMode === mode ? null : mode);
+  });
+}
+game.events.on('design-mode', (mode: DesignMode) => {
+  for (const b of modeButtons) b.classList.toggle('active', b.dataset.mode === mode);
+  if (mode && orderModes.hidden) toggleOrders(true);
+  designHint.hidden = !mode;
+  if (mode) {
+    const what = mode === 'cancelar' ? 'Quitar' : HARVEST_JOB_NAMES[mode];
+    designHint.textContent = `${what}: arrastra sobre ${DESIGN_HINTS[mode]} o toca una casilla · dos dedos: mover la cámara`;
+  }
+});
+game.events.on('designations', (counts: Record<HarvestJob, number>) => {
+  for (const b of modeButtons) {
+    const n = b.querySelector('.n');
+    const mode = b.dataset.mode as HarvestJob | 'cancelar';
+    if (n && mode !== 'cancelar') n.textContent = counts[mode] > 0 ? String(counts[mode]) : '';
+  }
+});
+window.addEventListener('keydown', (e) => {
+  const el = document.activeElement;
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return;
+  if (e.key === 't' || e.key === 'T') toggleOrders();
 });
 
 // --- Información de casilla y avisos -----------------------------------------

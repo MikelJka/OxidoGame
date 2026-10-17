@@ -4,7 +4,8 @@ import { Colonist } from '../sim/colonist';
 import { isWalkable } from '../sim/pathfinding';
 import { GameSpeed, World } from '../sim/world';
 import { describeStack } from '../sim/items';
-import { MAX_STACK, RESOURCE_NAMES, ResourceId } from '../data/resources';
+import { canDesignate, TileRect } from '../sim/designations';
+import { HARVEST_JOB_NAMES, HarvestJob, MAX_STACK, RESOURCE_NAMES, ResourceId } from '../data/resources';
 import { canvasPropRasterizer, paintGround, TILE } from './mapArt';
 import { liftOf, occludedFraction, pickTile, rowY, setTilt, TILE_H, tiltIndex, TILTS, TOP_MARGIN } from './projection';
 import { fromView, normalizeRotation, Rotation, rotateMap, tileFromView, tileToView, toView } from './rotation';
@@ -15,6 +16,19 @@ const MAX_ZOOM = 4;
 const COLONIST_DEPTH = 10;
 /** Los montones del suelo van por debajo de los colonos y de la selección. */
 const ITEM_DEPTH = COLONIST_DEPTH - 2;
+/** Marcas de designación: encima de los montones, debajo de los colonos. */
+const DESIGN_DEPTH = COLONIST_DEPTH - 1.5;
+
+/** Modo de órdenes: designar un trabajo, quitar designaciones o ninguno. */
+export type DesignMode = HarvestJob | 'cancelar' | null;
+
+/** Color de cada trabajo en las marcas y en la vista previa del área. */
+export const DESIGN_COLORS: Record<HarvestJob | 'cancelar', number> = {
+  talar: 0x9bc45a,
+  minar: 0x8fb4d8,
+  saquear: 0xe0913a,
+  cancelar: 0xd9534f,
+};
 const UI_EMIT_MS = 200;
 /** Giro de los dedos (en radianes) que hace falta para girar la vista un cuarto de vuelta. */
 const TWIST_STEP = Math.PI / 4;
@@ -58,6 +72,15 @@ export class WorldScene extends Phaser.Scene {
   /** Dibujos de los montones del suelo; se rehacen cuando cambian (versión) o cambia la vista. */
   private itemSprites: Phaser.GameObjects.Image[] = [];
   private itemsVersion = -1;
+  /** Modo de órdenes activo: arrastrar o tocar marca casillas en lugar de mover la cámara. */
+  designMode: DesignMode = null;
+  private designStart: ViewPoint | null = null;
+  private designEnd: ViewPoint | null = null;
+  private designGfx!: Phaser.GameObjects.Graphics;
+  private designPreview!: Phaser.GameObjects.Graphics;
+  private designVersion = -1;
+  /** Punto del mundo bajo el centro de los dos dedos al empezar el gesto (para moverse con dos dedos). */
+  private pinchAnchor = new Phaser.Math.Vector2();
   private uiTimer = 0;
   private dragging = false;
   private dragStart = new Phaser.Math.Vector2();
@@ -81,9 +104,14 @@ export class WorldScene extends Phaser.Scene {
     this.mapImage = undefined;
     this.itemSprites = [];
     this.itemsVersion = -1;
+    this.designVersion = -1;
+    this.designStart = null;
+    this.designEnd = null;
     this.view = rotateMap(this.map, this.rotation);
     this.drawMap();
     this.selectionGfx = this.add.graphics().setDepth(COLONIST_DEPTH - 1);
+    this.designGfx = this.add.graphics().setDepth(DESIGN_DEPTH);
+    this.designPreview = this.add.graphics().setDepth(COLONIST_DEPTH + 2);
     this.createColonistSprites();
 
     const cam = this.cameras.main;
@@ -100,12 +128,14 @@ export class WorldScene extends Phaser.Scene {
     this.emitClock();
     this.game.events.emit('view-rotation', this.rotation);
     this.game.events.emit('view-tilt', tiltIndex);
+    this.emitDesignations();
   }
 
   update(_time: number, delta: number): void {
     this.world.update(delta);
     this.syncColonists();
     this.syncItems();
+    this.syncDesignations();
     this.drawSelection();
     this.uiTimer += delta;
     if (this.uiTimer >= UI_EMIT_MS) {
@@ -216,6 +246,8 @@ export class WorldScene extends Phaser.Scene {
     this.lastViewX.clear();
     this.spriteLift.clear(); // la altura en píxeles de cada nivel puede haber cambiado
     this.itemsVersion = -1; // los montones cambian de sitio en pantalla
+    this.designVersion = -1;
+    this.drawDesignPreview();
   }
 
   private setupInput(): void {
@@ -225,7 +257,17 @@ export class WorldScene extends Phaser.Scene {
 
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       if (this.isPinching()) {
+        this.clearDesignDrag();
         this.startPinch();
+        return;
+      }
+      if (this.designMode) {
+        // En modo de órdenes, un dedo (o el ratón) marca un área en lugar de mover la cámara.
+        const w = cam.getWorldPoint(p.x, p.y);
+        this.designStart = this.pickRealTile(w.x, w.y);
+        this.designEnd = this.designStart;
+        this.dragging = false;
+        this.drawDesignPreview();
         return;
       }
       this.dragging = true;
@@ -238,6 +280,19 @@ export class WorldScene extends Phaser.Scene {
         this.updatePinch();
         return;
       }
+      if (this.designMode) {
+        // Solo sigue un área empezada con un toque nuevo (no el dedo que queda tras pellizcar).
+        if (p.isDown && this.designStart) {
+          const w = cam.getWorldPoint(p.x, p.y);
+          const t = this.pickRealTile(w.x, w.y);
+          if (t) {
+            this.designEnd = t;
+            this.drawDesignPreview();
+          }
+        }
+        this.reportTile(p);
+        return;
+      }
       if (this.dragging && p.isDown) {
         cam.scrollX = this.camStart.x - (p.x - this.dragStart.x) / cam.zoom;
         cam.scrollY = this.camStart.y - (p.y - this.dragStart.y) / cam.zoom;
@@ -248,7 +303,12 @@ export class WorldScene extends Phaser.Scene {
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
       const moved = Phaser.Math.Distance.Between(p.downX, p.downY, p.upX, p.upY);
       const wasPinch = this.pinchStartDist > 0 || this.time.now - this.lastPinchAt < 350;
-      if (moved < 8 && !wasPinch) this.handleTap(p);
+      if (this.designMode) {
+        if (!wasPinch) this.applyDesignDrag();
+        this.clearDesignDrag();
+      } else if (moved < 8 && !wasPinch) {
+        this.handleTap(p);
+      }
       this.dragging = false;
       this.pinchStartDist = 0;
       // Si queda un dedo apoyado tras el pellizco, reanuda el arrastre desde él.
@@ -280,7 +340,7 @@ export class WorldScene extends Phaser.Scene {
       kb.on('keydown-ONE', hotkey(() => this.setSpeed(1)));
       kb.on('keydown-TWO', hotkey(() => this.setSpeed(2)));
       kb.on('keydown-THREE', hotkey(() => this.setSpeed(3)));
-      kb.on('keydown-ESC', hotkey(() => this.select(null)));
+      kb.on('keydown-ESC', hotkey(() => (this.designMode ? this.setDesignMode(null) : this.select(null))));
       kb.on('keydown-Q', hotkey(() => this.rotate(-1)));
       kb.on('keydown-E', hotkey(() => this.rotate(1)));
       kb.on('keydown-R', hotkey(() => this.tilt(-1)));
@@ -303,6 +363,8 @@ export class WorldScene extends Phaser.Scene {
     this.pinchStartZoom = this.cameras.main.zoom;
     this.pinchStartAngle = Math.atan2(b.y - a.y, b.x - a.x);
     this.pinchStartY = [a.y, b.y];
+    const mid = this.cameras.main.getWorldPoint((a.x + b.x) / 2, (a.y + b.y) / 2);
+    this.pinchAnchor.set(mid.x, mid.y);
   }
 
   private updatePinch(): void {
@@ -329,7 +391,20 @@ export class WorldScene extends Phaser.Scene {
       this.startPinch();
       return;
     }
-    this.zoomAt(this.pinchStartZoom * (dist / this.pinchStartDist), (a.x + b.x) / 2, (a.y + b.y) / 2);
+    const zoom = this.pinchStartZoom * (dist / this.pinchStartDist);
+    const mx = (a.x + b.x) / 2;
+    const my = (a.y + b.y) / 2;
+    if (this.designMode) {
+      // En modo de órdenes un dedo marca, así que con dos dedos además se mueve la cámara:
+      // el punto que estaba bajo los dedos los sigue.
+      const cam = this.cameras.main;
+      const z = this.clampZoom(zoom);
+      cam.setZoom(z);
+      cam.scrollX = this.pinchAnchor.x - cam.width / 2 - (mx - cam.width / 2) / z;
+      cam.scrollY = this.pinchAnchor.y - cam.height / 2 - (my - cam.height / 2) / z;
+      return;
+    }
+    this.zoomAt(zoom, mx, my);
   }
 
   /** Hace zoom manteniendo fijo el punto de la pantalla (sx, sy). */
@@ -367,6 +442,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   select(id: number | null): void {
+    if (id !== null && this.designMode) this.setDesignMode(null); // elegir un colono sale del modo de órdenes
     this.selectedId = id;
     this.game.events.emit('selection', this.selected());
   }
@@ -465,6 +541,117 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  // --- Órdenes: designar talar, picar y saquear ----------------------------------
+
+  /** Activa un modo de órdenes (o lo quita con null). */
+  setDesignMode(mode: DesignMode): void {
+    this.designMode = mode;
+    this.clearDesignDrag();
+    if (mode) this.select(null);
+    this.game.events.emit('design-mode', mode);
+  }
+
+  private clearDesignDrag(): void {
+    this.designStart = null;
+    this.designEnd = null;
+    this.drawDesignPreview();
+  }
+
+  private designRect(): TileRect | null {
+    if (!this.designStart || !this.designEnd) return null;
+    return { x0: this.designStart.x, y0: this.designStart.y, x1: this.designEnd.x, y1: this.designEnd.y };
+  }
+
+  /** Aplica el área arrastrada (o la casilla tocada) con el modo activo. */
+  private applyDesignDrag(): void {
+    const r = this.designRect();
+    const mode = this.designMode;
+    if (!r || !mode) return;
+    const d = this.world.designations;
+    if (mode === 'cancelar') {
+      const n = d.cancelArea(r);
+      this.game.events.emit('toast', n > 0 ? `${n} ${n === 1 ? 'orden quitada' : 'órdenes quitadas'}` : 'No había órdenes ahí');
+    } else {
+      const n = d.designateArea(r, mode);
+      this.game.events.emit('toast', n > 0 ? `${HARVEST_JOB_NAMES[mode]}: ${n} ${n === 1 ? 'casilla marcada' : 'casillas marcadas'}` : `Ahí no hay nada para ${HARVEST_JOB_NAMES[mode].toLowerCase()}`);
+    }
+    this.emitDesignations();
+  }
+
+  private emitDesignations(): void {
+    this.game.events.emit('designations', this.world.designations.counts());
+  }
+
+  /** Rectángulo (con la elevación) de una casilla real en la vista. */
+  private fillTile(g: Phaser.GameObjects.Graphics, x: number, y: number, inset = 0): void {
+    const v = this.viewTile(x, y);
+    g.fillRect(v.x * TILE + inset, v.y * TILE_H - liftOf(this.view, v.x, v.y) + inset, TILE - inset * 2, TILE_H - inset * 2);
+  }
+
+  /** Vista previa del área que se está arrastrando: borde y casillas que se marcarían. */
+  private drawDesignPreview(): void {
+    const g = this.designPreview;
+    if (!g) return;
+    g.clear();
+    const r = this.designRect();
+    const mode = this.designMode;
+    if (!r || !mode) return;
+    const xa = Math.max(0, Math.min(r.x0, r.x1));
+    const xb = Math.min(this.map.width - 1, Math.max(r.x0, r.x1));
+    const ya = Math.max(0, Math.min(r.y0, r.y1));
+    const yb = Math.min(this.map.height - 1, Math.max(r.y0, r.y1));
+    const color = DESIGN_COLORS[mode];
+    const d = this.world.designations;
+    for (let y = ya; y <= yb; y++) {
+      for (let x = xa; x <= xb; x++) {
+        const edge = x === xa || x === xb || y === ya || y === yb;
+        const hit = mode === 'cancelar' ? d.at(x, y) !== undefined : canDesignate(this.map, x, y, mode);
+        if (hit) {
+          g.fillStyle(color, 0.55);
+          this.fillTile(g, x, y, 1);
+        } else if (edge) {
+          g.fillStyle(0xf0d7b0, 0.22);
+          this.fillTile(g, x, y);
+        }
+      }
+    }
+  }
+
+  /** Rehace las marcas de las casillas designadas si han cambiado. */
+  private syncDesignations(): void {
+    const d = this.world.designations;
+    if (d.version === this.designVersion) return;
+    this.designVersion = d.version;
+    const g = this.designGfx;
+    g.clear();
+    for (const m of d.list()) {
+      const v = this.viewTile(m.x, m.y);
+      const left = v.x * TILE;
+      const top = v.y * TILE_H - liftOf(this.view, v.x, v.y);
+      const color = DESIGN_COLORS[m.job];
+      // Esquinas de la casilla.
+      g.lineStyle(1.5, color, 0.95);
+      const k = 4;
+      const r = left + TILE;
+      const b = top + TILE_H;
+      g.beginPath();
+      g.moveTo(left, top + k); g.lineTo(left, top); g.lineTo(left + k, top);
+      g.moveTo(r - k, top); g.lineTo(r, top); g.lineTo(r, top + k);
+      g.moveTo(left, b - k); g.lineTo(left, b); g.lineTo(left + k, b);
+      g.moveTo(r - k, b); g.lineTo(r, b); g.lineTo(r, b - k);
+      g.strokePath();
+      // Rombo sobre el objeto (los árboles y rocas sobresalen hacia arriba).
+      const cx = left + TILE / 2;
+      const cy = top - 6;
+      g.fillStyle(0x1a1410, 1);
+      g.fillTriangle(cx - 4, cy, cx, cy - 4, cx + 4, cy);
+      g.fillTriangle(cx - 4, cy, cx, cy + 4, cx + 4, cy);
+      g.fillStyle(color, 1);
+      g.fillTriangle(cx - 3, cy, cx, cy - 3, cx + 3, cy);
+      g.fillTriangle(cx - 3, cy, cx, cy + 3, cx + 3, cy);
+    }
+  }
+
   /** Rehace los dibujos de los montones del suelo si han cambiado. */
   private syncItems(): void {
     const items = this.world.items;
@@ -518,8 +705,11 @@ export class WorldScene extends Phaser.Scene {
     const tile = this.pickRealTile(world.x, world.y);
     if (!tile || !inBounds(this.map, tile.x, tile.y)) return;
     const stack = this.world.items.at(tile.x, tile.y);
-    const base = describeTile(this.map, tile.x, tile.y);
-    this.game.events.emit('tile-info', stack ? `${describeStack(stack, RESOURCE_NAMES)} · ${base}` : base);
+    const job = this.world.designations.at(tile.x, tile.y);
+    let text = describeTile(this.map, tile.x, tile.y);
+    if (stack) text = `${describeStack(stack, RESOURCE_NAMES)} · ${text}`;
+    if (job) text += ` · orden: ${HARVEST_JOB_NAMES[job].toLowerCase()}`;
+    this.game.events.emit('tile-info', text);
   }
 
   /** Elevación con la que se dibuja ahora mismo un colono. */

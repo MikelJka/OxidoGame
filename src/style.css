@@ -258,3 +258,32 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 #dev-panel summary { cursor: pointer; min-height: 36px; display: flex; align-items: center; gap: 8px; }
 #dev-panel summary span:first-child { flex: 1; }
 .dp-count { color: var(--muted); font-size: 12px; }
+
+/* --- Órdenes: talar, picar, saquear ------------------------------------------ */
+#orders {
+  top: calc(114px + env(safe-area-inset-top));
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 4px;
+}
+#orders-btn { font-size: 18px; padding: 4px 6px; }
+#order-modes { display: flex; flex-direction: column; gap: 4px; }
+#order-modes button { text-align: left; font-size: 12px; padding: 4px 8px; white-space: nowrap; }
+#order-modes .n { color: var(--muted); }
+#order-modes .n:empty { display: none; }
+#order-modes button[data-mode="talar"].active { border-color: #9bc45a; color: #9bc45a; }
+#order-modes button[data-mode="minar"].active { border-color: #8fb4d8; color: #8fb4d8; }
+#order-modes button[data-mode="saquear"].active { border-color: #e0913a; color: #e0913a; }
+#order-modes button[data-mode="cancelar"].active { border-color: #d9534f; color: #d9534f; }
+#design-hint {
+  bottom: calc(64px + env(safe-area-inset-bottom));
+  left: 8px;
+  max-width: calc(100% - 16px);
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text);
+  pointer-events: none;
+}

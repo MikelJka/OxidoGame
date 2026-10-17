@@ -3,6 +3,7 @@ import { GameMap, generateMap, tileMoveCost } from './map';
 import { findPath, isWalkable, Point } from './pathfinding';
 import { Rng } from './rng';
 import { GroundItems } from './items';
+import { Designations } from './designations';
 import { harvestTile, Stockpile } from './resources';
 import { RESOURCES, STARTING_SUPPLIES } from '../data/resources';
 
@@ -35,6 +36,8 @@ export class World {
   readonly colonists: Colonist[] = [];
   /** Montones de recursos en el suelo. */
   readonly items: GroundItems;
+  /** Casillas marcadas para talar, picar o saquear. */
+  readonly designations: Designations;
   tick = 0;
   speed: GameSpeed = 1;
   private accumulator = 0;
@@ -44,6 +47,7 @@ export class World {
     this.rng = new Rng(opts.seed ^ 0x51ed270b);
     this.spawnColonists(opts.colonists ?? 3);
     this.items = new GroundItems(this.map);
+    this.designations = new Designations(this.map);
     this.dropStartingSupplies();
   }
 
@@ -58,7 +62,11 @@ export class World {
    */
   harvest(x: number, y: number): Partial<Stockpile> | null {
     const gains = harvestTile(this.map, x, y, this.rng);
-    if (gains) this.items.dropAll(x, y, gains);
+    if (gains) {
+      this.items.dropAll(x, y, gains);
+      // Lo que queda (p. ej. un tocón) no sigue designado: hay que volver a marcarlo.
+      this.designations.remove(x, y);
+    }
     return gains;
   }
 

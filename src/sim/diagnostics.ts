@@ -1,5 +1,6 @@
 import { MAX_STACK } from '../data/resources';
 import { inBounds } from './map';
+import { canDesignate } from './designations';
 import { isWalkable } from './pathfinding';
 import type { World } from './world';
 
@@ -76,6 +77,12 @@ export function checkWorld(world: World, progress = new Map<number, ProgressMark
     }
     if (s.amount <= 0 || s.amount > MAX_STACK[s.resource]) {
       problems.push({ key: `item-amount-${s.x}-${s.y}`, message: `El montón de ${s.resource} en (${s.x}, ${s.y}) tiene ${s.amount} unidades` });
+    }
+  }
+  // Designaciones: solo sobre objetos que se aprovechan con ese trabajo.
+  for (const d of world.designations.list()) {
+    if (!canDesignate(map, d.x, d.y, d.job)) {
+      problems.push({ key: `designation-${d.x}-${d.y}`, message: `La casilla (${d.x}, ${d.y}) está designada para ${d.job} pero no tiene nada que aprovechar así` });
     }
   }
   return problems;
