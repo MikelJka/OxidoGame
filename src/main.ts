@@ -3,7 +3,8 @@ import { WorldScene } from './render/WorldScene';
 import { northLabel, Rotation } from './render/rotation';
 import { DEFAULT_TILT, TILTS } from './render/projection';
 import { seedFromString } from './sim/rng';
-import { Colonist, activityLabel } from './sim/colonist';
+import { Colonist, activityLabel, WorkPriority } from './sim/colonist';
+import { WORK_NAMES, WORK_TYPES } from './data/work';
 import { SKILLS, SKILL_NAMES } from './data/colonists';
 import type { GameSpeed } from './sim/world';
 import type { GameMap } from './sim/map';
@@ -270,9 +271,12 @@ const DESIGN_HINTS: Record<Exclude<DesignMode, null>, string> = {
   cancelar: 'Quitar: arrastra sobre las órdenes que quieras quitar',
   almacen: 'Almacén: arrastra para marcar la zona (empezando dentro de una, se amplía)',
   cultivo: 'Huerto: arrastra sobre tierra (mejor la oscura y húmeda); empezando dentro de uno, se amplía',
+  rebajar: 'Rebajar: arrastra sobre las casillas que bajarán un nivel (sale piedra; la roca se pica)',
+  elevar: 'Elevar: arrastra sobre las casillas que subirán un nivel',
+  rampa: 'Rampa: arrastra sobre acantilados para convertirlos en pendiente (se podrán cruzar)',
   quitarAlmacen: 'Quitar zona: arrastra sobre las casillas de almacén o huerto que ya no quieras',
   construir: 'Construir',
-  quitarPlano: 'Quitar planos: arrastra sobre los planos (devuelven el material)',
+  quitarPlano: 'Demoler: arrastra sobre construcciones (devuelven la mitad del material) o planos (todo lo llevado)',
 };
 function showMenu(which: 'orders' | 'build' | null): void {
   orderModes.hidden = which !== 'orders';
@@ -483,34 +487,100 @@ window.setInterval(() => {
 
 // --- Lista de colonos ----------------------------------------------------------
 const roster = $('roster');
+/** Tiempo de pulsación (ms) en la lista para añadir o quitar un colono de la selección. */
+const LONG_PRESS_MS = 450;
 function renderRoster(): void {
   roster.replaceChildren();
+  const all = document.createElement('button');
+  all.type = 'button';
+  all.textContent = '👥';
+  all.title = 'Elegir a todos (para mandarlos juntos o reclutarlos)';
+  all.addEventListener('click', () => scene().selectAll());
+  roster.append(all);
   for (const c of scene().world.colonists) {
     const b = document.createElement('button');
     b.type = 'button';
     b.dataset.id = String(c.id);
+    b.title = 'Tocar: elegir · Mantener pulsado o Mayús+clic: añadir al grupo · Doble toque: centrar';
     const dot = document.createElement('span');
     dot.className = 'dot';
     dot.style.background = `#${c.look.shirt.toString(16).padStart(6, '0')}`;
-    b.append(dot, document.createTextNode(c.name));
-    b.addEventListener('click', () => {
+    const flag = document.createElement('span');
+    flag.className = 'draft-flag';
+    b.append(dot, document.createTextNode(c.name), flag);
+    let pressTimer = 0;
+    let longPressed = false;
+    b.addEventListener('pointerdown', () => {
+      longPressed = false;
+      pressTimer = window.setTimeout(() => {
+        longPressed = true;
+        scene().toggleSelect(c.id);
+        navigator.vibrate?.(20);
+      }, LONG_PRESS_MS);
+    });
+    const cancel = () => window.clearTimeout(pressTimer);
+    b.addEventListener('pointerup', cancel);
+    b.addEventListener('pointerleave', cancel);
+    b.addEventListener('contextmenu', (e) => e.preventDefault());
+    b.addEventListener('click', (e) => {
+      if (longPressed) return;
       const s = scene();
-      if (s.selectedId === c.id) s.focus(c.id);
+      if (e.shiftKey || e.ctrlKey || e.metaKey) {
+        s.toggleSelect(c.id);
+        return;
+      }
+      if (s.selectedId === c.id && s.extraIds.size === 0) s.focus(c.id);
       s.select(c.id);
     });
     b.addEventListener('dblclick', () => scene().focus(c.id));
     roster.append(b);
   }
 }
+$('cp-draft').addEventListener('click', () => scene().toggleDraftSelected());
 
 // --- Ficha del colono ------------------------------------------------------------
+/** Texto de cada prioridad de trabajo (0 = no lo hace). */
+const PRIORITY_LABELS = ['—', '1', '2', '3', '4'];
+let lastPriorityKey = '';
+/** Prioridades de trabajo del colono: tocar una cambia 1 → 2 → 3 → 4 → no → 1. */
+function renderPriorities(c: Colonist): void {
+  const key = `${c.id}:${WORK_TYPES.map((w) => c.priorities[w]).join('')}`;
+  if (key === lastPriorityKey) return;
+  lastPriorityKey = key;
+  $('cp-work').replaceChildren(
+    ...WORK_TYPES.map((w) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = `prio prio-${c.priorities[w]}`;
+      b.title = `${WORK_NAMES[w]}: prioridad ${c.priorities[w] || 'ninguna (no lo hace)'} · 1 es lo primero`;
+      const name = document.createElement('span');
+      name.textContent = WORK_NAMES[w];
+      const val = document.createElement('strong');
+      val.textContent = PRIORITY_LABELS[c.priorities[w]];
+      b.append(name, val);
+      b.addEventListener('click', () => {
+        const next = ((c.priorities[w] + 1) % 5) as WorkPriority;
+        c.priorities[w] = next;
+        renderPriorities(c);
+      });
+      return b;
+    }),
+  );
+}
+
 const panel = $('colonist-panel');
 $('cp-close').addEventListener('click', () => scene().select(null));
 let lastPanelId: number | null = null;
 
-game.events.on('selection', (c: Colonist | null) => {
-  for (const b of roster.querySelectorAll<HTMLButtonElement>('button')) {
-    b.classList.toggle('active', c !== null && b.dataset.id === String(c.id));
+let lastGroupKey = '';
+game.events.on('selection', (c: Colonist | null, group: Colonist[] = c ? [c] : []) => {
+  const ids = new Set(group.map((k) => k.id));
+  for (const b of roster.querySelectorAll<HTMLButtonElement>('button[data-id]')) {
+    const id = Number(b.dataset.id);
+    b.classList.toggle('active', ids.has(id));
+    const k = scene().world.colonists.find((q) => q.id === id);
+    const flag = b.querySelector('.draft-flag');
+    if (flag) flag.textContent = k?.drafted ? '🎖' : '';
   }
   if (!c) {
     panel.hidden = true;
@@ -518,7 +588,29 @@ game.events.on('selection', (c: Colonist | null) => {
     return;
   }
   panel.hidden = false;
+  const draftBtn = $('cp-draft');
+  const allDrafted = group.every((k) => k.drafted);
+  draftBtn.textContent = allDrafted ? '🏳 Liberar (G)' : '🎖 Reclutar (G)';
+  draftBtn.classList.toggle('active', allDrafted);
+  const groupKey = group.map((k) => k.id).join(',');
+  if (group.length > 1) {
+    // Grupo: nombre de todos y qué hacen; sin habilidades.
+    panel.classList.add('group');
+    $('cp-activity').textContent = group.map((k) => `${k.name}: ${activityLabel(k).toLowerCase()}`).join(' · ');
+    if (lastGroupKey === groupKey) return;
+    lastGroupKey = groupKey;
+    lastPanelId = null;
+    $('cp-name').textContent = `👥 ${group.length} colonos`;
+    $('cp-sub').textContent = 'Toca el suelo para mandarlos juntos';
+    $('cp-traits').replaceChildren();
+    $('cp-skills').replaceChildren();
+    $('cp-work').replaceChildren();
+    return;
+  }
+  panel.classList.remove('group');
+  lastGroupKey = groupKey;
   $('cp-activity').textContent = activityLabel(c);
+  renderPriorities(c);
   if (lastPanelId === c.id) return; // el resto no cambia mientras siga seleccionado
   lastPanelId = c.id;
   $('cp-name').textContent = `${c.name} «${c.nickname}»`;

@@ -7,12 +7,15 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 - [ ] **Mobiliario de almacén** (2026-10-17): estanterías, armarios y soportes de pared (p. ej. armeros para armas). Fase 3.
 - [ ] **Materiales nuevos, como el metal** (2026-10-17): para muros y torres más resistentes. Fase 3.
 - [ ] **Defensas: zanjas** (2026-10-17): los pinchos y las barricadas ya están; las zanjas van con el trabajo de terreno. Fase 3.
-- [ ] **Aplanar el terreno y subir o bajar su nivel** (#2, 2026-10-17): como trabajo de los colonos. Fase 3.
 
-- [ ] **Los árboles vuelven a crecer** (2026-10-17): con el tiempo, para que la madera no se acabe. Va en la fase 2, tras el sistema de trabajos.
 - [ ] **Máquinas que generan recursos: canteras y recicladoras** (2026-10-17): para cuando se acaben la piedra y la chatarra iniciales del mapa. Van en la fase 3 (construcción), en el roadmap.
 
 ## Hecho
+
+- [x] **#4 Reclutar colonos y darles órdenes concretas** (2026-10-17): 🎖 Reclutar (o tecla G) en la ficha: deja de trabajar y deambular y solo obedece. Grupo: 👥 en la lista, o mantener pulsado un nombre (Mayús+clic en PC); tocar el suelo los manda juntos, cada uno a una casilla. Con un colono elegido, tocar algo con trabajo (un árbol, roca, plano, cosecha madura, obra) hace que lo haga ya, aunque esté reclutado. En la ficha, prioridades de cada trabajo (1 primero … 4, — no lo hace).
+- [x] **#5 Demoler construcciones** (2026-10-17): 🏗 → ⛏ Demoler y arrastrar. Un colono la derriba y se recupera la mitad del material; en un plano, se quita y se devuelve todo lo llevado.
+- [x] **#2 y #6 Subir y bajar el terreno; colono atrapado entre desniveles** (2026-10-17): ⚒ → ⬇ Rebajar (sale piedra; también pica roca), ⬆ Elevar y ◢ Rampa (un acantilado pasa a pendiente). Los desniveles nuevos son pendientes, así que no encierran. Las comprobaciones de 🐞 avisan si un colono queda encerrado.
+- [x] **Los árboles vuelven a crecer** (2026-10-17): los tocones rebrotan y junto a los árboles nacen matorrales y árboles nuevos (no en almacenes, huertos ni construcciones).
 
 - [x] **Portones grandes para los muros** (2026-10-17): 🏗 → portón de madera o de chapa, tan alto como los muros altos; se colocan en línea y las casillas se juntan en una sola hoja.
 - [x] **Cultivo con varias cosechas** (2026-10-17): ⚒ → 🌱 Huerto y arrastrar sobre tierra. Al tocar el huerto se elige qué plantar: patatas, maíz, setas (crecen de noche y en suelo pobre) o cáñamo (fibra). Los colonos siembran y cosechan solos; lo cosechado va al almacén.

@@ -12,6 +12,7 @@ import { harvestAt } from './resources';
 import { Structure, Structures } from './structures';
 import { StorageZones } from './zones';
 import { GrowZones } from './farming';
+import { TERRAIN_WORK, terrainBlocker, TerrainOrders } from './terrain';
 
 /** Cuántas tareas candidatas (las más cercanas) de cada prioridad se prueban con el buscador de caminos. */
 const CANDIDATES_PER_SEARCH = 8;
@@ -80,6 +81,7 @@ export interface JobContext {
   zones: StorageZones;
   structures: Structures;
   farms: GrowZones;
+  terrain: TerrainOrders;
 }
 
 /** Casillas desde las que se puede trabajar un objeto: la suya si se pisa, si no las de los lados. */
@@ -247,6 +249,19 @@ function nearestMaterial(ctx: JobContext, s: Structure, near: Point): { x: numbe
 function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   if (c.priorities.construir === 0) return [];
   const out: Candidate[] = [];
+  for (const s of ctx.structures.toDemolish()) {
+    const holder = ctx.reservations.holder(s.x, s.y);
+    if (holder !== undefined && holder !== c.id) continue;
+    out.push({
+      kind: 'construir', x: s.x, y: s.y, dist: manhattan(c.tile, s.x, s.y),
+      make: () => {
+        const here = isBeside(c.tile, s.x, s.y);
+        const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, sideTiles(ctx.map, s.x, s.y));
+        if (!route) return null;
+        return { job: { kind: 'construir', x: s.x, y: s.y, stand: route.stand, progress: 0, work: Math.ceil(s.def.work / 2), demolish: true }, path: route.path };
+      },
+    });
+  }
   for (const s of ctx.structures.blueprints()) {
     const holder = ctx.reservations.holder(s.x, s.y);
     if (holder !== undefined && holder !== c.id) continue;
@@ -308,13 +323,36 @@ function farmCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   return out;
 }
 
+function terrainCandidates(ctx: JobContext, c: Colonist): Candidate[] {
+  if (c.priorities.terreno === 0) return [];
+  const out: Candidate[] = [];
+  for (const o of ctx.terrain.list()) {
+    const h = ctx.reservations.holder(o.x, o.y);
+    if (h !== undefined && h !== c.id) continue;
+    out.push({
+      kind: 'terreno', x: o.x, y: o.y, dist: manhattan(c.tile, o.x, o.y),
+      make: () => {
+        if (terrainBlocker(ctx.map, o.x, o.y, o.job, !!ctx.structures.at(o.x, o.y))) return null;
+        const here = canWorkFrom(ctx.map, c.tile, o.x, o.y);
+        const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, standTiles(ctx.map, o.x, o.y));
+        if (!route) return null;
+        return { job: { kind: 'terreno', x: o.x, y: o.y, stand: route.stand, progress: 0, work: TERRAIN_WORK[o.job], terrain: o.job }, path: route.path };
+      },
+    });
+  }
+  return out;
+}
+
 /**
  * Busca el siguiente trabajo para un colono: primero los de mejor prioridad (1 antes que 4;
  * 0 = no lo hace) y dentro de ella los más cercanos a los que puede llegar andando.
  * No reserva nada: lo hace quien acepta el plan.
  */
 export function findJob(ctx: JobContext, c: Colonist): JobPlan | null {
-  const all = [...buildCandidates(ctx, c), ...farmCandidates(ctx, c), ...harvestCandidates(ctx, c), ...haulCandidates(ctx, c)];
+  const all = [
+    ...buildCandidates(ctx, c), ...farmCandidates(ctx, c), ...terrainCandidates(ctx, c),
+    ...harvestCandidates(ctx, c), ...haulCandidates(ctx, c),
+  ];
   const byPriority = new Map<number, Candidate[]>();
   for (const cand of all) {
     const p = c.priorities[cand.kind];
@@ -331,6 +369,24 @@ export function findJob(ctx: JobContext, c: Colonist): JobPlan | null {
       const plan = cand.make();
       if (plan) return plan;
     }
+  }
+  return null;
+}
+
+/**
+ * Trabajo concreto en una casilla para un colono (orden directa: «haz esto ahora»).
+ * Ignora las prioridades (salvo que no se pueda) y lo que ya tenga reservado otro.
+ */
+export function findJobAt(ctx: JobContext, c: Colonist, x: number, y: number): JobPlan | null {
+  // Para una orden directa vale cualquier tipo de trabajo, aunque tenga la prioridad a 0.
+  const forced: Colonist = { ...c, priorities: Object.fromEntries(WORK_TYPES.map((w) => [w, 1])) as Colonist['priorities'] };
+  const all = [
+    ...buildCandidates(ctx, forced), ...farmCandidates(ctx, forced), ...terrainCandidates(ctx, forced),
+    ...harvestCandidates(ctx, forced),
+  ].filter((k) => k.x === x && k.y === y);
+  for (const cand of all) {
+    const plan = cand.make();
+    if (plan) return plan;
   }
   return null;
 }

@@ -17,7 +17,12 @@ export interface Structure {
   /** Ticks de trabajo acumulados. */
   progress: number;
   hp: number;
+  /** Marcada para demoler (solo las terminadas). */
+  demolish?: boolean;
 }
+
+/** Parte del coste que se recupera al demoler. */
+export const DEMOLISH_REFUND = 0.5;
 
 /** Forma en que se coloca un área de planos. */
 export type PlaceShape = 'contorno' | 'relleno';
@@ -52,6 +57,35 @@ export class Structures {
 
   blueprints(): Structure[] {
     return this.all().filter((s) => !s.built);
+  }
+
+  /** Construcciones terminadas marcadas para demoler. */
+  toDemolish(): Structure[] {
+    return this.all().filter((s) => s.built && s.demolish);
+  }
+
+  /** Marca (o desmarca) una construcción terminada para demolerla. */
+  markDemolish(x: number, y: number, on = true): boolean {
+    const s = this.at(x, y);
+    if (!s || !s.built || !!s.demolish === on) return false;
+    s.demolish = on;
+    this.version++;
+    return true;
+  }
+
+  /** Quita una construcción terminada (demolida). Devuelve el material que se recupera. */
+  demolish(s: Structure): Partial<Stockpile> {
+    const i = index(this.map, s.x, s.y);
+    if (this.byTile.get(i) !== s) return {};
+    this.byTile.delete(i);
+    this.map.blocked[i] = 0;
+    this.version++;
+    const back: Partial<Stockpile> = {};
+    for (const r of RESOURCES) {
+      const n = Math.floor((s.def.cost[r] ?? 0) * DEMOLISH_REFUND);
+      if (n > 0) back[r] = n;
+    }
+    return back;
   }
 
   /** Se puede poner un plano: terreno llano y libre, sin objeto ni otra construcción. */

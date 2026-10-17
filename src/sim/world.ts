@@ -4,10 +4,12 @@ import { findPath, isWalkable, Point } from './pathfinding';
 import { Rng } from './rng';
 import { GroundItems } from './items';
 import { Designations } from './designations';
-import { canWorkFrom, findJob, isBeside, JOB_PATH_NODES, JobContext, reservePlan, Reservations, sideTiles, workSpeed } from './jobs';
+import { canWorkFrom, findJob, findJobAt, isBeside, JOB_PATH_NODES, JobContext, reservePlan, Reservations, sideTiles, workSpeed } from './jobs';
 import { harvestAt, harvestTile, Stockpile } from './resources';
 import { StorageZones } from './zones';
 import { GrowZones } from './farming';
+import { regrowNature } from './nature';
+import { applyTerrainJob, LOWER_STONE, terrainBlocker, TerrainJob, TerrainOrders } from './terrain';
 import { Structure, Structures } from './structures';
 import type { TileRect } from './designations';
 import { RESOURCES, STARTING_SUPPLIES } from '../data/resources';
@@ -57,8 +59,12 @@ export class World implements JobContext {
   readonly structures: Structures;
   /** Huertos y lo plantado en ellos. */
   readonly farms: GrowZones;
+  /** Obras de terreno pendientes (rebajar, elevar, rampas). */
+  readonly terrain: TerrainOrders;
   /** Casillas cuyo objeto ha cambiado desde la última vez que se preguntó (para repintarlas). */
   private changedTiles: number[] = [];
+  /** Cambia cuando cambia el relieve (el dibujado recoloca lo que va encima del suelo). */
+  terrainVersion = 0;
   /** Tick a partir del cual cada colono vuelve a buscar trabajo. */
   private nextJobScan = new Map<number, number>();
   tick = 0;
@@ -75,6 +81,7 @@ export class World implements JobContext {
     this.zones = new StorageZones(this.map);
     this.structures = new Structures(this.map);
     this.farms = new GrowZones(this.map);
+    this.terrain = new TerrainOrders(this.map);
     if (!opts.map) this.dropStartingSupplies();
   }
 
@@ -124,6 +131,13 @@ export class World implements JobContext {
   /** Un tick de simulación. */
   step(): void {
     this.tick++;
+    // Cada hora, la naturaleza vuelve un poco: rebrotan tocones y nacen árboles y matorrales.
+    if (this.tick % TICKS_PER_HOUR === 0) {
+      const grown = regrowNature(this.map, this.rng, (x, y) =>
+        !this.structures.at(x, y) && !this.zones.at(x, y) && !this.farms.at(x, y) && !this.items.at(x, y) &&
+        !this.colonists.some((c) => c.tile.x === x && c.tile.y === y) && !this.colonists.some((c) => c.path.some((p) => p.x === x && p.y === y)));
+      this.changedTiles.push(...grown);
+    }
     // Las plantas crecen a saltos de un segundo (basta y cuesta poco).
     if (this.tick % TICKS_PER_SECOND === 0) {
       const h = this.hour;
@@ -205,6 +219,12 @@ export class World implements JobContext {
       this.updateJob(c);
       return;
     }
+    if (c.drafted) {
+      // Reclutado: solo se mueve si se le manda; si no, espera quieto.
+      if (c.path.length > 0) this.moveAlongPath(c);
+      else c.activity = 'idle';
+      return;
+    }
     if (c.path.length > 0) {
       // Quien deambula deja de hacerlo si aparece trabajo; una orden directa no se interrumpe.
       if (c.activity === 'wandering' && this.tryStartJob(c)) return;
@@ -225,7 +245,7 @@ export class World implements JobContext {
 
   /** Busca trabajo (si toca) y lo empieza. true si ahora tiene uno. */
   private tryStartJob(c: Colonist): boolean {
-    if (this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0) return false;
+    if (this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0) return false;
     if (this.tick < (this.nextJobScan.get(c.id) ?? 0)) return false;
     const plan = findJob(this, c);
     if (!plan || !reservePlan(this.reservations, c, plan.job)) {
@@ -259,12 +279,16 @@ export class World implements JobContext {
     const h = j.haul;
     if (j.kind === 'construir') {
       const s = this.structures.at(j.x, j.y);
+      if (j.demolish) return !!s && s.built && !!s.demolish;
       if (!s || s.built) return false;
       if (h && !h.picked) {
         const st = this.items.at(h.from.x, h.from.y);
         if (!st || st.resource !== h.resource || (this.structures.needs(s)[h.resource] ?? 0) <= 0) return false;
       }
       return true;
+    }
+    if (j.kind === 'terreno') {
+      return this.terrain.at(j.x, j.y) === j.terrain && !terrainBlocker(this.map, j.x, j.y, j.terrain!, !!this.structures.at(j.x, j.y));
     }
     if (j.kind === 'cultivar') {
       if (j.farm === 'cosechar') return (this.farms.plantAt(j.x, j.y)?.growth ?? 0) >= 1;
@@ -313,6 +337,13 @@ export class World implements JobContext {
     const dx = j.x + 0.5 - c.pos.x;
     if (Math.abs(dx) > 0.01) c.facing = dx > 0 ? 1 : -1;
     j.progress += workSpeed(c, j.kind);
+    if (building && j.demolish) {
+      if (j.progress >= j.work) {
+        this.demolishStructure(this.structures.at(j.x, j.y)!);
+        this.dropJob(c);
+      }
+      return;
+    }
     if (building) {
       const s = this.structures.at(j.x, j.y)!;
       s.progress = Math.min(j.progress, s.def.work);
@@ -324,8 +355,24 @@ export class World implements JobContext {
     }
     if (j.progress >= j.work) {
       if (j.kind === 'cultivar') this.finishFarmWork(j.x, j.y, j.farm!);
+      else if (j.kind === 'terreno') this.finishTerrainWork(j.x, j.y, j.terrain!);
       else this.harvest(j.x, j.y);
       this.dropJob(c);
+    }
+  }
+
+  /** Termina una obra de terreno: cambia el nivel (o hace la rampa) y repinta alrededor. */
+  finishTerrainWork(x: number, y: number, job: TerrainJob): void {
+    this.terrain.remove(x, y);
+    const changed = applyTerrainJob(this.map, x, y, job);
+    this.changedTiles.push(...changed);
+    this.terrainVersion++;
+    if (job === 'rebajar') this.items.drop(x, y, 'piedra', LOWER_STONE);
+    // Lo que quedara mal colocado tras el cambio (zonas, plantas, colonos) se corrige.
+    this.zones.prune();
+    this.farms.prune();
+    for (const c of this.colonists) {
+      if (!isPassable(this.map, c.tile.x, c.tile.y)) this.moveOutOfTheWay(c);
     }
   }
 
@@ -435,6 +482,100 @@ export class World implements JobContext {
     if (!back) return false;
     this.items.dropAll(x, y, back);
     return true;
+  }
+
+  /** Derriba una construcción terminada y deja en el suelo parte de su material. */
+  demolishStructure(s: Structure): void {
+    const back = this.structures.demolish(s);
+    this.items.dropAll(s.x, s.y, back);
+  }
+
+  /** Marca para demoler (o quita el plano, si no está terminada) cada construcción de un área. */
+  demolishArea(r: TileRect): { planos: number; demoler: number } {
+    let planos = 0;
+    let demoler = 0;
+    for (const t of Structures.areaTiles(r, 'relleno')) {
+      if (this.cancelBlueprint(t.x, t.y)) planos++;
+      else if (this.structures.markDemolish(t.x, t.y)) demoler++;
+    }
+    return { planos, demoler };
+  }
+
+  // --- Reclutar y órdenes directas -------------------------------------------------
+
+  /** Recluta (o libera) a un colono. Reclutado deja lo que hacía y espera órdenes. */
+  setDrafted(colonistId: number, drafted: boolean): void {
+    const c = this.colonists.find((k) => k.id === colonistId);
+    if (!c || c.drafted === drafted) return;
+    c.drafted = drafted;
+    this.dropJob(c);
+    c.path = [];
+    c.activity = 'idle';
+    c.waitTicks = drafted ? 0 : 30;
+  }
+
+  /**
+   * Orden directa de trabajo: el colono hace ya lo que haya en esa casilla (talar lo marcado o un
+   * árbol, construir un plano, cosechar…). Si no estaba marcado y se puede aprovechar, se marca.
+   * Si otro colono lo tenía, lo deja. Devuelve false si ahí no hay nada que hacer o no se llega.
+   */
+  forceJob(colonistId: number, x: number, y: number): boolean {
+    const c = this.colonists.find((k) => k.id === colonistId);
+    if (!c) return false;
+    const h = harvestAt(this.map, x, y);
+    const addedMark = !!h && !this.designations.at(x, y) && this.designations.add(x, y, h.job);
+    const other = this.colonists.find((k) => k !== c && k.job && k.job.x === x && k.job.y === y);
+    if (other) this.dropJob(other);
+    this.dropJob(c);
+    const plan = findJobAt(this, c, x, y);
+    if (!plan || !reservePlan(this.reservations, c, plan.job)) {
+      if (addedMark) this.designations.remove(x, y);
+      return false;
+    }
+    c.job = plan.job;
+    c.path = plan.path;
+    c.activity = 'toJob';
+    c.waitTicks = 0;
+    return true;
+  }
+
+  /**
+   * Manda a varios colonos a una casilla: cada uno a una casilla libre distinta, empezando por
+   * esa y siguiendo por las más cercanas a pie. Devuelve cuántos tienen camino.
+   */
+  orderGroupMove(ids: number[], target: Point): number {
+    if (ids.length <= 1) return ids.length === 1 && this.orderMove(ids[0], target) ? 1 : 0;
+    const spots: Point[] = [];
+    const seen = new Set<number>();
+    const queue: Point[] = isPassable(this.map, target.x, target.y) ? [target] : [];
+    if (queue.length) seen.add(target.y * this.map.width + target.x);
+    for (let head = 0; head < queue.length && spots.length < ids.length; head++) {
+      const p = queue[head];
+      spots.push(p);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const n = { x: p.x + dx, y: p.y + dy };
+        const k = n.y * this.map.width + n.x;
+        if (seen.has(k) || !isPassable(this.map, n.x, n.y)) continue;
+        seen.add(k);
+        queue.push(n);
+      }
+    }
+    let ok = 0;
+    ids.forEach((id, i) => {
+      if (spots[i] && this.orderMove(id, spots[i])) ok++;
+    });
+    return ok;
+  }
+
+  /** ¿Hay en la casilla algo que un colono pueda hacer por orden directa? */
+  hasWorkAt(x: number, y: number): boolean {
+    if (this.designations.at(x, y) || this.terrain.at(x, y)) return true;
+    const s = this.structures.at(x, y);
+    if (s && (!s.built || s.demolish)) return true;
+    if ((this.farms.plantAt(x, y)?.growth ?? 0) >= 1) return true;
+    // Un árbol, roca o coche que corta el paso: tocarlo es pedir que se aproveche.
+    const h = harvestAt(this.map, x, y);
+    return !!h && !isPassable(this.map, x, y);
   }
 
   /** Termina una construcción y aparta lo que quede debajo (montones, colonos). */

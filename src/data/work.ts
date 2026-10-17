@@ -2,16 +2,17 @@
 import type { Skill } from './colonists';
 import { HARVEST_JOB_NAMES, HARVEST_JOB_SKILL, HARVEST_JOB_VERBS, HarvestJob } from './resources';
 
-export type WorkType = HarvestJob | 'transportar' | 'construir' | 'cultivar';
+export type WorkType = HarvestJob | 'transportar' | 'construir' | 'cultivar' | 'terreno';
 
 /** Orden en que se muestran (y desempatan) los trabajos. */
-export const WORK_TYPES: readonly WorkType[] = ['construir', 'cultivar', 'talar', 'minar', 'saquear', 'transportar'];
+export const WORK_TYPES: readonly WorkType[] = ['construir', 'cultivar', 'terreno', 'talar', 'minar', 'saquear', 'transportar'];
 
 export const WORK_NAMES: Record<WorkType, string> = {
   ...HARVEST_JOB_NAMES,
   transportar: 'Transportar',
   construir: 'Construir',
   cultivar: 'Cultivar',
+  terreno: 'Obras de terreno',
 };
 
 export const WORK_VERBS: Record<WorkType, string> = {
@@ -19,6 +20,7 @@ export const WORK_VERBS: Record<WorkType, string> = {
   transportar: 'Transportando',
   construir: 'Construyendo',
   cultivar: 'Cultivando',
+  terreno: 'Moviendo tierra',
 };
 
 /** Habilidad que acelera cada trabajo (transportar no depende de ninguna). */
@@ -26,4 +28,5 @@ export const WORK_SKILL: Partial<Record<WorkType, Skill>> = {
   ...HARVEST_JOB_SKILL,
   construir: 'construccion',
   cultivar: 'cultivo',
+  terreno: 'mineria',
 };

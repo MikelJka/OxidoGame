@@ -4,6 +4,7 @@
 import { SKILLS, Skill, TRAITS } from '../data/colonists';
 import { BUILDINGS } from '../data/buildings';
 import { CROPS, cropDef } from '../data/crops';
+import { TERRAIN_JOBS, TerrainJob } from './terrain';
 import { RESOURCES, ResourceId } from '../data/resources';
 import { WORK_TYPES, WorkType } from '../data/work';
 import { Colonist, DEFAULT_PRIORITY, WorkPriority } from './colonist';
@@ -41,7 +42,9 @@ export interface SaveData {
   items: { x: number; y: number; resource: string; amount: number }[];
   designations: { x: number; y: number; job: string }[];
   zones: { id: number; name: string; priority: number; accepts: Record<string, boolean>; tiles: number[] }[];
-  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number }[];
+  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number; demolish?: boolean }[];
+  /** Obras de terreno pendientes (desde que existen). */
+  terrain?: { x: number; y: number; job: string }[];
   /** Huertos (desde que existe el cultivo; las partidas anteriores no los tienen). */
   farms?: { id: number; name: string; crop: string; tiles: number[] }[];
   plants?: { i: number; crop: string; growth: number }[];
@@ -60,6 +63,7 @@ interface SavedColonist {
   facing: number;
   priorities: Record<string, number>;
   carrying: { resource: string; amount: number } | null;
+  drafted?: boolean;
 }
 
 // --- Codificación de arrays en base64 ------------------------------------------
@@ -110,6 +114,7 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
       priorities: { ...c.priorities },
       // Los trabajos en curso no se guardan: al cargar, cada colono busca uno nuevo.
       carrying: c.carrying ? { ...c.carrying } : null,
+      drafted: c.drafted,
     })),
     items: world.items.list().map((s) => ({ x: s.x, y: s.y, resource: s.resource, amount: s.amount })),
     designations: world.designations.list().map((d) => ({ ...d })),
@@ -118,7 +123,9 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     plants: world.farms.plantList().map(({ x, y, plant }) => ({ i: y * m.width + x, crop: plant.crop.id, growth: plant.growth })),
     structures: world.structures.all().map((s) => ({
       def: s.def.id, x: s.x, y: s.y, built: s.built, delivered: { ...s.delivered } as Record<string, number>, progress: s.progress, hp: s.hp,
+      demolish: s.demolish || undefined,
     })),
+    terrain: world.terrain.list().map((o) => ({ ...o })),
   };
 }
 
@@ -219,6 +226,7 @@ function restoreColonist(s: SavedColonist): Colonist {
     priorities,
     job: null,
     carrying: null,
+    drafted: !!s.drafted,
   };
 }
 
@@ -239,6 +247,7 @@ export function loadWorld(input: string | unknown): World {
     const delivered: Partial<Record<ResourceId, number>> = {};
     for (const [r, n] of Object.entries(s.delivered ?? {})) if (isResource(r)) delivered[r] = num(n, 0);
     world.structures.restore(def, s.x, s.y, !!s.built, delivered, num(s.progress, 0), num(s.hp, def.hp));
+    if (s.demolish) world.structures.markDemolish(s.x, s.y);
   }
   for (const sc of d.colonists ?? []) world.colonists.push(restoreColonist(sc));
   for (const it of d.items ?? []) {
@@ -261,6 +270,11 @@ export function loadWorld(input: string | unknown): World {
     const accepts: Partial<Record<ResourceId, boolean>> = {};
     for (const [r, v] of Object.entries(z.accepts ?? {})) if (isResource(r)) accepts[r] = !!v;
     world.zones.restore({ id: num(z.id, 1), name: String(z.name ?? 'Almacén'), priority, accepts, tiles: z.tiles ?? [] });
+  }
+  for (const o of d.terrain ?? []) {
+    if ((TERRAIN_JOBS as readonly string[]).includes(o.job)) {
+      world.terrain.add(o.x, o.y, o.job as TerrainJob, !!world.structures.at(o.x, o.y));
+    }
   }
   for (const f of d.farms ?? []) {
     const crop = cropDef(String(f.crop)) ?? CROPS[0];

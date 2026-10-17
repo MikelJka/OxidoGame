@@ -2,6 +2,19 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (tarde, 8) — Reclutar, demoler, mover tierra y árboles que rebrotan
+
+- Incidencias de 🐞: #4 (reclutar y órdenes concretas), #5 (demoler) y #6 (colono atrapado entre desniveles; con #2, subir y bajar el terreno). Las tres cerradas con comentario.
+- **Reclutar** (#4): botón 🎖 en la ficha o tecla G. Un reclutado deja lo que hace (y suelta lo que lleva), no trabaja ni deambula y espera órdenes; lleva un banderín naranja. **Grupos**: 👥 en la lista elige a todos; mantener pulsado un nombre (o Mayús+clic) lo añade o quita. Tocar el suelo con un grupo los manda juntos, cada uno a una casilla libre cercana. **Órdenes concretas**: con un colono elegido, tocar algo con trabajo (árbol, roca o coche, algo marcado, un plano, una construcción a demoler, una cosecha madura, una obra de terreno) hace que lo haga ya, aunque tenga ese trabajo desactivado o esté reclutado (después sigue reclutado). Servirá para el combate.
+- **Prioridades de trabajo** en la ficha (tarea de la fase 2): cada trabajo con 1–4 o — (no lo hace); tocar para cambiar.
+- **Demoler** (#5): 🏗 → ⛏ Demoler / quitar planos. Las construcciones terminadas se marcan en rojo; un colono (trabajo «construir») las derriba desde el lado y deja la mitad del material. Los planos se quitan al momento.
+- **Obras de terreno** (#2, #6; `src/sim/terrain.ts`): ⚒ → ⬇ Rebajar (baja un nivel, deja 3 de piedra; sobre roca, la pica y queda pedregal), ⬆ Elevar (sube un nivel) y ◢ Rampa (un acantilado pasa a pendiente). Trabajo nuevo «obras de terreno» (habilidad Minería). Los desniveles que se crean son pendientes, así que nunca encierran; los acantilados del mapa se respetan hasta que se hace una rampa. El mapa se repinta en el momento.
+- Las comprobaciones de 🐞 avisan si un colono queda **encerrado** (solo llega a menos de 30 casillas), con la solución.
+- **Los árboles vuelven a crecer**: cada hora de juego, algunos tocones rebrotan y junto a los árboles nacen matorrales y árboles nuevos (nunca en almacenes, huertos, construcciones, montones ni donde hay colonos).
+- Todo se guarda con la partida (reclutados, obras pendientes, construcciones a demoler).
+- Qué probar: liberar al colono atrapado con una rampa; reclutar a dos, mandarlos juntos y ordenar a uno talar un árbol concreto; demoler un muro; cambiar prioridades; dejar pasar unos días y ver rebrotar los tocones.
+- Siguiente: metal (horno para fundir chatarra) con muros y torres de metal; banco de trabajo; zanjas.
+
 ## 2026-10-17 (tarde, 7) — Huertos, portones y más construcciones
 
 - Petición de Mikel: portones grandes, cultivo con varias cosechas y más tipos de construcción.
@@ -11,7 +24,7 @@ Diario de sesiones, la más reciente arriba.
 - **Más construcciones**: suelos de madera, losas de piedra y chapa (se anda un 15 % más rápido), barricadas de madera y chatarra (frenan mucho; darán cobertura en los combates), pinchos de madera (frenan mucho; harán daño a los enemigos en la fase 4) y cama (para dormir en la fase 4). El menú 🏗 está agrupado por tipos.
 - Cada construcción transitable tiene su propio coste de paso (antes solo existía el de las puertas).
 - Las partidas guardadas siguen valiendo: las anteriores simplemente no tienen huertos.
-- Qué probar: hacer un huerto de setas (maduran en unas 12 minutos a x1) y otro de patatas, con un almacén cerca; ver cómo siembran y cosechan. Probar portones en un muro alto y un suelo.
+- Qué probar: hacer un huerto de setas (maduran en unos 12 minutos a x1) y otro de patatas, con un almacén cerca; ver cómo siembran y cosechan. Probar portones en un muro alto y un suelo.
 - Siguiente: metal (fundir chatarra) con muros y torres de metal; banco de trabajo; aplanar y subir el terreno (y las zanjas).
 
 ## 2026-10-17 (tarde, 6) — Árboles talados que no desaparecían; muros altos y torres

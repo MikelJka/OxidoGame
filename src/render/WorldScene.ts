@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GameMap, describeTile, inBounds } from '../sim/map';
-import { Colonist } from '../sim/colonist';
+import { activityLabel, Colonist } from '../sim/colonist';
 import { isWalkable } from '../sim/pathfinding';
 import { GameSpeed, World } from '../sim/world';
 import { loadWorld } from '../sim/save';
@@ -12,6 +12,7 @@ import { BuildingDef, buildingDef } from '../data/buildings';
 import { canZone, STORAGE_PRIORITY_NAMES } from '../sim/zones';
 import { PlaceShape, Structure, Structures } from '../sim/structures';
 import { fertilityAt, plantStage } from '../sim/farming';
+import { TERRAIN_JOB_NAMES, terrainBlocker, TerrainJob } from '../sim/terrain';
 import { CropDef } from '../data/crops';
 import { drawBuilding, faceHeight, wallHeight } from './buildArt';
 import { canvasPropRasterizer, paintGround, PropRasterizer, TILE } from './mapArt';
@@ -32,12 +33,16 @@ const ZONE_DEPTH = -0.5;
  * Modo de órdenes: designar un trabajo, quitar designaciones, marcar o quitar almacenes,
  * colocar planos (la construcción elegida está en `buildDefId`) o quitarlos. null = ninguno.
  */
-export type DesignMode = HarvestJob | 'cancelar' | 'almacen' | 'cultivo' | 'quitarAlmacen' | 'construir' | 'quitarPlano' | null;
+export type DesignMode = HarvestJob | TerrainJob | 'cancelar' | 'almacen' | 'cultivo' | 'quitarAlmacen' | 'construir' | 'quitarPlano' | null;
 
 /** Color de cada trabajo y modo en las marcas y en la vista previa del área. */
-export const DESIGN_COLORS: Record<WorkType | 'cancelar' | 'almacen' | 'cultivo' | 'quitarAlmacen' | 'quitarPlano', number> = {
+export const DESIGN_COLORS: Record<WorkType | TerrainJob | 'cancelar' | 'almacen' | 'cultivo' | 'quitarAlmacen' | 'quitarPlano', number> = {
+  rebajar: 0xc09060,
+  elevar: 0xc09060,
+  rampa: 0xc09060,
   cultivar: 0x8fc060,
   cultivo: 0x8fc060,
+  terreno: 0xc09060,
   talar: 0x9bc45a,
   minar: 0x8fb4d8,
   saquear: 0xe0913a,
@@ -93,6 +98,8 @@ export class WorldScene extends Phaser.Scene {
   private pinchStartAngle = 0;
   private pinchStartY: [number, number] = [0, 0];
   selectedId: number | null = null;
+  /** Colonos elegidos además del principal (selección de grupo). */
+  extraIds = new Set<number>();
   private sprites = new Map<number, Phaser.GameObjects.Image>();
   /** Elevación dibujada de cada colono, suavizada al subir o bajar de nivel. */
   private spriteLift = new Map<number, number>();
@@ -107,6 +114,7 @@ export class WorldScene extends Phaser.Scene {
   private designGfx!: Phaser.GameObjects.Graphics;
   private designPreview!: Phaser.GameObjects.Graphics;
   private designVersion = -1;
+  private seenTerrainVersion = 0;
   /** Construcción que se coloca en el modo «construir» y forma del área. */
   buildDefId = 'muro_madera';
   buildShape: PlaceShape = 'contorno';
@@ -198,7 +206,7 @@ export class WorldScene extends Phaser.Scene {
     if (this.uiTimer >= UI_EMIT_MS) {
       this.uiTimer = 0;
       this.emitClock();
-      if (this.selectedId !== null) this.game.events.emit('selection', this.selected());
+      if (this.selectedId !== null) this.emitSelection();
     }
     if (!this.keys || isTyping()) return;
     const cam = this.cameras.main;
@@ -249,8 +257,22 @@ export class WorldScene extends Phaser.Scene {
         const vi = v.y * this.view.width + v.x;
         this.view.props[vi] = this.map.props[i];
         this.view.stock[vi] = this.map.stock[i];
+        this.view.level[vi] = this.map.level[i];
+        this.view.cliff[vi] = this.map.cliff[i];
+        this.view.slope[vi] = this.map.slope[i];
+        this.view.terrain[vi] = this.map.terrain[i];
       }
       columns.add(v.x);
+    }
+    // Si ha cambiado el relieve, todo lo que va encima del suelo se recoloca.
+    if (this.world.terrainVersion !== this.seenTerrainVersion) {
+      this.seenTerrainVersion = this.world.terrainVersion;
+      this.itemsVersion = -1;
+      this.designVersion = -1;
+      this.zoneVersion = -1;
+      this.structVersion = -1;
+      this.plantsVersion = -1;
+      this.spriteLift.clear();
     }
     const ctx = this.mapTexture.getContext();
     const h = this.view.height * TILE_H + TOP_MARGIN;
@@ -434,6 +456,7 @@ export class WorldScene extends Phaser.Scene {
       kb.on('keydown-TWO', hotkey(() => this.setSpeed(2)));
       kb.on('keydown-THREE', hotkey(() => this.setSpeed(3)));
       kb.on('keydown-ESC', hotkey(() => (this.designMode ? this.setDesignMode(null) : this.select(null))));
+      kb.on('keydown-G', hotkey(() => this.toggleDraftSelected()));
       kb.on('keydown-Q', hotkey(() => this.rotate(-1)));
       kb.on('keydown-E', hotkey(() => this.rotate(1)));
       kb.on('keydown-R', hotkey(() => this.tilt(-1)));
@@ -541,7 +564,55 @@ export class WorldScene extends Phaser.Scene {
       this.selectFarm(null);
     }
     this.selectedId = id;
-    this.game.events.emit('selection', this.selected());
+    this.extraIds.clear();
+    this.emitSelection();
+  }
+
+  /** Añade o quita un colono de la selección (selección de grupo). */
+  toggleSelect(id: number): void {
+    if (this.selectedId === null) {
+      this.select(id);
+      return;
+    }
+    if (this.selectedId === id) {
+      // Se quita el principal: pasa a serlo el siguiente.
+      const next = [...this.extraIds][0] ?? null;
+      this.extraIds.delete(next as number);
+      this.selectedId = next;
+    } else if (this.extraIds.has(id)) {
+      this.extraIds.delete(id);
+    } else {
+      this.extraIds.add(id);
+    }
+    this.emitSelection();
+  }
+
+  /** Elige a todos los colonos. */
+  selectAll(): void {
+    const ids = this.world.colonists.map((c) => c.id);
+    this.select(ids[0] ?? null);
+    for (const id of ids.slice(1)) this.extraIds.add(id);
+    this.emitSelection();
+  }
+
+  /** Ids de los colonos elegidos (el principal primero). */
+  selectedIds(): number[] {
+    return this.selectedId === null ? [] : [this.selectedId, ...this.extraIds];
+  }
+
+  /** Recluta o libera a los elegidos (si alguno no está reclutado, se recluta a todos). */
+  toggleDraftSelected(): void {
+    const sel = this.world.colonists.filter((c) => this.selectedIds().includes(c.id));
+    if (sel.length === 0) return;
+    const draft = sel.some((c) => !c.drafted);
+    for (const c of sel) this.world.setDrafted(c.id, draft);
+    this.game.events.emit('toast', draft ? `🎖 ${sel.length === 1 ? sel[0].name : `${sel.length} colonos`}: reclutado${sel.length > 1 ? 's' : ''}, esperando órdenes` : '🏳 Liberados: vuelven a trabajar');
+    this.emitSelection();
+  }
+
+  private emitSelection(): void {
+    const ids = this.selectedIds();
+    this.game.events.emit('selection', this.selected(), this.world.colonists.filter((c) => ids.includes(c.id)));
   }
 
   /** Centra la cámara en un colono. */
@@ -566,7 +637,9 @@ export class WorldScene extends Phaser.Scene {
     const world = this.cameras.main.getWorldPoint(p.x, p.y);
     const hit = this.colonistAtScreen(world.x, world.y);
     if (hit && !p.rightButtonReleased()) {
-      this.select(hit.id);
+      const ev = p.event as MouseEvent | undefined;
+      if (ev && (ev.shiftKey || ev.ctrlKey || ev.metaKey)) this.toggleSelect(hit.id);
+      else this.select(hit.id);
       return;
     }
     this.reportTile(p);
@@ -582,11 +655,21 @@ export class WorldScene extends Phaser.Scene {
     const tile = this.pickRealTile(world.x, world.y);
     if (!tile) return;
     const { x: tx, y: ty } = tile;
+    const ids = this.selectedIds();
+    // Con un solo colono, tocar algo con trabajo (lo marcado, un árbol, un plano…) es «hazlo ya».
+    if (ids.length === 1 && this.world.hasWorkAt(tx, ty)) {
+      const c = this.selected()!;
+      if (this.world.forceJob(c.id, tx, ty)) {
+        this.flashTarget(tx, ty);
+        this.game.events.emit('toast', `${c.name}: ${activityLabel(c).toLowerCase()}`);
+        return;
+      }
+    }
     if (!isWalkable(this.map, tx, ty)) {
       this.game.events.emit('toast', 'No se puede caminar ahí');
       return;
     }
-    if (this.world.orderMove(this.selectedId, { x: tx, y: ty })) {
+    if (this.world.orderGroupMove(ids, { x: tx, y: ty }) > 0) {
       this.flashTarget(tx, ty);
     } else {
       this.game.events.emit('toast', 'No hay camino hasta ahí');
@@ -707,11 +790,16 @@ export class WorldScene extends Phaser.Scene {
       const n = this.world.structures.placeArea(r, def.id, this.buildShape);
       toast(n > 0 ? `${def.name}: ${n} ${n === 1 ? 'plano' : 'planos'}` : 'Ahí no se puede construir (hace falta suelo llano y libre)');
     } else if (mode === 'quitarPlano') {
-      let n = 0;
-      for (const t of Structures.areaTiles(r, 'relleno')) if (this.world.cancelBlueprint(t.x, t.y)) n++;
-      toast(n > 0 ? `${n} ${n === 1 ? 'plano quitado' : 'planos quitados'}` : 'No había planos ahí');
+      const n = this.world.demolishArea(r);
+      const parts = [];
+      if (n.planos > 0) parts.push(`${n.planos} ${n.planos === 1 ? 'plano quitado' : 'planos quitados'}`);
+      if (n.demoler > 0) parts.push(`${n.demoler} para demoler`);
+      toast(parts.length ? parts.join(' · ') : 'Ahí no hay construcciones');
+    } else if (mode === 'rebajar' || mode === 'elevar' || mode === 'rampa') {
+      const n = this.world.terrain.addArea(r, mode, (x, y) => !!this.world.structures.at(x, y));
+      toast(n > 0 ? `${TERRAIN_JOB_NAMES[mode]}: ${n} ${n === 1 ? 'casilla' : 'casillas'}` : mode === 'rampa' ? 'Ahí no hay acantilados' : 'Ahí no se puede (agua, construcción, objeto o nivel límite)');
     } else if (mode === 'cancelar') {
-      const n = d.cancelArea(r);
+      const n = d.cancelArea(r) + this.world.terrain.removeArea(r);
       toast(n > 0 ? `${n} ${n === 1 ? 'orden quitada' : 'órdenes quitadas'}` : 'No había órdenes ahí');
     } else {
       const n = d.designateArea(r, mode);
@@ -747,12 +835,15 @@ export class WorldScene extends Phaser.Scene {
     const st = this.world.structures;
     const hitAt = (x: number, y: number, edge: boolean): boolean => {
       switch (mode) {
-        case 'cancelar': return d.at(x, y) !== undefined;
+        case 'cancelar': return d.at(x, y) !== undefined || this.world.terrain.at(x, y) !== undefined;
+        case 'rebajar':
+        case 'elevar':
+        case 'rampa': return terrainBlocker(this.map, x, y, mode, !!st.at(x, y)) === null;
         case 'almacen': return canZone(this.map, x, y) && !this.world.zones.at(x, y) && !this.world.farms.at(x, y);
         case 'cultivo': return canZone(this.map, x, y) && fertilityAt(this.map, x, y) > 0 && !this.world.zones.at(x, y) && !this.world.farms.at(x, y);
         case 'quitarAlmacen': return this.world.zones.at(x, y) !== undefined || this.world.farms.at(x, y) !== undefined;
         case 'construir': return (this.buildShape === 'relleno' || edge) && st.canPlace(x, y);
-        case 'quitarPlano': return st.at(x, y)?.built === false;
+        case 'quitarPlano': return st.at(x, y) !== undefined;
         default: return canDesignate(this.map, x, y, mode);
       }
     };
@@ -774,10 +865,29 @@ export class WorldScene extends Phaser.Scene {
   /** Rehace las marcas de las casillas designadas si han cambiado. */
   private syncDesignations(): void {
     const d = this.world.designations;
-    if (d.version === this.designVersion) return;
-    this.designVersion = d.version;
+    const version = d.version * 65536 + this.world.terrain.version;
+    if (version === this.designVersion) return;
+    this.designVersion = version;
     const g = this.designGfx;
     g.clear();
+    // Obras de terreno: esquinas y una flecha (abajo rebajar, arriba elevar) o una rampa.
+    for (const o of this.world.terrain.list()) {
+      const v = this.viewTile(o.x, o.y);
+      const left = v.x * TILE;
+      const top = v.y * TILE_H - liftOf(this.view, v.x, v.y);
+      const color = DESIGN_COLORS.terreno;
+      g.lineStyle(1.5, color, 0.95);
+      g.strokeRect(left + 1, top + 1, TILE - 2, TILE_H - 2);
+      const cx = left + TILE / 2;
+      const cy = top + TILE_H / 2;
+      g.fillStyle(color, 1);
+      if (o.job === 'rebajar') g.fillTriangle(cx - 4, cy - 2, cx + 4, cy - 2, cx, cy + 3);
+      else if (o.job === 'elevar') g.fillTriangle(cx - 4, cy + 2, cx + 4, cy + 2, cx, cy - 3);
+      else {
+        g.lineStyle(2, color, 1);
+        g.lineBetween(left + 3, top + TILE_H - 3, left + TILE - 3, top + 3);
+      }
+    }
     for (const m of d.list()) {
       const v = this.viewTile(m.x, m.y);
       const left = v.x * TILE;
@@ -921,6 +1031,7 @@ export class WorldScene extends Phaser.Scene {
       // Los suelos van pegados al suelo, debajo de montones y colonos.
       img.setDepth(s.def.category === 'suelo' ? ZONE_DEPTH - 0.1 : COLONIST_DEPTH + (v.y + rowOffset) / 1000);
       if (!s.built) img.setAlpha(0.45).setTint(0x8fc0ff); // plano: translúcido y azulado
+      else if (s.demolish) img.setTint(0xff8a7a); // marcada para demoler: rojiza
       this.structSprites.push(img);
     }
   }
@@ -970,6 +1081,23 @@ export class WorldScene extends Phaser.Scene {
     const g = this.selectionGfx;
     g.clear();
     this.drawJobProgress(g);
+    // Los reclutados llevan un banderín sobre la cabeza.
+    for (const k of this.world.colonists) {
+      if (!k.drafted) continue;
+      const v = this.toViewPoint(k.pos.x, k.pos.y);
+      const top = rowY(v.y) - this.colonistLift(k) - 17;
+      g.fillStyle(0x1a1410, 1);
+      g.fillRect(v.x * TILE - 1, top - 1, 2, 8);
+      g.fillStyle(0xd96c2c, 1);
+      g.fillTriangle(v.x * TILE + 1, top - 1, v.x * TILE + 7, top + 2, v.x * TILE + 1, top + 5);
+    }
+    for (const id of this.extraIds) {
+      const k = this.world.colonists.find((q) => q.id === id);
+      if (!k) continue;
+      const v = this.toViewPoint(k.pos.x, k.pos.y);
+      g.lineStyle(2, 0xd96c2c, 0.8);
+      g.strokeEllipse(v.x * TILE, rowY(v.y) - this.colonistLift(k) + 2, TILE * 0.95, TILE_H * 0.45);
+    }
     const c = this.selected();
     if (!c) return;
     const lift = this.colonistLift(c);

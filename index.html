@@ -41,11 +41,14 @@
         <button type="button" data-mode="cancelar" title="Quitar órdenes">✖ Quitar</button>
         <button type="button" data-mode="almacen" title="Marcar una zona de almacén">📦 Almacén</button>
         <button type="button" data-mode="cultivo" title="Marcar un huerto">🌱 Huerto</button>
+        <button type="button" data-mode="rebajar" title="Bajar el nivel del terreno">⬇ Rebajar</button>
+        <button type="button" data-mode="elevar" title="Subir el nivel del terreno">⬆ Elevar</button>
+        <button type="button" data-mode="rampa" title="Convertir un acantilado en pendiente">◢ Rampa</button>
         <button type="button" data-mode="quitarAlmacen" title="Quitar casillas de almacén o de huerto">✖ Quitar zona</button>
       </div>
       <div id="build-modes" hidden>
         <button id="build-shape" type="button" title="Contorno: solo el borde del rectángulo · Relleno: todas las casillas">▭ Forma: contorno</button>
-        <button type="button" data-mode="quitarPlano" title="Quitar planos sin terminar">✖ Quitar planos</button>
+        <button type="button" data-mode="quitarPlano" title="Demoler construcciones o quitar planos">⛏ Demoler / quitar planos</button>
       </div>
     </div>
     <div id="design-hint" class="panel" hidden></div>
@@ -65,7 +68,8 @@
       <p class="help">
         <strong>Controles</strong><br />
         Arrastrar: mover la cámara · Rueda o pellizco: zoom<br />
-        Tocar un colono: seleccionarlo · Tocar el suelo: mandarlo allí<br />
+        Tocar un colono: seleccionarlo · Tocar el suelo: mandarlo allí · Tocar algo con trabajo (un árbol, un plano…): que lo haga ya<br />
+        Grupo: 👥 o mantener pulsado un nombre de la lista (Mayús+clic en PC) · 🎖 Reclutar (G): deja de trabajar y espera órdenes<br />
         Arriba a la izquierda: inventario de la colonia (los montones del suelo)<br />
         Órdenes ⚒ (tecla T): elegir talar, picar, saquear o almacén y arrastrar un área (o tocar una casilla); con dos dedos se mueve la cámara · Esc: salir<br />
         Construir 🏗 (tecla B): elegir muro o puerta y arrastrar; los colonos llevan el material y lo levantan<br />
@@ -128,6 +132,9 @@
         <button id="cp-close" type="button" title="Deseleccionar">✕</button>
       </div>
       <div id="cp-activity"></div>
+      <button id="cp-draft" type="button" title="Reclutado: deja de trabajar y solo obedece tus órdenes (tecla G)">🎖 Reclutar (G)</button>
+      <div class="zp-label">Trabajos (toca para cambiar la prioridad: 1 primero, — no lo hace)</div>
+      <div id="cp-work"></div>
       <div id="cp-traits"></div>
       <div id="cp-skills"></div>
     </section>

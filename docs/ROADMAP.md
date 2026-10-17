@@ -38,8 +38,8 @@ Terminado: marco árboles y los colonos los talan y guardan la madera solos.
 - [x] Herramienta de designación: talar, minar, saquear (arrastrar un área; en móvil, modo selección)
 - [x] Sistema de trabajos: cola, reserva de tareas, prioridades por colono
 - [x] Zonas de almacén (con filtro de recursos y prioridad) y transporte
-- [ ] Panel de prioridades de trabajo
-- [ ] Los árboles vuelven a crecer con el tiempo (los tocones rebrotan y aparecen árboles nuevos cerca de otros)
+- [x] Panel de prioridades de trabajo
+- [x] Los árboles vuelven a crecer con el tiempo (los tocones rebrotan y aparecen árboles nuevos cerca de otros)
 - [ ] Agua: recoger agua de ríos/manantiales; el agua contaminada necesita filtrado
 - [x] Guardado manual y automático en el navegador, exportar/importar archivo
 
@@ -48,7 +48,7 @@ Terminado: marco árboles y los colonos los talan y guardan la madera solos.
 Terminado: diseño un refugio cerrado y los colonos lo construyen con recursos.
 
 - [x] Definiciones de edificios en JSON (coste, tiempo, terreno permitido)
-- [ ] Planos: colocar, rotar, cancelar (ratón y táctil)
+- [x] Planos: colocar, cancelar y demoler (ratón y táctil)
 - [ ] Muros, puertas, portones, suelos y camas (hechos); banco de trabajo
 - [x] Construcción como trabajo que consume recursos
 - [ ] Habitaciones cerradas detectadas (para ánimo y temperatura futura)
@@ -57,7 +57,7 @@ Terminado: diseño un refugio cerrado y los colonos lo construyen con recursos.
 - [x] Muros altos para perímetros y torres de vigía (madera, piedra y chatarra; las de metal, con el metal)
 - [ ] Defensas: pinchos y barricadas (hechos); zanjas (con el trabajo de terreno)
 - [ ] Mobiliario de almacén: estanterías, armarios y armeros de pared
-- [ ] Terreno: aplanar y subir o bajar el nivel de las casillas (trabajo de los colonos)
+- [x] Terreno: aplanar y subir o bajar el nivel de las casillas (trabajo de los colonos) y rampas en los acantilados
 
 ## Fase 4 — Necesidades y raids (primera versión jugable)
 

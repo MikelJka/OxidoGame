@@ -80,6 +80,18 @@ export function checkWorld(world: World, progress = new Map<number, ProgressMark
       problems.push({ key: `item-amount-${s.x}-${s.y}`, message: `El montón de ${s.resource} en (${s.x}, ${s.y}) tiene ${s.amount} unidades` });
     }
   }
+  // Encerrados: un colono que solo puede moverse por un puñado de casillas (desniveles, muros…).
+  for (const c of world.colonists) {
+    if (!isWalkable(map, c.tile.x, c.tile.y)) continue;
+    const room = countReachable(map, c.tile.x, c.tile.y, TRAPPED_TILES);
+    if (room < TRAPPED_TILES) {
+      problems.push({
+        key: `trapped-${c.id}-${c.tile.x}-${c.tile.y}`,
+        message: `${c.name} (#${c.id}) está encerrado en (${c.tile.x}, ${c.tile.y}): solo llega a ${room} casillas. Usa ⚒ → Rampa o Rebajar, o demuele un muro`,
+      });
+    }
+  }
+
   // Trabajos y reservas: cada trabajo en curso tiene su reserva y cada reserva, su colono con trabajo.
   for (const c of world.colonists) {
     const j = c.job;
@@ -123,6 +135,27 @@ export function checkWorld(world: World, progress = new Map<number, ProgressMark
     }
   }
   return problems;
+}
+
+/** Menos casillas alcanzables que esto = encerrado. */
+export const TRAPPED_TILES = 30;
+
+/** Casillas alcanzables a pie desde (x, y), contando como mucho hasta `limit`. */
+function countReachable(map: World['map'], x: number, y: number, limit: number): number {
+  const seen = new Set<number>([y * map.width + x]);
+  const queue = [[x, y]];
+  for (let head = 0; head < queue.length && seen.size < limit; head++) {
+    const [cx, cy] = queue[head];
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = cx + dx;
+      const ny = cy + dy;
+      const k = ny * map.width + nx;
+      if (seen.has(k) || !isWalkable(map, nx, ny)) continue;
+      seen.add(k);
+      queue.push([nx, ny]);
+    }
+  }
+  return seen.size;
 }
 
 export interface ProgressMark {

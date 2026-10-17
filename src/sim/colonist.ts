@@ -4,6 +4,7 @@ import {
 import { ResourceId } from '../data/resources';
 import { WORK_NAMES, WORK_TYPES, WORK_VERBS, WorkType } from '../data/work';
 import { Point } from './pathfinding';
+import type { TerrainJob } from './terrain';
 import { Rng } from './rng';
 
 export type ColonistActivity = 'idle' | 'wandering' | 'moving' | 'toJob' | 'working';
@@ -28,6 +29,10 @@ export interface ColonistJob {
   haul?: HaulInfo;
   /** Cultivo: sembrar una casilla vacía o cosechar una planta madura. */
   farm?: 'sembrar' | 'cosechar';
+  /** Obra de terreno que se hace. */
+  terrain?: TerrainJob;
+  /** Demoler la construcción de la casilla. */
+  demolish?: boolean;
 }
 
 export interface HaulInfo {
@@ -76,6 +81,8 @@ export interface Colonist {
   job: ColonistJob | null;
   /** Carga que lleva encima. */
   carrying: Carried | null;
+  /** Reclutado: no trabaja ni deambula; solo obedece órdenes directas. */
+  drafted: boolean;
 }
 
 export function createColonist(id: number, at: Point, rng: Rng): Colonist {
@@ -105,6 +112,7 @@ export function createColonist(id: number, at: Point, rng: Rng): Colonist {
     priorities: Object.fromEntries(WORK_TYPES.map((w) => [w, DEFAULT_PRIORITY])) as Record<WorkType, WorkPriority>,
     job: null,
     carrying: null,
+    drafted: false,
   };
 }
 
@@ -113,6 +121,7 @@ export function walkSpeedMultiplier(c: Colonist): number {
 }
 
 export function activityLabel(c: Colonist): string {
+  if (c.drafted && !c.job) return c.path.length > 0 ? 'Reclutado · yendo' : 'Reclutado · esperando órdenes';
   switch (c.activity) {
     case 'moving': return 'Yendo a una orden';
     case 'toJob':
