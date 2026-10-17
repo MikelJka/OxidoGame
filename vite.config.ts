@@ -10,5 +10,7 @@ export default defineConfig({
   },
   test: {
     include: ['tests/**/*.test.ts'],
+    // Algunos tests generan 20 mapas grandes.
+    testTimeout: 30_000,
   },
 });

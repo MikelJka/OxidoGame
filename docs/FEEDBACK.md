@@ -4,11 +4,13 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Pendiente
 
-(nada)
-
+- [ ] **Los árboles vuelven a crecer** (2026-10-17): con el tiempo, para que la madera no se acabe. Va en la fase 2, tras el sistema de trabajos.
+- [ ] **Máquinas que generan recursos: canteras y recicladoras** (2026-10-17): para cuando se acaben la piedra y la chatarra iniciales del mapa. Van en la fase 3 (construcción), en el roadmap.
 
 ## Hecho
 
+- [x] **Alturas menos caóticas** (2026-10-17): el terreno ya no cambia de altura cada dos casillas. Los niveles salen de la elevación suavizada y las manchas de menos de 40 casillas se funden con su entorno: el doble de zonas llanas amplias para construir (del 11 % al 31 % de la tierra en cuadrados de 7×7) y la mitad de bordes de nivel.
+- [x] **Mapas más grandes** (2026-10-17): de 100 × 100 a 140 × 140 casillas (casi el doble de superficie).
 - [x] **Vista con algo de 3D** (2026-10-17): relieve elevado con paredes, lo alto tapa lo de detrás, vista inclinada, giro en pasos de 90° (⟲ ⟳, girar dos dedos, Q/E) e inclinación ajustable en 4 pasos, de cenital a casi de lado (botón ∠, deslizar dos dedos arriba/abajo, R/F).
 - [x] **Las alturas del mapa no se ven bien** (2026-10-17): el terreno se dibuja elevado; cada nivel sube 12 px y en la cara sur de los desniveles se ve una pared: roca oscura en los acantilados, talud claro y rayado en las pendientes y orillas de tierra junto al agua. Los niveles altos son más claros y dejan sombra al pie. Colonos, objetos, toques y caminos siguen la altura.
 - [x] **Al escribir en 🐞 no salían W, A, S, D** (2026-10-17): el juego capturaba esas teclas para la cámara. Ahora no las captura y, mientras escribes, el teclado no mueve la cámara ni cambia la velocidad (espacio, 1, 2, 3).

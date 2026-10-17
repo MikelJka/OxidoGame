@@ -398,37 +398,116 @@ function openFords(map: GameMap): boolean {
 
 /** Nivel de altura de una casilla de tierra según su elevación. */
 export function levelForElevation(e: number): number {
-  if (e < 0.42) return 1;
-  if (e < 0.56) return 2;
-  if (e < 0.7) return 3;
+  if (e < 0.40) return 1;
+  if (e < 0.60) return 2;
+  if (e < 0.76) return 3;
   return MAX_LEVEL;
 }
 
+/** Radio (en casillas) del suavizado de la elevación antes de repartirla en niveles. */
+const LEVEL_BLUR_RADIUS = 5;
+/** Superficie mínima (en casillas) de una zona llana: las más pequeñas se igualan con su entorno. */
+export const MIN_FLAT_AREA = 40;
+
+/**
+ * Niveles de altura. Se calculan sobre la elevación suavizada para que haya llanos amplios donde
+ * construir, y las manchas de un mismo nivel demasiado pequeñas se funden con el nivel de alrededor.
+ */
 function assignLevels(map: GameMap): void {
-  for (let i = 0; i < map.level.length; i++) {
-    const t = map.terrain[i] as Terrain;
-    map.level[i] = isWater(t) && t !== Terrain.ShallowWater ? 0 : t === Terrain.ShallowWater ? 1 : levelForElevation(map.elevation[i]);
-    // Los vados y orillas del río quedan al nivel del agua más baja posible.
-    if (t === Terrain.ShallowWater || t === Terrain.Sand) map.level[i] = Math.min(map.level[i], 1);
-  }
-  // Suaviza: una casilla de tierra no puede quedar más de un nivel por encima de todos sus vecinos
-  // ni formar picos de una sola casilla.
-  const { width, height, level } = map;
-  for (let pass = 0; pass < 2; pass++) {
-    for (let y = 1; y < height - 1; y++) {
-      for (let x = 1; x < width - 1; x++) {
-        const i = y * width + x;
-        if (level[i] === 0) continue;
-        let higher = 0;
-        let lower = 0;
-        for (const j of [i - 1, i + 1, i - width, i + width]) {
-          if (level[j] > level[i]) higher++;
-          else if (level[j] < level[i] && level[j] > 0) lower++;
-        }
-        if (higher >= 3) level[i]++;
-        else if (lower >= 3) level[i]--;
-      }
+  const { width, height, level, terrain } = map;
+  const smooth = blur(blur(map.elevation, width, height, LEVEL_BLUR_RADIUS), width, height, LEVEL_BLUR_RADIUS);
+  // Casillas cuyo nivel viene impuesto por el agua: no se mueven al suavizar.
+  const fixed = new Uint8Array(level.length);
+  for (let i = 0; i < level.length; i++) {
+    const t = terrain[i] as Terrain;
+    if (isWater(t) && t !== Terrain.ShallowWater) {
+      level[i] = 0;
+      fixed[i] = 1;
+    } else if (t === Terrain.ShallowWater || t === Terrain.Sand) {
+      // Los vados y orillas del río quedan al nivel del agua más baja posible.
+      level[i] = 1;
+      fixed[i] = 1;
+    } else {
+      level[i] = levelForElevation(smooth[i]);
     }
+  }
+  mergeSmallFlats(map, fixed);
+}
+
+/** Media de cada casilla con sus vecinas en un cuadrado de radio `r` (por filas y columnas). */
+function blur(src: Float32Array, w: number, h: number, r: number): Float32Array {
+  const tmp = new Float32Array(src.length);
+  const out = new Float32Array(src.length);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let sum = 0;
+      let n = 0;
+      for (let k = Math.max(0, x - r); k <= Math.min(w - 1, x + r); k++) {
+        sum += src[y * w + k];
+        n++;
+      }
+      tmp[y * w + x] = sum / n;
+    }
+  }
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let sum = 0;
+      let n = 0;
+      for (let k = Math.max(0, y - r); k <= Math.min(h - 1, y + r); k++) {
+        sum += tmp[k * w + x];
+        n++;
+      }
+      out[y * w + x] = sum / n;
+    }
+  }
+  return out;
+}
+
+/** Funde con el nivel vecino más común las zonas de tierra de un mismo nivel menores que MIN_FLAT_AREA. */
+function mergeSmallFlats(map: GameMap, fixed: Uint8Array): void {
+  const { width, height, level } = map;
+  for (let pass = 0; pass < 6; pass++) {
+    const region = new Int32Array(level.length).fill(-1);
+    let changed = false;
+    for (let s = 0; s < level.length; s++) {
+      if (level[s] === 0 || region[s] >= 0) continue;
+      const cells: number[] = [];
+      const stack = [s];
+      region[s] = s;
+      let locked = false;
+      const around = new Map<number, number>();
+      while (stack.length) {
+        const i = stack.pop()!;
+        cells.push(i);
+        if (fixed[i]) locked = true;
+        const x = i % width;
+        const y = (i - x) / width;
+        for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+          if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+          const j = ny * width + nx;
+          if (level[j] === level[s]) {
+            if (region[j] < 0) {
+              region[j] = s;
+              stack.push(j);
+            }
+          } else if (level[j] > 0) {
+            around.set(level[j], (around.get(level[j]) ?? 0) + 1);
+          }
+        }
+      }
+      if (locked || cells.length >= MIN_FLAT_AREA || around.size === 0) continue;
+      let best = 0;
+      let bestCount = -1;
+      for (const [l, n] of around) {
+        if (n > bestCount || (n === bestCount && Math.abs(l - level[s]) < Math.abs(best - level[s]))) {
+          best = l;
+          bestCount = n;
+        }
+      }
+      for (const i of cells) level[i] = best;
+      changed = true;
+    }
+    if (!changed) break;
   }
 }
 

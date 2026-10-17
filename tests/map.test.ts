@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  generateMap, isPassable, isWater, MAX_LEVEL, Prop, PROP_INFO, reachableFrom, Terrain, TERRAIN_INFO, terrainAt, tileMoveCost,
+  generateMap, isPassable, isWater, MAX_LEVEL, MIN_FLAT_AREA, Prop, PROP_INFO, reachableFrom, Terrain, TERRAIN_INFO, terrainAt, tileMoveCost,
 } from '../src/sim/map';
 import { findPath } from '../src/sim/pathfinding';
 import { Rng, seedFromString } from '../src/sim/rng';
@@ -19,7 +19,7 @@ describe('Rng', () => {
 });
 
 describe('generateMap', () => {
-  const opts = { width: 100, height: 100, seed: 42 };
+  const opts = { width: 140, height: 140, seed: 42 };
 
   it('genera el mismo mapa con la misma semilla', () => {
     const a = generateMap(opts);
@@ -79,6 +79,60 @@ describe('generateMap', () => {
     }
   });
 
+  it('el relieve deja llanos amplios donde construir', () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const map = generateMap({ ...opts, seed });
+      const W = map.width;
+      // Parte de la tierra cuyo cuadrado de 7×7 alrededor está todo a la misma altura.
+      let land = 0;
+      let flat = 0;
+      for (let y = 3; y < map.height - 3; y++) {
+        for (let x = 3; x < W - 3; x++) {
+          const l = map.level[y * W + x];
+          if (!l) continue;
+          land++;
+          let ok = true;
+          for (let dy = -3; dy <= 3 && ok; dy++) {
+            for (let dx = -3; dx <= 3; dx++) {
+              if (map.level[(y + dy) * W + x + dx] !== l) {
+                ok = false;
+                break;
+              }
+            }
+          }
+          if (ok) flat++;
+        }
+      }
+      expect(flat / land, `semilla ${seed}: llanos 7×7`).toBeGreaterThan(0.18);
+      // No quedan manchas de altura pequeñas (salvo orillas y vados, que van al nivel del agua).
+      const seen = new Uint8Array(map.level.length);
+      for (let s = 0; s < map.level.length; s++) {
+        if (!map.level[s] || seen[s]) continue;
+        const stack = [s];
+        seen[s] = 1;
+        let n = 0;
+        let shore = false;
+        while (stack.length) {
+          const i = stack.pop()!;
+          n++;
+          const t = map.terrain[i] as Terrain;
+          if (t === Terrain.Sand || t === Terrain.ShallowWater) shore = true;
+          const x = i % W;
+          const y = (i - x) / W;
+          for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+            if (nx < 0 || ny < 0 || nx >= W || ny >= map.height) continue;
+            const j = ny * W + nx;
+            if (!seen[j] && map.level[j] === map.level[s]) {
+              seen[j] = 1;
+              stack.push(j);
+            }
+          }
+        }
+        if (!shore) expect(n, `semilla ${seed}: mancha de nivel ${map.level[s]}`).toBeGreaterThanOrEqual(MIN_FLAT_AREA);
+      }
+    }
+  });
+
   it('genera relieve: terrazas, acantilados y pendientes', () => {
     for (let seed = 1; seed <= 20; seed++) {
       const map = generateMap({ ...opts, seed });
@@ -93,8 +147,8 @@ describe('generateMap', () => {
       }
       const bigLevels = perLevel.slice(1).filter((n) => n > 400).length;
       expect(bigLevels, `semilla ${seed}: niveles con superficie`).toBeGreaterThanOrEqual(3);
-      expect(cliffs, `semilla ${seed}: acantilados`).toBeGreaterThan(150);
-      expect(slopes, `semilla ${seed}: pendientes`).toBeGreaterThan(200);
+      expect(cliffs, `semilla ${seed}: acantilados`).toBeGreaterThan(100);
+      expect(slopes, `semilla ${seed}: pendientes`).toBeGreaterThan(100);
     }
   });
 

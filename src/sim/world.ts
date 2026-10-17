@@ -14,6 +14,8 @@ const BASE_WALK_SPEED = 3;
 const START_HOUR = 7;
 /** Máximo de ticks a simular por fotograma para no bloquear el navegador. */
 const MAX_TICKS_PER_UPDATE = 60;
+/** Lado (en casillas) de los mapas de partida. */
+export const MAP_SIZE = 140;
 
 export type GameSpeed = 0 | 1 | 2 | 3;
 
@@ -33,7 +35,7 @@ export class World {
   private accumulator = 0;
 
   constructor(opts: WorldOptions) {
-    this.map = generateMap({ width: opts.width ?? 100, height: opts.height ?? 100, seed: opts.seed });
+    this.map = generateMap({ width: opts.width ?? MAP_SIZE, height: opts.height ?? MAP_SIZE, seed: opts.seed });
     this.rng = new Rng(opts.seed ^ 0x51ed270b);
     this.spawnColonists(opts.colonists ?? 3);
   }

@@ -39,6 +39,7 @@ Terminado: marco árboles y los colonos los talan y guardan la madera solos.
 - [ ] Sistema de trabajos: cola, reserva de tareas, prioridades por colono
 - [ ] Zonas de almacén y transporte
 - [ ] Panel de prioridades de trabajo
+- [ ] Los árboles vuelven a crecer con el tiempo (los tocones rebrotan y aparecen árboles nuevos cerca de otros)
 - [ ] Agua: recoger agua de ríos/manantiales; el agua contaminada necesita filtrado
 - [ ] Guardado manual y automático en el navegador, exportar/importar archivo
 
@@ -51,6 +52,7 @@ Terminado: diseño un refugio cerrado y los colonos lo construyen con recursos.
 - [ ] Muros, puertas, suelos, camas, almacén, banco de trabajo
 - [ ] Construcción como trabajo que consume recursos
 - [ ] Habitaciones cerradas detectadas (para ánimo y temperatura futura)
+- [ ] Máquinas de producción: cantera (piedra) y recicladora (chatarra a partir de basura y restos), para cuando se agoten los del mapa
 
 ## Fase 4 — Necesidades y raids (primera versión jugable)
 
