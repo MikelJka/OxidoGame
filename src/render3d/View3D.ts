@@ -108,9 +108,14 @@ export class View3D {
   private onKeyDown = (e: KeyboardEvent) => this.keyDown(e);
   private onKeyUp = (e: KeyboardEvent) => this.keys.delete(e.key.toLowerCase());
 
+  /** Se llama si el navegador quita el contexto gráfico (móviles con poca memoria): se vuelve a la 2D. */
+  onContextLost: (() => void) | null = null;
+
   constructor(private readonly container: HTMLElement, private readonly getScene: () => WorldScene) {
     this.renderer = new THREE.WebGLRenderer({ antialias: false });
-    this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    // En pantallas pequeñas (móviles) se dibuja a menos resolución: gasta menos memoria gráfica.
+    const smallScreen = Math.min(window.innerWidth, window.innerHeight) < 700;
+    this.renderer.setPixelRatio(Math.min(smallScreen ? 1.5 : 2, window.devicePixelRatio || 1));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     // Tonos más naturales y sombras del sol.
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -126,6 +131,10 @@ export class View3D {
     el.addEventListener('pointerup', (e: PointerEvent) => this.pointerUp(e));
     el.addEventListener('pointercancel', (e: PointerEvent) => this.pointerUp(e, true));
     el.addEventListener('wheel', (e: WheelEvent) => this.wheel(e), { passive: false });
+    el.addEventListener('webglcontextlost', (e: Event) => {
+      e.preventDefault();
+      this.onContextLost?.();
+    });
     this.sun.position.set(-40, 80, -30);
     this.sun.castShadow = true;
     const small = Math.min(window.innerWidth, window.innerHeight) < 700;

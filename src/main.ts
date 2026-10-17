@@ -113,6 +113,11 @@ async function setView3D(on: boolean): Promise<void> {
     try {
       const mod = await import('./render3d/View3D');
       view3d = new mod.View3D($('game'), () => game.scene.getScene('world') as WorldScene);
+      view3d.onContextLost = () => {
+        recordError('error', 'La vista 3D perdió el contexto gráfico (falta de memoria gráfica); se vuelve a la 2D');
+        void setView3D(false).then(() => (view3d = null)); // la próxima vez se crea de nuevo
+        showToast('⚠️ La vista 3D se ha cerrado: el dispositivo se quedó sin memoria gráfica. Sigues en 2D.', 6000);
+      };
     } catch (err) {
       recordError('error', `No se pudo abrir la vista 3D: ${err instanceof Error ? err.message : String(err)}`);
       showToast(`⚠️ No se pudo abrir la vista 3D: ${err instanceof Error ? err.message : String(err)}. ¿Está activada la aceleración por hardware del navegador?`, 7000);

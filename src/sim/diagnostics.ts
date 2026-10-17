@@ -79,6 +79,8 @@ export function checkWorld(world: World, progress = new Map<number, ProgressMark
       problems.push({ key: `item-amount-${s.x}-${s.y}`, message: `El montón de ${s.resource} en (${s.x}, ${s.y}) tiene ${s.amount} unidades` });
     }
   }
+  // Colonos a los que la simulación ha sacado de un encierro: se apunta la causa (una vez cada uno).
+  world.incidents.forEach((text) => problems.push({ key: `incident-${text}`, message: text }));
   // Encerrados: un colono que solo puede moverse por un puñado de casillas (desniveles, muros…).
   for (const c of world.colonists) {
     if (!isWalkable(map, c.tile.x, c.tile.y)) continue;

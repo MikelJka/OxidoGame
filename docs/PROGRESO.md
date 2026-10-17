@@ -2,6 +2,14 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (noche, 11) — #9: nadie se queda encerrado; la 3D no se cuelga sin memoria
+
+- **#9** (🐞 de Mikel): Óscar volvió a quedarse encerrado en una casilla (semilla 785971, día 6) y la 3D falló en el móvil por falta de memoria gráfica.
+- Encerrados: no se puede reproducir sin la partida; el terreno (rebajar, elevar, zanjas) no encierra (comprobado). Arreglo general: cada 10 minutos de juego, quien solo llegue a menos de 30 casillas sale a la casilla más cercana (hasta 8 de distancia) desde la que se llega lejos; se apunta en el diario y en los errores de 🐞 con lo que lo rodeaba (árbol, muro, roca…), para dar con la causa si vuelve a pasar. Tests en `tests/trapped.test.ts`.
+- 3D: si el navegador quita el contexto gráfico, se vuelve a la 2D con un aviso y la próxima vez se crea de nuevo; en pantallas pequeñas se dibuja a 1,5× en lugar de 2×.
+- Qué probar: seguir la partida de Óscar; si vuelve a pasar, el aviso de 🐞 dirá qué lo encerraba.
+- Siguiente: armas (primera parte), tras confirmar con Mikel los detalles.
+
 ## 2026-10-17 (noche, 10) — Construir con el dedo: ver antes de colocar; nueva forma de trabajar
 
 - **Bug** (Mikel): en el móvil, al tocar se colocaba la construcción sin verla antes. Ahora, con el dedo, tocar o arrastrar deja el fantasma blanco (verde/rojo si es grande) y en la barra de 🏗 salen **✔ Colocar** y **✖**. Antes de confirmar se puede girar (↻) o tocar en otro sitio para moverlo. Igual en la vista 3D. Con ratón sigue como antes.

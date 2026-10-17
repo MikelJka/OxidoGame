@@ -1,5 +1,5 @@
 import { Colonist, createColonist, walkSpeedMultiplier } from './colonist';
-import { countReachable, GameMap, generateMap, isPassable, isWater, Prop, Terrain, tileMoveCost } from './map';
+import { countReachable, GameMap, generateMap, inBounds, isPassable, isWater, Prop, PROP_INFO, Terrain, TERRAIN_INFO, tileMoveCost } from './map';
 import { findPath, isWalkable, Point } from './pathfinding';
 import { Rng } from './rng';
 import { GroundItems } from './items';
@@ -37,6 +37,10 @@ const DRINK_SEARCH_TILES = 12000;
 const JOB_RETRY_TICKS = 90;
 /** Ticks de pausa entre terminar un trabajo y empezar el siguiente. */
 const JOB_PAUSE_TICKS = 10;
+/** Cada cuánto se mira si alguien se ha quedado encerrado (10 minutos de juego). */
+const RESCUE_TICKS = TICKS_PER_HOUR / 6;
+/** Distancia máxima a la que se saca a alguien encerrado. */
+const RESCUE_RADIUS = 8;
 /** Lado (en casillas) de los mapas de partida. */
 export const MAP_SIZE = 140;
 
@@ -121,6 +125,11 @@ export class World implements JobContext {
   needsEnabled: boolean;
   /** Tick a partir del cual cada colono vuelve a buscar trabajo. */
   private nextJobScan = new Map<number, number>();
+  /**
+   * Avisos internos para el registro de errores (no se guardan): p. ej. por qué estaba encerrado
+   * un colono al que se ha sacado. La comprobación de 🐞 los recoge.
+   */
+  readonly incidents: string[] = [];
   tick = 0;
   speed: GameSpeed = 1;
   private accumulator = 0;
@@ -234,6 +243,7 @@ export class World implements JobContext {
       }
     }
     if (this.eventsEnabled && this.tick % TICKS_PER_HOUR === 0) runStoryteller(this);
+    if (this.tick % RESCUE_TICKS === 0) this.rescueTrapped();
     for (const c of this.colonists) this.updateColonist(c);
     updateOthers(this);
   }
@@ -1184,6 +1194,68 @@ export class World implements JobContext {
     }
     this.zones.prune();
     this.farms.prune();
+  }
+
+  /**
+   * Nadie se queda encerrado en un hueco, pase lo que pase (árboles, obras, terreno, modo Dios…):
+   * quien solo llega a unas pocas casillas sale a la más cercana desde la que se llega lejos.
+   * Se apunta qué lo rodeaba para encontrar la causa.
+   */
+  rescueTrapped(): number {
+    let n = 0;
+    for (const c of this.colonists) {
+      if (countReachable(this.map, c.tile.x, c.tile.y, TRAPPED_TILES) >= TRAPPED_TILES) continue;
+      const out = this.nearestOpenTile(c.tile, RESCUE_RADIUS);
+      if (!out) continue;
+      const from = { ...c.tile };
+      const why = this.trapCauses(from);
+      if (c.job) this.dropJob(c);
+      c.tile = { ...out };
+      c.pos = { x: out.x + 0.5, y: out.y + 0.5 };
+      c.path = [];
+      this.nextJobScan.delete(c.id);
+      this.incidents.push(`${c.name} (#${c.id}) estaba encerrado en (${from.x}, ${from.y}) por ${why}; ha salido a (${out.x}, ${out.y})`);
+      if (this.incidents.length > 20) this.incidents.shift();
+      this.addLog(`🧗 ${c.name} estaba encerrado y sale como puede.`, 'info');
+      n++;
+    }
+    return n;
+  }
+
+  /** Casilla más cercana (hasta `radius`) desde la que se llega lejos. */
+  private nearestOpenTile(p: Point, radius: number): Point | null {
+    for (let r = 1; r <= radius; r++) {
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+          const x = p.x + dx;
+          const y = p.y + dy;
+          if (!isWalkable(this.map, x, y)) continue;
+          if (countReachable(this.map, x, y, TRAPPED_TILES) >= TRAPPED_TILES) return { x, y };
+        }
+      }
+    }
+    return null;
+  }
+
+  /** Qué impide el paso alrededor de una casilla (texto para el registro). */
+  private trapCauses(p: Point): string {
+    const out = new Set<string>();
+    const m = this.map;
+    const add = (x: number, y: number) => {
+      if (!inBounds(m, x, y)) return out.add('borde del mapa');
+      if (isPassable(m, x, y)) return;
+      const i = y * m.width + x;
+      const s = this.structures.mainAt(x, y);
+      if (s?.built) out.add(s.def.name);
+      else if (PROP_INFO[m.props[i] as Prop].blocks) out.add(PROP_INFO[m.props[i] as Prop].name);
+      else if (m.cliff[i]) out.add('acantilado');
+      else if (!TERRAIN_INFO[m.terrain[i] as Terrain].walkable) out.add(TERRAIN_INFO[m.terrain[i] as Terrain].name);
+      else out.add('casilla bloqueada');
+    };
+    if (!isPassable(m, p.x, p.y)) out.add(`su propia casilla (${this.structures.mainAt(p.x, p.y)?.def.name ?? PROP_INFO[m.props[p.y * m.width + p.x] as Prop].name ?? 'bloqueada'})`);
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) add(p.x + dx, p.y + dy);
+    return [...out].join(', ') || 'algo desconocido';
   }
 
   /** Aparta a un colono a la casilla libre más cercana (cuando se levanta un muro donde está). */

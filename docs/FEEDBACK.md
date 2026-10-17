@@ -23,6 +23,8 @@ Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat 
 
 ## Hecho
 
+- [x] **#9 Óscar encerrado otra vez y la 3D que se cae en el móvil** (2026-10-17, 🐞): no se pudo saber qué lo encerró (la partida no viene en el aviso). Ahora, cada 10 minutos de juego, quien solo llegue a unas pocas casillas sale solo a la más cercana desde la que se llega lejos («🧗 … sale como puede» en el diario), y el aviso de 🐞 dice qué lo rodeaba para encontrar la causa. Si el móvil se queda sin memoria gráfica en 3D, se vuelve a la 2D con un aviso (y la 3D se dibuja a menos resolución en pantallas pequeñas).
+
 - [x] **Bug: en el móvil no se veía la previsualización al construir** (2026-10-17): con el dedo, tocar o arrastrar deja el fantasma blanco y en la barra salen ✔ Colocar y ✖; antes de confirmar se puede girar o tocar en otro sitio para moverlo (también en 3D).
 
 - [x] **Nuevo menú de inicio** (2026-10-17): pantalla de inicio rehecha, con botones grandes, adaptada al móvil en vertical y en horizontal, y la nueva partida por apartados (mapa, colonia, dificultad, opciones).

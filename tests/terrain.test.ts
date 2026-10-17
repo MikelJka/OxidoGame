@@ -11,7 +11,7 @@ function runUntil(world: ReturnType<typeof flatWorld>, done: () => boolean, maxT
     if (done()) return t;
     world.step();
     // El aviso de «encerrado» es justo lo que se está arreglando: aquí no cuenta.
-    if (t % 250 === 0) expect(checkWorld(world).filter((p) => !p.key.startsWith('trapped-'))).toEqual([]);
+    if (t % 250 === 0) expect(checkWorld(world).filter((p) => !p.key.startsWith('trapped-') && !p.key.startsWith('incident-'))).toEqual([]);
   }
   return -1;
 }
