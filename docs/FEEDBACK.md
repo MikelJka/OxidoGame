@@ -4,9 +4,9 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Pendiente
 
-- [ ] **Armas** (2026-10-17, aprobado por Mikel): cuerpo a cuerpo (cuchillo, tubería, lanza, machete) y a distancia (arco; pistola casera, escopeta y rifle). Decidido con Mikel: cada colono coge solo la mejor arma libre y en su ficha se le puede fijar una o dejarlo desarmado; munición en dos tipos, flechas (madera + fibra) para el arco y balas (chatarra + componentes) para las de fuego; ahora se fabrican en el banco las de cuerpo a cuerpo y el arco, y **las de fuego se desbloquean con investigación (fase 5)**; los saqueadores llegan armados según el día (palos y cuchillos al principio, arcos y armas de fuego más adelante) y al caer sueltan el arma. Incluye los armeros de pared (fase 3). **Hecha la primera parte** (palo, cuchillo, tubería, lanza, machete, arco y flechas con los números aprobados); faltan los armeros de pared y, con la investigación, las de fuego y las balas.
+- [ ] **Armas** (2026-10-17, aprobado por Mikel): cuerpo a cuerpo (cuchillo, tubería, lanza, machete) y a distancia (arco; pistola casera, escopeta y rifle). Decidido con Mikel: cada colono coge solo la mejor arma libre y en su ficha se le puede fijar una o dejarlo desarmado; munición en dos tipos, flechas (madera + fibra) para el arco y balas (chatarra + componentes) para las de fuego; ahora se fabrican en el banco las de cuerpo a cuerpo y el arco, y **las de fuego se desbloquean con investigación (fase 5)**; los saqueadores llegan armados según el día (palos y cuchillos al principio, arcos y armas de fuego más adelante) y al caer sueltan el arma. Incluye los armeros de pared (fase 3). **Hechas** las de cuerpo a cuerpo, el arco, las flechas y el armero; faltan, con la investigación, las de fuego y las balas.
 
-- [ ] **Reglas de combate** (2026-10-17, aprobado por Mikel), en este orden: cobertura y alcance (muros, barricadas, rocas y árboles quitan acierto; la precisión baja con la distancia y sube con Combate); armadura (chalecos y cascos de chatarra o metal); moral y huida (los enemigos huyen al perder a la mitad o al líder; colonos con ánimo muy bajo pueden entrar en pánico); fuego amigo y posturas (mantener posición, atacar a un objetivo, retirarse).
+- [ ] **Reglas de combate** (2026-10-17, aprobado por Mikel), en este orden: cobertura y alcance (números aprobados: pegado al objetivo, un muro o puerta cerrada impide dispararle; barricada o roca grande −50 % de acierto; árbol, coche, chatarra o valla −30 %; dentro de una zanja −25 %; desde una torre de vigía +2 de alcance y +15 % de acierto; −6 % por casilla de distancia; cuerpo a cuerpo sin cobertura; los reclutados con arco buscan solos cobertura a 3 casillas o menos) (muros, barricadas, rocas y árboles quitan acierto; la precisión baja con la distancia y sube con Combate); armadura (chalecos y cascos de chatarra o metal); moral y huida (los enemigos huyen al perder a la mitad o al líder; colonos con ánimo muy bajo pueden entrar en pánico); fuego amigo y posturas (mantener posición, atacar a un objetivo, retirarse).
 
 - [ ] **Vehículos de asedio y de combate** (2026-10-17, pedido por Mikel), de los colonos y de los asaltantes. Antes de hacerlo hay que proponerle a Mikel cómo funcionan (qué vehículos, combustible, cómo se fabrican, qué pueden romper).
 
@@ -14,14 +14,16 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 - [ ] **Girar la vista libremente** (2026-10-17): pivotar la cámara a cualquier ángulo e inclinación con el botón central del ratón (y con dos dedos en el móvil), no solo los 4 giros fijos. Decidido: pasar a 3D real con Three.js. Primera versión jugable en ☰ → 🧊 Vista 3D (en pruebas); falta pulirla antes de que sea la vista por defecto.
 
-- [ ] **Mobiliario de almacén** (2026-10-17): estanterías y armarios ya están; los armeros de pared llegarán con las armas (fase 4).
 
+- [ ] **Electricidad** (2026-10-17, aprobada por Mikel): cables por el suelo casilla a casilla (🔩1, también bajo suelos y muros); lo conectado forma una red con producción, consumo y baterías; un cable roto corta la red. Primera versión con todo: generador de leña, placas solares (de día), molino de viento y baterías; lámparas (de noche, con luz se trabaja a velocidad normal, sin luz −20 %, y sube el ánimo); versiones eléctricas de horno, cocina y banco (el doble de rápidas), y recicladora y depuradora con corriente; puertas automáticas que se cierran ante un raid (las torretas, con la investigación). Los números (potencias, costes) se proponen a Mikel antes de hacerlo.
 
 ## Propuestas para Mikel
 
 Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat o con 🐞).
 
 ## Hecho
+
+- [x] **Mobiliario de almacén** (2026-10-17): estanterías, armarios y, ahora, el armero (🏗 → Muebles, 2×1, 🪵15 🔩8): dentro de un almacén guarda solo armas y munición, 30 armas o 300 flechas por casilla.
 
 - [x] **#9 Óscar encerrado otra vez y la 3D que se cae en el móvil** (2026-10-17, 🐞): no se pudo saber qué lo encerró (la partida no viene en el aviso). Ahora, cada 10 minutos de juego, quien solo llegue a unas pocas casillas sale solo a la más cercana desde la que se llega lejos («🧗 … sale como puede» en el diario), y el aviso de 🐞 dice qué lo rodeaba para encontrar la causa. Si el móvil se queda sin memoria gráfica en 3D, se vuelve a la 2D con un aviso (y la 3D se dibuja a menos resolución en pantallas pequeñas).
 

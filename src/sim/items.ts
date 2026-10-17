@@ -28,13 +28,13 @@ export class GroundItems {
   version = 0;
 
   /** Cuántos montones normales caben en una casilla (2 o más con una estantería). Lo fija `World`. */
-  capacityAt: (x: number, y: number) => number = () => 1;
+  capacityAt: (x: number, y: number, resource?: ResourceId) => number = () => 1;
 
   constructor(readonly map: GameMap) {}
 
   /** Máximo de un recurso en una casilla. */
   maxAt(x: number, y: number, resource: ResourceId): number {
-    return MAX_STACK[resource] * this.capacityAt(x, y);
+    return MAX_STACK[resource] * this.capacityAt(x, y, resource);
   }
 
   /** Montón de una casilla, o undefined. */

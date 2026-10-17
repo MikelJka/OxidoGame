@@ -38,6 +38,8 @@ export interface BuildingDef {
   nearWater?: boolean;
   /** Estantería: cuántos montones normales caben en su casilla. */
   storage?: number;
+  /** Solo guarda esto (armero: armas y munición). */
+  storageFor?: 'armas';
   /** Casillas de vista desde lo alto (torres; servirá para ver venir a los enemigos). */
   sight?: number;
   /** Colores del dibujo: cara de arriba, frente y sombra. */

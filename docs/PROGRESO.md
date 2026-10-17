@@ -2,6 +2,13 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (noche, 13) — Armero; decididas la cobertura y la electricidad
+
+- **Armero** (🏗 → Muebles, 2×1, 🪵15 🔩8; Mikel lo prefirió libre y de 2×1): se pone dentro de un almacén y guarda solo armas y munición (30 armas o 300 flechas por casilla). Lo que no es arma no cabe: al terminarlo, lo que hubiera encima sale a un lado. Con esto queda hecho el mobiliario de almacén de la fase 3.
+- Decidido con Mikel: los números de **cobertura y alcance** (en `FEEDBACK.md`) y la **electricidad** con cables, generadores (leña, solar, viento), baterías, lámparas, máquinas eléctricas y puertas automáticas. Los números de la electricidad se le propondrán antes de hacerla.
+- Qué probar: un armero dentro de un almacén; ver que los colonos llevan ahí las armas y no otra cosa.
+- Siguiente: cobertura y alcance; después, los números de la electricidad.
+
 ## 2026-10-17 (noche, 12) — Armas (primera parte)
 
 - Decidido con Mikel: los colonos cogen solos la mejor arma libre y en la ficha se les puede fijar una o dejarlos sin arma; flechas para el arco y balas para las de fuego; las de fuego, con la investigación (fase 5); saqueadores armados según el día.

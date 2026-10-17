@@ -13,7 +13,7 @@ import { Rooms } from './rooms';
 import { tickHealth, treatWounds } from './health';
 import { Difficulty, initialSchedule, makeDifficulty, scaledSupplies, StorySchedule } from './storyteller';
 import { canTalk, colonistFight, dropGear, makePrisoner, runStoryteller, talkToPrisoner, updateOthers } from './people';
-import { AMMO_CARRY, AMMO_LOW, isWeapon, WEAPON_IDS, WEAPONS, weaponScore } from '../data/weapons';
+import { AMMO_CARRY, AMMO_LOW, isGear, isWeapon, WEAPON_IDS, WEAPONS, weaponScore } from '../data/weapons';
 import { TRAPPED_TILES } from './diagnostics';
 import {
   BAD_WATER_TICKS_DAYS, DEHYDRATED, DRINK_TICKS, EAT_TICKS, EXHAUSTED, foodDecay, foodPreference, HUNGRY, isFood, isRawFood, NUTRITION, restDecay,
@@ -150,9 +150,12 @@ export class World implements JobContext {
     this.nextPawnId = this.colonists.length + 1;
     this.items = new GroundItems(this.map);
     // Una estantería terminada multiplica lo que cabe en su casilla.
-    this.items.capacityAt = (x, y) => {
+    this.items.capacityAt = (x, y, resource) => {
       const s = this.structures?.at(x, y);
-      return s && s.built && s.def.storage ? s.def.storage : 1;
+      if (!s || !s.built || !s.def.storage) return 1;
+      // El armero solo guarda armas y munición: lo demás no cabe en sus casillas.
+      if (s.def.storageFor === 'armas' && resource && !isGear(resource)) return 0;
+      return s.def.storage;
     };
     this.designations = new Designations(this.map);
     this.reservations = new Reservations(this.map);
@@ -1266,6 +1269,16 @@ export class World implements JobContext {
   /** Termina una construcción y aparta lo que quede debajo (montones, colonos). */
   completeStructure(s: Structure): void {
     this.structures.complete(s);
+    if (s.def.storageFor) {
+      // Lo que no se guarda en él (en un armero, lo que no es arma) sale a un lado.
+      for (const t of this.structures.tilesOf(s)) {
+        const stack = this.items.at(t.x, t.y);
+        if (!stack || this.items.maxAt(t.x, t.y, stack.resource) > 0) continue;
+        const got = this.items.take(t.x, t.y, stack.amount)!;
+        const side = this.structures.sidesOf(s)[0] ?? t;
+        this.items.drop(side.x, side.y, got.resource, got.amount);
+      }
+    }
     if (!s.def.blocks) return;
     const tiles = this.structures.tilesOf(s);
     const on = (p: Point) => tiles.some((t) => t.x === p.x && t.y === p.y);

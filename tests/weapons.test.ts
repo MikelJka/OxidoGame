@@ -123,3 +123,19 @@ describe('armas', () => {
     expect([l2.weapon, l2.ammo, l2.weaponChoice]).toEqual([null, 0, 'auto']);
   });
 });
+
+describe('armero', () => {
+  it('guarda solo armas y munición, el triple por casilla', () => {
+    const w = flatWorld(1);
+    w.items.drop(15, 15, 'madera', 10);
+    expect(w.structures.place(15, 15, 'armero')).toBe(true);
+    const s = w.structures.at(15, 15)!;
+    w.completeStructure(s);
+    // La madera que había sale a un lado.
+    expect(w.items.at(15, 15)).toBeUndefined();
+    expect(w.items.totals().madera).toBe(10);
+    expect(w.items.room(15, 15, 'madera')).toBe(0);
+    expect(w.items.room(16, 15, 'cuchillo')).toBe(30);
+    expect(w.items.room(16, 15, 'flechas')).toBe(300);
+  });
+});

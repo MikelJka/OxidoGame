@@ -625,6 +625,31 @@
     ]
   },
   {
+    "id": "armero",
+    "name": "Armero",
+    "category": "mueble",
+    "cost": {
+      "madera": 15,
+      "chatarra": 8
+    },
+    "work": 300,
+    "hp": 150,
+    "blocks": false,
+    "moveCost": 1.5,
+    "height": 1,
+    "storage": 3,
+    "storageFor": "armas",
+    "colors": {
+      "top": "#6a5a48",
+      "face": "#4a3c2e",
+      "dark": "#2a2018"
+    },
+    "size": [
+      2,
+      1
+    ]
+  },
+  {
     "id": "cama_prision",
     "name": "Cama de prisionero",
     "category": "mueble",
