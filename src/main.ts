@@ -703,11 +703,11 @@ function setGod(on: boolean): void {
 god.setEnabled(godOn);
 const mainMenu = mountMainMenu({
   getWorld: currentWorld,
-  newGame: ({ seed: s, colonists, events }) => {
+  newGame: ({ seed: s, colonists, events, difficulty }) => {
     seed = s;
     menu.hidden = true;
     tile.textContent = '';
-    scene().scene.restart({ seed: s, colonists, events });
+    scene().scene.restart({ seed: s, colonists, events, difficulty });
   },
   importSave: () => $('save-import').click(),
   showProgress: () => $('dev-btn').click(),

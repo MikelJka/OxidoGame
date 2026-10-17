@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (noche, 7) — Dificultad al empezar y nuevo menú de inicio
+
+- Sin incidencias nuevas en 🐞. Tarea de la fase 4: **dificultad configurable**.
+- En ✚ Nueva partida: **Tranquila, Normal, Dura o Brutal** y **días sin raids** al empezar (de 0 a 20; cada dureza propone los suyos: 8, 5, 4 y 3). La dureza cambia el tamaño de los raids (×0,6 a ×2), los días entre ellos, lo fuerte que pegan los saqueadores (×0,7 a ×1,5) y las provisiones iniciales (×1,5 a ×0,5). Se guarda con la partida (las antiguas cargan en Normal). Tests en `tests/difficulty.test.ts`.
+- **Nuevo menú de inicio** (Mikel, a mitad de sesión): botón grande de Continuar con el día, los colonos y la dureza de la partida; cuatro botones grandes (Nueva partida, Cargar, Modo Dios, Progreso); la nueva partida va por apartados, con 🎲 para una semilla al azar y la dureza en botones. En el móvil en horizontal el título va a la izquierda y las opciones a la derecha, sin tener que desplazarse.
+- Sin npm en el entorno: tests con Bun (189) y tipos con `tsc`; capturas del menú en 380×740, 780×360 y PC. La prueba completa, en GitHub Actions.
+- Qué probar: empezar una partida Brutal con 0 días sin raids y ver llegar el primer raid enseguida; abrir el menú con el móvil girado.
+- Siguiente: rehacer los menús de dentro de la partida (☰, construir, órdenes, fichas) para móvil vertical y horizontal; después infecciones y mutantes.
+
 ## 2026-10-17 (noche, 6) — Menú principal y modo Dios
 
 - **Menú principal** (Mikel): sale al abrir el juego, con la partida en pausa detrás, y desde ☰ → 🏠 Menú principal. Continuar, Nueva partida (semilla con número o palabra, de 1 a 6 colonos, con o sin raids, caravanas y supervivientes, y modo Dios), cargar una partida desde archivo y ver el progreso del desarrollo.

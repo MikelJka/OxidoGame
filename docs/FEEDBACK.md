@@ -4,12 +4,16 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Pendiente
 
+- [ ] **Menús de la partida más accesibles e intuitivos** (2026-10-17): rehacer los menús dentro de la partida (☰, 🏗, ⚒, 📜, fichas y paneles) para que se entiendan mejor y funcionen bien en el móvil en vertical y en horizontal. Hecho ya el menú de inicio; lo siguiente es este.
+
 - [ ] **Girar la vista libremente** (2026-10-17): pivotar la cámara a cualquier ángulo e inclinación con el botón central del ratón (y con dos dedos en el móvil), no solo los 4 giros fijos. Decidido: pasar a 3D real con Three.js. Primera versión jugable en ☰ → 🧊 Vista 3D (en pruebas); falta pulirla antes de que sea la vista por defecto.
 
 - [ ] **Mobiliario de almacén** (2026-10-17): estanterías y armarios ya están; los armeros de pared llegarán con las armas (fase 4).
 
 
 ## Hecho
+
+- [x] **Nuevo menú de inicio** (2026-10-17): pantalla de inicio rehecha, con botones grandes, adaptada al móvil en vertical y en horizontal, y la nueva partida por apartados (mapa, colonia, dificultad, opciones).
 
 - [x] **Menú principal y modo Dios** (2026-10-17): menú al abrir el juego (continuar, nueva partida con opciones, cargar) y modo Dios 🪄 para aparecer cosas y probar.
 

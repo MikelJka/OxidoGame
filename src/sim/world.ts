@@ -11,7 +11,7 @@ import { GrowZones } from './farming';
 import { regrowNature } from './nature';
 import { Rooms } from './rooms';
 import { tickHealth, treatWounds } from './health';
-import { initialSchedule, StorySchedule } from './storyteller';
+import { Difficulty, initialSchedule, makeDifficulty, scaledSupplies, StorySchedule } from './storyteller';
 import { canTalk, colonistFight, makePrisoner, runStoryteller, talkToPrisoner, updateOthers } from './people';
 import { TRAPPED_TILES } from './diagnostics';
 import {
@@ -53,6 +53,8 @@ export interface WorldOptions {
   needs?: boolean;
   /** Sucesos del narrador: supervivientes, raids, caravanas (por defecto, sí). */
   events?: boolean;
+  /** Dureza y días sin raids (por defecto, Normal con 5 días). */
+  difficulty?: Partial<Difficulty>;
 }
 
 /** Una línea del diario de la colonia. */
@@ -87,6 +89,8 @@ export class World implements JobContext {
   /** Cuándo pasan las cosas. */
   schedule: StorySchedule;
   eventsEnabled: boolean;
+  /** Dureza de la partida y días sin raids al empezar. */
+  difficulty: Difficulty;
   /** Siguiente id para una persona nueva. */
   nextPawnId = 1;
   /** Montones de recursos en el suelo. */
@@ -124,7 +128,8 @@ export class World implements JobContext {
   constructor(opts: WorldOptions) {
     this.needsEnabled = opts.needs ?? true;
     this.eventsEnabled = opts.events ?? true;
-    this.schedule = initialSchedule(TICKS_PER_DAY, 0);
+    this.difficulty = makeDifficulty(opts.difficulty);
+    this.schedule = initialSchedule(TICKS_PER_DAY, 0, this.difficulty.graceDays);
     this.map = opts.map ?? generateMap({ width: opts.width ?? MAP_SIZE, height: opts.height ?? MAP_SIZE, seed: opts.seed });
     this.rng = new Rng(opts.seed ^ 0x51ed270b);
     if (!opts.map) this.spawnColonists(opts.colonists ?? 3);
@@ -373,8 +378,9 @@ export class World implements JobContext {
   /** Deja las provisiones iniciales junto al punto de inicio (sin azar: no cambia el resto de la partida). */
   private dropStartingSupplies(): void {
     const { start } = this.map;
+    const supplies = scaledSupplies(STARTING_SUPPLIES, this.difficulty.level);
     for (const r of RESOURCES) {
-      const amount = STARTING_SUPPLIES[r] ?? 0;
+      const amount = supplies[r] ?? 0;
       if (amount <= 0) continue;
       const left = this.items.drop(start.x + 2, start.y + 1, r, amount);
       if (left > 0) this.items.drop(start.x, start.y, r, left);

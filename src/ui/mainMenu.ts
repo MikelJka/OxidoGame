@@ -1,11 +1,13 @@
 // Menú principal: aparece al abrir el juego (con la partida en pausa detrás) y desde ☰.
 // Continuar, nueva partida con opciones, cargar desde archivo, modo Dios y progreso.
 import type { World } from '../sim/world';
+import { DIFFICULTIES, Difficulty, DifficultyLevel, isDifficultyLevel, MAX_GRACE_DAYS } from '../sim/storyteller';
 
 export interface NewGameOptions {
   seed: number;
   colonists: number;
   events: boolean;
+  difficulty: Difficulty;
 }
 
 interface Options {
@@ -33,14 +35,22 @@ export function mountMainMenu(opts: Options): MainMenu {
   const colInput = document.getElementById('mm-colonists') as HTMLInputElement;
   const colLabel = document.getElementById('mm-colonists-n')!;
   const eventsInput = document.getElementById('mm-events') as HTMLInputElement;
+  const diffChips = [...document.querySelectorAll<HTMLButtonElement>('#mm-difficulty button[data-level]')];
+  const godState = document.getElementById('mm-god-state')!;
+  let level: DifficultyLevel = 'normal';
+  const diffDesc = document.getElementById('mm-difficulty-desc')!;
+  const graceInput = document.getElementById('mm-grace') as HTMLInputElement;
+  const graceLabel = document.getElementById('mm-grace-n')!;
+  graceInput.max = String(MAX_GRACE_DAYS);
   const godInput = document.getElementById('mm-god-new') as HTMLInputElement;
   const godBtn = document.getElementById('mm-god') as HTMLButtonElement;
   let speedBefore: World['speed'] = 1;
 
   const renderGod = () => {
     const on = opts.isGod();
-    godBtn.textContent = on ? '🪄 Modo Dios: activado' : '🪄 Modo Dios: desactivado';
+    godState.textContent = on ? 'Activado' : 'Desactivado';
     godBtn.classList.toggle('active', on);
+    godBtn.setAttribute('aria-pressed', String(on));
   };
 
   function open(): void {
@@ -50,8 +60,8 @@ export function mountMainMenu(opts: Options): MainMenu {
       w.speed = 0;
     }
     info.textContent = w
-      ? `Partida en curso: ${w.clockLabel()} · ${w.colonists.length} ${w.colonists.length === 1 ? 'colono' : 'colonos'}${w.gameOver ? ' · terminada' : ''}`
-      : '';
+      ? `${w.clockLabel()} · ${w.colonists.length} ${w.colonists.length === 1 ? 'colono' : 'colonos'} · ${DIFFICULTIES[w.difficulty.level].label}${w.gameOver ? ' · terminada' : ''}`
+      : 'Sin partida en curso';
     home.hidden = false;
     form.hidden = true;
     renderGod();
@@ -67,7 +77,7 @@ export function mountMainMenu(opts: Options): MainMenu {
 
   document.getElementById('mm-continue')!.addEventListener('click', close);
   document.getElementById('mm-new-btn')!.addEventListener('click', () => {
-    seedInput.value = String(Math.floor(Math.random() * 1_000_000));
+    randomSeed();
     godInput.checked = opts.isGod();
     home.hidden = true;
     form.hidden = false;
@@ -77,6 +87,28 @@ export function mountMainMenu(opts: Options): MainMenu {
     form.hidden = true;
   });
   colInput.addEventListener('input', () => (colLabel.textContent = colInput.value));
+  const renderGrace = () => {
+    const n = Number(graceInput.value);
+    graceLabel.textContent = n === 0 ? '0 (pueden llegar ya)' : String(n);
+  };
+  const renderDifficulty = (resetGrace: boolean) => {
+    for (const b of diffChips) b.setAttribute('aria-checked', String(b.dataset.level === level));
+    diffDesc.textContent = DIFFICULTIES[level].desc;
+    if (resetGrace) graceInput.value = String(DIFFICULTIES[level].graceDays);
+    renderGrace();
+  };
+  // Al cambiar la dureza se proponen sus días sin raids; luego se pueden ajustar a mano.
+  for (const b of diffChips) {
+    b.addEventListener('click', () => {
+      if (!isDifficultyLevel(b.dataset.level)) return;
+      level = b.dataset.level;
+      renderDifficulty(true);
+    });
+  }
+  const randomSeed = () => (seedInput.value = String(Math.floor(Math.random() * 1_000_000)));
+  document.getElementById('mm-seed-dice')!.addEventListener('click', randomSeed);
+  graceInput.addEventListener('input', renderGrace);
+  renderDifficulty(true);
   document.getElementById('mm-start')!.addEventListener('click', () => {
     const typed = seedInput.value.trim();
     let seed = Number(typed);
@@ -88,7 +120,12 @@ export function mountMainMenu(opts: Options): MainMenu {
     }
     opts.setGod(godInput.checked);
     root.hidden = true;
-    opts.newGame({ seed: Math.floor(Math.abs(seed)), colonists: Number(colInput.value), events: eventsInput.checked });
+    opts.newGame({
+      seed: Math.floor(Math.abs(seed)),
+      colonists: Number(colInput.value),
+      events: eventsInput.checked,
+      difficulty: { level, graceDays: Number(graceInput.value) },
+    });
   });
   document.getElementById('mm-load')!.addEventListener('click', () => {
     close();

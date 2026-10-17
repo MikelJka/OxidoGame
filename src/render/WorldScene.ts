@@ -4,6 +4,7 @@ import { activityLabel, Colonist } from '../sim/colonist';
 import { isWalkable } from '../sim/pathfinding';
 import { GameSpeed, World } from '../sim/world';
 import { loadWorld } from '../sim/save';
+import type { Difficulty } from '../sim/storyteller';
 import { describeStack } from '../sim/items';
 import { canDesignate, TileRect } from '../sim/designations';
 import { HARVEST_JOB_NAMES, HarvestJob, MAX_STACK, RESOURCE_NAMES, RESOURCES, ResourceId } from '../data/resources';
@@ -80,6 +81,8 @@ export interface WorldSceneData {
   colonists?: number;
   /** Raids, caravanas y supervivientes (mapa nuevo; por defecto, sí). */
   events?: boolean;
+  /** Dureza y días sin raids (mapa nuevo; por defecto, Normal). */
+  difficulty?: Difficulty;
 }
 
 /** Punto continuo de la vista (en casillas). */
@@ -168,7 +171,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   create(data: WorldSceneData): void {
-    this.world = data.save ? loadOrNew(data.save, data.seed, this.game) : new World({ seed: data.seed, colonists: data.colonists, events: data.events });
+    this.world = data.save ? loadOrNew(data.save, data.seed, this.game) : new World({ seed: data.seed, colonists: data.colonists, events: data.events, difficulty: data.difficulty });
     this.map = this.world.map;
     this.selectedId = null;
     this.sprites.clear();

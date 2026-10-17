@@ -7,7 +7,7 @@ import type { Colonist } from './colonist';
 import { BODY_PARTS, hurt } from './health';
 import { findPath, Point } from './pathfinding';
 import { isPassable } from './map';
-import { RAID_GAP, raidSize, TRADER_GAP, WANDERER_GAP } from './storyteller';
+import { DIFFICULTIES, raidGap, raidSize, TRADER_GAP, WANDERER_GAP } from './storyteller';
 import type { World } from './world';
 import { TICKS_PER_DAY } from './time';
 export { canTalk, TALK_HOURS } from './jobs';
@@ -34,7 +34,8 @@ export function colonyWealth(w: World): number {
 
 export function runStoryteller(w: World): void {
   const sch = w.schedule;
-  const days = (gap: [number, number]) => w.rng.int(gap[0] * TICKS_PER_DAY, gap[1] * TICKS_PER_DAY);
+  const days = (gap: [number, number]) => w.rng.int(Math.round(gap[0] * TICKS_PER_DAY), Math.round(gap[1] * TICKS_PER_DAY));
+  const diff = DIFFICULTIES[w.difficulty.level];
   if (w.offer && w.tick > w.offer.until) w.rejectOffer();
   if (w.gameOver) return;
   if (w.tick >= sch.nextWanderer) {
@@ -42,8 +43,8 @@ export function runStoryteller(w: World): void {
     if (!w.offer) offerWanderer(w);
   }
   if (w.tick >= sch.nextRaid) {
-    sch.nextRaid = w.tick + days(RAID_GAP);
-    startRaid(w, raidSize(w.day, colonyWealth(w), w.colonists.length));
+    sch.nextRaid = w.tick + days(raidGap(w.difficulty.level));
+    startRaid(w, raidSize(w.day, colonyWealth(w), w.colonists.length, diff.raidScale));
   }
   if (w.tick >= sch.nextTrader) {
     sch.nextTrader = w.tick + days(TRADER_GAP);
@@ -122,7 +123,9 @@ export function attack(w: World, a: Colonist, b: Colonist): boolean {
   const hitChance = Math.min(0.95, 0.55 + a.skills.combate * 0.02);
   if (!w.rng.chance(hitChance)) return false;
   const tough = b.traits.some((t) => t.id === 'duro') ? 0.75 : 1;
-  const dmg = (0.08 + w.rng.next() * 0.1) * (1 + a.skills.combate * 0.03) * tough;
+  // La dureza de la partida solo cambia los golpes de los saqueadores.
+  const hard = a.role === 'saqueador' ? DIFFICULTIES[w.difficulty.level].enemyDamage : 1;
+  const dmg = (0.08 + w.rng.next() * 0.1) * (1 + a.skills.combate * 0.03) * tough * hard;
   const part = BODY_PARTS[w.rng.int(0, BODY_PARTS.length - 1)];
   const wasDown = b.downed;
   hurt(b, dmg, part);

@@ -172,29 +172,62 @@
     </section>
 
     <section id="main-menu" hidden>
-      <div class="mm-box panel">
-        <div class="mm-title">ÓXIDO</div>
-        <div class="mm-sub muted">Colonia en el páramo</div>
-        <div id="mm-home" class="mm-col">
-          <div id="mm-info" class="muted"></div>
-          <button id="mm-continue" type="button">▶ Continuar</button>
-          <button id="mm-new-btn" type="button">✚ Nueva partida</button>
-          <button id="mm-load" type="button">⬆ Cargar partida desde archivo</button>
-          <button id="mm-god" type="button">🪄 Modo Dios</button>
-          <button id="mm-progress" type="button">📋 Progreso del desarrollo</button>
+      <div class="mm-bg" aria-hidden="true"></div>
+      <div class="mm-box">
+        <header class="mm-head">
+          <div class="mm-title">ÓXIDO</div>
+          <div class="mm-sub">Colonia en el páramo</div>
+        </header>
+        <div id="mm-home" class="mm-body">
+          <button id="mm-continue" class="mm-primary" type="button">
+            <span class="mm-ico">▶</span>
+            <span class="mm-txt"><strong>Continuar</strong><small id="mm-info"></small></span>
+          </button>
+          <div class="mm-grid">
+            <button id="mm-new-btn" class="mm-tile" type="button"><span class="mm-ico">✚</span><strong>Nueva partida</strong><small>Mapa, colonos y dificultad</small></button>
+            <button id="mm-load" class="mm-tile" type="button"><span class="mm-ico">📂</span><strong>Cargar</strong><small>Desde un archivo exportado</small></button>
+            <button id="mm-god" class="mm-tile" type="button"><span class="mm-ico">🪄</span><strong>Modo Dios</strong><small id="mm-god-state">Desactivado</small></button>
+            <button id="mm-progress" class="mm-tile" type="button"><span class="mm-ico">📋</span><strong>Progreso</strong><small>Qué hay y qué viene</small></button>
+          </div>
         </div>
-        <div id="mm-new" class="mm-col" hidden>
-          <label>Semilla del mapa (número o palabra)
-            <input id="mm-seed" type="text" inputmode="text" autocomplete="off" />
-          </label>
-          <label>Colonos al empezar: <strong id="mm-colonists-n">3</strong>
-            <input id="mm-colonists" type="range" min="1" max="6" value="3" />
-          </label>
-          <label class="mm-check"><input id="mm-events" type="checkbox" checked /> Raids, caravanas y supervivientes</label>
-          <label class="mm-check"><input id="mm-god-new" type="checkbox" /> Modo Dios (para probar)</label>
-          <div class="mm-note muted">La partida actual se sustituye (puedes exportarla antes desde ☰ → ⬇).</div>
-          <button id="mm-start" type="button">Empezar</button>
-          <button id="mm-back" type="button">← Volver</button>
+        <div id="mm-new" class="mm-body" hidden>
+          <div class="mm-form">
+            <fieldset class="mm-group">
+              <legend>🗺 Mapa</legend>
+              <label for="mm-seed">Semilla (número o palabra)</label>
+              <div class="mm-inline">
+                <input id="mm-seed" type="text" inputmode="text" autocomplete="off" />
+                <button id="mm-seed-dice" type="button" title="Semilla al azar" aria-label="Semilla al azar">🎲</button>
+              </div>
+            </fieldset>
+            <fieldset class="mm-group">
+              <legend>👥 Colonia</legend>
+              <label for="mm-colonists">Colonos al empezar: <strong id="mm-colonists-n">3</strong></label>
+              <input id="mm-colonists" type="range" min="1" max="6" value="3" />
+            </fieldset>
+            <fieldset class="mm-group">
+              <legend>💀 Dificultad</legend>
+              <div id="mm-difficulty" class="mm-chips" role="radiogroup" aria-label="Dificultad">
+                <button type="button" role="radio" data-level="tranquila">Tranquila</button>
+                <button type="button" role="radio" data-level="normal">Normal</button>
+                <button type="button" role="radio" data-level="dura">Dura</button>
+                <button type="button" role="radio" data-level="brutal">Brutal</button>
+              </div>
+              <div id="mm-difficulty-desc" class="mm-note"></div>
+              <label for="mm-grace">Días sin raids al empezar: <strong id="mm-grace-n">5</strong></label>
+              <input id="mm-grace" type="range" min="0" max="20" value="5" />
+            </fieldset>
+            <fieldset class="mm-group">
+              <legend>⚙ Opciones</legend>
+              <label class="mm-check"><input id="mm-events" type="checkbox" checked /> Raids, caravanas y supervivientes</label>
+              <label class="mm-check"><input id="mm-god-new" type="checkbox" /> Modo Dios (para probar)</label>
+            </fieldset>
+          </div>
+          <div class="mm-note mm-warn">La partida actual se sustituye (puedes exportarla antes desde ☰ → ⬇).</div>
+          <div class="mm-bar">
+            <button id="mm-back" type="button">← Volver</button>
+            <button id="mm-start" class="mm-go" type="button">Empezar ▶</button>
+          </div>
         </div>
       </div>
     </section>

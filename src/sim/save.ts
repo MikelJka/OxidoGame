@@ -12,7 +12,7 @@ import { Colonist, DEFAULT_PRIORITY, WorkPriority } from './colonist';
 import { GameMap, isPassable } from './map';
 import type { StoragePriority } from './zones';
 import { GameSpeed, TICKS_PER_DAY, World } from './world';
-import { initialSchedule } from './storyteller';
+import { initialSchedule, makeDifficulty } from './storyteller';
 
 /** Versión del formato. Súbela solo si un cambio no se puede leer de forma tolerante, y añade la migración. */
 export const SAVE_VERSION = 1;
@@ -60,6 +60,8 @@ export interface SaveData {
   nextPawnId?: number;
   /** Raids, caravanas y supervivientes activados (por defecto, sí). */
   events?: boolean;
+  /** Dureza y días sin raids (desde que existe; las anteriores, Normal). */
+  difficulty?: { level?: string; graceDays?: number };
 }
 
 interface SavedColonist {
@@ -158,6 +160,7 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     schedule: { ...world.schedule },
     nextPawnId: world.nextPawnId,
     events: world.eventsEnabled,
+    difficulty: { ...world.difficulty },
     items: world.items.list().map((s) => ({ x: s.x, y: s.y, resource: s.resource, amount: s.amount })),
     designations: world.designations.list().map((d) => ({ ...d })),
     zones: world.zones.all().map((z) => ({ id: z.id, name: z.name, priority: z.priority, accepts: { ...z.accepts }, tiles: [...z.tiles] })),
@@ -358,6 +361,7 @@ export function loadWorld(input: string | unknown): World {
     : initialSchedule(TICKS_PER_DAY, world.tick);
   const ids = [...world.colonists, ...world.others, ...world.others.flatMap((o) => o.trader?.slaves ?? []), ...(world.offer ? [world.offer.pawn] : [])].map((c) => c.id);
   world.eventsEnabled = d.events !== false;
+  world.difficulty = makeDifficulty(d.difficulty);
   world.nextPawnId = Math.max(num(d.nextPawnId, 1), ...ids.map((i) => i + 1), 1);
   for (const it of d.items ?? []) {
     if (!isResource(it.resource)) continue;

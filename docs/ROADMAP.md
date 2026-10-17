@@ -66,7 +66,7 @@ Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed 
 - [x] Hambre, sed, sueño, ánimo; colonos que comen, beben y duermen solos
 - [x] Cultivos (patatas, maíz, setas y cáñamo) y cocina
 - [ ] Salud: heridas localizadas, tratamiento, infecciones (hechas heridas y curas; faltan infecciones)
-- [ ] Dificultad configurable al empezar (días sin raids, dureza)
+- [x] Dificultad configurable al empezar (días sin raids, dureza)
 - [ ] Raids de saqueadores y mutantes que escalan con la riqueza (hechos los saqueadores; faltan los mutantes)
 - [ ] Combate: armas cuerpo a cuerpo y a distancia, cobertura con bonificaciones, control directo (hecho: cuerpo a cuerpo sin armas y control con 🎖)
 - [x] Muerte permanente y fin de partida
