@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (noche, 9) — Construir y Órdenes, más claros y cómodos en el móvil
+
+- Segunda parte de rehacer los menús de la partida (Mikel): **🏗 Construir** y **⚒ Órdenes**.
+- **Construir**: pestañas por tipo (muros, puertas, portones, torres, suelos, defensas, muebles, talleres, agua) que se deslizan con el dedo; cada construcción es una tarjeta con su nombre, tamaño y coste. Arriba, siempre a mano: ↻ Girar, Contorno/Relleno y ⛏ Demoler.
+- **Órdenes**: botones grandes con icono en tres apartados (Recoger, Zonas, Terreno); lo marcado para talar, picar o saquear se ve en un numerito.
+- Las dos hojas tienen cabecera con lo elegido y ✕. **En el móvil** (vertical u horizontal), al elegir algo la hoja se recoge en una barra con lo elegido (y Girar/Contorno/Demoler al construir) para dejar libre el mapa; ▴ o tocar la barra la abre otra vez. En vertical sale desde abajo; en horizontal, a la derecha. El aviso de qué hacer pasa arriba para no chocar con la barra.
+- La prueba automática elige la pestaña antes de la cama y el muro.
+- Qué probar: en el móvil, 🏗 → Muebles → Cama, colocarla con la barra recogida y girarla; ⚒ → Talar y arrastrar.
+- Siguiente: 📜 (diario, prisioneros, comercio) y la ficha del colono con el mismo estilo; después los paneles de almacén, huerto y taller.
+
 ## 2026-10-17 (noche, 8) — Menú ☰ más claro y cómodo en el móvil
 
 - Primera parte de rehacer los menús de la partida (Mikel): el **menú ☰**.

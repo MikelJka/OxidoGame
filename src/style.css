@@ -312,12 +312,68 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 }
 #orders-btn, #build-btn { font-size: 18px; padding: 4px 6px; }
 .orders-top { display: flex; gap: 4px; }
-#order-modes, #build-modes { display: flex; flex-direction: column; gap: 4px; align-items: stretch; }
-#order-modes button, #build-modes button { text-align: left; font-size: 12px; padding: 4px 8px; white-space: nowrap; }
-#order-modes .n, #build-modes .n { color: var(--muted); }
-#order-modes .n:empty { display: none; }
+/* Hojas de órdenes y construcción. En PC, a la derecha bajo 🏗 ⚒. */
+.tool-sheet {
+  top: calc(160px + env(safe-area-inset-top));
+  right: 8px;
+  width: min(360px, calc(100% - 16px));
+  max-height: calc(100% - 240px - env(safe-area-inset-top));
+  z-index: 5;
+}
+.ts-current { color: var(--text) !important; font-size: 12px !important; }
+.ts-expand { display: none; }
+.tool-sheet.collapsed .ts-expand { display: inline-block; margin-left: auto; }
+.tool-sheet.collapsed .ts-expand + .ts-close { margin-left: 0; }
+.tool-sheet.collapsed .sheet-body, .tool-sheet.collapsed .ts-tabs { display: none; }
+.tool-sheet.collapsed .sheet-head { cursor: pointer; }
+.tool-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.tool-grid button {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-height: 58px; padding: 4px 2px; font-size: 11px; line-height: 1.15; text-align: center; position: relative;
+}
+.tool-grid .mi { font-size: 19px; line-height: 1; }
+.tool-grid .n { position: absolute; top: 2px; right: 4px; font-size: 10px; color: var(--accent); }
+.tool-grid .n:empty { display: none; }
+.ts-tools { display: flex; gap: 6px; padding: 8px 12px 0; flex: none; }
+.ts-tools button { flex: 1; font-size: 12px; padding: 4px 6px; white-space: nowrap; }
+.ts-tabs {
+  display: flex; gap: 4px; padding: 8px 12px 0; overflow-x: auto; flex: none;
+  touch-action: pan-x; scrollbar-width: none;
+}
+.ts-tabs::-webkit-scrollbar { display: none; }
+.ts-tabs button { flex: none; font-size: 12px; padding: 4px 10px; white-space: nowrap; border-radius: 14px; }
+.ts-tabs button.active { background: #3a2216; }
+.build-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
+.build-grid button {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px;
+  min-height: 52px; padding: 6px 8px; text-align: left; font-size: 12px; line-height: 1.2;
+}
+.build-grid .n { color: var(--muted); font-size: 11px; }
 #build-modes button.active { border-color: #6fa8dc; color: #8fc0ff; }
-#build-modes, #order-modes { max-height: calc(100vh - 200px); overflow-y: auto; }
+#build-modes button.active .n { color: #8fc0ff; }
+
+/* Móvil en vertical: hoja desde abajo, a todo lo ancho; recogida, una barra abajo. */
+@media (max-width: 600px) and (orientation: portrait) {
+  .tool-sheet {
+    top: auto; left: 0; right: 0; bottom: 0; width: 100%;
+    max-height: 55%;
+    border-radius: 12px 12px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tool-sheet.collapsed .ts-tools { padding-bottom: 8px; }
+  body #design-hint { bottom: auto; top: calc(166px + env(safe-area-inset-top)); }
+}
+/* Móvil en horizontal: columna a la derecha; recogida, una barra abajo a la derecha. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .tool-sheet {
+    top: calc(4px + env(safe-area-inset-top)); bottom: 4px; right: max(4px, env(safe-area-inset-right));
+    width: min(380px, 55%); max-height: none;
+  }
+  .tool-sheet.collapsed { top: auto; width: min(340px, 50%); }
+  .tool-sheet.collapsed .ts-tools { padding-bottom: 8px; }
+  .tool-grid button { min-height: 50px; }
+  body #design-hint { bottom: auto; top: calc(62px + env(safe-area-inset-top)); max-width: calc(100% - 420px); min-width: 180px; }
+}
 #order-modes button[data-mode="almacen"].active { border-color: #d8c27a; color: #d8c27a; }
 #order-modes button[data-mode="quitarAlmacen"].active, #build-modes button[data-mode="quitarPlano"].active { border-color: #d9534f; color: #d9534f; }
 

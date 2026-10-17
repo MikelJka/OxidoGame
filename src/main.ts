@@ -26,7 +26,7 @@ import { recipesFor } from './data/recipes';
 import type { ResourceId } from './data/resources';
 import type { Structure } from './sim/structures';
 import type { GrowZone } from './sim/farming';
-import { BUILDING_CATEGORY_NAMES, BUILDINGS, buildingDef } from './data/buildings';
+import { BUILDING_CATEGORY_NAMES, BuildingCategory, BUILDINGS, buildingDef } from './data/buildings';
 import { STORAGE_PRIORITIES, STORAGE_PRIORITY_NAMES, StorageZone } from './sim/zones';
 import type { DesignMode } from './render/WorldScene';
 import type { Stockpile } from './sim/resources';
@@ -331,29 +331,48 @@ const buildBtn = $('build-btn');
 const designHint = $('design-hint');
 const shapeBtn = $<HTMLButtonElement>('build-shape');
 
-// Un botón por construcción, con su coste, agrupados por tipo.
-let lastCategory = '';
+// Un botón por construcción, con su coste, en pestañas por tipo.
+const buildTabs = $('build-tabs');
+const buildList = $('build-list');
+let buildCategory: BuildingCategory = BUILDINGS[0].category;
+const tabButtons = new Map<BuildingCategory, HTMLButtonElement>();
 for (const def of BUILDINGS) {
-  if (def.category !== lastCategory) {
-    lastCategory = def.category;
-    const h = document.createElement('div');
-    h.className = 'build-group';
-    h.textContent = BUILDING_CATEGORY_NAMES[def.category];
-    buildModes.insertBefore(h, shapeBtn);
+  if (!tabButtons.has(def.category)) {
+    const tab = document.createElement('button');
+    tab.type = 'button';
+    tab.setAttribute('role', 'tab');
+    tab.dataset.cat = def.category;
+    tab.textContent = BUILDING_CATEGORY_NAMES[def.category];
+    tab.addEventListener('click', () => setBuildCategory(def.category));
+    buildTabs.append(tab);
+    tabButtons.set(def.category, tab);
   }
   const b = document.createElement('button');
   b.type = 'button';
   b.dataset.mode = 'construir';
   b.dataset.build = def.id;
+  b.dataset.cat = def.category;
   const cost = RESOURCES.filter((r) => def.cost[r]).map((r) => `${RESOURCE_ICONS[r]}${def.cost[r]}`).join(' ');
-  b.textContent = `${def.name}${def.size ? ` ${def.size[0]}×${def.size[1]}` : ''} `;
+  const name = document.createElement('span');
+  name.className = 'tl';
+  name.textContent = `${def.name}${def.size ? ` ${def.size[0]}×${def.size[1]}` : ''}`;
   const n = document.createElement('span');
   n.className = 'n';
   n.textContent = cost;
-  b.append(n);
+  b.append(name, n);
   b.title = `${BUILDING_CATEGORY_NAMES[def.category]} · ${def.name} · coste ${cost}`;
-  buildModes.insertBefore(b, shapeBtn);
+  buildList.append(b);
 }
+function setBuildCategory(cat: BuildingCategory): void {
+  buildCategory = cat;
+  for (const [c, tab] of tabButtons) {
+    tab.setAttribute('aria-selected', String(c === cat));
+    tab.classList.toggle('active', c === cat);
+  }
+  for (const b of buildList.querySelectorAll<HTMLButtonElement>('button[data-cat]')) b.hidden = b.dataset.cat !== cat;
+  tabButtons.get(cat)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+setBuildCategory(buildCategory);
 const modeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('#order-modes button[data-mode], #build-modes button[data-mode]'));
 
 const DESIGN_HINTS: Record<Exclude<DesignMode, null>, string> = {
@@ -372,13 +391,32 @@ const DESIGN_HINTS: Record<Exclude<DesignMode, null>, string> = {
   construir: 'Construir',
   quitarPlano: 'Demoler: arrastra sobre construcciones (devuelven la mitad del material) o planos (todo lo llevado)',
 };
+/**
+ * En pantallas pequeñas (móvil en vertical u horizontal) la hoja tapa el mapa: al elegir una
+ * herramienta se recoge a una barra con lo elegido, y ▴ o tocar la barra la vuelve a abrir.
+ */
+const smallScreen = window.matchMedia('(max-width: 600px), (max-height: 520px)');
+function setCollapsed(sheet: HTMLElement, on: boolean): void {
+  sheet.classList.toggle('collapsed', on);
+}
 function showMenu(which: 'orders' | 'build' | null): void {
   orderModes.hidden = which !== 'orders';
   buildModes.hidden = which !== 'build';
+  setCollapsed(orderModes, false);
+  setCollapsed(buildModes, false);
   ordersBtn.classList.toggle('active', which === 'orders');
   buildBtn.classList.toggle('active', which === 'build');
   if (!which) scene().setDesignMode(null);
 }
+for (const sheet of [orderModes, buildModes]) {
+  sheet.querySelector('.ts-close')!.addEventListener('click', () => showMenu(null));
+  sheet.querySelector('.ts-expand')!.addEventListener('click', () => setCollapsed(sheet, false));
+  // Tocar la barra recogida (no sus botones) también la abre.
+  sheet.querySelector('.sheet-head')!.addEventListener('click', (e) => {
+    if (sheet.classList.contains('collapsed') && !(e.target as HTMLElement).closest('button')) setCollapsed(sheet, false);
+  });
+}
+
 ordersBtn.addEventListener('click', () => showMenu(orderModes.hidden ? 'orders' : null));
 buildBtn.addEventListener('click', () => showMenu(buildModes.hidden ? 'build' : null));
 for (const b of modeButtons) {
@@ -416,11 +454,22 @@ game.events.on('design-mode', (mode: DesignMode) => {
     const on = b.dataset.mode === mode && (mode !== 'construir' || b.dataset.build === s.buildDefId);
     b.classList.toggle('active', on);
   }
-  shapeBtn.textContent = s.buildShape === 'contorno' ? '▭ Forma: contorno' : '■ Forma: relleno';
+  shapeBtn.textContent = s.buildShape === 'contorno' ? '▭ Contorno' : '■ Relleno';
   if (mode === 'construir' || mode === 'quitarPlano') {
     if (buildModes.hidden) showMenu('build');
   } else if (mode && orderModes.hidden) {
     showMenu('orders');
+  }
+  if (mode === 'construir') {
+    const cat = buildingDef(s.buildDefId).category;
+    if (cat !== buildCategory) setBuildCategory(cat);
+  }
+  // Lo elegido, en la cabecera de la hoja (se ve también recogida).
+  const active = modeButtons.find((b) => b.classList.contains('active'));
+  const label = mode === 'construir' ? buildingDef(s.buildDefId).name : active?.querySelector('.tl')?.textContent ?? active?.textContent?.trim() ?? '';
+  for (const sheet of [orderModes, buildModes]) {
+    sheet.querySelector('.ts-current')!.textContent = mode && !sheet.hidden ? `· ${label}` : '';
+    setCollapsed(sheet, !!mode && smallScreen.matches);
   }
   designHint.hidden = !mode;
   if (mode === 'construir') {

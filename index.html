@@ -37,24 +37,55 @@
         <button id="build-btn" type="button" title="Construir: muros y puertas (B)">🏗</button>
         <button id="orders-btn" type="button" title="Órdenes: talar, picar, saquear, almacenes (T)">⚒</button>
       </div>
-      <div id="order-modes" hidden>
-        <button type="button" data-mode="talar" title="Talar árboles y matorrales">🪓 Talar <span class="n"></span></button>
-        <button type="button" data-mode="minar" title="Picar rocas y muros">⛏ Picar <span class="n"></span></button>
-        <button type="button" data-mode="saquear" title="Saquear chatarra, coches y escombros">🔩 Saquear <span class="n"></span></button>
-        <button type="button" data-mode="cancelar" title="Quitar órdenes">✖ Quitar</button>
-        <button type="button" data-mode="almacen" title="Marcar una zona de almacén">📦 Almacén</button>
-        <button type="button" data-mode="cultivo" title="Marcar un huerto">🌱 Huerto</button>
-        <button type="button" data-mode="rebajar" title="Bajar el nivel del terreno">⬇ Rebajar</button>
-        <button type="button" data-mode="elevar" title="Subir el nivel del terreno">⬆ Elevar</button>
-        <button type="button" data-mode="rampa" title="Convertir un acantilado en pendiente">◢ Rampa</button>
-        <button type="button" data-mode="zanja" title="Cavar una zanja defensiva">▭ Zanja</button>
-        <button type="button" data-mode="rellenar" title="Tapar una zanja">▬ Rellenar</button>
-        <button type="button" data-mode="quitarAlmacen" title="Quitar casillas de almacén o de huerto">✖ Quitar zona</button>
+    </div>
+
+    <div id="order-modes" class="panel sheet tool-sheet" hidden role="dialog" aria-label="Órdenes">
+      <div class="sheet-head">
+        <strong>⚒ Órdenes</strong>
+        <span class="ts-current muted"></span>
+        <button class="ts-expand" type="button" title="Ver todas las órdenes" aria-label="Ver todas">▴</button>
+        <button class="ts-close" type="button" title="Cerrar (T o Esc)" aria-label="Cerrar">✕</button>
       </div>
-      <div id="build-modes" hidden>
-        <button id="build-rot" type="button" title="Girar camas, talleres y demás construcciones grandes (R o X)">↻ Girar (R)</button>
-        <button id="build-shape" type="button" title="Contorno: solo el borde del rectángulo · Relleno: todas las casillas">▭ Forma: contorno</button>
-        <button type="button" data-mode="quitarPlano" title="Demoler construcciones o quitar planos">⛏ Demoler / quitar planos</button>
+      <div class="sheet-body">
+        <div class="menu-sec">Recoger</div>
+        <div class="tool-grid">
+            <button type="button" data-mode="talar" title="Talar árboles y matorrales"><span class="mi">🪓</span><span class="tl">Talar</span><span class="n"></span></button>
+            <button type="button" data-mode="minar" title="Picar rocas y muros"><span class="mi">⛏</span><span class="tl">Picar</span><span class="n"></span></button>
+            <button type="button" data-mode="saquear" title="Saquear chatarra, coches y escombros"><span class="mi">🔩</span><span class="tl">Saquear</span><span class="n"></span></button>
+            <button type="button" data-mode="cancelar" title="Quitar órdenes"><span class="mi">✖</span><span class="tl">Quitar órdenes</span></button>
+        </div>
+        <div class="menu-sec">Zonas</div>
+        <div class="tool-grid">
+            <button type="button" data-mode="almacen" title="Marcar una zona de almacén"><span class="mi">📦</span><span class="tl">Almacén</span></button>
+            <button type="button" data-mode="cultivo" title="Marcar un huerto"><span class="mi">🌱</span><span class="tl">Huerto</span></button>
+            <button type="button" data-mode="quitarAlmacen" title="Quitar casillas de almacén o de huerto"><span class="mi">✖</span><span class="tl">Quitar zona</span></button>
+        </div>
+        <div class="menu-sec">Terreno</div>
+        <div class="tool-grid">
+            <button type="button" data-mode="rebajar" title="Bajar el nivel del terreno"><span class="mi">⬇</span><span class="tl">Rebajar</span></button>
+            <button type="button" data-mode="elevar" title="Subir el nivel del terreno"><span class="mi">⬆</span><span class="tl">Elevar</span></button>
+            <button type="button" data-mode="rampa" title="Convertir un acantilado en pendiente"><span class="mi">◢</span><span class="tl">Rampa</span></button>
+            <button type="button" data-mode="zanja" title="Cavar una zanja defensiva"><span class="mi">▭</span><span class="tl">Zanja</span></button>
+            <button type="button" data-mode="rellenar" title="Tapar una zanja"><span class="mi">▬</span><span class="tl">Rellenar</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="build-modes" class="panel sheet tool-sheet" hidden role="dialog" aria-label="Construir">
+      <div class="sheet-head">
+        <strong>🏗 Construir</strong>
+        <span class="ts-current muted"></span>
+        <button class="ts-expand" type="button" title="Ver todas las construcciones" aria-label="Ver todas">▴</button>
+        <button class="ts-close" type="button" title="Cerrar (B o Esc)" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="ts-tools">
+        <button id="build-rot" type="button" title="Girar camas, talleres y demás construcciones grandes (R o X)">↻ Girar</button>
+        <button id="build-shape" type="button" title="Contorno: solo el borde del rectángulo · Relleno: todas las casillas">▭ Contorno</button>
+        <button type="button" data-mode="quitarPlano" title="Demoler construcciones o quitar planos">⛏ Demoler</button>
+      </div>
+      <div id="build-tabs" class="ts-tabs" role="tablist" aria-label="Tipo de construcción"></div>
+      <div class="sheet-body">
+        <div id="build-list" class="build-grid"></div>
       </div>
     </div>
     <div id="design-hint" class="panel" hidden></div>

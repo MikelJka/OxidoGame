@@ -62,6 +62,7 @@ try {
     await page.screenshot({ path: `smoke/${d.name}-2d-construir.png` });
     if (!d.isMobile) {
       // Fantasma blanco de una cama (girada con R) bajo el ratón.
+      await page.click('#build-tabs button[data-cat="mueble"]');
       await page.click('#build-modes button[data-build="cama"]');
       await page.mouse.move(d.viewport.width / 2, d.viewport.height / 2);
       await page.keyboard.press('r');
@@ -91,6 +92,7 @@ try {
       await page.screenshot({ path: `smoke/${d.name}-3d-orden.png` });
       // Fantasma en 3D de un muro de piedra.
       await page.click('#build-btn');
+      await page.click('#build-tabs button[data-cat="muro"]');
       await page.click('#build-modes button[data-build="muro_piedra"]');
       await page.mouse.move(640, 420);
       await page.mouse.move(650, 430);
