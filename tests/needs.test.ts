@@ -74,10 +74,10 @@ describe('necesidades', () => {
     const world = flatWorld(1, { needs: true });
     const c = world.colonists[0];
     c.traits = [];
-    c.needs = { food: 1, water: 1, badWaterUntil: 0, rest: 1, sleptIn: null };
+    c.needs = { food: 1, water: 1, badWaterUntil: 0, rest: 1, sleptIn: null, lastMeal: null };
     const good = moodOf(c).mood;
     const fast = needsWorkFactor(c);
-    c.needs = { food: 0.05, water: 1, badWaterUntil: 0, rest: 0.05, sleptIn: 'suelo' };
+    c.needs = { food: 0.05, water: 1, badWaterUntil: 0, rest: 0.05, sleptIn: 'suelo', lastMeal: null };
     expect(moodOf(c).mood).toBeLessThan(good);
     expect(needsWorkFactor(c)).toBeLessThan(fast);
   });
@@ -96,9 +96,9 @@ describe('necesidades', () => {
 
   it('las necesidades se guardan con la partida', () => {
     const world = flatWorld(1, { needs: true });
-    world.colonists[0].needs = { food: 0.33, water: 0.5, badWaterUntil: 0, rest: 0.44, sleptIn: 'cama' };
+    world.colonists[0].needs = { food: 0.33, water: 0.5, badWaterUntil: 0, rest: 0.44, sleptIn: 'cama', lastMeal: 'cocinada' };
     const loaded = loadWorld(JSON.stringify(serializeWorld(world)));
-    expect(loaded.colonists[0].needs).toEqual({ food: 0.33, water: 0.5, badWaterUntil: 0, rest: 0.44, sleptIn: 'cama' });
+    expect(loaded.colonists[0].needs).toEqual({ food: 0.33, water: 0.5, badWaterUntil: 0, rest: 0.44, sleptIn: 'cama', lastMeal: 'cocinada' });
   });
 });
 

@@ -4,7 +4,7 @@ import { northLabel, Rotation } from './render/rotation';
 import { DEFAULT_TILT, TILTS } from './render/projection';
 import { seedFromString } from './sim/rng';
 import { Colonist, activityLabel, WorkPriority } from './sim/colonist';
-import { moodOf, STARVING } from './sim/needs';
+import { isFood, moodOf, STARVING } from './sim/needs';
 import { WORK_NAMES, WORK_TYPES } from './data/work';
 import { SKILLS, SKILL_NAMES } from './data/colonists';
 import type { GameSpeed } from './sim/world';
@@ -629,7 +629,7 @@ window.setInterval(() => {
   const s = game.scene.getScene('world') as WorldScene | null;
   if (!s || !s.world || s.world.speed === 0 || Date.now() - lastHungerWarning < 60_000) return;
   const inv = s.world.inventory();
-  const food = inv.patata + inv.maiz + inv.setas;
+  const food = RESOURCES.filter(isFood).reduce((a, r) => a + inv[r], 0);
   const starving = s.world.colonists.filter((c) => c.needs.food < STARVING);
   if (starving.length && food === 0) {
     lastHungerWarning = Date.now();

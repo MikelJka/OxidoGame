@@ -1,7 +1,7 @@
 /** Recursos de la colonia y trabajos para obtenerlos del mapa. Ampliar aquí, no en la lógica. */
 import type { Skill } from './colonists';
 
-export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra', 'metal', 'hormigon'] as const;
+export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra', 'metal', 'hormigon', 'comida'] as const;
 
 export type ResourceId = (typeof RESOURCES)[number];
 
@@ -16,12 +16,15 @@ export const RESOURCE_NAMES: Record<ResourceId, string> = {
   fibra: 'Fibra',
   metal: 'Metal',
   hormigon: 'Hormigón',
+  comida: 'Comida cocinada',
 };
 
 /** Recursos que se muestran siempre en el inventario (los demás, solo si hay). */
 export const BASE_RESOURCES: readonly ResourceId[] = ['madera', 'piedra', 'chatarra', 'componentes'];
-/** Comida cruda (las necesidades de la fase 4 la usarán). */
-export const FOOD_RESOURCES: readonly ResourceId[] = ['patata', 'maiz', 'setas'];
+/** Lo que se come: la comida cocinada y los alimentos crudos. */
+export const FOOD_RESOURCES: readonly ResourceId[] = ['comida', 'patata', 'maiz', 'setas'];
+/** Alimentos crudos (se pueden comer, pero sientan peor y alimentan menos que cocinados). */
+export const RAW_FOOD: readonly ResourceId[] = ['patata', 'maiz', 'setas'];
 
 /** Icono corto para la interfaz. */
 export const RESOURCE_ICONS: Record<ResourceId, string> = {
@@ -35,6 +38,7 @@ export const RESOURCE_ICONS: Record<ResourceId, string> = {
   fibra: '🧵',
   metal: '🔗',
   hormigon: '🧱',
+  comida: '🍲',
 };
 
 /** Tipo de trabajo con el que se aprovecha un objeto del mapa. */
@@ -77,6 +81,7 @@ export const MAX_STACK: Record<ResourceId, number> = {
   fibra: 75,
   metal: 50,
   hormigon: 50,
+  comida: 25,
 };
 
 /** Provisiones con las que llega la colonia: se dejan en el suelo junto al punto de inicio. */

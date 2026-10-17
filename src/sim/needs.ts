@@ -1,6 +1,6 @@
-// Necesidades de los colonos: comida y descanso, y el ánimo que sale de ellas.
+// Necesidades de los colonos: comida (cruda o cocinada), agua y descanso, y el ánimo que sale de ellas.
 // Funciones puras (sin azar): la decisión de ir a comer o a dormir la toma `World`.
-import { FOOD_RESOURCES, ResourceId } from '../data/resources';
+import { FOOD_RESOURCES, RAW_FOOD, ResourceId } from '../data/resources';
 import type { Colonist } from './colonist';
 
 /** Días de juego que tarda un colono en pasar de lleno a vacío. */
@@ -10,8 +10,10 @@ export const AWAKE_HOURS = 18;
 /** Horas de sueño para recuperarse del todo: en cama y en el suelo. */
 export const SLEEP_HOURS_BED = 7;
 export const SLEEP_HOURS_GROUND = 10;
-/** Comida que da cada unidad de un alimento crudo (de 0 a 1). */
-export const NUTRITION: Partial<Record<ResourceId, number>> = { patata: 0.1, maiz: 0.1, setas: 0.08 };
+/** Comida que da cada unidad de un alimento (de 0 a 1). Una ración cocinada sale de 2,5 a 3 crudos y alimenta más. */
+export const NUTRITION: Partial<Record<ResourceId, number>> = { comida: 0.35, patata: 0.1, maiz: 0.1, setas: 0.08 };
+/** Casillas de más que un colono está dispuesto a andar para comer cocinado en vez de crudo. */
+export const COOKED_DETOUR = 25;
 /** Por debajo de esto, va a comer (si hay comida). */
 export const HUNGRY = 0.3;
 /** Por debajo de esto, deja lo que esté haciendo para comer o dormir. */
@@ -41,10 +43,12 @@ export interface Needs {
   rest: number;
   /** Último sitio donde durmió: cuenta para el ánimo. */
   sleptIn: 'cama' | 'suelo' | 'habitacion' | null;
+  /** Qué comió la última vez: cuenta para el ánimo hasta la siguiente comida. */
+  lastMeal: 'cocinada' | 'cruda' | null;
 }
 
 export function defaultNeeds(): Needs {
-  return { food: 0.8, water: 0.85, badWaterUntil: 0, rest: 0.85, sleptIn: null };
+  return { food: 0.8, water: 0.85, badWaterUntil: 0, rest: 0.85, sleptIn: null, lastMeal: null };
 }
 
 export function isFood(r: ResourceId): boolean {
@@ -52,6 +56,15 @@ export function isFood(r: ResourceId): boolean {
 }
 
 /** Cuánto baja la comida por tick (los glotones gastan más). */
+export function isRawFood(r: ResourceId): boolean {
+  return RAW_FOOD.includes(r);
+}
+
+/** Distancia «sentida» a un montón de comida: lo crudo cuenta como si estuviera más lejos. */
+export function foodPreference(r: ResourceId, dist: number): number {
+  return dist + (isRawFood(r) ? COOKED_DETOUR : 0);
+}
+
 export function foodDecay(c: Colonist, ticksPerDay: number): number {
   const glutton = c.traits.some((t) => t.id === 'glotón') ? 1.3 : 1;
   return glutton / (FOOD_DAYS * ticksPerDay);
@@ -84,6 +97,8 @@ export function moodOf(c: Colonist, tick = 0): { mood: number; reasons: MoodReas
   if (n.badWaterUntil > tick) reasons.push({ text: 'Bebió agua contaminada', value: -0.12 });
   if (n.food < STARVING) reasons.push({ text: 'Muerto de hambre', value: -0.3 });
   else if (n.food < HUNGRY) reasons.push({ text: 'Hambriento', value: -0.12 });
+  if (n.lastMeal === 'cocinada') reasons.push({ text: 'Comió caliente', value: 0.06 });
+  else if (n.lastMeal === 'cruda') reasons.push({ text: 'Comió crudo', value: -0.04 });
   if (n.rest < EXHAUSTED) reasons.push({ text: 'Agotado', value: -0.25 });
   else if (n.rest < TIRED) reasons.push({ text: 'Cansado', value: -0.1 });
   if (n.sleptIn === 'suelo') reasons.push({ text: 'Durmió en el suelo', value: -0.08 });

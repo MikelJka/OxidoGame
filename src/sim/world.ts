@@ -15,7 +15,7 @@ import { initialSchedule, StorySchedule } from './storyteller';
 import { canTalk, colonistFight, makePrisoner, runStoryteller, talkToPrisoner, updateOthers } from './people';
 import { TRAPPED_TILES } from './diagnostics';
 import {
-  BAD_WATER_TICKS_DAYS, DEHYDRATED, DRINK_TICKS, EAT_TICKS, EXHAUSTED, foodDecay, HUNGRY, isFood, NUTRITION, restDecay,
+  BAD_WATER_TICKS_DAYS, DEHYDRATED, DRINK_TICKS, EAT_TICKS, EXHAUSTED, foodDecay, foodPreference, HUNGRY, isFood, isRawFood, NUTRITION, restDecay,
   restGain, STARVING, THIRSTY, TIRED, waterDecay,
 } from './needs';
 import { applyTerrainJob, LOWER_STONE, terrainBlocker, TerrainJob, TerrainOrders } from './terrain';
@@ -548,7 +548,9 @@ export class World implements JobContext {
     const foods = this.items
       .list()
       .filter((s) => isFood(s.resource) && this.reservations.holder(s.x, s.y, 'pickup') === undefined)
-      .sort((a, b) => Math.abs(a.x - c.tile.x) + Math.abs(a.y - c.tile.y) - (Math.abs(b.x - c.tile.x) + Math.abs(b.y - c.tile.y)));
+      .map((s) => ({ s, d: foodPreference(s.resource, Math.abs(s.x - c.tile.x) + Math.abs(s.y - c.tile.y)) }))
+      .sort((a, b) => a.d - b.d || a.s.y - b.s.y || a.s.x - b.s.x)
+      .map((e) => e.s);
     for (const f of foods.slice(0, 6)) {
       const route = this.routeTo(c, [{ x: f.x, y: f.y }]);
       if (!route) continue;
@@ -632,7 +634,10 @@ export class World implements JobContext {
       const per = NUTRITION[stack.resource] ?? 0.1;
       const units = Math.max(1, Math.ceil((1 - c.needs.food) / per));
       const got = this.items.take(t.x, t.y, units);
-      if (got) c.needs.food = Math.min(1, c.needs.food + got.amount * per);
+      if (got) {
+        c.needs.food = Math.min(1, c.needs.food + got.amount * per);
+        c.needs.lastMeal = isRawFood(got.resource) ? 'cruda' : 'cocinada';
+      }
       this.endNeed(c);
       return;
     }
@@ -724,7 +729,7 @@ export class World implements JobContext {
       }
       return true;
     }
-    if (j.kind === 'fabricar') {
+    if (j.kind === 'fabricar' || j.kind === 'cocinar') {
       const s = this.jobStructure(j);
       if (!s || !stationWantsWork(this, s)) return false;
       if (h && !h.picked) {
@@ -771,7 +776,7 @@ export class World implements JobContext {
       this.updatePawnJob(c);
       return;
     }
-    const building = j.kind === 'construir' || j.kind === 'fabricar';
+    const building = j.kind === 'construir' || j.kind === 'fabricar' || j.kind === 'cocinar';
     const target = building ? this.jobStructure(j) : undefined;
     const inPlace = building ? !!target && this.structures.isBesideStructure(c.tile, target) : canWorkFrom(this.map, c.tile, j.x, j.y);
     if (!inPlace) {
@@ -795,7 +800,7 @@ export class World implements JobContext {
       }
       return;
     }
-    if (j.kind === 'fabricar') {
+    if (j.kind === 'fabricar' || j.kind === 'cocinar') {
       if (j.progress >= j.work) {
         const s = this.jobStructure(j)!;
         if (this.structures.consumeInputs(s)) this.dropBeside(s, s.bill!.recipe.outputs);
@@ -891,7 +896,8 @@ export class World implements JobContext {
     if (j.warden === 'alimentar') {
       const st = this.foodStack();
       if (st) {
-        const got = this.items.take(st.x, st.y, 3);
+        const per = NUTRITION[this.items.at(st.x, st.y)?.resource ?? 'patata'] ?? 0.1;
+        const got = this.items.take(st.x, st.y, Math.max(1, Math.min(3, Math.ceil((1 - o.needs.food) / per))));
         if (got) o.needs.food = Math.min(1, o.needs.food + (NUTRITION[got.resource] ?? 0.1) * got.amount);
         o.needs.water = 1;
       }

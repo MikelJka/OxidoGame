@@ -2,11 +2,21 @@
 
 Diario de sesiones, la más reciente arriba.
 
-## 2026-10-17 (noche, 5) — Menú principal y modo Dios
+## 2026-10-17 (noche, 6) — Menú principal y modo Dios
 
 - **Menú principal** (Mikel): sale al abrir el juego, con la partida en pausa detrás, y desde ☰ → 🏠 Menú principal. Continuar, Nueva partida (semilla con número o palabra, de 1 a 6 colonos, con o sin raids, caravanas y supervivientes, y modo Dios), cargar una partida desde archivo y ver el progreso del desarrollo.
 - **Modo Dios 🪄** (se activa en el menú principal; aparece un botón 🪄 junto al de 3D). Tocando el mapa: dejar recursos (10, 50 o 200 de cualquiera), hacer aparecer un colono, un saqueador, un prisionero o un comerciante, herir, matar o despejar una casilla. Al momento: raid, caravana, superviviente, terminar todas las obras, curar y saciar a todos, madurar los cultivos, avanzar 1 h, 6 h o un día, y activar o quitar los sucesos y las necesidades. Funciona en 2D y en 3D.
 - Qué probar: activar el modo Dios, dejar materiales, poner a un saqueador junto a un colono reclutado y ver cómo pelean; capturarlo y convencerlo avanzando el tiempo.
+
+## 2026-10-17 (noche, 5) — Cocina
+
+- Sin incidencias nuevas en 🐞. La vista 3D se pule en paralelo; esta sesión toma la siguiente tarea de la fase 4, la cocina.
+- **Cocina** (🏗 → Talleres, 2×1; 🪨15 🔩8 🪵5): al tocarla se elige qué guisar y hasta cuántas raciones: guiso de patatas (🥔5 → 🍲2), tortas de maíz (🌽5 → 🍲2) o setas asadas (🍄6 → 🍲2). Trabajo nuevo **Cocinar** en las prioridades de la ficha, que usa la habilidad Cocina.
+- **Comida cocinada** 🍲: una ración alimenta como 3,5 patatas, así que cocinar estira la cosecha un 40 %. Los colonos la prefieren (andan hasta 25 casillas de más por ella) y les sube el ánimo («Comió caliente»); si comen crudo, baja un poco («Comió crudo»). Los carceleros dan a los prisioneros solo lo que necesitan.
+- Se guarda con la partida (las antiguas empiezan sin comida anotada). Tests nuevos en `tests/cooking.test.ts`.
+- Sin npm en el entorno: tests con Bun (179) y tipos con `tsc`; la prueba completa, en GitHub Actions.
+- Qué probar: construir una cocina junto al almacén, ponerle «Guiso de patatas» y ver que los colonos cocinan y luego comen 🍲.
+- Siguiente: dificultad configurable al empezar (días sin raids, dureza); después infecciones y mutantes.
 
 ## 2026-10-17 (noche, 4) — Vista 3D más bonita
 

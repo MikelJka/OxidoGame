@@ -8,7 +8,7 @@ export type Surface = 'madera' | 'piedra' | 'chatarra' | 'metal' | 'hormigon' | 
 export function surfaceOf(def: BuildingDef): Surface {
   const id = def.id;
   if (id.includes('madera') || id.includes('empalizada')) return 'madera';
-  if (id.includes('piedra') || id.includes('muralla') || id === 'cantera' || id === 'pozo' || id === 'horno') return 'piedra';
+  if (id.includes('piedra') || id.includes('muralla') || id === 'cantera' || id === 'pozo' || id === 'horno' || id === 'cocina') return 'piedra';
   if (id.includes('chatarra') || id.includes('chapa') || id === 'recicladora') return 'chatarra';
   if (id.includes('metal') || id === 'depuradora') return 'metal';
   if (id.includes('hormigon')) return 'hormigon';

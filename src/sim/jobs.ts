@@ -1,7 +1,7 @@
 // Sistema de trabajos: convierte designaciones, montones sueltos y planos en tareas,
 // las reserva para un colono y elige la siguiente según sus prioridades y la distancia.
 // Determinista: sin azar.
-import { MAX_STACK, ResourceId } from '../data/resources';
+import { MAX_STACK, RESOURCES, ResourceId } from '../data/resources';
 import { WORK_SKILL, WORK_TYPES, WorkType } from '../data/work';
 import { Colonist, ColonistJob } from './colonist';
 import { Designations } from './designations';
@@ -9,7 +9,7 @@ import { GroundItems } from './items';
 import { GameMap, index, isPassable, PROP_INFO, Prop } from './map';
 import { findPath, Point } from './pathfinding';
 import { harvestAt, Stockpile } from './resources';
-import { needsWorkFactor } from './needs';
+import { isFood, needsWorkFactor } from './needs';
 import { TICKS_PER_HOUR } from './time';
 
 /** Horas entre charlas con un prisionero. */
@@ -270,14 +270,21 @@ function nearestMaterial(ctx: JobContext, s: Structure, near: Point): { x: numbe
   return best;
 }
 
+/** Tipo de trabajo de un taller: en la cocina se cocina (habilidad Cocina); en los demás, se fabrica. */
+export function stationWork(s: Structure): 'fabricar' | 'cocinar' {
+  return s.def.id === 'cocina' ? 'cocinar' : 'fabricar';
+}
+
 function fabricateCandidates(ctx: JobContext, c: Colonist): Candidate[] {
-  if (c.priorities.fabricar === 0) return [];
+  if (c.priorities.fabricar === 0 && c.priorities.cocinar === 0) return [];
   const out: Candidate[] = [];
   for (const s of ctx.structures.stations()) {
+    const kind = stationWork(s);
+    if (c.priorities[kind] === 0) continue;
     const holder = ctx.reservations.holder(s.x, s.y);
     if ((holder !== undefined && holder !== c.id) || !stationWantsWork(ctx, s)) continue;
     out.push({
-      kind: 'fabricar', x: s.x, y: s.y, dist: manhattan(c.tile, s.x, s.y),
+      kind, x: s.x, y: s.y, dist: manhattan(c.tile, s.x, s.y),
       make: () => {
         const sides = ctx.structures.sidesOf(s);
         if (ctx.structures.needsAny(s)) {
@@ -288,7 +295,7 @@ function fabricateCandidates(ctx: JobContext, c: Colonist): Candidate[] {
           if (!route || !pathToNearest(ctx.map, { x: mat.x, y: mat.y }, sides)) return null;
           return {
             job: {
-              kind: 'fabricar', sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: 0, work: 0,
+              kind, sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: 0, work: 0,
               haul: { resource: mat.resource, amount: mat.amount, from: { x: mat.x, y: mat.y }, to: { x: s.x, y: s.y }, toBlueprint: true, picked: false },
             },
             path: route.path,
@@ -297,7 +304,7 @@ function fabricateCandidates(ctx: JobContext, c: Colonist): Candidate[] {
         const here = ctx.structures.isBesideStructure(c.tile, s);
         const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, sides);
         if (!route) return null;
-        return { job: { kind: 'fabricar', sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: 0, work: s.bill!.recipe.work }, path: route.path };
+        return { job: { kind, sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: 0, work: s.bill!.recipe.work }, path: route.path };
       },
     });
   }
@@ -329,7 +336,7 @@ function wardenCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   if (c.priorities.carcelero === 0) return [];
   const out: Candidate[] = [];
   const inv = ctx.inventory();
-  const food = inv.patata + inv.maiz + inv.setas;
+  const food = RESOURCES.filter(isFood).reduce((a, r) => a + inv[r], 0);
   for (const o of ctx.others) {
     if (o.carriedBy !== undefined || reservedByOther(ctx, c, o)) continue;
     const add = (work: number, warden: 'capturar' | 'alimentar' | 'convencer') =>
