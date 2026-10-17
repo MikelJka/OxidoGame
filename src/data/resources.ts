@@ -1,7 +1,7 @@
 /** Recursos de la colonia y trabajos para obtenerlos del mapa. Ampliar aquí, no en la lógica. */
 import type { Skill } from './colonists';
 
-export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes'] as const;
+export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra'] as const;
 
 export type ResourceId = (typeof RESOURCES)[number];
 
@@ -10,7 +10,16 @@ export const RESOURCE_NAMES: Record<ResourceId, string> = {
   piedra: 'Piedra',
   chatarra: 'Chatarra',
   componentes: 'Componentes',
+  patata: 'Patatas',
+  maiz: 'Maíz',
+  setas: 'Setas',
+  fibra: 'Fibra',
 };
+
+/** Recursos que se muestran siempre en el inventario (los demás, solo si hay). */
+export const BASE_RESOURCES: readonly ResourceId[] = ['madera', 'piedra', 'chatarra', 'componentes'];
+/** Comida cruda (las necesidades de la fase 4 la usarán). */
+export const FOOD_RESOURCES: readonly ResourceId[] = ['patata', 'maiz', 'setas'];
 
 /** Icono corto para la interfaz. */
 export const RESOURCE_ICONS: Record<ResourceId, string> = {
@@ -18,6 +27,10 @@ export const RESOURCE_ICONS: Record<ResourceId, string> = {
   piedra: '🪨',
   chatarra: '🔩',
   componentes: '⚙️',
+  patata: '🥔',
+  maiz: '🌽',
+  setas: '🍄',
+  fibra: '🧵',
 };
 
 /** Tipo de trabajo con el que se aprovecha un objeto del mapa. */
@@ -54,6 +67,10 @@ export const MAX_STACK: Record<ResourceId, number> = {
   piedra: 50,
   chatarra: 75,
   componentes: 25,
+  patata: 75,
+  maiz: 75,
+  setas: 75,
+  fibra: 75,
 };
 
 /** Provisiones con las que llega la colonia: se dejan en el suelo junto al punto de inicio. */

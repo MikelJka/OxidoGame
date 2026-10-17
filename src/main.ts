@@ -13,7 +13,9 @@ import { mountDevPanel } from './ui/devPanel';
 import { downloadWorld, pickSaveFile, readBackupSave, readStoredSave, storeWorld } from './ui/saveGame';
 import { parseSave } from './sim/save';
 import { reachableResources } from './sim/resources';
-import { HarvestJob, RESOURCE_ICONS, RESOURCE_NAMES, RESOURCES } from './data/resources';
+import { BASE_RESOURCES, HarvestJob, RESOURCE_ICONS, RESOURCE_NAMES, RESOURCES } from './data/resources';
+import { CROPS } from './data/crops';
+import type { GrowZone } from './sim/farming';
 import { BUILDING_CATEGORY_NAMES, BUILDINGS, buildingDef } from './data/buildings';
 import { STORAGE_PRIORITIES, STORAGE_PRIORITY_NAMES, StorageZone } from './sim/zones';
 import type { DesignMode } from './render/WorldScene';
@@ -216,8 +218,9 @@ game.events.on('inventory', (inv: Stockpile) => {
   const key = RESOURCES.map((r) => inv[r]).join(',');
   if (key === inventoryKey) return; // solo se rehace si cambia algo
   inventoryKey = key;
+  // Los recursos básicos siempre; la comida y la fibra, solo si hay.
   inventory.replaceChildren(
-    ...RESOURCES.map((r) => {
+    ...RESOURCES.filter((r) => BASE_RESOURCES.includes(r) || inv[r] > 0).map((r) => {
       const el = document.createElement('span');
       el.className = 'inv-item';
       el.title = RESOURCE_NAMES[r];
@@ -235,8 +238,16 @@ const buildBtn = $('build-btn');
 const designHint = $('design-hint');
 const shapeBtn = $<HTMLButtonElement>('build-shape');
 
-// Un botón por construcción, con su coste.
+// Un botón por construcción, con su coste, agrupados por tipo.
+let lastCategory = '';
 for (const def of BUILDINGS) {
+  if (def.category !== lastCategory) {
+    lastCategory = def.category;
+    const h = document.createElement('div');
+    h.className = 'build-group';
+    h.textContent = BUILDING_CATEGORY_NAMES[def.category];
+    buildModes.insertBefore(h, shapeBtn);
+  }
   const b = document.createElement('button');
   b.type = 'button';
   b.dataset.mode = 'construir';
@@ -258,7 +269,8 @@ const DESIGN_HINTS: Record<Exclude<DesignMode, null>, string> = {
   saquear: 'Saquear: arrastra sobre chatarra, coches, escombros y neumáticos',
   cancelar: 'Quitar: arrastra sobre las órdenes que quieras quitar',
   almacen: 'Almacén: arrastra para marcar la zona (empezando dentro de una, se amplía)',
-  quitarAlmacen: 'Quitar almacén: arrastra sobre las casillas que ya no quieras usar',
+  cultivo: 'Huerto: arrastra sobre tierra (mejor la oscura y húmeda); empezando dentro de uno, se amplía',
+  quitarAlmacen: 'Quitar zona: arrastra sobre las casillas de almacén o huerto que ya no quieras',
   construir: 'Construir',
   quitarPlano: 'Quitar planos: arrastra sobre los planos (devuelven el material)',
 };
@@ -326,6 +338,40 @@ window.addEventListener('keydown', (e) => {
   if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return;
   if (e.key === 't' || e.key === 'T') showMenu(orderModes.hidden ? 'orders' : null);
   if (e.key === 'b' || e.key === 'B') showMenu(buildModes.hidden ? 'build' : null);
+});
+
+// --- Panel de un huerto: qué se planta -------------------------------------------
+const farmPanel = $('farm-panel');
+const fpCrops = $('fp-crops');
+$('fp-close').addEventListener('click', () => scene().selectFarm(null));
+$('fp-delete').addEventListener('click', () => {
+  const s = scene();
+  if (s.selectedFarmId !== null) s.world.farms.delete(s.selectedFarmId);
+  s.selectFarm(null);
+});
+game.events.on('farm-select', (f: GrowZone | null) => {
+  farmPanel.hidden = !f;
+  if (!f) return;
+  $('fp-name').textContent = `🌱 ${f.name}`;
+  $('fp-sub').textContent = `${f.tiles.size} casillas · los colonos siembran y cosechan solos (trabajo «cultivar»)`;
+  fpCrops.replaceChildren(
+    ...CROPS.map((crop) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'crop-btn';
+      b.classList.toggle('active', f.crop.id === crop.id);
+      const title = document.createElement('strong');
+      title.textContent = `${RESOURCE_ICONS[crop.resource]} ${crop.name}`;
+      const info = document.createElement('span');
+      info.textContent = ` · ${crop.growDays} días · ${crop.yield[0]}–${crop.yield[1]} por casilla${crop.growsInDark ? ' · crece de noche' : ''} · ${crop.description}`;
+      b.append(title, info);
+      b.addEventListener('click', () => {
+        scene().world.farms.setCrop(f.id, crop);
+        scene().refreshFarm();
+      });
+      return b;
+    }),
+  );
 });
 
 // --- Panel de un almacén: prioridad y filtro -----------------------------------

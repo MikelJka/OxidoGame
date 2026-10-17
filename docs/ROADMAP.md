@@ -49,13 +49,13 @@ Terminado: diseño un refugio cerrado y los colonos lo construyen con recursos.
 
 - [x] Definiciones de edificios en JSON (coste, tiempo, terreno permitido)
 - [ ] Planos: colocar, rotar, cancelar (ratón y táctil)
-- [ ] Muros y puertas (hechos: madera, piedra y chatarra; puertas de madera y de chapa), suelos, camas, banco de trabajo
+- [ ] Muros, puertas, portones, suelos y camas (hechos); banco de trabajo
 - [x] Construcción como trabajo que consume recursos
 - [ ] Habitaciones cerradas detectadas (para ánimo y temperatura futura)
 - [ ] Máquinas de producción: cantera (piedra) y recicladora (chatarra a partir de basura y restos), para cuando se agoten los del mapa
 - [ ] Materiales: metal (fundiendo chatarra) y hormigón, además de madera, piedra y chatarra
 - [x] Muros altos para perímetros y torres de vigía (madera, piedra y chatarra; las de metal, con el metal)
-- [ ] Defensas: pinchos, zanjas y barricadas
+- [ ] Defensas: pinchos y barricadas (hechos); zanjas (con el trabajo de terreno)
 - [ ] Mobiliario de almacén: estanterías, armarios y armeros de pared
 - [ ] Terreno: aplanar y subir o bajar el nivel de las casillas (trabajo de los colonos)
 
@@ -64,7 +64,7 @@ Terminado: diseño un refugio cerrado y los colonos lo construyen con recursos.
 Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed o por un raid.
 
 - [ ] Hambre, sed, sueño, ánimo; colonos que comen, beben y duermen solos
-- [ ] Cultivos y cocina
+- [ ] Cultivos (hechos: patatas, maíz, setas y cáñamo) y cocina
 - [ ] Salud: heridas localizadas, tratamiento, infecciones
 - [ ] Dificultad configurable al empezar (días sin raids, dureza)
 - [ ] Raids de saqueadores y mutantes que escalan con la riqueza

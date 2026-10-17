@@ -161,7 +161,7 @@ export interface GameMap {
   slope: Uint8Array;
   /** Unidades de recurso que quedan en el objeto de cada casilla (0 si no tiene). */
   stock: Uint8Array;
-  /** Construcción en la casilla: 0 nada, 1 impide el paso (muro…), 2 se cruza más despacio (puerta). Lo mantiene `Structures`. */
+  /** Construcción en la casilla: 0 nada, 1 impide el paso (muro…), ≥2 se pisa con otro coste (ver `walkableStructureCode`). Lo mantiene `Structures`. */
   blocked: Uint8Array;
   /** Casilla sugerida para empezar la colonia. */
   start: { x: number; y: number };
@@ -173,11 +173,20 @@ export const RADIATION_THRESHOLD = 0.78;
 export const MAX_LEVEL = 4;
 /** Coste extra de subir o bajar por una pendiente. */
 export const SLOPE_COST = 1.5;
-/** Valores de `blocked`: construcción que impide el paso y construcción que lo frena (puertas). */
+/**
+ * Valores de `blocked`: 0 nada, 1 construcción que impide el paso; desde 2, construcción que se
+ * pisa y cambia el coste de paso: el valor guarda ese coste (×10 + 1), p. ej. 14 = ×1,3 (puerta),
+ * 9 = ×0,8 (suelo), 21 = ×2 (barricada).
+ */
 export const BLOCK_SOLID = 1;
-export const BLOCK_SLOW = 2;
-/** Coste extra de cruzar una puerta. */
-export const DOOR_COST = 1.3;
+/** Código de `blocked` para una construcción transitable con un coste de paso dado. */
+export function walkableStructureCode(moveCost: number): number {
+  return Math.max(2, Math.min(255, Math.round(moveCost * 10) + 1));
+}
+/** Coste de paso que guarda un código de `blocked` (1 si no hay construcción transitable). */
+export function structureMoveCost(code: number): number {
+  return code >= 2 ? (code - 1) / 10 : 1;
+}
 const LEVEL_NAMES = ['', 'llano bajo', 'llano', 'loma', 'meseta'];
 
 export function index(map: { width: number }, x: number, y: number): number {
@@ -212,8 +221,8 @@ export function tileMoveCost(map: GameMap, x: number, y: number): number {
   const i = index(map, x, y);
   const prop = PROP_INFO[map.props[i] as Prop];
   if (prop.blocks || map.cliff[i] || map.blocked[i] === BLOCK_SOLID) return Infinity;
-  const door = map.blocked[i] === BLOCK_SLOW ? DOOR_COST : 1;
-  return TERRAIN_INFO[map.terrain[i] as Terrain].moveCost * prop.moveCost * (map.slope[i] ? SLOPE_COST : 1) * door;
+  const built = structureMoveCost(map.blocked[i]);
+  return TERRAIN_INFO[map.terrain[i] as Terrain].moveCost * prop.moveCost * (map.slope[i] ? SLOPE_COST : 1) * built;
 }
 
 /** Texto descriptivo de una casilla para la interfaz. */

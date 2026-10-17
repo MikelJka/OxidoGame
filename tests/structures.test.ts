@@ -109,6 +109,24 @@ describe('construir', () => {
     expect(world.colonists[0].tile).toEqual({ x: 12, y: 12 });
   });
 
+  it('portones, suelos, barricadas y pinchos se pisan, cada uno con su coste de paso', () => {
+    const world = flatWorld();
+    const base = tileMoveCost(world.map, 20, 20);
+    const put = (x: number, id: string) => {
+      world.structures.place(x, 20, id);
+      const s = world.structures.at(x, 20)!;
+      for (const [r, n] of Object.entries(s.def.cost)) world.structures.deliver(s, r as never, n as number);
+      world.completeStructure(s);
+      return tileMoveCost(world.map, x, 20);
+    };
+    expect(put(10, 'porton_madera')).toBeGreaterThan(base);
+    expect(put(11, 'suelo_piedra')).toBeLessThan(base);
+    expect(put(12, 'barricada_madera')).toBeGreaterThan(put(13, 'puerta_madera'));
+    expect(put(14, 'pinchos_madera')).toBeGreaterThan(base * 2);
+    for (let x = 10; x <= 14; x++) expect(isPassable(world.map, x, 20)).toBe(true);
+    expect(checkWorld(world)).toEqual([]);
+  });
+
   it('sin material no se construye y no se rompe nada', () => {
     const world = flatWorld();
     world.structures.place(10, 10, 'muro_chatarra');

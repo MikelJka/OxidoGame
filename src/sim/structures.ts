@@ -2,7 +2,7 @@
 // materiales y trabajando. Al terminarse, los muros bloquean el paso y las puertas lo frenan.
 import { BuildingDef, buildingDef } from '../data/buildings';
 import { RESOURCES, ResourceId } from '../data/resources';
-import { BLOCK_SLOW, BLOCK_SOLID, GameMap, inBounds, index, isWater, Prop, TERRAIN_INFO, Terrain } from './map';
+import { BLOCK_SOLID, walkableStructureCode, GameMap, inBounds, index, isWater, Prop, TERRAIN_INFO, Terrain } from './map';
 import type { TileRect } from './designations';
 import type { Stockpile } from './resources';
 
@@ -142,7 +142,7 @@ export class Structures {
     if (s.built) return;
     s.built = true;
     s.progress = s.def.work;
-    this.map.blocked[index(this.map, s.x, s.y)] = s.def.blocks ? BLOCK_SOLID : BLOCK_SLOW;
+    this.map.blocked[index(this.map, s.x, s.y)] = s.def.blocks ? BLOCK_SOLID : walkableStructureCode(s.def.moveCost ?? 1);
     this.version++;
   }
 }

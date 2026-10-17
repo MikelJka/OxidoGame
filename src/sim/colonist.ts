@@ -26,6 +26,8 @@ export interface ColonistJob {
   work: number;
   /** Transporte: qué se lleva, cuánto y adónde. */
   haul?: HaulInfo;
+  /** Cultivo: sembrar una casilla vacía o cosechar una planta madura. */
+  farm?: 'sembrar' | 'cosechar';
 }
 
 export interface HaulInfo {
@@ -117,7 +119,11 @@ export function activityLabel(c: Colonist): string {
       if (!c.job) return 'Yendo a trabajar';
       if (c.job.haul) return c.job.haul.picked ? (c.job.haul.toBlueprint ? 'Llevando material a un plano' : 'Llevando al almacén') : 'Yendo a recoger';
       return `Yendo a ${WORK_NAMES[c.job.kind].toLowerCase()}`;
-    case 'working': return c.job ? `${WORK_VERBS[c.job.kind]} (${Math.floor((c.job.progress / c.job.work) * 100)} %)` : 'Trabajando';
+    case 'working': {
+      if (!c.job) return 'Trabajando';
+      const verb = c.job.farm === 'sembrar' ? 'Sembrando' : c.job.farm === 'cosechar' ? 'Cosechando' : WORK_VERBS[c.job.kind];
+      return `${verb} (${Math.floor((c.job.progress / c.job.work) * 100)} %)`;
+    }
     case 'wandering': return 'Deambulando';
     default: return 'Descansando';
   }

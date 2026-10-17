@@ -11,6 +11,7 @@ import { findPath, Point } from './pathfinding';
 import { harvestAt } from './resources';
 import { Structure, Structures } from './structures';
 import { StorageZones } from './zones';
+import { GrowZones } from './farming';
 
 /** Cuántas tareas candidatas (las más cercanas) de cada prioridad se prueban con el buscador de caminos. */
 const CANDIDATES_PER_SEARCH = 8;
@@ -78,6 +79,7 @@ export interface JobContext {
   items: GroundItems;
   zones: StorageZones;
   structures: Structures;
+  farms: GrowZones;
 }
 
 /** Casillas desde las que se puede trabajar un objeto: la suya si se pisa, si no las de los lados. */
@@ -277,13 +279,42 @@ function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   return out;
 }
 
+function farmCandidates(ctx: JobContext, c: Colonist): Candidate[] {
+  if (c.priorities.cultivar === 0) return [];
+  const out: Candidate[] = [];
+  const free = (x: number, y: number) => {
+    const h = ctx.reservations.holder(x, y);
+    return h === undefined || h === c.id;
+  };
+  const plan = (x: number, y: number, farm: 'sembrar' | 'cosechar', work: number): JobPlan | null => {
+    const route = c.tile.x === x && c.tile.y === y ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, [{ x, y }]);
+    if (!route) return null;
+    return { job: { kind: 'cultivar', x, y, stand: route.stand, progress: 0, work, farm }, path: route.path };
+  };
+  // Cosechar lo maduro.
+  for (const { x, y, plant } of ctx.farms.plantList()) {
+    if (plant.growth < 1 || !free(x, y)) continue;
+    out.push({ kind: 'cultivar', x, y, dist: manhattan(c.tile, x, y), make: () => plan(x, y, 'cosechar', plant.crop.harvestWork) });
+  }
+  // Sembrar las casillas vacías de los huertos.
+  for (const z of ctx.farms.all()) {
+    for (const i of z.tiles) {
+      const x = i % ctx.map.width;
+      const y = Math.floor(i / ctx.map.width);
+      if (ctx.farms.plantAt(x, y) || !free(x, y) || !ctx.farms.canSow(x, y, z.crop) || ctx.structures.at(x, y)) continue;
+      out.push({ kind: 'cultivar', x, y, dist: manhattan(c.tile, x, y), make: () => plan(x, y, 'sembrar', z.crop.sowWork) });
+    }
+  }
+  return out;
+}
+
 /**
  * Busca el siguiente trabajo para un colono: primero los de mejor prioridad (1 antes que 4;
  * 0 = no lo hace) y dentro de ella los más cercanos a los que puede llegar andando.
  * No reserva nada: lo hace quien acepta el plan.
  */
 export function findJob(ctx: JobContext, c: Colonist): JobPlan | null {
-  const all = [...buildCandidates(ctx, c), ...harvestCandidates(ctx, c), ...haulCandidates(ctx, c)];
+  const all = [...buildCandidates(ctx, c), ...farmCandidates(ctx, c), ...harvestCandidates(ctx, c), ...haulCandidates(ctx, c)];
   const byPriority = new Map<number, Candidate[]>();
   for (const cand of all) {
     const p = c.priorities[cand.kind];

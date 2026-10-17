@@ -70,8 +70,8 @@ export class StorageZones {
    * respetan). Si toca otra zona... se crea igualmente aparte. Devuelve la zona o null si no
    * había ninguna casilla válida.
    */
-  create(r: TileRect): StorageZone | null {
-    const tiles = this.freeTiles(r);
+  create(r: TileRect, exclude?: (x: number, y: number) => boolean): StorageZone | null {
+    const tiles = this.freeTiles(r, exclude);
     if (tiles.length === 0) return null;
     const id = this.nextId++;
     const zone: StorageZone = {
@@ -91,10 +91,10 @@ export class StorageZones {
   }
 
   /** Añade a una zona las casillas libres de un rectángulo. Devuelve cuántas. */
-  extend(id: number, r: TileRect): number {
+  extend(id: number, r: TileRect, exclude?: (x: number, y: number) => boolean): number {
     const zone = this.zones.get(id);
     if (!zone) return 0;
-    const tiles = this.freeTiles(r);
+    const tiles = this.freeTiles(r, exclude);
     for (const i of tiles) {
       zone.tiles.add(i);
       this.zoneOf[i] = id;
@@ -184,10 +184,10 @@ export class StorageZones {
     for (let y = ya; y <= yb; y++) for (let x = xa; x <= xb; x++) fn(index(this.map, x, y), x, y);
   }
 
-  private freeTiles(r: TileRect): number[] {
+  private freeTiles(r: TileRect, exclude?: (x: number, y: number) => boolean): number[] {
     const out: number[] = [];
     this.forRect(r, (i, x, y) => {
-      if (!this.zoneOf[i] && canZone(this.map, x, y)) out.push(i);
+      if (!this.zoneOf[i] && canZone(this.map, x, y) && !exclude?.(x, y)) out.push(i);
     });
     return out;
   }

@@ -30,6 +30,18 @@ export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, ti
     drawTower(ctx, def, tile, tileH, wallH);
     return;
   }
+  if (def.category === 'suelo' || def.category === 'mueble' || (def.category === 'defensa' && def.height === 0)) {
+    drawFlat(ctx, def, tile, tileH);
+    return;
+  }
+  if (def.category === 'porton') {
+    drawGate(ctx, def, tile, tileH, wallH);
+    return;
+  }
+  if (def.category === 'defensa') {
+    drawBarricade(ctx, def, tile, tileH, wallH);
+    return;
+  }
   if (def.category === 'puerta') {
     // Marco con la hoja de la puerta en el frente; arriba, el dintel.
     px(1, 1, tile - 2, tileH - 2, top);
@@ -100,6 +112,106 @@ function drawTower(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number
   px(1, 1, tile - 2, tileH - 2, top);
   for (let x = 2; x < tile - 2; x += 3) px(x, 2, 1, tileH - 4, dark);
   px(0, tileH - 2, tile, 2, dark);
+}
+
+type Px = (x: number, y: number, w: number, h: number, color: string) => void;
+function painter(ctx: CanvasRenderingContext2D): Px {
+  return (x, y, w, h, color) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, w, h);
+  };
+}
+
+/** Cosas a ras de suelo: suelos, pinchos y muebles (solo la cara de arriba). */
+function drawFlat(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number): void {
+  const { top, face, dark } = def.colors;
+  const px = painter(ctx);
+  ctx.clearRect(0, 0, tile, tileH);
+  if (def.category === 'suelo') {
+    px(0, 0, tile, tileH, top);
+    if (def.id.includes('madera')) {
+      for (let y = 0; y < tileH; y += 3) px(0, y, tile, 1, face);
+      px(Math.floor(tile / 2), 1, 1, 2, dark);
+      px(3, 4, 1, 2, dark);
+    } else if (def.id.includes('piedra')) {
+      px(0, Math.floor(tileH / 2), tile, 1, dark);
+      px(Math.floor(tile / 2), 0, 1, Math.floor(tileH / 2), dark);
+      px(4, Math.floor(tileH / 2), 1, tileH - Math.floor(tileH / 2), dark);
+      px(12, Math.floor(tileH / 2), 1, tileH - Math.floor(tileH / 2), dark);
+    } else {
+      // Chapa estriada.
+      for (let y = 1; y < tileH; y += 3) for (let x = (y % 2) * 2; x < tile; x += 4) px(x, y, 2, 1, face);
+    }
+    px(0, tileH - 1, tile, 1, dark);
+    return;
+  }
+  if (def.category === 'defensa') {
+    // Pinchos: estacas afiladas en dos filas.
+    for (let row = 0; row < 2; row++) {
+      const y = Math.floor((tileH * (row + 1)) / 3);
+      for (let x = 1 + row * 2; x < tile - 1; x += 4) {
+        px(x, y - 3, 1, 4, dark);
+        px(x + 1, y - 4, 1, 5, face);
+        px(x + 1, y - 5, 1, 1, top);
+      }
+    }
+    return;
+  }
+  // Cama: armazón, colchón y almohada.
+  px(1, 1, tile - 2, tileH - 2, '#1a1410');
+  px(2, 2, tile - 4, tileH - 4, dark);
+  px(3, 2, tile - 6, tileH - 5, face);
+  px(3, 2, tile - 6, 3, '#d8d0bc');
+  px(3, tileH - 5, tile - 6, 2, top);
+}
+
+/** Portón: hoja alta de tablones o chapa, pensado para ponerse en línea (las casillas se juntan). */
+function drawGate(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, wallH: number): void {
+  const { top, face, dark } = def.colors;
+  const px = painter(ctx);
+  const h = tileH + wallH;
+  ctx.clearRect(0, 0, tile, h);
+  // Viga superior (cara de arriba) y hoja (frente), sin bordes laterales para que se unan.
+  px(0, 0, tile, tileH, '#1a1410');
+  px(0, 1, tile, tileH - 2, top);
+  px(0, tileH - 1, tile, wallH, face);
+  px(0, h - 1, tile, 1, '#1a1410');
+  const metal = def.id.includes('chapa');
+  if (metal) {
+    for (let y = tileH + 3; y < h - 1; y += 4) px(0, y, tile, 1, dark);
+    px(1, tileH + 1, 1, 1, top);
+    px(tile - 2, tileH + 1, 1, 1, top);
+  } else {
+    for (let x = 0; x < tile; x += 4) px(x, tileH, 1, wallH - 1, dark);
+    // Travesaños y diagonal.
+    px(0, tileH + 2, tile, 2, dark);
+    px(0, h - 4, tile, 2, dark);
+    for (let k = 0; k < tile; k++) px(k, tileH + 4 + Math.floor(((wallH - 8) * k) / tile), 1, 1, dark);
+  }
+}
+
+/** Barricada: tablones cruzados o chatarra apilada, a media altura. */
+function drawBarricade(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, wallH: number): void {
+  const { top, face, dark } = def.colors;
+  const px = painter(ctx);
+  const h = tileH + wallH;
+  ctx.clearRect(0, 0, tile, h);
+  const y0 = Math.floor(tileH / 2);
+  if (def.id.includes('madera')) {
+    px(0, y0 + 2, tile, 3, '#1a1410');
+    px(0, y0 + 3, tile, 1, top);
+    for (let k = 0; k < tile; k++) {
+      const a = y0 + Math.floor(((h - y0 - 2) * k) / tile);
+      px(k, a, 1, 2, face);
+      px(tile - 1 - k, a, 1, 2, dark);
+    }
+  } else {
+    px(1, y0 + 1, tile - 2, h - y0 - 1, '#1a1410');
+    px(2, y0 + 2, tile - 4, h - y0 - 3, face);
+    px(2, y0 + 2, tile - 4, 1, top);
+    px(4, y0 + 5, 5, 2, dark);
+    px(9, h - 5, 4, 2, dark);
+  }
 }
 
 function lighten(hex: string): string {

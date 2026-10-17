@@ -40,7 +40,8 @@
         <button type="button" data-mode="saquear" title="Saquear chatarra, coches y escombros">🔩 Saquear <span class="n"></span></button>
         <button type="button" data-mode="cancelar" title="Quitar órdenes">✖ Quitar</button>
         <button type="button" data-mode="almacen" title="Marcar una zona de almacén">📦 Almacén</button>
-        <button type="button" data-mode="quitarAlmacen" title="Quitar casillas de almacén">✖ Quitar almacén</button>
+        <button type="button" data-mode="cultivo" title="Marcar un huerto">🌱 Huerto</button>
+        <button type="button" data-mode="quitarAlmacen" title="Quitar casillas de almacén o de huerto">✖ Quitar zona</button>
       </div>
       <div id="build-modes" hidden>
         <button id="build-shape" type="button" title="Contorno: solo el borde del rectángulo · Relleno: todas las casillas">▭ Forma: contorno</button>
@@ -68,7 +69,7 @@
         Arriba a la izquierda: inventario de la colonia (los montones del suelo)<br />
         Órdenes ⚒ (tecla T): elegir talar, picar, saquear o almacén y arrastrar un área (o tocar una casilla); con dos dedos se mueve la cámara · Esc: salir<br />
         Construir 🏗 (tecla B): elegir muro o puerta y arrastrar; los colonos llevan el material y lo levantan<br />
-        Tocar un almacén: su prioridad y qué se guarda en él<br />
+        Tocar un almacén: su prioridad y qué se guarda en él · Tocar un huerto: qué se planta<br />
         Girar la vista: botones ⟲ ⟳, girar dos dedos o teclas Q y E<br />
         Inclinar la vista: botón ∠, deslizar dos dedos arriba o abajo o teclas R y F<br />
         PC: clic derecho también da la orden · Espacio, 1, 2, 3: velocidad · Esc: deseleccionar
@@ -144,6 +145,19 @@
       <div class="zp-label">Qué se guarda</div>
       <div id="zp-filter" class="zp-row"></div>
       <button id="zp-delete" type="button">🗑 Borrar almacén</button>
+    </section>
+
+    <section id="farm-panel" class="panel" hidden>
+      <div class="cp-head">
+        <div>
+          <div id="fp-name"></div>
+          <div id="fp-sub" class="muted"></div>
+        </div>
+        <button id="fp-close" type="button" title="Cerrar">✕</button>
+      </div>
+      <div class="zp-label">Qué se planta</div>
+      <div id="fp-crops"></div>
+      <button id="fp-delete" type="button">🗑 Borrar huerto</button>
     </section>
 
     <nav id="roster" class="panel" aria-label="Colonos"></nav>

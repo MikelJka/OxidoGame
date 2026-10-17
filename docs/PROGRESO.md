@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (tarde, 7) — Huertos, portones y más construcciones
+
+- Petición de Mikel: portones grandes, cultivo con varias cosechas y más tipos de construcción.
+- **Huertos** (`src/sim/farming.ts`, `src/data/crops.json`, con tests): ⚒ → 🌱 Huerto y arrastrar sobre tierra (no sobre arena pura, roca, asfalto ni agua). La fertilidad depende del suelo, la humedad y la radiación (la tierra oscura y húmeda es la mejor); se ve al tocar una casilla. Al tocar el huerto se elige el cultivo: patatas (aguantan casi cualquier tierra), maíz (rinde más, pide buena tierra), setas (rápidas, también de noche y en suelo pobre) y cáñamo (fibra). Las plantas crecen de día y se ven en cuatro fases. Nuevo trabajo «cultivar» (habilidad Cultivo): los colonos siembran, cosechan cuando madura, y lo cosechado se lleva al almacén. Los matorrales hay que talarlos antes.
+- Recursos nuevos: patatas 🥔, maíz 🌽, setas 🍄 y fibra 🧵 (salen en el inventario cuando hay). Serán la comida de la fase 4.
+- **Portones** de madera (🪵18) y de chapa (🔩18 ⚙️2): altos como los muros altos; se colocan en línea y las casillas se juntan en una sola hoja.
+- **Más construcciones**: suelos de madera, losas de piedra y chapa (se anda un 15 % más rápido), barricadas de madera y chatarra (frenan mucho; darán cobertura en los combates), pinchos de madera (frenan mucho; harán daño a los enemigos en la fase 4) y cama (para dormir en la fase 4). El menú 🏗 está agrupado por tipos.
+- Cada construcción transitable tiene su propio coste de paso (antes solo existía el de las puertas).
+- Las partidas guardadas siguen valiendo: las anteriores simplemente no tienen huertos.
+- Qué probar: hacer un huerto de setas (maduran en unas 12 minutos a x1) y otro de patatas, con un almacén cerca; ver cómo siembran y cosechan. Probar portones en un muro alto y un suelo.
+- Siguiente: metal (fundir chatarra) con muros y torres de metal; banco de trabajo; aplanar y subir el terreno (y las zanjas).
+
 ## 2026-10-17 (tarde, 6) — Árboles talados que no desaparecían; muros altos y torres
 
 - Bug #3 (enviado con 🐞 desde el móvil): al talar un árbol o un matorral seguía viéndose. Los objetos se pintan en la imagen del mapa y no se repintaba. Ahora, cuando cambia un objeto, se repinta solo su columna del mapa (todo lo que se dibuja de una casilla cae en su columna de píxeles), así que no hay tirones. Para que el repintado coincida con el original, la forma de cada objeto y el grano del suelo ya no dependen del orden de pintado (test que compara repintar una columna con pintar el mapa entero).

@@ -6,13 +6,17 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 - [ ] **Mobiliario de almacén** (2026-10-17): estanterías, armarios y soportes de pared (p. ej. armeros para armas). Fase 3.
 - [ ] **Materiales nuevos, como el metal** (2026-10-17): para muros y torres más resistentes. Fase 3.
-- [ ] **Defensas: pinchos y zanjas** (2026-10-17). Fase 3.
+- [ ] **Defensas: zanjas** (2026-10-17): los pinchos y las barricadas ya están; las zanjas van con el trabajo de terreno. Fase 3.
 - [ ] **Aplanar el terreno y subir o bajar su nivel** (#2, 2026-10-17): como trabajo de los colonos. Fase 3.
 
 - [ ] **Los árboles vuelven a crecer** (2026-10-17): con el tiempo, para que la madera no se acabe. Va en la fase 2, tras el sistema de trabajos.
 - [ ] **Máquinas que generan recursos: canteras y recicladoras** (2026-10-17): para cuando se acaben la piedra y la chatarra iniciales del mapa. Van en la fase 3 (construcción), en el roadmap.
 
 ## Hecho
+
+- [x] **Portones grandes para los muros** (2026-10-17): 🏗 → portón de madera o de chapa, tan alto como los muros altos; se colocan en línea y las casillas se juntan en una sola hoja.
+- [x] **Cultivo con varias cosechas** (2026-10-17): ⚒ → 🌱 Huerto y arrastrar sobre tierra. Al tocar el huerto se elige qué plantar: patatas, maíz, setas (crecen de noche y en suelo pobre) o cáñamo (fibra). Los colonos siembran y cosechan solos; lo cosechado va al almacén.
+- [x] **Más construcciones** (2026-10-17): suelos (madera, losas de piedra, chapa; se anda más rápido), barricadas (madera, chatarra), pinchos de madera y cama.
 
 - [x] **#3 Al talar un árbol o arbusto seguía viéndose** (2026-10-17): los objetos se pintaban una sola vez en la imagen del mapa. Ahora, al talar, picar o saquear, se repinta solo esa columna del mapa: el árbol pasa a tocón y el matorral desaparece, sin tirones.
 - [x] **Muros altos y torres de vigía** (2026-10-17): 🏗 → empalizada alta, muralla de piedra y muro alto de chatarra (el doble de alto y de resistentes); torres de vigía de madera, piedra y chatarra, a las que se puede subir. Las de metal llegarán con el metal.

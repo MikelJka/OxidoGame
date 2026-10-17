@@ -87,6 +87,6 @@ describe('recursos del mapa', () => {
     expect(Object.keys(s).sort()).toEqual([...RESOURCES].sort());
     addResources(s, { madera: 5 });
     addResources(s, { madera: 2, chatarra: 1 });
-    expect(s).toEqual({ madera: 7, piedra: 0, chatarra: 1, componentes: 0 });
+    expect(s).toEqual({ ...emptyStockpile(), madera: 7, chatarra: 1 });
   });
 });

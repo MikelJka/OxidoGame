@@ -7,7 +7,9 @@ import { Designations } from './designations';
 import { canWorkFrom, findJob, isBeside, JOB_PATH_NODES, JobContext, reservePlan, Reservations, sideTiles, workSpeed } from './jobs';
 import { harvestAt, harvestTile, Stockpile } from './resources';
 import { StorageZones } from './zones';
+import { GrowZones } from './farming';
 import { Structure, Structures } from './structures';
+import type { TileRect } from './designations';
 import { RESOURCES, STARTING_SUPPLIES } from '../data/resources';
 
 /** Ticks de simulación por segundo real a velocidad x1. */
@@ -53,6 +55,8 @@ export class World implements JobContext {
   readonly zones: StorageZones;
   /** Planos y construcciones. */
   readonly structures: Structures;
+  /** Huertos y lo plantado en ellos. */
+  readonly farms: GrowZones;
   /** Casillas cuyo objeto ha cambiado desde la última vez que se preguntó (para repintarlas). */
   private changedTiles: number[] = [];
   /** Tick a partir del cual cada colono vuelve a buscar trabajo. */
@@ -70,6 +74,7 @@ export class World implements JobContext {
     this.reservations = new Reservations(this.map);
     this.zones = new StorageZones(this.map);
     this.structures = new Structures(this.map);
+    this.farms = new GrowZones(this.map);
     if (!opts.map) this.dropStartingSupplies();
   }
 
@@ -119,6 +124,11 @@ export class World implements JobContext {
   /** Un tick de simulación. */
   step(): void {
     this.tick++;
+    // Las plantas crecen a saltos de un segundo (basta y cuesta poco).
+    if (this.tick % TICKS_PER_SECOND === 0) {
+      const h = this.hour;
+      this.farms.grow(TICKS_PER_SECOND, h >= 6 && h < 20, TICKS_PER_DAY);
+    }
     for (const c of this.colonists) this.updateColonist(c);
   }
 
@@ -215,7 +225,7 @@ export class World implements JobContext {
 
   /** Busca trabajo (si toca) y lo empieza. true si ahora tiene uno. */
   private tryStartJob(c: Colonist): boolean {
-    if (this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0) return false;
+    if (this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0) return false;
     if (this.tick < (this.nextJobScan.get(c.id) ?? 0)) return false;
     const plan = findJob(this, c);
     if (!plan || !reservePlan(this.reservations, c, plan.job)) {
@@ -255,6 +265,11 @@ export class World implements JobContext {
         if (!st || st.resource !== h.resource || (this.structures.needs(s)[h.resource] ?? 0) <= 0) return false;
       }
       return true;
+    }
+    if (j.kind === 'cultivar') {
+      if (j.farm === 'cosechar') return (this.farms.plantAt(j.x, j.y)?.growth ?? 0) >= 1;
+      const z = this.farms.at(j.x, j.y);
+      return !!z && !this.farms.plantAt(j.x, j.y) && this.farms.canSow(j.x, j.y, z.crop) && !this.structures.at(j.x, j.y);
     }
     if (j.kind === 'transportar') {
       if (!h) return false;
@@ -308,9 +323,38 @@ export class World implements JobContext {
       return;
     }
     if (j.progress >= j.work) {
-      this.harvest(j.x, j.y);
+      if (j.kind === 'cultivar') this.finishFarmWork(j.x, j.y, j.farm!);
+      else this.harvest(j.x, j.y);
       this.dropJob(c);
     }
+  }
+
+  /** Termina de sembrar o de cosechar una casilla. */
+  private finishFarmWork(x: number, y: number, action: 'sembrar' | 'cosechar'): void {
+    if (action === 'sembrar') {
+      this.farms.sow(x, y);
+      return;
+    }
+    const crop = this.farms.harvest(x, y, (a, b) => this.rng.int(a, b));
+    if (crop) this.items.drop(x, y, crop.resource, crop.amount);
+  }
+
+  /** Crea un huerto (sin pisar almacenes). */
+  createGrowZone(r: TileRect): ReturnType<GrowZones['create']> {
+    return this.farms.create(r, undefined, (x, y) => this.zones.at(x, y) !== undefined);
+  }
+
+  extendGrowZone(id: number, r: TileRect): number {
+    return this.farms.extend(id, r, (x, y) => this.zones.at(x, y) !== undefined);
+  }
+
+  /** Crea un almacén (sin pisar huertos). */
+  createStorageZone(r: TileRect): ReturnType<StorageZones['create']> {
+    return this.zones.create(r, (x, y) => this.farms.at(x, y) !== undefined);
+  }
+
+  extendStorageZone(id: number, r: TileRect): number {
+    return this.zones.extend(id, r, (x, y) => this.farms.at(x, y) !== undefined);
   }
 
   /** Transporte en dos tramos: ir al montón y cogerlo; llevarlo al almacén o al plano y dejarlo. */
@@ -413,6 +457,7 @@ export class World implements JobContext {
       c.path = path ?? [];
     }
     this.zones.prune();
+    this.farms.prune();
   }
 
   /** Aparta a un colono a la casilla libre más cercana (cuando se levanta un muro donde está). */

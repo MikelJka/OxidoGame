@@ -9,8 +9,10 @@ import { canDesignate, TileRect } from '../sim/designations';
 import { HARVEST_JOB_NAMES, HarvestJob, MAX_STACK, RESOURCE_NAMES, RESOURCES, ResourceId } from '../data/resources';
 import { WorkType } from '../data/work';
 import { BuildingDef, buildingDef } from '../data/buildings';
-import { canZone, STORAGE_PRIORITY_NAMES, StorageZone } from '../sim/zones';
+import { canZone, STORAGE_PRIORITY_NAMES } from '../sim/zones';
 import { PlaceShape, Structure, Structures } from '../sim/structures';
+import { fertilityAt, plantStage } from '../sim/farming';
+import { CropDef } from '../data/crops';
 import { drawBuilding, faceHeight, wallHeight } from './buildArt';
 import { canvasPropRasterizer, paintGround, PropRasterizer, TILE } from './mapArt';
 import { LIFT, liftOf, occludedFraction, pickTile, rowY, setTilt, TILE_H, tiltIndex, TILTS, TOP_MARGIN } from './projection';
@@ -30,10 +32,12 @@ const ZONE_DEPTH = -0.5;
  * Modo de órdenes: designar un trabajo, quitar designaciones, marcar o quitar almacenes,
  * colocar planos (la construcción elegida está en `buildDefId`) o quitarlos. null = ninguno.
  */
-export type DesignMode = HarvestJob | 'cancelar' | 'almacen' | 'quitarAlmacen' | 'construir' | 'quitarPlano' | null;
+export type DesignMode = HarvestJob | 'cancelar' | 'almacen' | 'cultivo' | 'quitarAlmacen' | 'construir' | 'quitarPlano' | null;
 
 /** Color de cada trabajo y modo en las marcas y en la vista previa del área. */
-export const DESIGN_COLORS: Record<WorkType | 'cancelar' | 'almacen' | 'quitarAlmacen' | 'quitarPlano', number> = {
+export const DESIGN_COLORS: Record<WorkType | 'cancelar' | 'almacen' | 'cultivo' | 'quitarAlmacen' | 'quitarPlano', number> = {
+  cultivar: 0x8fc060,
+  cultivo: 0x8fc060,
   talar: 0x9bc45a,
   minar: 0x8fb4d8,
   saquear: 0xe0913a,
@@ -113,6 +117,11 @@ export class WorldScene extends Phaser.Scene {
   private carrySprites = new Map<number, Phaser.GameObjects.Image>();
   /** Almacén cuyo panel está abierto (se resalta). */
   selectedZoneId: number | null = null;
+  /** Huerto cuyo panel está abierto. */
+  selectedFarmId: number | null = null;
+  private farmVersion = -1;
+  private plantSprites: Phaser.GameObjects.Image[] = [];
+  private plantsVersion = -1;
   /** Punto del mundo bajo el centro de los dos dedos al empezar el gesto (para moverse con dos dedos). */
   private pinchAnchor = new Phaser.Math.Vector2();
   private uiTimer = 0;
@@ -144,6 +153,10 @@ export class WorldScene extends Phaser.Scene {
     this.structSprites = [];
     this.carrySprites.clear();
     this.selectedZoneId = null;
+    this.selectedFarmId = null;
+    this.farmVersion = -1;
+    this.plantSprites = [];
+    this.plantsVersion = -1;
     this.designStart = null;
     this.designEnd = null;
     this.view = rotateMap(this.map, this.rotation);
@@ -179,6 +192,7 @@ export class WorldScene extends Phaser.Scene {
     this.syncDesignations();
     this.syncZones();
     this.syncStructures();
+    this.syncPlants();
     this.drawSelection();
     this.uiTimer += delta;
     if (this.uiTimer >= UI_EMIT_MS) {
@@ -325,6 +339,7 @@ export class WorldScene extends Phaser.Scene {
     this.designVersion = -1;
     this.zoneVersion = -1;
     this.structVersion = -1;
+    this.plantsVersion = -1;
     this.drawDesignPreview();
   }
 
@@ -521,7 +536,10 @@ export class WorldScene extends Phaser.Scene {
 
   select(id: number | null): void {
     if (id !== null && this.designMode) this.setDesignMode(null); // elegir un colono sale del modo de órdenes
-    if (id !== null) this.selectZone(null);
+    if (id !== null) {
+      this.selectZone(null);
+      this.selectFarm(null);
+    }
     this.selectedId = id;
     this.game.events.emit('selection', this.selected());
   }
@@ -556,7 +574,9 @@ export class WorldScene extends Phaser.Scene {
       // Sin colono elegido, tocar un almacén abre su panel (filtro y prioridad).
       const t = this.pickRealTile(world.x, world.y);
       const z = t ? this.world.zones.at(t.x, t.y) : undefined;
+      const f = t ? this.world.farms.at(t.x, t.y) : undefined;
       this.selectZone(z ? z.id : null);
+      this.selectFarm(f ? f.id : null);
       return;
     }
     const tile = this.pickRealTile(world.x, world.y);
@@ -638,6 +658,7 @@ export class WorldScene extends Phaser.Scene {
     if (mode) {
       this.select(null);
       this.selectZone(null);
+      this.selectFarm(null);
     }
     this.game.events.emit('design-mode', mode);
   }
@@ -663,15 +684,24 @@ export class WorldScene extends Phaser.Scene {
     if (mode === 'almacen') {
       const start = this.designStart ? this.world.zones.at(this.designStart.x, this.designStart.y) : undefined;
       if (start) {
-        const n = this.world.zones.extend(start.id, r);
+        const n = this.world.extendStorageZone(start.id, r);
         toast(n > 0 ? `${start.name}: +${n} casillas` : 'Ahí no se puede ampliar');
       } else {
-        const z = this.world.zones.create(r);
+        const z = this.world.createStorageZone(r);
         toast(z ? `${z.name} creado (${z.tiles.size} casillas) · tócalo para el filtro y la prioridad` : 'Ahí no se puede guardar nada');
       }
+    } else if (mode === 'cultivo') {
+      const start = this.designStart ? this.world.farms.at(this.designStart.x, this.designStart.y) : undefined;
+      if (start) {
+        const n = this.world.extendGrowZone(start.id, r);
+        toast(n > 0 ? `${start.name}: +${n} casillas` : 'Ahí no se puede ampliar');
+      } else {
+        const z = this.world.createGrowZone(r);
+        toast(z ? `${z.name} creado (${z.tiles.size} casillas) · tócalo para elegir qué plantar` : 'Ahí no se puede cultivar (hace falta tierra)');
+      }
     } else if (mode === 'quitarAlmacen') {
-      const n = this.world.zones.removeArea(r);
-      toast(n > 0 ? `Quitadas ${n} casillas de almacén` : 'No había almacén ahí');
+      const n = this.world.zones.removeArea(r) + this.world.farms.removeArea(r);
+      toast(n > 0 ? `Quitadas ${n} casillas de almacenes y huertos` : 'No había zonas ahí');
     } else if (mode === 'construir') {
       const def = buildingDef(this.buildDefId);
       const n = this.world.structures.placeArea(r, def.id, this.buildShape);
@@ -718,8 +748,9 @@ export class WorldScene extends Phaser.Scene {
     const hitAt = (x: number, y: number, edge: boolean): boolean => {
       switch (mode) {
         case 'cancelar': return d.at(x, y) !== undefined;
-        case 'almacen': return canZone(this.map, x, y) && !this.world.zones.at(x, y);
-        case 'quitarAlmacen': return this.world.zones.at(x, y) !== undefined;
+        case 'almacen': return canZone(this.map, x, y) && !this.world.zones.at(x, y) && !this.world.farms.at(x, y);
+        case 'cultivo': return canZone(this.map, x, y) && fertilityAt(this.map, x, y) > 0 && !this.world.zones.at(x, y) && !this.world.farms.at(x, y);
+        case 'quitarAlmacen': return this.world.zones.at(x, y) !== undefined || this.world.farms.at(x, y) !== undefined;
         case 'construir': return (this.buildShape === 'relleno' || edge) && st.canPlace(x, y);
         case 'quitarPlano': return st.at(x, y)?.built === false;
         default: return canDesignate(this.map, x, y, mode);
@@ -790,31 +821,76 @@ export class WorldScene extends Phaser.Scene {
     this.game.events.emit('zone-select', z ?? null);
   }
 
-  /** Rehace el dibujo de los almacenes si han cambiado. */
+  /** Abre (o cierra con null) el panel de un huerto. */
+  selectFarm(id: number | null): void {
+    if (this.selectedFarmId === id) return;
+    this.selectedFarmId = id;
+    this.farmVersion = -1;
+    this.zoneVersion = -1;
+    this.game.events.emit('farm-select', id === null ? null : this.world.farms.get(id) ?? null);
+  }
+
+  refreshFarm(): void {
+    const f = this.selectedFarmId === null ? undefined : this.world.farms.get(this.selectedFarmId);
+    if (!f) this.selectedFarmId = null;
+    this.game.events.emit('farm-select', f ?? null);
+  }
+
+  /** Rehace las plantas de los huertos si han cambiado (sembradas, cosechadas o de otra fase). */
+  private syncPlants(): void {
+    const farms = this.world.farms;
+    if (farms.version === this.plantsVersion) return;
+    this.plantsVersion = farms.version;
+    for (const img of this.plantSprites) img.destroy();
+    this.plantSprites = [];
+    for (const { x, y, plant } of farms.plantList()) {
+      const stage = plantStage(plant);
+      const key = `crop-${plant.crop.id}-${stage}`;
+      if (!this.textures.exists(key)) drawCropTexture(this, key, plant.crop, stage);
+      const v = this.viewTile(x, y);
+      const cx = (v.x + 0.5) * TILE;
+      const bottom = (v.y + 1) * TILE_H - liftOf(this.view, v.x, v.y);
+      const img = this.add.image(cx, bottom, key).setOrigin(0.5, 1);
+      img.setDepth(COLONIST_DEPTH + (v.y + 0.35) / 1000);
+      this.plantSprites.push(img);
+    }
+  }
+
+  /** Rehace el dibujo de almacenes y huertos si han cambiado. */
   private syncZones(): void {
     const zones = this.world.zones;
-    if (zones.version === this.zoneVersion) return;
+    const farms = this.world.farms;
+    if (zones.version === this.zoneVersion && farms.zoneVersion === this.farmVersion) return;
     this.zoneVersion = zones.version;
+    this.farmVersion = farms.zoneVersion;
     const g = this.zoneGfx;
     g.clear();
+    for (const f of farms.all()) {
+      const sel = f.id === this.selectedFarmId;
+      // Surcos: tierra más oscura con el borde verde.
+      g.fillStyle(0x4a3a24, sel ? 0.5 : 0.35);
+      for (const i of f.tiles) this.fillTile(g, i % this.map.width, Math.floor(i / this.map.width), 0.5);
+      g.lineStyle(1, 0x8fc060, sel ? 1 : 0.7);
+      for (const i of f.tiles) this.strokeZoneEdges(g, (x, y) => this.world.farms.at(x, y)?.id === f.id, i % this.map.width, Math.floor(i / this.map.width));
+    }
     for (const z of zones.all()) {
       const sel = z.id === this.selectedZoneId;
       g.fillStyle(ZONE_COLORS[z.priority], sel ? 0.4 : 0.22);
       for (const i of z.tiles) this.fillTile(g, i % this.map.width, Math.floor(i / this.map.width), 0.5);
       // Borde donde la casilla vecina no es de la misma zona.
       g.lineStyle(1, ZONE_COLORS[z.priority], sel ? 1 : 0.7);
-      for (const i of z.tiles) this.strokeZoneEdges(g, z, i % this.map.width, Math.floor(i / this.map.width));
+      for (const i of z.tiles) this.strokeZoneEdges(g, (x, y) => this.world.zones.at(x, y)?.id === z.id, i % this.map.width, Math.floor(i / this.map.width));
     }
   }
 
-  private strokeZoneEdges(g: Phaser.GameObjects.Graphics, z: StorageZone, x: number, y: number): void {
+  private strokeZoneEdges(g: Phaser.GameObjects.Graphics, inZone: (x: number, y: number) => boolean, x: number, y: number): void {
     // Se trabaja en la vista: los lados de la casilla girada.
     const v = this.viewTile(x, y);
     const left = v.x * TILE;
     const top = v.y * TILE_H - liftOf(this.view, v.x, v.y);
     const same = (vx: number, vy: number) => {
       const t = tileFromView(vx, vy, this.map.width, this.map.height, this.rotation);
-      return this.world.zones.at(t.x, t.y)?.id === z.id;
+      return inZone(t.x, t.y);
     };
     g.beginPath();
     if (!same(v.x, v.y - 1)) { g.moveTo(left, top); g.lineTo(left + TILE, top); }
@@ -840,8 +916,10 @@ export class WorldScene extends Phaser.Scene {
       const img = this.add.image(v.x * TILE, top - faceHeight(s.def, LIFT), key).setOrigin(0, 0);
       // Delante de lo que está en su fila y en las de detrás; detrás de lo que está más al sur.
       // Las torres, justo por debajo de los colonos de su fila: quien sube se ve encima.
-      const rowOffset = s.def.category === 'torre' ? 0.3 : 0.99;
-      img.setDepth(COLONIST_DEPTH + (v.y + rowOffset) / 1000);
+      const flat = s.def.height === 0;
+      const rowOffset = s.def.category === 'torre' || flat ? 0.3 : 0.99;
+      // Los suelos van pegados al suelo, debajo de montones y colonos.
+      img.setDepth(s.def.category === 'suelo' ? ZONE_DEPTH - 0.1 : COLONIST_DEPTH + (v.y + rowOffset) / 1000);
       if (!s.built) img.setAlpha(0.45).setTint(0x8fc0ff); // plano: translúcido y azulado
       this.structSprites.push(img);
     }
@@ -941,6 +1019,10 @@ export class WorldScene extends Phaser.Scene {
     if (job) text += ` · orden: ${HARVEST_JOB_NAMES[job].toLowerCase()}`;
     const zone = this.world.zones.at(tile.x, tile.y);
     if (zone) text = `${zone.name} (${STORAGE_PRIORITY_NAMES[zone.priority].toLowerCase()}) · ${text}`;
+    const farm = this.world.farms.at(tile.x, tile.y);
+    const plant = this.world.farms.plantAt(tile.x, tile.y);
+    if (plant) text = `${plant.crop.name} ${plant.growth >= 1 ? 'maduras' : `${Math.floor(plant.growth * 100)} %`} · ${text}`;
+    if (farm) text = `${farm.name} (${farm.crop.name.toLowerCase()}, fertilidad ${Math.round(fertilityAt(this.map, tile.x, tile.y) * 100)} %) · ${text}`;
     const s = this.world.structures.at(tile.x, tile.y);
     if (s) text = `${structureLabel(this.world.structures, s)}${s.built && s.def.sight ? ` (vista ${s.def.sight} casillas)` : ''} · ${text}`;
     this.game.events.emit('tile-info', text);
@@ -1069,6 +1151,25 @@ function drawItemTexture(scene: Phaser.Scene, key: string, r: ResourceId): void 
       px(5, 4, 2, 3, '#d8c27a');
       px(4, 5, 4, 1, '#d8c27a');
       break;
+    case 'patata':
+    case 'maiz':
+    case 'setas': {
+      // Cesto de mimbre con la cosecha encima.
+      const fill = r === 'patata' ? ['#b08a52', '#8a6a3a'] : r === 'maiz' ? ['#e0c040', '#a08a20'] : ['#c8b8a0', '#a85a3a'];
+      px(1, 5, 10, 4, '#1a1410');
+      px(2, 5, 8, 3, '#8a6a3a');
+      for (let x = 2; x < 10; x += 2) px(x, 6, 1, 2, '#6a4e2a');
+      px(2, 2, 8, 3, '#1a1410');
+      for (const [x, y] of [[3, 3], [5, 2], [7, 3], [4, 4], [8, 4]]) px(x, y, 2, 1, fill[(x + y) % 2]);
+      break;
+    }
+    case 'fibra':
+      // Madejas de fibra atadas.
+      px(1, 3, 10, 6, '#1a1410');
+      px(2, 4, 8, 4, '#8ac06a');
+      px(2, 5, 8, 1, '#5a8a44');
+      px(5, 3, 2, 6, '#c8a060');
+      break;
   }
   tex.refresh();
 }
@@ -1098,4 +1199,59 @@ function loadOrNew(save: string, seed: number, game: Phaser.Game): World {
     game.events.emit('load-failed', err instanceof Error ? err.message : String(err));
     return new World({ seed });
   }
+}
+
+/** Dibuja una planta de 16×16 en una de sus fases (0 sembrada … 3 madura). */
+function drawCropTexture(scene: Phaser.Scene, key: string, crop: CropDef, stage: number): void {
+  const tex = scene.textures.createCanvas(key, 16, 16);
+  if (!tex) return;
+  const ctx = tex.getContext();
+  const px = (x: number, y: number, w: number, h: number, color: string) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, w, h);
+  };
+  const { leaf, dark, fruit } = crop.colors;
+  // Montoncito de tierra removida.
+  px(3, 13, 10, 2, '#3a2a1a');
+  px(4, 12, 8, 1, '#5a4228');
+  if (stage === 0) {
+    px(6, 12, 1, 1, '#8a6a40');
+    px(9, 12, 1, 1, '#8a6a40');
+    tex.refresh();
+    return;
+  }
+  if (crop.id === 'setas') {
+    // Setas: pies claros y sombreros que crecen.
+    const caps = stage === 1 ? [[7, 10, 2]] : stage === 2 ? [[5, 9, 3], [9, 10, 2]] : [[3, 7, 4], [8, 8, 4], [6, 10, 3]];
+    for (const [x, y, w] of caps) {
+      px(x + Math.floor(w / 2), y + 1, 1, 12 - y, leaf);
+      px(x, y, w, 2, stage === 3 ? fruit : dark);
+      px(x, y, w, 1, stage === 3 ? '#d08060' : leaf);
+    }
+    tex.refresh();
+    return;
+  }
+  const h = stage === 1 ? 3 : stage === 2 ? 7 : crop.id === 'maiz' || crop.id === 'canamo' ? 12 : 9;
+  // Tallo y hojas alternas.
+  px(7, 13 - h, 2, h, dark);
+  for (let k = 1; k < h; k += 2) {
+    const y = 13 - k;
+    px(k % 4 === 1 ? 4 : 9, y, 3, 1, leaf);
+  }
+  px(6, 13 - h, 4, 1, leaf);
+  if (stage === 3) {
+    if (crop.id === 'maiz') {
+      px(9, 5, 2, 4, fruit);
+      px(5, 7, 2, 3, fruit);
+    } else if (crop.id === 'patata') {
+      px(4, 11, 2, 2, fruit);
+      px(10, 11, 2, 2, fruit);
+      px(6, 4, 1, 1, '#e0e0c0');
+      px(9, 5, 1, 1, '#e0e0c0');
+    } else {
+      px(5, 2, 6, 2, fruit);
+      px(4, 4, 8, 1, fruit);
+    }
+  }
+  tex.refresh();
 }

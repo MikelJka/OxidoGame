@@ -282,7 +282,7 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 #order-modes button[data-mode="almacen"].active { border-color: #d8c27a; color: #d8c27a; }
 #order-modes button[data-mode="quitarAlmacen"].active, #build-modes button[data-mode="quitarPlano"].active { border-color: #d9534f; color: #d9534f; }
 
-#zone-panel {
+#zone-panel, #farm-panel {
   bottom: calc(64px + env(safe-area-inset-bottom));
   left: 8px;
   width: min(320px, calc(100% - 16px));
@@ -314,3 +314,9 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 /* --- Guardado ----------------------------------------------------------------- */
 .save-row { display: flex; flex-wrap: wrap; gap: 4px; }
 .save-row button { flex: 1; font-size: 12px; padding: 4px 6px; }
+#order-modes button[data-mode="cultivo"].active { border-color: #8fc060; color: #8fc060; }
+#fp-crops { display: flex; flex-direction: column; gap: 4px; }
+.crop-btn { text-align: left; font-size: 12px; line-height: 1.4; padding: 6px 8px; }
+.crop-btn span { color: var(--muted); }
+#fp-name { font-size: 15px; }
+.build-group { color: var(--muted); font-size: 11px; margin: 4px 2px 0; text-transform: uppercase; letter-spacing: 1px; }

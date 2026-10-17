@@ -3,6 +3,7 @@
 // lo que ya no existe se descarta y lo nuevo toma su valor por defecto.
 import { SKILLS, Skill, TRAITS } from '../data/colonists';
 import { BUILDINGS } from '../data/buildings';
+import { CROPS, cropDef } from '../data/crops';
 import { RESOURCES, ResourceId } from '../data/resources';
 import { WORK_TYPES, WorkType } from '../data/work';
 import { Colonist, DEFAULT_PRIORITY, WorkPriority } from './colonist';
@@ -41,6 +42,9 @@ export interface SaveData {
   designations: { x: number; y: number; job: string }[];
   zones: { id: number; name: string; priority: number; accepts: Record<string, boolean>; tiles: number[] }[];
   structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number }[];
+  /** Huertos (desde que existe el cultivo; las partidas anteriores no los tienen). */
+  farms?: { id: number; name: string; crop: string; tiles: number[] }[];
+  plants?: { i: number; crop: string; growth: number }[];
 }
 
 interface SavedColonist {
@@ -110,6 +114,8 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     items: world.items.list().map((s) => ({ x: s.x, y: s.y, resource: s.resource, amount: s.amount })),
     designations: world.designations.list().map((d) => ({ ...d })),
     zones: world.zones.all().map((z) => ({ id: z.id, name: z.name, priority: z.priority, accepts: { ...z.accepts }, tiles: [...z.tiles] })),
+    farms: world.farms.all().map((z) => ({ id: z.id, name: z.name, crop: z.crop.id, tiles: [...z.tiles] })),
+    plants: world.farms.plantList().map(({ x, y, plant }) => ({ i: y * m.width + x, crop: plant.crop.id, growth: plant.growth })),
     structures: world.structures.all().map((s) => ({
       def: s.def.id, x: s.x, y: s.y, built: s.built, delivered: { ...s.delivered } as Record<string, number>, progress: s.progress, hp: s.hp,
     })),
@@ -255,6 +261,14 @@ export function loadWorld(input: string | unknown): World {
     const accepts: Partial<Record<ResourceId, boolean>> = {};
     for (const [r, v] of Object.entries(z.accepts ?? {})) if (isResource(r)) accepts[r] = !!v;
     world.zones.restore({ id: num(z.id, 1), name: String(z.name ?? 'Almacén'), priority, accepts, tiles: z.tiles ?? [] });
+  }
+  for (const f of d.farms ?? []) {
+    const crop = cropDef(String(f.crop)) ?? CROPS[0];
+    world.farms.restore({ id: num(f.id, 1), name: String(f.name ?? 'Huerto'), crop, tiles: f.tiles ?? [] });
+  }
+  for (const p of d.plants ?? []) {
+    const crop = cropDef(String(p.crop));
+    if (crop) world.farms.restorePlant(num(p.i, -1), crop, num(p.growth, 0));
   }
   // Colonos que quedaran sobre una casilla que ya no se pisa se apartan.
   for (const c of world.colonists) {
