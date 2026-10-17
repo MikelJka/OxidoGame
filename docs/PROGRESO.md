@@ -2,6 +2,13 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (noche, 17) — Arreglo: la 3D no abría tras publicar una versión nueva (#10)
+
+- Bug del botón 🐞 (#10): «Failed to fetch dynamically imported module …/View3D-….js». La vista 3D se descarga aparte al abrirla; si se publica una versión nueva con la página abierta, el archivo viejo desaparece y falla.
+- Ahora, si pasa eso, se guarda la partida, la página se recarga sola con la versión nueva y se vuelve a abrir la 3D, sin pasar por el menú de inicio («🔄 Versión nueva cargada: sigues donde estabas»). Si vuelve a fallar en menos de un minuto (sin conexión), no recarga otra vez y avisa de que compruebes la conexión. Ya no culpa a la aceleración por hardware de este error.
+- Qué probar: tener el juego abierto en 2D, esperar a que se publique una versión nueva y pulsar «3D»: debe recargar y seguir en 3D con la partida donde estaba.
+- Siguiente: placas solares, molino y máquinas eléctricas (segunda parte de la electricidad).
+
 ## 2026-10-17 (noche, 16) — Electricidad (primera parte)
 
 - Con los números aprobados por Mikel. Nueva pestaña 🏗 → **Electricidad**:

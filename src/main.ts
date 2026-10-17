@@ -121,8 +121,17 @@ async function setView3D(on: boolean): Promise<void> {
         showToast('⚠️ La vista 3D se ha cerrado: el dispositivo se quedó sin memoria gráfica. Sigues en 2D.', 6000);
       };
     } catch (err) {
-      recordError('error', `No se pudo abrir la vista 3D: ${err instanceof Error ? err.message : String(err)}`);
-      showToast(`⚠️ No se pudo abrir la vista 3D: ${err instanceof Error ? err.message : String(err)}. ¿Está activada la aceleración por hardware del navegador?`, 7000);
+      const msg = err instanceof Error ? err.message : String(err);
+      // Si falla la descarga del código de la 3D es que se ha publicado una versión nueva con la
+      // página abierta (el archivo viejo ya no existe): se guarda y se recarga con la versión nueva.
+      if (isStaleChunkError(msg) && reloadForNewVersion()) return;
+      recordError('error', `No se pudo abrir la vista 3D: ${msg}`);
+      showToast(
+        isStaleChunkError(msg)
+          ? '⚠️ No se pudo descargar la vista 3D. Comprueba la conexión y recarga la página.'
+          : `⚠️ No se pudo abrir la vista 3D: ${msg}. ¿Está activada la aceleración por hardware del navegador?`,
+        7000,
+      );
       return;
     }
   }
@@ -145,6 +154,39 @@ async function setView3D(on: boolean): Promise<void> {
     localStorage.setItem(VIEW3D_KEY, on ? '1' : '0');
   } catch {
     // sin almacenamiento: no se recuerda
+  }
+}
+/** Error del navegador al no poder descargar un trozo del juego cargado aparte (Chrome, Firefox, Safari). */
+function isStaleChunkError(msg: string): boolean {
+  return /dynamically imported module|Importing a module script failed|error loading dynamically imported module|Failed to fetch/i.test(msg);
+}
+/** Marca, en esta pestaña, de que se recargó sola para coger una versión nueva. */
+const RELOAD_KEY = 'oxido.recargaVersion';
+/**
+ * Guarda la partida y recarga la página para cargar la versión publicada, y al volver abre la 3D.
+ * Devuelve false si ya se recargó hace menos de un minuto (así nunca se queda recargando sin parar).
+ */
+function reloadForNewVersion(): boolean {
+  try {
+    const last = Number(sessionStorage.getItem(RELOAD_KEY) ?? 0);
+    if (Date.now() - last < 60_000) return false;
+    sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
+    localStorage.setItem(VIEW3D_KEY, '1');
+  } catch {
+    return false; // sin almacenamiento no se puede asegurar que no se repita
+  }
+  saveNow(false);
+  if (saveError) return false; // sin la partida guardada no se recarga
+  showToast('🔄 Hay una versión nueva del juego: guardando y recargando…', 4000);
+  window.setTimeout(() => window.location.reload(), 300);
+  return true;
+}
+/** true si esta carga viene de una recarga automática por versión nueva (hace menos de un minuto). */
+function cameFromVersionReload(): boolean {
+  try {
+    return Date.now() - Number(sessionStorage.getItem(RELOAD_KEY) ?? 0) < 60_000;
+  } catch {
+    return false;
   }
 }
 $('view3d-quick').addEventListener('click', () => void setView3D(!view3d?.active));
@@ -797,8 +839,11 @@ $('main-menu-btn').addEventListener('click', () => {
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && mainMenu.isOpen) mainMenu.close();
 });
-// Al abrir el juego, primero el menú principal (con la partida en pausa detrás).
-if (currentWorld()) mainMenu.open();
+// Al abrir el juego, primero el menú principal (con la partida en pausa detrás), salvo si la página
+// se acaba de recargar sola para coger una versión nueva: entonces se sigue jugando.
+if (cameFromVersionReload()) {
+  window.setTimeout(() => showToast('🔄 Versión nueva cargada: sigues donde estabas.', 4000), 500);
+} else if (currentWorld()) mainMenu.open();
 else game.events.once('map-ready', () => window.setTimeout(() => mainMenu.open(), 0));
 // Para las pruebas automáticas (scripts/smoke.mjs): provocar sucesos sin esperar días.
 (window as unknown as { oxidoPrueba: unknown }).oxidoPrueba = {

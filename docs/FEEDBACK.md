@@ -23,6 +23,8 @@ Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat 
 
 ## Hecho
 
+- [x] **#10 «No se pudo abrir la vista 3D» tras publicar una versión nueva** (2026-10-17, 🐞): con la página abierta desde antes de una publicación, el archivo de la 3D de la versión vieja ya no existía. Ahora el juego guarda la partida, se recarga solo con la versión nueva y vuelve a abrir la 3D, sin pasar por el menú de inicio (como mucho una vez por minuto, para no quedarse recargando).
+
 - [x] **Mobiliario de almacén** (2026-10-17): estanterías, armarios y, ahora, el armero (🏗 → Muebles, 2×1, 🪵15 🔩8): dentro de un almacén guarda solo armas y munición, 30 armas o 300 flechas por casilla.
 
 - [x] **#9 Óscar encerrado otra vez y la 3D que se cae en el móvil** (2026-10-17, 🐞): no se pudo saber qué lo encerró (la partida no viene en el aviso). Ahora, cada 10 minutos de juego, quien solo llegue a unas pocas casillas sale solo a la más cercana desde la que se llega lejos («🧗 … sale como puede» en el diario), y el aviso de 🐞 dice qué lo rodeaba para encontrar la causa. Si el móvil se queda sin memoria gráfica en 3D, se vuelve a la 2D con un aviso (y la 3D se dibuja a menos resolución en pantallas pequeñas).
