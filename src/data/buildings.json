@@ -102,6 +102,40 @@
     }
   },
   {
+    "id": "muro_metal",
+    "name": "Muro de metal",
+    "category": "muro",
+    "cost": {
+      "metal": 4
+    },
+    "work": 450,
+    "hp": 700,
+    "blocks": true,
+    "height": 1,
+    "colors": {
+      "top": "#9aa3ab",
+      "face": "#6e767e",
+      "dark": "#3f454b"
+    }
+  },
+  {
+    "id": "muro_alto_metal",
+    "name": "Muro alto de metal",
+    "category": "muro",
+    "cost": {
+      "metal": 8
+    },
+    "work": 800,
+    "hp": 1400,
+    "blocks": true,
+    "height": 2,
+    "colors": {
+      "top": "#9aa3ab",
+      "face": "#6e767e",
+      "dark": "#3f454b"
+    }
+  },
+  {
     "id": "porton_madera",
     "name": "Portón de madera",
     "category": "porton",
@@ -235,6 +269,26 @@
     "moveCost": 1.5
   },
   {
+    "id": "torre_metal",
+    "name": "Torre de vigía de metal",
+    "category": "torre",
+    "cost": {
+      "metal": 16,
+      "componentes": 2
+    },
+    "work": 1000,
+    "hp": 1100,
+    "blocks": false,
+    "height": 3,
+    "sight": 11,
+    "colors": {
+      "top": "#9aa3ab",
+      "face": "#6e767e",
+      "dark": "#3f454b"
+    },
+    "moveCost": 1.5
+  },
+  {
     "id": "barricada_madera",
     "name": "Barricada de madera",
     "category": "defensa",
@@ -358,6 +412,35 @@
       "top": "#8a6a4a",
       "face": "#5a6b4a",
       "dark": "#3a2a1c"
+    }
+  },
+  {
+    "id": "horno_fundicion",
+    "name": "Horno de fundición",
+    "category": "produccion",
+    "cost": {
+      "piedra": 25,
+      "chatarra": 10
+    },
+    "work": 600,
+    "hp": 400,
+    "blocks": true,
+    "height": 1,
+    "colors": {
+      "top": "#8a6f5c",
+      "face": "#5c4a3e",
+      "dark": "#33281f"
+    },
+    "recipe": {
+      "name": "Fundir chatarra",
+      "verb": "Fundiendo",
+      "input": {
+        "chatarra": 3,
+        "madera": 1
+      },
+      "output": "metal",
+      "amount": 1,
+      "work": 300
     }
   }
 ]

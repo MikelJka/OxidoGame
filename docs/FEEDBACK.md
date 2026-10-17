@@ -5,12 +5,13 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 ## Pendiente
 
 - [ ] **Mobiliario de almacén** (2026-10-17): estanterías, armarios y soportes de pared (p. ej. armeros para armas). Fase 3.
-- [ ] **Materiales nuevos, como el metal** (2026-10-17): para muros y torres más resistentes. Fase 3.
 - [ ] **Defensas: zanjas** (2026-10-17): los pinchos y las barricadas ya están; las zanjas van con el trabajo de terreno. Fase 3.
 
 - [ ] **Máquinas que generan recursos: canteras y recicladoras** (2026-10-17): para cuando se acaben la piedra y la chatarra iniciales del mapa. Van en la fase 3 (construcción), en el roadmap.
 
 ## Hecho
+
+- [x] **Materiales nuevos: el metal** (2026-10-17): 🏗 → Producción → 🔥 Horno de fundición. Los colonos (trabajo nuevo «fabricar») le llevan 🔩3 de chatarra y 🪵1 de madera y sacan ⛓️1 de metal. Al tocar el horno: parar o encender y hasta cuánto metal (10, 30, 100 o sin límite). Con el metal: muro de metal, muro alto de metal y torre de vigía de metal, los más resistentes. El hormigón llegará más adelante.
 
 - [x] **#4 Reclutar colonos y darles órdenes concretas** (2026-10-17): 🎖 Reclutar (o tecla G) en la ficha: deja de trabajar y deambular y solo obedece. Grupo: 👥 en la lista, o mantener pulsado un nombre (Mayús+clic en PC); tocar el suelo los manda juntos, cada uno a una casilla. Con un colono elegido, tocar algo con trabajo (un árbol, roca, plano, cosecha madura, obra) hace que lo haga ya, aunque esté reclutado. En la ficha, prioridades de cada trabajo (1 primero … 4, — no lo hace).
 - [x] **#5 Demoler construcciones** (2026-10-17): 🏗 → ⛏ Demoler y arrastrar. Un colono la derriba y se recupera la mitad del material; en un plano, se quita y se devuelve todo lo llevado.

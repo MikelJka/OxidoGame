@@ -19,6 +19,7 @@ import { CROPS } from './data/crops';
 import type { GrowZone } from './sim/farming';
 import { BUILDING_CATEGORY_NAMES, BUILDINGS, buildingDef } from './data/buildings';
 import { STORAGE_PRIORITIES, STORAGE_PRIORITY_NAMES, StorageZone } from './sim/zones';
+import { STATION_TARGETS, type Structure } from './sim/structures';
 import type { DesignMode } from './render/WorldScene';
 import type { Stockpile } from './sim/resources';
 import './style.css';
@@ -419,6 +420,57 @@ game.events.on('zone-select', (z: StorageZone | null) => {
       return b;
     }),
   );
+});
+
+// --- Panel de una estación de trabajo (horno…): encender, parar y objetivo ------
+const stationPanel = $('station-panel');
+const spActive = $('sp-active');
+const spTarget = $('sp-target');
+$('sp-close').addEventListener('click', () => scene().selectStation(null));
+$('sp-demolish').addEventListener('click', () => {
+  const s = scene();
+  const st = s.selectedStation;
+  if (st) s.world.structures.markDemolish(st.x, st.y, !st.demolish);
+  s.refreshStation();
+});
+game.events.on('station-select', (st: Structure | null) => {
+  stationPanel.hidden = !st || !st.station || !st.def.recipe;
+  if (!st || !st.station || !st.def.recipe) return;
+  const r = st.def.recipe;
+  const station = st.station;
+  const icons = (cost: Partial<Record<(typeof RESOURCES)[number], number>>) =>
+    RESOURCES.filter((k) => cost[k]).map((k) => `${RESOURCE_ICONS[k]}${cost[k]}`).join(' ');
+  const have = scene().world.inventory()[r.output];
+  $('sp-name').textContent = `🔥 ${st.def.name}`;
+  $('sp-sub').textContent = `Hay ${have} de ${RESOURCE_NAMES[r.output].toLowerCase()} · lo hacen los colonos con el trabajo «fabricar»`;
+  const loaded = icons(station.loaded);
+  $('sp-recipe').textContent = `${r.name}: ${icons(r.input)} → ${RESOURCE_ICONS[r.output]}${r.amount}${loaded ? ` · cargado ${loaded}` : ''}`;
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.textContent = station.active ? '⏸ Parar' : `▶ ${r.verb.replace(/ndo$/, 'r')}`;
+  toggle.classList.toggle('active', station.active);
+  toggle.addEventListener('click', () => {
+    scene().world.structures.setStation(st, !station.active, station.target);
+    scene().refreshStation();
+  });
+  const state = document.createElement('span');
+  state.className = 'muted';
+  state.textContent = station.active ? (station.target && have >= station.target ? 'Objetivo cumplido: espera' : `${r.verb}…`) : 'Parado';
+  spActive.replaceChildren(toggle, state);
+  spTarget.replaceChildren(
+    ...STATION_TARGETS.map((t) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = t === 0 ? '∞ Sin límite' : `${RESOURCE_ICONS[r.output]} ${t}`;
+      b.classList.toggle('active', station.target === t);
+      b.addEventListener('click', () => {
+        scene().world.structures.setStation(st, station.active, t);
+        scene().refreshStation();
+      });
+      return b;
+    }),
+  );
+  $('sp-demolish').textContent = st.demolish ? '↶ No demoler' : '⛏ Demoler';
 });
 
 // --- Información de casilla y avisos -----------------------------------------

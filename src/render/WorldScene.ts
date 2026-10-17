@@ -48,6 +48,7 @@ export const DESIGN_COLORS: Record<WorkType | TerrainJob | 'cancelar' | 'almacen
   saquear: 0xe0913a,
   transportar: 0xd8c27a,
   construir: 0x6fa8dc,
+  fabricar: 0xe07a3a,
   cancelar: 0xd9534f,
   almacen: 0xd8c27a,
   quitarAlmacen: 0xd9534f,
@@ -125,6 +126,8 @@ export class WorldScene extends Phaser.Scene {
   private carrySprites = new Map<number, Phaser.GameObjects.Image>();
   /** Almacén cuyo panel está abierto (se resalta). */
   selectedZoneId: number | null = null;
+  /** Estación de trabajo (horno…) cuyo panel está abierto. */
+  selectedStation: Structure | null = null;
   /** Huerto cuyo panel está abierto. */
   selectedFarmId: number | null = null;
   private farmVersion = -1;
@@ -162,6 +165,7 @@ export class WorldScene extends Phaser.Scene {
     this.carrySprites.clear();
     this.selectedZoneId = null;
     this.selectedFarmId = null;
+    this.selectedStation = null;
     this.farmVersion = -1;
     this.plantSprites = [];
     this.plantsVersion = -1;
@@ -562,6 +566,7 @@ export class WorldScene extends Phaser.Scene {
     if (id !== null) {
       this.selectZone(null);
       this.selectFarm(null);
+      this.selectStation(null);
     }
     this.selectedId = id;
     this.extraIds.clear();
@@ -646,6 +651,15 @@ export class WorldScene extends Phaser.Scene {
     if (this.selectedId === null) {
       // Sin colono elegido, tocar un almacén abre su panel (filtro y prioridad).
       const t = this.pickRealTile(world.x, world.y);
+      // Una estación de trabajo (horno…) abre su panel: qué fabrica y hasta cuánto.
+      const st = t ? this.world.structures.at(t.x, t.y) : undefined;
+      if (st?.station) {
+        this.selectZone(null);
+        this.selectFarm(null);
+        this.selectStation(st);
+        return;
+      }
+      this.selectStation(null);
       const z = t ? this.world.zones.at(t.x, t.y) : undefined;
       const f = t ? this.world.farms.at(t.x, t.y) : undefined;
       this.selectZone(z ? z.id : null);
@@ -742,6 +756,7 @@ export class WorldScene extends Phaser.Scene {
       this.select(null);
       this.selectZone(null);
       this.selectFarm(null);
+      this.selectStation(null);
     }
     this.game.events.emit('design-mode', mode);
   }
@@ -929,6 +944,20 @@ export class WorldScene extends Phaser.Scene {
     const z = this.selectedZoneId === null ? undefined : this.world.zones.get(this.selectedZoneId);
     if (!z) this.selectedZoneId = null;
     this.game.events.emit('zone-select', z ?? null);
+  }
+
+  /** Abre (o cierra con null) el panel de una estación de trabajo. */
+  selectStation(s: Structure | null): void {
+    if (this.selectedStation === s) return;
+    this.selectedStation = s;
+    this.game.events.emit('station-select', s);
+  }
+
+  /** Avisa a la interfaz de que la estación abierta ha cambiado (o ya no existe). */
+  refreshStation(): void {
+    const s = this.selectedStation;
+    if (s && this.world.structures.at(s.x, s.y) !== s) this.selectedStation = null;
+    this.game.events.emit('station-select', this.selectedStation);
   }
 
   /** Abre (o cierra con null) el panel de un huerto. */
@@ -1304,6 +1333,11 @@ function drawItemTexture(scene: Phaser.Scene, key: string, r: ResourceId): void 
 
 /** Texto de una construcción o plano para la información de casilla. */
 function structureLabel(st: Structures, s: Structure): string {
+  if (s.built && s.station && s.def.recipe) {
+    const r = s.def.recipe;
+    const state = s.station.active ? `${r.name.toLowerCase()}${s.station.target ? ` hasta ${s.station.target}` : ''}` : 'parado';
+    return `${s.def.name} (${state}) · toca para cambiarlo`;
+  }
   if (s.built) return s.def.name;
   const needs = st.needs(s);
   const parts = RESOURCES.filter((r) => (s.def.cost[r] ?? 0) > 0).map(

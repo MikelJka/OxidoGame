@@ -1,7 +1,7 @@
 /** Recursos de la colonia y trabajos para obtenerlos del mapa. Ampliar aquí, no en la lógica. */
 import type { Skill } from './colonists';
 
-export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra'] as const;
+export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'metal', 'patata', 'maiz', 'setas', 'fibra'] as const;
 
 export type ResourceId = (typeof RESOURCES)[number];
 
@@ -10,6 +10,7 @@ export const RESOURCE_NAMES: Record<ResourceId, string> = {
   piedra: 'Piedra',
   chatarra: 'Chatarra',
   componentes: 'Componentes',
+  metal: 'Metal',
   patata: 'Patatas',
   maiz: 'Maíz',
   setas: 'Setas',
@@ -27,6 +28,7 @@ export const RESOURCE_ICONS: Record<ResourceId, string> = {
   piedra: '🪨',
   chatarra: '🔩',
   componentes: '⚙️',
+  metal: '⛓️',
   patata: '🥔',
   maiz: '🌽',
   setas: '🍄',
@@ -67,6 +69,7 @@ export const MAX_STACK: Record<ResourceId, number> = {
   piedra: 50,
   chatarra: 75,
   componentes: 25,
+  metal: 50,
   patata: 75,
   maiz: 75,
   setas: 75,

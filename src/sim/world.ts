@@ -4,7 +4,7 @@ import { findPath, isWalkable, Point } from './pathfinding';
 import { Rng } from './rng';
 import { GroundItems } from './items';
 import { Designations } from './designations';
-import { canWorkFrom, findJob, findJobAt, isBeside, JOB_PATH_NODES, JobContext, reservePlan, Reservations, sideTiles, workSpeed } from './jobs';
+import { canWorkFrom, findJob, findJobAt, isBeside, stationWantsWork, JOB_PATH_NODES, JobContext, reservePlan, Reservations, sideTiles, workSpeed } from './jobs';
 import { harvestAt, harvestTile, Stockpile } from './resources';
 import { StorageZones } from './zones';
 import { GrowZones } from './farming';
@@ -245,7 +245,7 @@ export class World implements JobContext {
 
   /** Busca trabajo (si toca) y lo empieza. true si ahora tiene uno. */
   private tryStartJob(c: Colonist): boolean {
-    if (this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0) return false;
+    if (this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0 && this.structures.stations().length === 0) return false;
     if (this.tick < (this.nextJobScan.get(c.id) ?? 0)) return false;
     const plan = findJob(this, c);
     if (!plan || !reservePlan(this.reservations, c, plan.job)) {
@@ -287,6 +287,17 @@ export class World implements JobContext {
       }
       return true;
     }
+    if (j.kind === 'fabricar') {
+      const s = this.structures.at(j.x, j.y);
+      if (!s || !s.built || !s.station || s.demolish) return false;
+      if (h) {
+        if (h.picked) return true;
+        const st = this.items.at(h.from.x, h.from.y);
+        return !!st && st.resource === h.resource && (this.structures.stationNeeds(s)[h.resource] ?? 0) > 0 && stationWantsWork(s, this.inventory());
+      }
+      // La tanda empezada se termina aunque se pare la estación o se llegue al objetivo.
+      return Object.keys(this.structures.stationNeeds(s)).length === 0;
+    }
     if (j.kind === 'terreno') {
       return this.terrain.at(j.x, j.y) === j.terrain && !terrainBlocker(this.map, j.x, j.y, j.terrain!, !!this.structures.at(j.x, j.y));
     }
@@ -322,7 +333,8 @@ export class World implements JobContext {
       return;
     }
     const building = j.kind === 'construir';
-    const inPlace = building ? isBeside(c.tile, j.x, j.y) : canWorkFrom(this.map, c.tile, j.x, j.y);
+    const crafting = j.kind === 'fabricar';
+    const inPlace = building || crafting ? isBeside(c.tile, j.x, j.y) : canWorkFrom(this.map, c.tile, j.x, j.y);
     if (!inPlace) {
       const path = findPath(this.map, c.tile, j.stand, JOB_PATH_NODES);
       if (!path || path.length === 0) {
@@ -340,6 +352,16 @@ export class World implements JobContext {
     if (building && j.demolish) {
       if (j.progress >= j.work) {
         this.demolishStructure(this.structures.at(j.x, j.y)!);
+        this.dropJob(c);
+      }
+      return;
+    }
+    if (crafting) {
+      const s = this.structures.at(j.x, j.y)!;
+      s.station!.progress = Math.min(j.progress, j.work);
+      if (j.progress >= j.work) {
+        const made = this.structures.finishBatch(s);
+        if (made) this.items.drop(s.x, s.y, made.resource, made.amount);
         this.dropJob(c);
       }
       return;
@@ -444,7 +466,7 @@ export class World implements JobContext {
       let left = load.amount;
       if (h.toBlueprint) {
         const s = this.structures.at(h.to.x, h.to.y);
-        if (s) left -= this.structures.deliver(s, load.resource, left);
+        if (s) left -= this.structures.supply(s, load.resource, left);
       } else {
         left = this.items.addAt(h.to.x, h.to.y, load.resource, left);
       }
@@ -572,6 +594,7 @@ export class World implements JobContext {
     if (this.designations.at(x, y) || this.terrain.at(x, y)) return true;
     const s = this.structures.at(x, y);
     if (s && (!s.built || s.demolish)) return true;
+    if (s?.station && stationWantsWork(s, this.inventory())) return true;
     if ((this.farms.plantAt(x, y)?.growth ?? 0) >= 1) return true;
     // Un árbol, roca o coche que corta el paso: tocarlo es pedir que se aproveche.
     const h = harvestAt(this.map, x, y);

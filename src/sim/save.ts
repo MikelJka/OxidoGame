@@ -42,7 +42,10 @@ export interface SaveData {
   items: { x: number; y: number; resource: string; amount: number }[];
   designations: { x: number; y: number; job: string }[];
   zones: { id: number; name: string; priority: number; accepts: Record<string, boolean>; tiles: number[] }[];
-  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number; demolish?: boolean }[];
+  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number; demolish?: boolean;
+    /** Estaciones de trabajo (desde que existe el horno): si fabrica, hasta cuánto y lo cargado. */
+    station?: { active: boolean; target: number; loaded: Record<string, number>; progress: number };
+  }[];
   /** Obras de terreno pendientes (desde que existen). */
   terrain?: { x: number; y: number; job: string }[];
   /** Huertos (desde que existe el cultivo; las partidas anteriores no los tienen). */
@@ -124,6 +127,9 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     structures: world.structures.all().map((s) => ({
       def: s.def.id, x: s.x, y: s.y, built: s.built, delivered: { ...s.delivered } as Record<string, number>, progress: s.progress, hp: s.hp,
       demolish: s.demolish || undefined,
+      station: s.station
+        ? { active: s.station.active, target: s.station.target, loaded: { ...s.station.loaded } as Record<string, number>, progress: s.station.progress }
+        : undefined,
     })),
     terrain: world.terrain.list().map((o) => ({ ...o })),
   };
@@ -248,6 +254,13 @@ export function loadWorld(input: string | unknown): World {
     for (const [r, n] of Object.entries(s.delivered ?? {})) if (isResource(r)) delivered[r] = num(n, 0);
     world.structures.restore(def, s.x, s.y, !!s.built, delivered, num(s.progress, 0), num(s.hp, def.hp));
     if (s.demolish) world.structures.markDemolish(s.x, s.y);
+    const st = world.structures.at(s.x, s.y)?.station;
+    if (st && s.station) {
+      st.active = s.station.active !== false;
+      st.target = Math.max(0, Math.floor(num(s.station.target, st.target)));
+      for (const [r, n] of Object.entries(s.station.loaded ?? {})) if (isResource(r)) st.loaded[r] = Math.max(0, Math.floor(num(n, 0)));
+      st.progress = Math.max(0, num(s.station.progress, 0));
+    }
   }
   for (const sc of d.colonists ?? []) world.colonists.push(restoreColonist(sc));
   for (const it of d.items ?? []) {

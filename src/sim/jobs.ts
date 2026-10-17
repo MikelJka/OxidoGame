@@ -8,7 +8,7 @@ import { Designations } from './designations';
 import { GroundItems } from './items';
 import { GameMap, index, isPassable, PROP_INFO, Prop } from './map';
 import { findPath, Point } from './pathfinding';
-import { harvestAt } from './resources';
+import { harvestAt, Stockpile } from './resources';
 import { Structure, Structures } from './structures';
 import { StorageZones } from './zones';
 import { GrowZones } from './farming';
@@ -82,6 +82,8 @@ export interface JobContext {
   structures: Structures;
   farms: GrowZones;
   terrain: TerrainOrders;
+  /** Lo que tiene la colonia (para saber si una estación ya ha llegado a su objetivo). */
+  inventory(): Stockpile;
 }
 
 /** Casillas desde las que se puede trabajar un objeto: la suya si se pisa, si no las de los lados. */
@@ -228,9 +230,9 @@ function haulCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   return out;
 }
 
-/** Montón más cercano a `near` de alguno de los recursos que pide un plano. */
+/** Montón más cercano a `near` de alguno de los recursos que pide un plano (o una estación). */
 function nearestMaterial(ctx: JobContext, s: Structure, near: Point): { x: number; y: number; resource: ResourceId; amount: number } | null {
-  const needs = ctx.structures.needs(s);
+  const needs = ctx.structures.wants(s);
   let best: { x: number; y: number; resource: ResourceId; amount: number } | null = null;
   let bestDist = Infinity;
   for (const st of ctx.items.list()) {
@@ -294,6 +296,53 @@ function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   return out;
 }
 
+/** ¿Tiene que fabricar esta estación? Encendida y sin llegar a su objetivo. */
+export function stationWantsWork(s: Structure, inventory: Stockpile): boolean {
+  const st = s.station;
+  const recipe = s.def.recipe;
+  if (!st || !recipe || !st.active || s.demolish) return false;
+  return st.target === 0 || inventory[recipe.output] < st.target;
+}
+
+/** Estaciones de trabajo: llevarles ingredientes y, con todo cargado, fabricar una tanda. */
+function craftCandidates(ctx: JobContext, c: Colonist): Candidate[] {
+  if (c.priorities.fabricar === 0) return [];
+  const stations = ctx.structures.stations();
+  if (stations.length === 0) return [];
+  const inventory = ctx.inventory();
+  const out: Candidate[] = [];
+  for (const s of stations) {
+    if (!stationWantsWork(s, inventory)) continue;
+    const holder = ctx.reservations.holder(s.x, s.y);
+    if (holder !== undefined && holder !== c.id) continue;
+    out.push({
+      kind: 'fabricar', x: s.x, y: s.y, dist: manhattan(c.tile, s.x, s.y),
+      make: () => {
+        const sides = sideTiles(ctx.map, s.x, s.y);
+        if (Object.keys(ctx.structures.stationNeeds(s)).length > 0) {
+          const mat = nearestMaterial(ctx, s, c.tile);
+          if (!mat) return null;
+          const route = pathToNearest(ctx.map, c.tile, [{ x: mat.x, y: mat.y }]);
+          if (!route) return null;
+          if (!pathToNearest(ctx.map, { x: mat.x, y: mat.y }, sides)) return null;
+          return {
+            job: {
+              kind: 'fabricar', x: s.x, y: s.y, stand: route.stand, progress: 0, work: 0,
+              haul: { resource: mat.resource, amount: mat.amount, from: { x: mat.x, y: mat.y }, to: { x: s.x, y: s.y }, toBlueprint: true, picked: false },
+            },
+            path: route.path,
+          };
+        }
+        const here = isBeside(c.tile, s.x, s.y);
+        const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, sides);
+        if (!route) return null;
+        return { job: { kind: 'fabricar', x: s.x, y: s.y, stand: route.stand, progress: s.station!.progress, work: s.def.recipe!.work }, path: route.path };
+      },
+    });
+  }
+  return out;
+}
+
 function farmCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   if (c.priorities.cultivar === 0) return [];
   const out: Candidate[] = [];
@@ -350,7 +399,7 @@ function terrainCandidates(ctx: JobContext, c: Colonist): Candidate[] {
  */
 export function findJob(ctx: JobContext, c: Colonist): JobPlan | null {
   const all = [
-    ...buildCandidates(ctx, c), ...farmCandidates(ctx, c), ...terrainCandidates(ctx, c),
+    ...buildCandidates(ctx, c), ...craftCandidates(ctx, c), ...farmCandidates(ctx, c), ...terrainCandidates(ctx, c),
     ...harvestCandidates(ctx, c), ...haulCandidates(ctx, c),
   ];
   const byPriority = new Map<number, Candidate[]>();
@@ -381,7 +430,7 @@ export function findJobAt(ctx: JobContext, c: Colonist, x: number, y: number): J
   // Para una orden directa vale cualquier tipo de trabajo, aunque tenga la prioridad a 0.
   const forced: Colonist = { ...c, priorities: Object.fromEntries(WORK_TYPES.map((w) => [w, 1])) as Colonist['priorities'] };
   const all = [
-    ...buildCandidates(ctx, forced), ...farmCandidates(ctx, forced), ...terrainCandidates(ctx, forced),
+    ...buildCandidates(ctx, forced), ...craftCandidates(ctx, forced), ...farmCandidates(ctx, forced), ...terrainCandidates(ctx, forced),
     ...harvestCandidates(ctx, forced),
   ].filter((k) => k.x === x && k.y === y);
   for (const cand of all) {

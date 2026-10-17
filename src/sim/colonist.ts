@@ -126,7 +126,7 @@ export function activityLabel(c: Colonist): string {
     case 'moving': return 'Yendo a una orden';
     case 'toJob':
       if (!c.job) return 'Yendo a trabajar';
-      if (c.job.haul) return c.job.haul.picked ? (c.job.haul.toBlueprint ? 'Llevando material a un plano' : 'Llevando al almacén') : 'Yendo a recoger';
+      if (c.job.haul) return c.job.haul.picked ? (c.job.kind === 'fabricar' ? 'Llevando material a la estación' : c.job.haul.toBlueprint ? 'Llevando material a un plano' : 'Llevando al almacén') : 'Yendo a recoger';
       return `Yendo a ${WORK_NAMES[c.job.kind].toLowerCase()}`;
     case 'working': {
       if (!c.job) return 'Trabajando';

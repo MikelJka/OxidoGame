@@ -53,8 +53,8 @@ Terminado: diseño un refugio cerrado y los colonos lo construyen con recursos.
 - [x] Construcción como trabajo que consume recursos
 - [ ] Habitaciones cerradas detectadas (para ánimo y temperatura futura)
 - [ ] Máquinas de producción: cantera (piedra) y recicladora (chatarra a partir de basura y restos), para cuando se agoten los del mapa
-- [ ] Materiales: metal (fundiendo chatarra) y hormigón, además de madera, piedra y chatarra
-- [x] Muros altos para perímetros y torres de vigía (madera, piedra y chatarra; las de metal, con el metal)
+- [ ] Materiales: metal (hecho: horno de fundición, muros y torre de metal) y hormigón, además de madera, piedra y chatarra
+- [x] Muros altos para perímetros y torres de vigía (madera, piedra, chatarra y metal)
 - [ ] Defensas: pinchos y barricadas (hechos); zanjas (con el trabajo de terreno)
 - [ ] Mobiliario de almacén: estanterías, armarios y armeros de pared
 - [x] Terreno: aplanar y subir o bajar el nivel de las casillas (trabajo de los colonos) y rampas en los acantilados

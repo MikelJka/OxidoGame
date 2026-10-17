@@ -282,7 +282,7 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 #order-modes button[data-mode="almacen"].active { border-color: #d8c27a; color: #d8c27a; }
 #order-modes button[data-mode="quitarAlmacen"].active, #build-modes button[data-mode="quitarPlano"].active { border-color: #d9534f; color: #d9534f; }
 
-#zone-panel, #farm-panel {
+#zone-panel, #farm-panel, #station-panel {
   bottom: calc(64px + env(safe-area-inset-bottom));
   left: 8px;
   width: min(320px, calc(100% - 16px));
@@ -296,7 +296,8 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 #zp-name { font-size: 15px; }
 .zp-label { color: var(--muted); font-size: 12px; margin-top: 4px; }
 .zp-row { display: flex; flex-wrap: wrap; gap: 4px; }
-.zp-row button { font-size: 12px; padding: 4px 8px; }
+.zp-row button { font-size: 12px; padding: 4px 8px; min-height: 36px; }
+#sp-name { font-size: 15px; }
 #order-modes button[data-mode="talar"].active { border-color: #9bc45a; color: #9bc45a; }
 #order-modes button[data-mode="minar"].active { border-color: #8fb4d8; color: #8fb4d8; }
 #order-modes button[data-mode="saquear"].active { border-color: #e0913a; color: #e0913a; }

@@ -2,6 +2,19 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (noche, 9) — Metal: horno de fundición y muros de metal
+
+- Sin incidencias nuevas de 🐞. Tarea elegida de `FEEDBACK.md`: materiales nuevos, empezando por el metal.
+- **Recurso nuevo: metal ⛓️** (sale en el inventario cuando hay).
+- **Horno de fundición** (🏗 → Producción; 🪨25 🔩10): primera estación de trabajo (`recipe` en `buildings.json`, estado en `Structure.station`, con tests en `tests/production.test.ts`). Trabajo nuevo **«fabricar»** (habilidad Construcción) en las prioridades de cada colono: le llevan 🔩3 de chatarra y 🪵1 de madera (combustible) y, con todo cargado, funden una tanda (10 s a x1) que deja ⛓️1 junto al horno; el transporte lo lleva al almacén.
+- **Panel del horno**: sin colono elegido, tocar el horno abre su panel: ⏸ Parar / ▶ Fundir, fabricar hasta tener 10, 30 (por defecto), 100 o ∞ de metal, lo cargado y ⛏ Demoler. Al demolerlo se recupera lo cargado. Con un colono elegido, tocar el horno le manda fundir ya.
+- **Con metal**: muro de metal (⛓️4, resistencia 700), muro alto de metal (⛓️8, 1400) y torre de vigía de metal (⛓️16 ⚙️2, vista 11 casillas): los más resistentes.
+- El sistema de estaciones sirve para lo que viene: banco de trabajo, recicladora, cocina.
+- Las partidas guardadas siguen valiendo: el estado del horno se guarda y las partidas anteriores no tienen.
+- Sin npm en este entorno: tests con Bun (135) y tipos con `tsc`; el dibujado y la publicación se comprueban en GitHub Actions.
+- Qué probar: construir un horno cerca del almacén, ver cómo le llevan chatarra y madera y sale metal; cambiar el objetivo a 10 y ver que para; levantar un muro de metal. En el móvil, que el panel del horno cabe y sus botones se pulsan bien.
+- Siguiente: banco de trabajo (con el mismo sistema de estaciones); después zanjas, mobiliario de almacén, cantera y recicladora, hormigón.
+
 ## 2026-10-17 (tarde, 8) — Reclutar, demoler, mover tierra y árboles que rebrotan
 
 - Incidencias de 🐞: #4 (reclutar y órdenes concretas), #5 (demoler) y #6 (colono atrapado entre desniveles; con #2, subir y bajar el terreno). Las tres cerradas con comentario.

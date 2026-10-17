@@ -19,7 +19,26 @@ export interface Structure {
   hp: number;
   /** Marcada para demoler (solo las terminadas). */
   demolish?: boolean;
+  /** Estado de fabricación, si es una estación de trabajo terminada (horno…). */
+  station?: Station;
 }
+
+/** Lo que se está fabricando en una estación de trabajo. */
+export interface Station {
+  /** Se fabrica (true) o está parada. */
+  active: boolean;
+  /** Se fabrica hasta que la colonia tiene esta cantidad del producto; 0 = sin límite. */
+  target: number;
+  /** Ingredientes ya cargados para la tanda en curso. */
+  loaded: Partial<Stockpile>;
+  /** Ticks de trabajo de la tanda en curso. */
+  progress: number;
+}
+
+/** Objetivo con el que empieza una estación nueva. */
+export const DEFAULT_STATION_TARGET = 30;
+/** Objetivos que se pueden elegir en el panel (0 = sin límite). */
+export const STATION_TARGETS: readonly number[] = [10, 30, 100, 0];
 
 /** Parte del coste que se recupera al demoler. */
 export const DEMOLISH_REFUND = 0.5;
@@ -82,7 +101,8 @@ export class Structures {
     this.version++;
     const back: Partial<Stockpile> = {};
     for (const r of RESOURCES) {
-      const n = Math.floor((s.def.cost[r] ?? 0) * DEMOLISH_REFUND);
+      // Lo cargado en una estación (ingredientes) se recupera entero.
+      const n = Math.floor((s.def.cost[r] ?? 0) * DEMOLISH_REFUND) + (s.station?.loaded[r] ?? 0);
       if (n > 0) back[r] = n;
     }
     return back;
@@ -161,6 +181,63 @@ export class Structures {
     return put;
   }
 
+  /** Estaciones de trabajo terminadas (hornos…). */
+  stations(): Structure[] {
+    return this.all().filter((s) => s.built && s.station);
+  }
+
+  /** Lo que falta cargar en una estación para la siguiente tanda. */
+  stationNeeds(s: Structure): Partial<Stockpile> {
+    const out: Partial<Stockpile> = {};
+    const recipe = s.def.recipe;
+    if (!recipe || !s.station) return out;
+    for (const r of RESOURCES) {
+      const want = (recipe.input[r] ?? 0) - (s.station.loaded[r] ?? 0);
+      if (want > 0) out[r] = want;
+    }
+    return out;
+  }
+
+  /** Lo que falta llevar a una construcción: materiales de un plano o ingredientes de una estación. */
+  wants(s: Structure): Partial<Stockpile> {
+    return s.built ? this.stationNeeds(s) : this.needs(s);
+  }
+
+  /** Carga ingredientes en una estación. Devuelve cuánto ha aceptado. */
+  load(s: Structure, resource: ResourceId, amount: number): number {
+    if (!s.station) return 0;
+    const want = this.stationNeeds(s)[resource] ?? 0;
+    const put = Math.max(0, Math.min(want, Math.floor(amount)));
+    if (put > 0) {
+      s.station.loaded[resource] = (s.station.loaded[resource] ?? 0) + put;
+      this.version++;
+    }
+    return put;
+  }
+
+  /** Lleva material a una construcción: a un plano o a una estación. Devuelve cuánto ha aceptado. */
+  supply(s: Structure, resource: ResourceId, amount: number): number {
+    return s.built ? this.load(s, resource, amount) : this.deliver(s, resource, amount);
+  }
+
+  /** Termina una tanda: vacía los ingredientes. Devuelve el producto, o null si no es estación. */
+  finishBatch(s: Structure): { resource: ResourceId; amount: number } | null {
+    const recipe = s.def.recipe;
+    if (!recipe || !s.station) return null;
+    s.station.loaded = {};
+    s.station.progress = 0;
+    this.version++;
+    return { resource: recipe.output, amount: recipe.amount };
+  }
+
+  /** Cambia si una estación fabrica y hasta cuánto. */
+  setStation(s: Structure, active: boolean, target: number): void {
+    if (!s.station) return;
+    s.station.active = active;
+    s.station.target = Math.max(0, Math.floor(target));
+    this.version++;
+  }
+
   /** Vuelve a poner una construcción guardada (al cargar una partida). */
   restore(def: BuildingDef, x: number, y: number, built: boolean, delivered: Partial<Stockpile>, progress: number, hp: number): void {
     if (!inBounds(this.map, x, y)) return;
@@ -176,6 +253,7 @@ export class Structures {
     if (s.built) return;
     s.built = true;
     s.progress = s.def.work;
+    if (s.def.recipe) s.station = { active: true, target: DEFAULT_STATION_TARGET, loaded: {}, progress: 0 };
     this.map.blocked[index(this.map, s.x, s.y)] = s.def.blocks ? BLOCK_SOLID : walkableStructureCode(s.def.moveCost ?? 1);
     this.version++;
   }

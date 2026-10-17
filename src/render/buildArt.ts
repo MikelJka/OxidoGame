@@ -34,6 +34,10 @@ export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, ti
     drawFlat(ctx, def, tile, tileH);
     return;
   }
+  if (def.category === 'produccion') {
+    drawFurnace(ctx, def, tile, tileH, wallH);
+    return;
+  }
   if (def.category === 'porton') {
     drawGate(ctx, def, tile, tileH, wallH);
     return;
@@ -112,6 +116,29 @@ function drawTower(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number
   px(1, 1, tile - 2, tileH - 2, top);
   for (let x = 2; x < tile - 2; x += 3) px(x, 2, 1, tileH - 4, dark);
   px(0, tileH - 2, tile, 2, dark);
+}
+
+/** Horno de fundición: bloque de piedra con boca encendida y chimenea. */
+function drawFurnace(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, wallH: number): void {
+  const { top, face, dark } = def.colors;
+  const px = painter(ctx);
+  const h = tileH + wallH;
+  px(1, 1, tile - 2, tileH - 2, top);
+  px(1, 1, tile - 2, 1, lighten(top));
+  px(1, tileH - 1, tile - 2, wallH, face);
+  px(1, h - 2, tile - 2, 1, dark);
+  // Sillares del frente.
+  for (let y = tileH + 2; y < h - 2; y += 3) px(1, y, tile - 2, 1, dark);
+  // Boca con el fuego.
+  const mw = Math.max(4, Math.floor(tile / 2) - 1);
+  const mx = Math.floor((tile - mw) / 2);
+  const mh = Math.max(2, wallH - 3);
+  px(mx - 1, tileH, mw + 2, mh + 1, '#1a1410');
+  px(mx, tileH + 1, mw, mh, '#e07a2a');
+  px(mx + 1, tileH + Math.max(1, mh - 1), mw - 2, 1, '#ffd06a');
+  // Chimenea en la cara de arriba.
+  px(tile - 6, 1, 4, Math.max(3, tileH - 4), dark);
+  px(tile - 5, 2, 2, 1, '#2a201a');
 }
 
 type Px = (x: number, y: number, w: number, h: number, color: string) => void;
