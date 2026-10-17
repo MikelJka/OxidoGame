@@ -17,7 +17,7 @@ export interface ErrorEntry {
   /** Hora en ISO. */
   at: string;
   /** Origen: excepción, promesa, consola o comprobación de la simulación. */
-  source: 'error' | 'promesa' | 'consola' | 'simulación';
+  source: 'error' | 'promesa' | 'consola' | 'simulación' | 'guardado';
   message: string;
   /** Veces que se ha repetido el mismo mensaje. */
   count: number;

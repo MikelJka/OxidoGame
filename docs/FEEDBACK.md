@@ -15,6 +15,8 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Hecho
 
+- [x] **Guardar la partida aunque se publiquen versiones nuevas** (2026-10-17): se guarda sola cada 30 s y al cerrar o esconder la pestaña, y al recargar se sigue donde estabas, también tras una actualización. ☰ → 💾 Guardar, ⬇ Exportar, ⬆ Importar y ↶ Partida anterior. «Nuevo mapa» pide confirmación.
+
 - [x] **Almacenes con filtros y prioridad** (2026-10-17): ⚒ → 📦 Almacén y arrastrar. Al tocar un almacén se elige su prioridad (baja, normal, alta, crítica) y qué recursos acepta. Los colonos llevan ahí lo suelto y pasan las cosas a los almacenes más importantes.
 - [x] **Construcción: muros de varios materiales y puertas** (2026-10-17): 🏗 → muro de madera, piedra o chatarra, puerta de madera o de chapa. Los colonos llevan el material al plano y lo levantan; los muros cortan el paso y las puertas se cruzan algo más despacio.
 

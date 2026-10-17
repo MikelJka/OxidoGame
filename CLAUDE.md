@@ -17,6 +17,7 @@ Idioma: el código (nombres de variables, funciones, tipos) en inglés; comentar
 - `src/data/` — definiciones en JSON (objetos, edificios, investigaciones) cuando existan.
 - `tests/` — tests de Vitest de `src/sim/`.
 - Nunca uses `Math.random()` dentro de `src/sim/`: usa `Rng`.
+- Partidas guardadas (`src/sim/save.ts`): no las rompas. Si añades estado a la simulación, guárdalo en `serializeWorld` y léelo en `loadWorld` con un valor por defecto para partidas antiguas; si un cambio no se puede leer así, sube `SAVE_VERSION` y añade la migración.
 
 ## Móvil y PC
 

@@ -3,6 +3,7 @@ import { GameMap, describeTile, inBounds } from '../sim/map';
 import { Colonist } from '../sim/colonist';
 import { isWalkable } from '../sim/pathfinding';
 import { GameSpeed, World } from '../sim/world';
+import { loadWorld } from '../sim/save';
 import { describeStack } from '../sim/items';
 import { canDesignate, TileRect } from '../sim/designations';
 import { HARVEST_JOB_NAMES, HarvestJob, MAX_STACK, RESOURCE_NAMES, RESOURCES, ResourceId } from '../data/resources';
@@ -55,7 +56,10 @@ const TILT_DRAG_STEP = 60;
 type MoveKeys = Record<'up' | 'down' | 'left' | 'right' | 'w' | 'a' | 's' | 'd', Phaser.Input.Keyboard.Key>;
 
 export interface WorldSceneData {
+  /** Semilla de un mapa nuevo. */
   seed: number;
+  /** Partida guardada (JSON) que cargar en lugar de un mapa nuevo. */
+  save?: string;
 }
 
 /** Punto continuo de la vista (en casillas). */
@@ -122,7 +126,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   create(data: WorldSceneData): void {
-    this.world = new World({ seed: data.seed });
+    this.world = data.save ? loadOrNew(data.save, data.seed, this.game) : new World({ seed: data.seed });
     this.map = this.world.map;
     this.selectedId = null;
     this.sprites.clear();
@@ -1039,4 +1043,14 @@ function drawBuildingTexture(scene: Phaser.Scene, key: string, def: BuildingDef,
   if (!tex) return;
   drawBuilding(tex.getContext(), def, TILE, TILE_H, wallH);
   tex.refresh();
+}
+
+/** Carga una partida; si no se puede, avisa y empieza un mapa nuevo. */
+function loadOrNew(save: string, seed: number, game: Phaser.Game): World {
+  try {
+    return loadWorld(save);
+  } catch (err) {
+    game.events.emit('load-failed', err instanceof Error ? err.message : String(err));
+    return new World({ seed });
+  }
 }

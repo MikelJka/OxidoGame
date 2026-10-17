@@ -127,6 +127,16 @@ export class Structures {
     return put;
   }
 
+  /** Vuelve a poner una construcción guardada (al cargar una partida). */
+  restore(def: BuildingDef, x: number, y: number, built: boolean, delivered: Partial<Stockpile>, progress: number, hp: number): void {
+    if (!inBounds(this.map, x, y)) return;
+    const s: Structure = { def, x, y, built: false, delivered: { ...delivered }, progress, hp };
+    this.byTile.set(index(this.map, x, y), s);
+    if (built) this.complete(s);
+    s.progress = progress;
+    this.version++;
+  }
+
   /** Termina una construcción: deja de ser plano y bloquea o frena el paso. */
   complete(s: Structure): void {
     if (s.built) return;

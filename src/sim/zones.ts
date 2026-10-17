@@ -129,6 +129,22 @@ export class StorageZones {
     return true;
   }
 
+  /** Vuelve a poner una zona guardada (al cargar una partida). Se saltan las casillas no válidas u ocupadas. */
+  restore(z: { id: number; name: string; priority: StoragePriority; accepts: Partial<Record<ResourceId, boolean>>; tiles: number[] }): void {
+    const accepts = Object.fromEntries(RESOURCES.map((r) => [r, z.accepts[r] ?? true])) as Record<ResourceId, boolean>;
+    const zone: StorageZone = { id: z.id, name: z.name, priority: z.priority, accepts, tiles: new Set() };
+    for (const i of z.tiles) {
+      if (i < 0 || i >= this.zoneOf.length || this.zoneOf[i]) continue;
+      if (!canZone(this.map, i % this.map.width, Math.floor(i / this.map.width))) continue;
+      zone.tiles.add(i);
+      this.zoneOf[i] = z.id;
+    }
+    if (zone.tiles.size === 0) return;
+    this.zones.set(z.id, zone);
+    this.nextId = Math.max(this.nextId, z.id + 1);
+    this.version++;
+  }
+
   setPriority(id: number, priority: StoragePriority): void {
     const zone = this.zones.get(id);
     if (!zone || zone.priority === priority) return;

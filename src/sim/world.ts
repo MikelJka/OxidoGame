@@ -35,6 +35,8 @@ export interface WorldOptions {
   width?: number;
   height?: number;
   colonists?: number;
+  /** Mapa ya hecho (al cargar una partida): no se genera ni se reparten provisiones. */
+  map?: GameMap;
 }
 
 export class World implements JobContext {
@@ -58,15 +60,15 @@ export class World implements JobContext {
   private accumulator = 0;
 
   constructor(opts: WorldOptions) {
-    this.map = generateMap({ width: opts.width ?? MAP_SIZE, height: opts.height ?? MAP_SIZE, seed: opts.seed });
+    this.map = opts.map ?? generateMap({ width: opts.width ?? MAP_SIZE, height: opts.height ?? MAP_SIZE, seed: opts.seed });
     this.rng = new Rng(opts.seed ^ 0x51ed270b);
-    this.spawnColonists(opts.colonists ?? 3);
+    if (!opts.map) this.spawnColonists(opts.colonists ?? 3);
     this.items = new GroundItems(this.map);
     this.designations = new Designations(this.map);
     this.reservations = new Reservations(this.map);
     this.zones = new StorageZones(this.map);
     this.structures = new Structures(this.map);
-    this.dropStartingSupplies();
+    if (!opts.map) this.dropStartingSupplies();
   }
 
   /** Inventario de la colonia: lo que hay en el suelo más lo que llevan encima los colonos. */
@@ -391,7 +393,7 @@ export class World implements JobContext {
       this.items.drop(s.x, s.y, got.resource, got.amount);
     }
     for (const c of this.colonists) {
-      if (c.tile.x === s.x && c.tile.y === s.y) this.nudgeColonist(c);
+      if (c.tile.x === s.x && c.tile.y === s.y) this.moveOutOfTheWay(c);
     }
     // Los caminos que pasaban por ahí se recalculan.
     for (const c of this.colonists) {
@@ -404,7 +406,7 @@ export class World implements JobContext {
   }
 
   /** Aparta a un colono a la casilla libre más cercana (cuando se levanta un muro donde está). */
-  private nudgeColonist(c: Colonist): void {
+  moveOutOfTheWay(c: Colonist): void {
     for (let r = 1; r <= 4; r++) {
       for (let dy = -r; dy <= r; dy++) {
         for (let dx = -r; dx <= r; dx++) {

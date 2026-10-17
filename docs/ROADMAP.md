@@ -41,7 +41,7 @@ Terminado: marco árboles y los colonos los talan y guardan la madera solos.
 - [ ] Panel de prioridades de trabajo
 - [ ] Los árboles vuelven a crecer con el tiempo (los tocones rebrotan y aparecen árboles nuevos cerca de otros)
 - [ ] Agua: recoger agua de ríos/manantiales; el agua contaminada necesita filtrado
-- [ ] Guardado manual y automático en el navegador, exportar/importar archivo
+- [x] Guardado manual y automático en el navegador, exportar/importar archivo
 
 ## Fase 3 — Construcción
 

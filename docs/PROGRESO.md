@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (tarde, 5) — La partida se guarda y sobrevive a las actualizaciones
+
+- Petición de Mikel: no perder la partida al recargar ni al publicarse una versión nueva.
+- La partida se guarda sola en el navegador cada 30 s, al esconder la pestaña (en el móvil, al cambiar de app) y al cerrarla. Al abrir el juego se carga la última; `?nueva` en la URL empieza un mapa nuevo.
+- ☰ → 💾 Guardar (ahora), ⬇ Exportar (archivo .json), ⬆ Importar y ↶ Partida anterior (copia de seguridad del guardado previo). Se ve cuándo se guardó por última vez. «Nuevo mapa» pide confirmación.
+- Formato con versión (`src/sim/save.ts`, con tests): se guarda el mapa entero (no solo la semilla, para que un cambio en el generador no altere una partida empezada), los colonos, montones, órdenes, almacenes y construcciones. Se lee de forma tolerante: lo que ya no existe se descarta (rasgos, recursos, construcciones) y lo nuevo toma su valor por defecto (habilidades, prioridades). Los trabajos a medias no se guardan: al cargar, cada colono busca uno nuevo y lo que llevaba en las manos queda a sus pies.
+- **Regla para las próximas sesiones**: no romper partidas guardadas. Si un cambio no se puede leer de forma tolerante, subir `SAVE_VERSION` y añadir la migración en `migrate()`.
+- Si una partida no se puede cargar, se avisa, se aparta (para no pisarla) y se empieza un mapa nuevo.
+- Qué probar: jugar un rato, recargar la página y comprobar que todo sigue (almacenes, muros, órdenes, hora); exportar e importar; en el móvil, cambiar de app y volver.
+- Siguiente: muros altos y torres de vigía.
+
 ## 2026-10-17 (tarde, 4) — Almacenes y primeras construcciones
 
 - Petición de Mikel: almacenes con filtro y prioridad, mobiliario de almacén, construcción (muros de varios materiales, puertas, muros altos, torres de vigía), materiales nuevos como el metal, pinchos y zanjas, y aplanar o subir el terreno (#2). Todo anotado en `FEEDBACK.md` y en la fase 3 del roadmap; esta sesión hace almacenes, muros y puertas.

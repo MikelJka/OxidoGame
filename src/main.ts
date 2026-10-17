@@ -10,6 +10,8 @@ import type { GameMap } from './sim/map';
 import { checkWorld, ProgressMark } from './sim/diagnostics';
 import { installErrorCapture, mountReportPanel, onNewError, recordError } from './ui/bugReport';
 import { mountDevPanel } from './ui/devPanel';
+import { downloadWorld, pickSaveFile, readBackupSave, readStoredSave, storeWorld } from './ui/saveGame';
+import { parseSave } from './sim/save';
 import { reachableResources } from './sim/resources';
 import { HarvestJob, RESOURCE_ICONS, RESOURCE_NAMES, RESOURCES } from './data/resources';
 import { BUILDING_CATEGORY_NAMES, BUILDINGS, buildingDef } from './data/buildings';
@@ -65,7 +67,11 @@ const game = new Phaser.Game({
   scene: [],
 });
 
-game.scene.add('world', WorldScene, true, { seed });
+// Si hay una partida guardada en el navegador, se sigue con ella (también tras publicar una versión nueva).
+// ?nueva en la URL empieza un mapa nuevo.
+const wantsNew = new URLSearchParams(window.location.search).has('nueva');
+const storedSave = wantsNew ? null : readStoredSave();
+game.scene.add('world', WorldScene, true, storedSave ? { seed, save: storedSave } : { seed });
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const scene = () => game.scene.getScene('world') as WorldScene;
@@ -108,6 +114,7 @@ $('dev-btn').addEventListener('click', () => {
 });
 mountDevPanel(devPanel, $('dev-btn'));
 $('new-map').addEventListener('click', () => {
+  if (!window.confirm('¿Empezar un mapa nuevo? La partida actual se perderá (puedes exportarla antes con ⬇).')) return;
   seed = Math.floor(Math.random() * 1_000_000);
   menu.hidden = true;
   tile.textContent = '';
@@ -115,6 +122,7 @@ $('new-map').addEventListener('click', () => {
 });
 
 game.events.on('map-ready', (map: GameMap) => {
+  seed = map.seed;
   $('seed').textContent = `Mapa · semilla ${seed}`;
   const near = reachableResources(map);
   $('map-resources').textContent = 'Al alcance: ' + (['madera', 'piedra', 'chatarra'] as const)
@@ -122,8 +130,83 @@ game.events.on('map-ready', (map: GameMap) => {
     .join(' · ');
   const url = new URL(window.location.href);
   url.searchParams.set('seed', String(seed));
+  url.searchParams.delete('nueva');
   window.history.replaceState(null, '', url);
   renderRoster();
+  saveNow(false); // así, recargar la página nunca vuelve a un mapa anterior
+});
+
+// --- Guardar la partida -------------------------------------------------------
+/** Cada cuánto se guarda sola la partida. */
+const AUTOSAVE_MS = 30_000;
+const saveStatus = $('save-status');
+let lastSavedAt = 0;
+let saveError: string | null = null;
+function saveNow(announce: boolean): void {
+  const s = game.scene.getScene('world') as WorldScene | null;
+  if (!s || !s.world) return;
+  saveError = storeWorld(s.world);
+  if (!saveError) lastSavedAt = Date.now();
+  else recordError('guardado', saveError);
+  renderSaveStatus();
+  if (announce) showToast(saveError ?? '💾 Partida guardada');
+}
+function renderSaveStatus(): void {
+  if (saveError) {
+    saveStatus.textContent = `⚠️ ${saveError}`;
+    return;
+  }
+  if (!lastSavedAt) {
+    saveStatus.textContent = 'Sin guardar todavía';
+    return;
+  }
+  const secs = Math.round((Date.now() - lastSavedAt) / 1000);
+  saveStatus.textContent = `💾 Guardado automático · hace ${secs < 60 ? `${secs} s` : `${Math.round(secs / 60)} min`}`;
+}
+window.setInterval(() => saveNow(false), AUTOSAVE_MS);
+window.setInterval(renderSaveStatus, 5000);
+// Al cerrar o esconder la pestaña (en el móvil, al cambiar de app) se guarda.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveNow(false);
+});
+window.addEventListener('pagehide', () => saveNow(false));
+$('save-now').addEventListener('click', () => saveNow(true));
+$('save-export').addEventListener('click', () => {
+  downloadWorld(scene().world);
+  showToast('⬇ Partida exportada');
+});
+$('save-import').addEventListener('click', async () => {
+  const text = await pickSaveFile();
+  if (!text) return;
+  try {
+    parseSave(text);
+  } catch (err) {
+    showToast(`⚠️ ${err instanceof Error ? err.message : String(err)}`, 4000);
+    return;
+  }
+  menu.hidden = true;
+  scene().scene.restart({ seed, save: text });
+  showToast('⬆ Partida cargada');
+});
+$('save-backup').addEventListener('click', () => {
+  const text = readBackupSave();
+  if (!text) {
+    showToast('No hay copia anterior');
+    return;
+  }
+  if (!window.confirm('¿Volver a la partida guardada anterior? Se pierde lo jugado desde entonces.')) return;
+  menu.hidden = true;
+  scene().scene.restart({ seed, save: text });
+});
+game.events.on('load-failed', (why: string) => {
+  recordError('guardado', `No se pudo cargar la partida guardada: ${why}`);
+  // Se aparta la partida que no se pudo leer para que el guardado automático no la pise.
+  try {
+    if (storedSave) localStorage.setItem('oxido.partida.fallida', storedSave);
+  } catch {
+    // sin sitio: nada que hacer
+  }
+  window.setTimeout(() => showToast(`⚠️ No se pudo cargar la partida guardada (${why}). Empieza un mapa nuevo; está apartada para poder recuperarla.`, 6000), 500);
 });
 
 // --- Inventario de la colonia ---------------------------------------------------
