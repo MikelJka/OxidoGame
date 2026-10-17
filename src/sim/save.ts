@@ -58,6 +58,8 @@ export interface SaveData {
   offer?: { pawn: SavedColonist; until: number } | null;
   schedule?: { nextWanderer: number; nextRaid: number; nextTrader: number };
   nextPawnId?: number;
+  /** Raids, caravanas y supervivientes activados (por defecto, sí). */
+  events?: boolean;
 }
 
 interface SavedColonist {
@@ -155,6 +157,7 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     offer: world.offer ? { pawn: savePawn(world.offer.pawn), until: world.offer.until } : null,
     schedule: { ...world.schedule },
     nextPawnId: world.nextPawnId,
+    events: world.eventsEnabled,
     items: world.items.list().map((s) => ({ x: s.x, y: s.y, resource: s.resource, amount: s.amount })),
     designations: world.designations.list().map((d) => ({ ...d })),
     zones: world.zones.all().map((z) => ({ id: z.id, name: z.name, priority: z.priority, accepts: { ...z.accepts }, tiles: [...z.tiles] })),
@@ -353,6 +356,7 @@ export function loadWorld(input: string | unknown): World {
     ? { nextWanderer: num(d.schedule.nextWanderer, 0), nextRaid: num(d.schedule.nextRaid, 0), nextTrader: num(d.schedule.nextTrader, 0) }
     : initialSchedule(TICKS_PER_DAY, world.tick);
   const ids = [...world.colonists, ...world.others, ...world.others.flatMap((o) => o.trader?.slaves ?? []), ...(world.offer ? [world.offer.pawn] : [])].map((c) => c.id);
+  world.eventsEnabled = d.events !== false;
   world.nextPawnId = Math.max(num(d.nextPawnId, 1), ...ids.map((i) => i + 1), 1);
   for (const it of d.items ?? []) {
     if (!isResource(it.resource)) continue;

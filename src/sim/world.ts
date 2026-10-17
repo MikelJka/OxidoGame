@@ -152,6 +152,15 @@ export class World implements JobContext {
     this.propsVersion++;
   }
 
+  /** Cambia el objeto de una casilla (modo Dios) y la repinta. */
+  setProp(x: number, y: number, prop: Prop): void {
+    const i = y * this.map.width + x;
+    this.map.props[i] = prop;
+    this.map.stock[i] = 0;
+    this.designations.remove(x, y);
+    this.markChanged(i);
+  }
+
   /** Devuelve (y olvida) las casillas cuyo objeto ha cambiado: el dibujado las repinta. */
   takeChangedTiles(): number[] {
     const out = this.changedTiles;

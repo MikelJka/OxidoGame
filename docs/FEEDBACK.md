@@ -11,6 +11,8 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Hecho
 
+- [x] **Menú principal y modo Dios** (2026-10-17): menú al abrir el juego (continuar, nueva partida con opciones, cargar) y modo Dios 🪄 para aparecer cosas y probar.
+
 - [x] **La 3D se ve fea** (2026-10-17): suelo con textura, taludes, agua translúcida, muros con su material, sombras y mejor luz.
 
 - [x] **Más colonos, prisioneros y comerciantes con esclavos** (2026-10-17): llegan supervivientes que piden unirse (aceptar o rechazar); los saqueadores caídos se capturan y se pueden retener, convencer o liberar; las caravanas venden recursos y esclavos y compran prisioneros. Menú completo en 📜 → Prisioneros y 📜 → Comercio.

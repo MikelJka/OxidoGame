@@ -29,6 +29,7 @@
       <button id="rot-right" type="button" title="Girar la vista a la derecha (E)">⟳</button>
       <button id="tilt-btn" type="button" title="Cambiar la inclinación (R / F)">∠3</button>
       <button id="view3d-quick" type="button" title="Vista 3D con giro libre (botón central del ratón para pivotar)">3D</button>
+      <button id="god-btn" type="button" title="Modo Dios: aparecer cosas y probar" hidden>🪄</button>
     </div>
 
     <div id="orders" class="panel" role="group" aria-label="Órdenes y construcción">
@@ -59,6 +60,7 @@
     <div id="design-hint" class="panel" hidden></div>
 
     <div id="menu" class="panel" hidden>
+      <button id="main-menu-btn" type="button">🏠 Menú principal</button>
       <div id="seed"></div>
       <div id="map-resources" class="muted"></div>
       <button id="view3d-btn" type="button" title="Vista 3D con giro libre: botón central del ratón (o Alt+arrastrar) para pivotar, dos dedos en el móvil">🧊 Vista 3D (en pruebas)</button>
@@ -147,6 +149,54 @@
       <div id="cp-work"></div>
       <div id="cp-traits"></div>
       <div id="cp-skills"></div>
+    </section>
+
+    <section id="god-panel" class="panel" hidden>
+      <div class="cp-head">
+        <strong>🪄 Modo Dios</strong>
+        <button id="gp-close" type="button" title="Cerrar">✕</button>
+      </div>
+      <div class="zp-label">Tocar el mapa para…</div>
+      <div id="gp-tools" class="zp-row"></div>
+      <div class="zp-row gp-res">
+        <select id="gp-resource" aria-label="Recurso"></select>
+        <select id="gp-amount" aria-label="Cantidad">
+          <option value="10">10</option>
+          <option value="50" selected>50</option>
+          <option value="200">200</option>
+        </select>
+      </div>
+      <div id="gp-hint" class="muted"></div>
+      <div class="zp-label">Al momento</div>
+      <div id="gp-actions" class="zp-row"></div>
+    </section>
+
+    <section id="main-menu" hidden>
+      <div class="mm-box panel">
+        <div class="mm-title">ÓXIDO</div>
+        <div class="mm-sub muted">Colonia en el páramo</div>
+        <div id="mm-home" class="mm-col">
+          <div id="mm-info" class="muted"></div>
+          <button id="mm-continue" type="button">▶ Continuar</button>
+          <button id="mm-new-btn" type="button">✚ Nueva partida</button>
+          <button id="mm-load" type="button">⬆ Cargar partida desde archivo</button>
+          <button id="mm-god" type="button">🪄 Modo Dios</button>
+          <button id="mm-progress" type="button">📋 Progreso del desarrollo</button>
+        </div>
+        <div id="mm-new" class="mm-col" hidden>
+          <label>Semilla del mapa (número o palabra)
+            <input id="mm-seed" type="text" inputmode="text" autocomplete="off" />
+          </label>
+          <label>Colonos al empezar: <strong id="mm-colonists-n">3</strong>
+            <input id="mm-colonists" type="range" min="1" max="6" value="3" />
+          </label>
+          <label class="mm-check"><input id="mm-events" type="checkbox" checked /> Raids, caravanas y supervivientes</label>
+          <label class="mm-check"><input id="mm-god-new" type="checkbox" /> Modo Dios (para probar)</label>
+          <div class="mm-note muted">La partida actual se sustituye (puedes exportarla antes desde ☰ → ⬇).</div>
+          <button id="mm-start" type="button">Empezar</button>
+          <button id="mm-back" type="button">← Volver</button>
+        </div>
+      </div>
     </section>
 
     <section id="people-panel" class="panel" hidden>

@@ -75,6 +75,10 @@ export interface WorldSceneData {
   seed: number;
   /** Partida guardada (JSON) que cargar en lugar de un mapa nuevo. */
   save?: string;
+  /** Colonos al empezar (mapa nuevo). */
+  colonists?: number;
+  /** Raids, caravanas y supervivientes (mapa nuevo; por defecto, sí). */
+  events?: boolean;
 }
 
 /** Punto continuo de la vista (en casillas). */
@@ -155,12 +159,15 @@ export class WorldScene extends Phaser.Scene {
   private lastPinchAt = -1000;
   private keys?: MoveKeys;
 
+  /** Herramienta del modo Dios activa: recibe la casilla tocada; true si la ha usado. */
+  godTap: ((tile: { x: number; y: number }, hit: Colonist | undefined) => boolean) | null = null;
+
   constructor() {
     super('world');
   }
 
   create(data: WorldSceneData): void {
-    this.world = data.save ? loadOrNew(data.save, data.seed, this.game) : new World({ seed: data.seed });
+    this.world = data.save ? loadOrNew(data.save, data.seed, this.game) : new World({ seed: data.seed, colonists: data.colonists, events: data.events });
     this.map = this.world.map;
     this.selectedId = null;
     this.sprites.clear();
@@ -709,6 +716,8 @@ export class WorldScene extends Phaser.Scene {
    * panel de lo tocado, mandar a los elegidos u ordenar un trabajo. Lo usan la vista 2D y la 3D.
    */
   tapAt(hit: Colonist | undefined, t: { x: number; y: number } | null, opts: { right: boolean; additive: boolean }): void {
+    // Modo Dios con una herramienta elegida: el toque es para ella.
+    if (this.godTap && t && this.godTap(t, hit)) return;
     if (hit && hit.role !== 'colono' && !opts.right) {
       // Saqueador, prisionero o comerciante: su panel.
       this.game.events.emit('pawn-tap', hit);

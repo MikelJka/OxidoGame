@@ -43,6 +43,15 @@ try {
     });
     await page.goto(URL);
     await sleep(5000);
+    // Menú principal al abrir: captura y continuar.
+    await page.screenshot({ path: `smoke/${d.name}-menu.png` });
+    await page.click('#mm-new-btn');
+    await sleep(300);
+    await page.screenshot({ path: `smoke/${d.name}-menu-nueva.png` });
+    await page.click('#mm-back');
+    await page.click('#mm-god');
+    await page.click('#mm-continue');
+    await sleep(500);
     await page.screenshot({ path: `smoke/${d.name}-2d.png` });
     // Elegir un colono y abrir los menús de órdenes y de construcción.
     await page.click('#roster button[data-id]');
@@ -115,6 +124,15 @@ try {
     await sleep(600);
     await page.screenshot({ path: `smoke/${d.name}-gente-comercio.png` });
     await page.click('#pp-close');
+    // Modo Dios: abrir el panel, dejar metal en el centro y terminar obras.
+    await page.click('#god-btn');
+    await sleep(300);
+    await page.click('#gp-tools button');
+    await page.mouse.click(d.viewport.width / 2, d.viewport.height / 2);
+    await page.click('#gp-actions button:nth-child(4)');
+    await sleep(500);
+    await page.screenshot({ path: `smoke/${d.name}-dios.png` });
+    await page.click('#gp-close');
     // Errores que el propio juego ha registrado (botón 🐞).
     const flagged = await page.$('#report-btn .badge.error');
     if (flagged) errors.push(`el juego registró errores (🐞): ${(await flagged.textContent())?.trim()}`);

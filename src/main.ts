@@ -13,6 +13,8 @@ import { checkWorld, ProgressMark } from './sim/diagnostics';
 import { installErrorCapture, mountReportPanel, onNewError, recordError } from './ui/bugReport';
 import { mountDevPanel } from './ui/devPanel';
 import { mountPeople } from './ui/people';
+import { mountMainMenu } from './ui/mainMenu';
+import { mountGodMode } from './ui/godMode';
 import { makePrisoner, offerWanderer, startRaid, startTrader } from './sim/people';
 import { healthLabel } from './sim/health';
 import { downloadWorld, pickSaveFile, readBackupSave, readStoredSave, storeWorld } from './ui/saveGame';
@@ -671,6 +673,57 @@ const people = mountPeople({
   },
 });
 game.events.on('pawn-tap', (c: Colonist) => people.openFor(c));
+
+// --- Modo Dios y menú principal ------------------------------------------------------
+const GOD_KEY = 'oxido.dios';
+let godOn = false;
+try {
+  godOn = localStorage.getItem(GOD_KEY) === '1';
+} catch {
+  // sin almacenamiento: empieza desactivado
+}
+const currentWorld = () => (game.scene.getScene('world') as WorldScene | null)?.world ?? null;
+const god = mountGodMode({
+  getWorld: currentWorld,
+  setTap: (fn) => {
+    const s = game.scene.getScene('world') as WorldScene | null;
+    if (s) s.godTap = fn;
+  },
+  toast: (text, ms) => showToast(text, ms),
+});
+function setGod(on: boolean): void {
+  godOn = on;
+  try {
+    localStorage.setItem(GOD_KEY, on ? '1' : '0');
+  } catch {
+    // nada
+  }
+  god.setEnabled(on);
+}
+god.setEnabled(godOn);
+const mainMenu = mountMainMenu({
+  getWorld: currentWorld,
+  newGame: ({ seed: s, colonists, events }) => {
+    seed = s;
+    menu.hidden = true;
+    tile.textContent = '';
+    scene().scene.restart({ seed: s, colonists, events });
+  },
+  importSave: () => $('save-import').click(),
+  showProgress: () => $('dev-btn').click(),
+  setGod,
+  isGod: () => godOn,
+});
+$('main-menu-btn').addEventListener('click', () => {
+  menu.hidden = true;
+  mainMenu.open();
+});
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && mainMenu.isOpen) mainMenu.close();
+});
+// Al abrir el juego, primero el menú principal (con la partida en pausa detrás).
+if (currentWorld()) mainMenu.open();
+else game.events.once('map-ready', () => window.setTimeout(() => mainMenu.open(), 0));
 // Para las pruebas automáticas (scripts/smoke.mjs): provocar sucesos sin esperar días.
 (window as unknown as { oxidoPrueba: unknown }).oxidoPrueba = {
   raid: (n = 2) => startRaid(scene().world, n),

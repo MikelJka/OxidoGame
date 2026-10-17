@@ -2,6 +2,12 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (noche, 5) — Menú principal y modo Dios
+
+- **Menú principal** (Mikel): sale al abrir el juego, con la partida en pausa detrás, y desde ☰ → 🏠 Menú principal. Continuar, Nueva partida (semilla con número o palabra, de 1 a 6 colonos, con o sin raids, caravanas y supervivientes, y modo Dios), cargar una partida desde archivo y ver el progreso del desarrollo.
+- **Modo Dios 🪄** (se activa en el menú principal; aparece un botón 🪄 junto al de 3D). Tocando el mapa: dejar recursos (10, 50 o 200 de cualquiera), hacer aparecer un colono, un saqueador, un prisionero o un comerciante, herir, matar o despejar una casilla. Al momento: raid, caravana, superviviente, terminar todas las obras, curar y saciar a todos, madurar los cultivos, avanzar 1 h, 6 h o un día, y activar o quitar los sucesos y las necesidades. Funciona en 2D y en 3D.
+- Qué probar: activar el modo Dios, dejar materiales, poner a un saqueador junto a un colono reclutado y ver cómo pelean; capturarlo y convencerlo avanzando el tiempo.
+
 ## 2026-10-17 (noche, 4) — Vista 3D más bonita
 
 - Mikel: «al mover a 3D se ve así de feo». Cambios:
