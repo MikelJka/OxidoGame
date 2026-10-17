@@ -29,13 +29,22 @@
       <button id="tilt-btn" type="button" title="Cambiar la inclinación (R / F)">∠3</button>
     </div>
 
-    <div id="orders" class="panel" role="group" aria-label="Órdenes">
-      <button id="orders-btn" type="button" title="Órdenes: talar, picar, saquear (T)">⚒</button>
+    <div id="orders" class="panel" role="group" aria-label="Órdenes y construcción">
+      <div class="orders-top">
+        <button id="build-btn" type="button" title="Construir: muros y puertas (B)">🏗</button>
+        <button id="orders-btn" type="button" title="Órdenes: talar, picar, saquear, almacenes (T)">⚒</button>
+      </div>
       <div id="order-modes" hidden>
         <button type="button" data-mode="talar" title="Talar árboles y matorrales">🪓 Talar <span class="n"></span></button>
         <button type="button" data-mode="minar" title="Picar rocas y muros">⛏ Picar <span class="n"></span></button>
         <button type="button" data-mode="saquear" title="Saquear chatarra, coches y escombros">🔩 Saquear <span class="n"></span></button>
         <button type="button" data-mode="cancelar" title="Quitar órdenes">✖ Quitar</button>
+        <button type="button" data-mode="almacen" title="Marcar una zona de almacén">📦 Almacén</button>
+        <button type="button" data-mode="quitarAlmacen" title="Quitar casillas de almacén">✖ Quitar almacén</button>
+      </div>
+      <div id="build-modes" hidden>
+        <button id="build-shape" type="button" title="Contorno: solo el borde del rectángulo · Relleno: todas las casillas">▭ Forma: contorno</button>
+        <button type="button" data-mode="quitarPlano" title="Quitar planos sin terminar">✖ Quitar planos</button>
       </div>
     </div>
     <div id="design-hint" class="panel" hidden></div>
@@ -50,7 +59,9 @@
         Arrastrar: mover la cámara · Rueda o pellizco: zoom<br />
         Tocar un colono: seleccionarlo · Tocar el suelo: mandarlo allí<br />
         Arriba a la izquierda: inventario de la colonia (los montones del suelo)<br />
-        Órdenes ⚒ (tecla T): elegir talar, picar o saquear y arrastrar un área (o tocar una casilla); con dos dedos se mueve la cámara · Esc: salir<br />
+        Órdenes ⚒ (tecla T): elegir talar, picar, saquear o almacén y arrastrar un área (o tocar una casilla); con dos dedos se mueve la cámara · Esc: salir<br />
+        Construir 🏗 (tecla B): elegir muro o puerta y arrastrar; los colonos llevan el material y lo levantan<br />
+        Tocar un almacén: su prioridad y qué se guarda en él<br />
         Girar la vista: botones ⟲ ⟳, girar dos dedos o teclas Q y E<br />
         Inclinar la vista: botón ∠, deslizar dos dedos arriba o abajo o teclas R y F<br />
         PC: clic derecho también da la orden · Espacio, 1, 2, 3: velocidad · Esc: deseleccionar
@@ -111,6 +122,21 @@
       <div id="cp-activity"></div>
       <div id="cp-traits"></div>
       <div id="cp-skills"></div>
+    </section>
+
+    <section id="zone-panel" class="panel" hidden>
+      <div class="cp-head">
+        <div>
+          <div id="zp-name"></div>
+          <div id="zp-sub" class="muted"></div>
+        </div>
+        <button id="zp-close" type="button" title="Cerrar">✕</button>
+      </div>
+      <div class="zp-label">Prioridad</div>
+      <div id="zp-priority" class="zp-row"></div>
+      <div class="zp-label">Qué se guarda</div>
+      <div id="zp-filter" class="zp-row"></div>
+      <button id="zp-delete" type="button">🗑 Borrar almacén</button>
     </section>
 
     <nav id="roster" class="panel" aria-label="Colonos"></nav>

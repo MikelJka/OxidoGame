@@ -37,7 +37,7 @@ Terminado: marco árboles y los colonos los talan y guardan la madera solos.
 - [x] Inventario de la colonia y objetos en el suelo
 - [x] Herramienta de designación: talar, minar, saquear (arrastrar un área; en móvil, modo selección)
 - [x] Sistema de trabajos: cola, reserva de tareas, prioridades por colono
-- [ ] Zonas de almacén y transporte
+- [x] Zonas de almacén (con filtro de recursos y prioridad) y transporte
 - [ ] Panel de prioridades de trabajo
 - [ ] Los árboles vuelven a crecer con el tiempo (los tocones rebrotan y aparecen árboles nuevos cerca de otros)
 - [ ] Agua: recoger agua de ríos/manantiales; el agua contaminada necesita filtrado
@@ -47,12 +47,17 @@ Terminado: marco árboles y los colonos los talan y guardan la madera solos.
 
 Terminado: diseño un refugio cerrado y los colonos lo construyen con recursos.
 
-- [ ] Definiciones de edificios en JSON (coste, tiempo, terreno permitido)
+- [x] Definiciones de edificios en JSON (coste, tiempo, terreno permitido)
 - [ ] Planos: colocar, rotar, cancelar (ratón y táctil)
-- [ ] Muros, puertas, suelos, camas, almacén, banco de trabajo
-- [ ] Construcción como trabajo que consume recursos
+- [ ] Muros y puertas (hechos: madera, piedra y chatarra; puertas de madera y de chapa), suelos, camas, banco de trabajo
+- [x] Construcción como trabajo que consume recursos
 - [ ] Habitaciones cerradas detectadas (para ánimo y temperatura futura)
 - [ ] Máquinas de producción: cantera (piedra) y recicladora (chatarra a partir de basura y restos), para cuando se agoten los del mapa
+- [ ] Materiales: metal (fundiendo chatarra) y hormigón, además de madera, piedra y chatarra
+- [ ] Muros altos para perímetros y torres de vigía (madera, piedra, metal)
+- [ ] Defensas: pinchos, zanjas y barricadas
+- [ ] Mobiliario de almacén: estanterías, armarios y armeros de pared
+- [ ] Terreno: aplanar y subir o bajar el nivel de las casillas (trabajo de los colonos)
 
 ## Fase 4 — Necesidades y raids (primera versión jugable)
 

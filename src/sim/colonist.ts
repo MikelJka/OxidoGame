@@ -1,7 +1,8 @@
 import {
   FIRST_NAMES, HAIR_COLORS, NICKNAMES, SHIRT_COLORS, SKILLS, SKIN_COLORS, Skill, TRAITS, TRAIT_CONFLICTS, TraitDef,
 } from '../data/colonists';
-import { HARVEST_JOB_NAMES, HARVEST_JOB_VERBS, HarvestJob } from '../data/resources';
+import { ResourceId } from '../data/resources';
+import { WORK_NAMES, WORK_TYPES, WORK_VERBS, WorkType } from '../data/work';
 import { Point } from './pathfinding';
 import { Rng } from './rng';
 
@@ -13,8 +14,8 @@ export const DEFAULT_PRIORITY: WorkPriority = 3;
 
 /** Trabajo que tiene asignado un colono. */
 export interface ColonistJob {
-  kind: HarvestJob;
-  /** Casilla del objeto que se aprovecha. */
+  kind: WorkType;
+  /** Casilla principal: el objeto que se aprovecha, el montón que se recoge o el plano que se construye. */
   x: number;
   y: number;
   /** Casilla desde la que trabaja (la misma o una de al lado si el objeto bloquea el paso). */
@@ -23,6 +24,28 @@ export interface ColonistJob {
   progress: number;
   /** Trabajo total que hace falta. */
   work: number;
+  /** Transporte: qué se lleva, cuánto y adónde. */
+  haul?: HaulInfo;
+}
+
+export interface HaulInfo {
+  resource: ResourceId;
+  /** Unidades que se quieren llevar. */
+  amount: number;
+  /** Casilla del montón que se recoge. */
+  from: Point;
+  /** Casilla de destino (un almacén o un plano). */
+  to: Point;
+  /** Lleva los materiales a un plano en vez de a un almacén. */
+  toBlueprint: boolean;
+  /** Ya ha recogido la carga. */
+  picked: boolean;
+}
+
+/** Lo que lleva encima un colono. */
+export interface Carried {
+  resource: ResourceId;
+  amount: number;
 }
 
 export interface Colonist {
@@ -46,9 +69,11 @@ export interface Colonist {
   /** Dirección a la que mira, para el sprite. */
   facing: 1 | -1;
   /** Prioridad de cada trabajo. */
-  priorities: Record<HarvestJob, WorkPriority>;
+  priorities: Record<WorkType, WorkPriority>;
   /** Trabajo en curso, si tiene. */
   job: ColonistJob | null;
+  /** Carga que lleva encima. */
+  carrying: Carried | null;
 }
 
 export function createColonist(id: number, at: Point, rng: Rng): Colonist {
@@ -75,8 +100,9 @@ export function createColonist(id: number, at: Point, rng: Rng): Colonist {
     activity: 'idle',
     waitTicks: rng.int(10, 60),
     facing: 1,
-    priorities: { talar: DEFAULT_PRIORITY, minar: DEFAULT_PRIORITY, saquear: DEFAULT_PRIORITY },
+    priorities: Object.fromEntries(WORK_TYPES.map((w) => [w, DEFAULT_PRIORITY])) as Record<WorkType, WorkPriority>,
     job: null,
+    carrying: null,
   };
 }
 
@@ -87,8 +113,11 @@ export function walkSpeedMultiplier(c: Colonist): number {
 export function activityLabel(c: Colonist): string {
   switch (c.activity) {
     case 'moving': return 'Yendo a una orden';
-    case 'toJob': return c.job ? `Yendo a ${HARVEST_JOB_NAMES[c.job.kind].toLowerCase()}` : 'Yendo a trabajar';
-    case 'working': return c.job ? `${HARVEST_JOB_VERBS[c.job.kind]} (${Math.floor((c.job.progress / c.job.work) * 100)} %)` : 'Trabajando';
+    case 'toJob':
+      if (!c.job) return 'Yendo a trabajar';
+      if (c.job.haul) return c.job.haul.picked ? (c.job.haul.toBlueprint ? 'Llevando material a un plano' : 'Llevando al almacén') : 'Yendo a recoger';
+      return `Yendo a ${WORK_NAMES[c.job.kind].toLowerCase()}`;
+    case 'working': return c.job ? `${WORK_VERBS[c.job.kind]} (${Math.floor((c.job.progress / c.job.work) * 100)} %)` : 'Trabajando';
     case 'wandering': return 'Deambulando';
     default: return 'Descansando';
   }

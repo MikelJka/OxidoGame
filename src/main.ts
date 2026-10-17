@@ -11,7 +11,9 @@ import { checkWorld, ProgressMark } from './sim/diagnostics';
 import { installErrorCapture, mountReportPanel, onNewError, recordError } from './ui/bugReport';
 import { mountDevPanel } from './ui/devPanel';
 import { reachableResources } from './sim/resources';
-import { HARVEST_JOB_NAMES, HarvestJob, RESOURCE_ICONS, RESOURCE_NAMES, RESOURCES } from './data/resources';
+import { HarvestJob, RESOURCE_ICONS, RESOURCE_NAMES, RESOURCES } from './data/resources';
+import { BUILDING_CATEGORY_NAMES, BUILDINGS, buildingDef } from './data/buildings';
+import { STORAGE_PRIORITIES, STORAGE_PRIORITY_NAMES, StorageZone } from './sim/zones';
 import type { DesignMode } from './render/WorldScene';
 import type { Stockpile } from './sim/resources';
 import './style.css';
@@ -142,50 +144,148 @@ game.events.on('inventory', (inv: Stockpile) => {
   );
 });
 
-// --- Órdenes: talar, picar, saquear --------------------------------------------
+// --- Órdenes, almacenes y construcción ----------------------------------------
 const orderModes = $('order-modes');
 const ordersBtn = $('orders-btn');
+const buildModes = $('build-modes');
+const buildBtn = $('build-btn');
 const designHint = $('design-hint');
-const modeButtons = Array.from(orderModes.querySelectorAll<HTMLButtonElement>('button[data-mode]'));
-const DESIGN_HINTS: Record<HarvestJob | 'cancelar', string> = {
-  talar: 'árboles, tocones y matorrales',
-  minar: 'rocas, piedras y muros',
-  saquear: 'chatarra, coches, escombros y neumáticos',
-  cancelar: 'las órdenes que quieras quitar',
-};
-function toggleOrders(open: boolean = orderModes.hidden !== false): void {
-  orderModes.hidden = !open;
-  ordersBtn.classList.toggle('active', open);
-  if (!open) scene().setDesignMode(null);
+const shapeBtn = $<HTMLButtonElement>('build-shape');
+
+// Un botón por construcción, con su coste.
+for (const def of BUILDINGS) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.dataset.mode = 'construir';
+  b.dataset.build = def.id;
+  const cost = RESOURCES.filter((r) => def.cost[r]).map((r) => `${RESOURCE_ICONS[r]}${def.cost[r]}`).join(' ');
+  b.textContent = `${def.name} `;
+  const n = document.createElement('span');
+  n.className = 'n';
+  n.textContent = cost;
+  b.append(n);
+  b.title = `${BUILDING_CATEGORY_NAMES[def.category]} · ${def.name} · coste ${cost}`;
+  buildModes.insertBefore(b, shapeBtn);
 }
-ordersBtn.addEventListener('click', () => toggleOrders());
+const modeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('#order-modes button[data-mode], #build-modes button[data-mode]'));
+
+const DESIGN_HINTS: Record<Exclude<DesignMode, null>, string> = {
+  talar: 'Talar: arrastra sobre árboles, tocones y matorrales',
+  minar: 'Picar: arrastra sobre rocas, piedras y muros',
+  saquear: 'Saquear: arrastra sobre chatarra, coches, escombros y neumáticos',
+  cancelar: 'Quitar: arrastra sobre las órdenes que quieras quitar',
+  almacen: 'Almacén: arrastra para marcar la zona (empezando dentro de una, se amplía)',
+  quitarAlmacen: 'Quitar almacén: arrastra sobre las casillas que ya no quieras usar',
+  construir: 'Construir',
+  quitarPlano: 'Quitar planos: arrastra sobre los planos (devuelven el material)',
+};
+function showMenu(which: 'orders' | 'build' | null): void {
+  orderModes.hidden = which !== 'orders';
+  buildModes.hidden = which !== 'build';
+  ordersBtn.classList.toggle('active', which === 'orders');
+  buildBtn.classList.toggle('active', which === 'build');
+  if (!which) scene().setDesignMode(null);
+}
+ordersBtn.addEventListener('click', () => showMenu(orderModes.hidden ? 'orders' : null));
+buildBtn.addEventListener('click', () => showMenu(buildModes.hidden ? 'build' : null));
 for (const b of modeButtons) {
   b.addEventListener('click', () => {
+    const s = scene();
     const mode = b.dataset.mode as Exclude<DesignMode, null>;
+    if (mode === 'construir') {
+      const id = b.dataset.build!;
+      const same = s.designMode === 'construir' && s.buildDefId === id;
+      s.buildDefId = id;
+      // Muros en contorno (para cerrar cuartos); el resto, casilla a casilla.
+      s.buildShape = buildingDef(id).category === 'muro' ? 'contorno' : 'relleno';
+      s.setDesignMode(same ? null : 'construir');
+      return;
+    }
     // Volver a tocar el modo activo lo desactiva.
-    scene().setDesignMode(scene().designMode === mode ? null : mode);
+    s.setDesignMode(s.designMode === mode ? null : mode);
   });
 }
+shapeBtn.addEventListener('click', () => {
+  const s = scene();
+  s.buildShape = s.buildShape === 'contorno' ? 'relleno' : 'contorno';
+  s.setDesignMode(s.designMode === 'construir' ? 'construir' : s.designMode);
+});
 game.events.on('design-mode', (mode: DesignMode) => {
-  for (const b of modeButtons) b.classList.toggle('active', b.dataset.mode === mode);
-  if (mode && orderModes.hidden) toggleOrders(true);
+  const s = scene();
+  for (const b of modeButtons) {
+    const on = b.dataset.mode === mode && (mode !== 'construir' || b.dataset.build === s.buildDefId);
+    b.classList.toggle('active', on);
+  }
+  shapeBtn.textContent = s.buildShape === 'contorno' ? '▭ Forma: contorno' : '■ Forma: relleno';
+  if (mode === 'construir' || mode === 'quitarPlano') {
+    if (buildModes.hidden) showMenu('build');
+  } else if (mode && orderModes.hidden) {
+    showMenu('orders');
+  }
   designHint.hidden = !mode;
-  if (mode) {
-    const what = mode === 'cancelar' ? 'Quitar' : HARVEST_JOB_NAMES[mode];
-    designHint.textContent = `${what}: arrastra sobre ${DESIGN_HINTS[mode]} o toca una casilla · dos dedos: mover la cámara`;
+  if (mode === 'construir') {
+    const def = buildingDef(s.buildDefId);
+    const how = s.buildShape === 'contorno' ? 'arrastra un rectángulo para su contorno (o una línea)' : 'arrastra o toca las casillas';
+    designHint.textContent = `${def.name}: ${how} · solo en suelo llano y libre · dos dedos: mover la cámara`;
+  } else if (mode) {
+    designHint.textContent = `${DESIGN_HINTS[mode]} o toca una casilla · dos dedos: mover la cámara`;
   }
 });
 game.events.on('designations', (counts: Record<HarvestJob, number>) => {
   for (const b of modeButtons) {
     const n = b.querySelector('.n');
-    const mode = b.dataset.mode as HarvestJob | 'cancelar';
-    if (n && mode !== 'cancelar') n.textContent = counts[mode] > 0 ? String(counts[mode]) : '';
+    const mode = b.dataset.mode as string;
+    if (n && mode in counts) n.textContent = counts[mode as HarvestJob] > 0 ? String(counts[mode as HarvestJob]) : '';
   }
 });
 window.addEventListener('keydown', (e) => {
   const el = document.activeElement;
   if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return;
-  if (e.key === 't' || e.key === 'T') toggleOrders();
+  if (e.key === 't' || e.key === 'T') showMenu(orderModes.hidden ? 'orders' : null);
+  if (e.key === 'b' || e.key === 'B') showMenu(buildModes.hidden ? 'build' : null);
+});
+
+// --- Panel de un almacén: prioridad y filtro -----------------------------------
+const zonePanel = $('zone-panel');
+const zpPriority = $('zp-priority');
+const zpFilter = $('zp-filter');
+$('zp-close').addEventListener('click', () => scene().selectZone(null));
+$('zp-delete').addEventListener('click', () => {
+  const s = scene();
+  if (s.selectedZoneId !== null) s.world.zones.delete(s.selectedZoneId);
+  s.selectZone(null);
+});
+game.events.on('zone-select', (z: StorageZone | null) => {
+  zonePanel.hidden = !z;
+  if (!z) return;
+  $('zp-name').textContent = `📦 ${z.name}`;
+  $('zp-sub').textContent = `${z.tiles.size} casillas · se llenan antes los de más prioridad`;
+  zpPriority.replaceChildren(
+    ...STORAGE_PRIORITIES.map((p) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = STORAGE_PRIORITY_NAMES[p];
+      b.classList.toggle('active', z.priority === p);
+      b.addEventListener('click', () => {
+        scene().world.zones.setPriority(z.id, p);
+        scene().refreshZone();
+      });
+      return b;
+    }),
+  );
+  zpFilter.replaceChildren(
+    ...RESOURCES.map((r) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = `${z.accepts[r] ? '☑' : '☐'} ${RESOURCE_ICONS[r]} ${RESOURCE_NAMES[r]}`;
+      b.classList.toggle('active', z.accepts[r]);
+      b.addEventListener('click', () => {
+        scene().world.zones.setAccepts(z.id, r, !z.accepts[r]);
+        scene().refreshZone();
+      });
+      return b;
+    }),
+  );
 });
 
 // --- Información de casilla y avisos -----------------------------------------

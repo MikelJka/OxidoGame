@@ -1,61 +1,93 @@
-// Sistema de trabajos: convierte las designaciones en tareas, las reserva para un colono
-// y elige la siguiente según sus prioridades y la distancia. Determinista: sin azar.
-import { HARVEST_JOB_SKILL, HarvestJob } from '../data/resources';
+// Sistema de trabajos: convierte designaciones, montones sueltos y planos en tareas,
+// las reserva para un colono y elige la siguiente según sus prioridades y la distancia.
+// Determinista: sin azar.
+import { MAX_STACK, ResourceId } from '../data/resources';
+import { WORK_SKILL, WORK_TYPES, WorkType } from '../data/work';
 import { Colonist, ColonistJob } from './colonist';
 import { Designations } from './designations';
+import { GroundItems } from './items';
 import { GameMap, index, isPassable, PROP_INFO, Prop } from './map';
 import { findPath, Point } from './pathfinding';
 import { harvestAt } from './resources';
+import { Structure, Structures } from './structures';
+import { StorageZones } from './zones';
 
-/** Cuántas tareas candidatas (las más cercanas) se prueban con el buscador de caminos. */
-const CANDIDATES_PER_SEARCH = 6;
+/** Cuántas tareas candidatas (las más cercanas) de cada prioridad se prueban con el buscador de caminos. */
+const CANDIDATES_PER_SEARCH = 8;
 /** Límite de nodos del buscador de caminos al buscar trabajo. */
-const JOB_PATH_NODES = 12000;
+export const JOB_PATH_NODES = 12000;
 
 const SIDES: readonly Point[] = [{ x: 0, y: 1 }, { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: -1 }];
 
 /** Velocidad de trabajo de un colono (1 = normal): de ×0,6 con habilidad 0 a ×1,6 con 20. */
-export function workSpeed(c: Colonist, kind: HarvestJob): number {
-  return 0.6 + c.skills[HARVEST_JOB_SKILL[kind]] * 0.05;
+export function workSpeed(c: Colonist, kind: WorkType): number {
+  const skill = WORK_SKILL[kind];
+  return skill ? 0.6 + c.skills[skill] * 0.05 : 1;
 }
 
-/** Reservas de tareas: cada casilla designada la hace como mucho un colono. */
+/** Huecos de reserva de una casilla: el trabajo en ella, recoger su montón o dejar algo en ella. */
+export type ReservationSlot = 'work' | 'pickup' | 'drop';
+const SLOTS: readonly ReservationSlot[] = ['work', 'pickup', 'drop'];
+
+/** Reservas de tareas: cada hueco de cada casilla lo tiene como mucho un colono. */
 export class Reservations {
-  private byTile = new Map<number, number>();
+  private byKey = new Map<number, number>();
 
   constructor(readonly map: GameMap) {}
 
-  holder(x: number, y: number): number | undefined {
-    return this.byTile.get(index(this.map, x, y));
+  private key(x: number, y: number, slot: ReservationSlot): number {
+    return index(this.map, x, y) * SLOTS.length + SLOTS.indexOf(slot);
   }
 
-  /** Reserva una casilla para un colono. false si ya la tiene otro. */
-  reserve(x: number, y: number, colonistId: number): boolean {
-    const i = index(this.map, x, y);
-    const h = this.byTile.get(i);
+  holder(x: number, y: number, slot: ReservationSlot = 'work'): number | undefined {
+    return this.byKey.get(this.key(x, y, slot));
+  }
+
+  /** Reserva un hueco para un colono. false si ya lo tiene otro. */
+  reserve(x: number, y: number, colonistId: number, slot: ReservationSlot = 'work'): boolean {
+    const k = this.key(x, y, slot);
+    const h = this.byKey.get(k);
     if (h !== undefined && h !== colonistId) return false;
-    this.byTile.set(i, colonistId);
+    this.byKey.set(k, colonistId);
     return true;
   }
 
-  release(x: number, y: number, colonistId: number): void {
-    const i = index(this.map, x, y);
-    if (this.byTile.get(i) === colonistId) this.byTile.delete(i);
+  release(x: number, y: number, colonistId: number, slot: ReservationSlot = 'work'): void {
+    const k = this.key(x, y, slot);
+    if (this.byKey.get(k) === colonistId) this.byKey.delete(k);
   }
 
   /** Suelta todas las reservas de un colono. */
   releaseAll(colonistId: number): void {
-    for (const [i, id] of this.byTile) if (id === colonistId) this.byTile.delete(i);
+    for (const [k, id] of this.byKey) if (id === colonistId) this.byKey.delete(k);
   }
 
-  list(): { x: number; y: number; colonistId: number }[] {
-    return [...this.byTile].map(([i, colonistId]) => ({ x: i % this.map.width, y: Math.floor(i / this.map.width), colonistId }));
+  list(): { x: number; y: number; slot: ReservationSlot; colonistId: number }[] {
+    return [...this.byKey].map(([k, colonistId]) => {
+      const i = Math.floor(k / SLOTS.length);
+      return { x: i % this.map.width, y: Math.floor(i / this.map.width), slot: SLOTS[k % SLOTS.length], colonistId };
+    });
   }
+}
+
+/** Lo que necesita el sistema de trabajos (lo cumple `World`). */
+export interface JobContext {
+  map: GameMap;
+  designations: Designations;
+  reservations: Reservations;
+  items: GroundItems;
+  zones: StorageZones;
+  structures: Structures;
 }
 
 /** Casillas desde las que se puede trabajar un objeto: la suya si se pisa, si no las de los lados. */
 export function standTiles(map: GameMap, x: number, y: number): Point[] {
   if (isPassable(map, x, y)) return [{ x, y }];
+  return sideTiles(map, x, y);
+}
+
+/** Casillas transitables a los lados (no en diagonal). */
+export function sideTiles(map: GameMap, x: number, y: number): Point[] {
   return SIDES.map((d) => ({ x: x + d.x, y: y + d.y })).filter((p) => isPassable(map, p.x, p.y));
 }
 
@@ -63,6 +95,11 @@ export function standTiles(map: GameMap, x: number, y: number): Point[] {
 export function canWorkFrom(map: GameMap, at: Point, x: number, y: number): boolean {
   if (at.x === x && at.y === y) return true;
   if (isPassable(map, x, y)) return false; // si el objeto se pisa, hay que estar encima
+  return isBeside(at, x, y);
+}
+
+/** Está justo al lado (no en diagonal). Así se construye: desde fuera del plano. */
+export function isBeside(at: Point, x: number, y: number): boolean {
   return Math.abs(at.x - x) + Math.abs(at.y - y) === 1;
 }
 
@@ -71,47 +108,215 @@ export interface JobPlan {
   path: Point[];
 }
 
-/**
- * Busca el siguiente trabajo para un colono: primero los de mejor prioridad (1 antes que 4;
- * 0 = no lo hace), y dentro de ella los más cercanos a los que puede llegar andando.
- * No reserva nada: lo hace quien acepta el plan.
- */
-export function findJob(
-  map: GameMap,
-  c: Colonist,
-  designations: Designations,
-  reservations: Reservations,
-): JobPlan | null {
-  const byPriority = new Map<number, { x: number; y: number; kind: HarvestJob; dist: number }[]>();
-  for (const d of designations.list()) {
-    const p = c.priorities[d.job];
-    if (p === 0) continue;
-    const holder = reservations.holder(d.x, d.y);
-    if (holder !== undefined && holder !== c.id) continue;
-    const dist = Math.abs(d.x - c.tile.x) + Math.abs(d.y - c.tile.y);
-    const list = byPriority.get(p) ?? [];
-    list.push({ x: d.x, y: d.y, kind: d.job, dist });
-    byPriority.set(p, list);
+interface Candidate {
+  kind: WorkType;
+  x: number;
+  y: number;
+  dist: number;
+  make: () => JobPlan | null;
+}
+
+const manhattan = (a: Point, x: number, y: number) => Math.abs(a.x - x) + Math.abs(a.y - y);
+
+/** Camino hasta la casilla más cercana de una lista a la que se pueda llegar. */
+function pathToNearest(map: GameMap, from: Point, targets: Point[]): { stand: Point; path: Point[] } | null {
+  const sorted = [...targets].sort((a, b) => manhattan(from, a.x, a.y) - manhattan(from, b.x, b.y));
+  for (const t of sorted) {
+    if (t.x === from.x && t.y === from.y) return { stand: { ...t }, path: [] };
+    const path = findPath(map, from, t, JOB_PATH_NODES);
+    if (path) return { stand: t, path };
   }
-  const priorities = [...byPriority.keys()].sort((a, b) => a - b);
-  for (const p of priorities) {
-    // Orden estable: distancia y después posición, para que sea determinista.
-    const list = byPriority.get(p)!.sort((a, b) => a.dist - b.dist || a.y - b.y || a.x - b.x);
-    for (const cand of list.slice(0, CANDIDATES_PER_SEARCH)) {
-      const h = harvestAt(map, cand.x, cand.y);
-      if (!h) continue;
-      const stands = standTiles(map, cand.x, cand.y).sort(
-        (a, b) => Math.abs(a.x - c.tile.x) + Math.abs(a.y - c.tile.y) - (Math.abs(b.x - c.tile.x) + Math.abs(b.y - c.tile.y)),
-      );
-      for (const stand of stands) {
-        const path = canWorkFrom(map, c.tile, cand.x, cand.y) ? [] : findPath(map, c.tile, stand, JOB_PATH_NODES);
-        if (!path) continue;
-        const at = canWorkFrom(map, c.tile, cand.x, cand.y) ? { ...c.tile } : stand;
-        return { job: { kind: cand.kind, x: cand.x, y: cand.y, stand: at, progress: 0, work: h.work }, path };
+  return null;
+}
+
+/**
+ * Mejor casilla de almacén para un recurso que está ahora con prioridad `current`:
+ * la zona de más prioridad (mayor que la actual) con sitio, y en ella la casilla más cercana,
+ * prefiriendo completar montones del mismo recurso.
+ */
+export function bestStorageTile(ctx: JobContext, resource: ResourceId, current: number, near: Point): Point | null {
+  const zones = ctx.zones
+    .all()
+    .filter((z) => z.accepts[resource] && z.priority > current)
+    .sort((a, b) => b.priority - a.priority || a.id - b.id);
+  let level = -1;
+  let best: Point | null = null;
+  let bestScore = Infinity;
+  for (const z of zones) {
+    if (best && z.priority < level) break; // ya hay sitio en una zona más importante
+    for (const i of z.tiles) {
+      const x = i % ctx.map.width;
+      const y = Math.floor(i / ctx.map.width);
+      if (ctx.items.room(x, y, resource) <= 0) continue;
+      if (ctx.reservations.holder(x, y, 'drop') !== undefined) continue;
+      if (ctx.structures.at(x, y)) continue; // no se guarda encima de un plano
+      const merge = ctx.items.at(x, y) ? -0.5 : 0;
+      const score = manhattan(near, x, y) + merge;
+      if (score < bestScore || (score === bestScore && best && (y < best.y || (y === best.y && x < best.x)))) {
+        best = { x, y };
+        bestScore = score;
+        level = z.priority;
       }
     }
   }
+  return best;
+}
+
+/** Prioridad de almacén más alta que acepta cada recurso (0 si ninguna). */
+function maxStoragePriority(ctx: JobContext): Partial<Record<ResourceId, number>> {
+  const out: Partial<Record<ResourceId, number>> = {};
+  for (const z of ctx.zones.all()) {
+    for (const r of Object.keys(z.accepts) as ResourceId[]) {
+      if (z.accepts[r]) out[r] = Math.max(out[r] ?? 0, z.priority);
+    }
+  }
+  return out;
+}
+
+function harvestCandidates(ctx: JobContext, c: Colonist): Candidate[] {
+  const out: Candidate[] = [];
+  for (const d of ctx.designations.list()) {
+    if (c.priorities[d.job] === 0) continue;
+    const holder = ctx.reservations.holder(d.x, d.y);
+    if (holder !== undefined && holder !== c.id) continue;
+    out.push({
+      kind: d.job, x: d.x, y: d.y, dist: manhattan(c.tile, d.x, d.y),
+      make: () => {
+        const h = harvestAt(ctx.map, d.x, d.y);
+        if (!h) return null;
+        const here = canWorkFrom(ctx.map, c.tile, d.x, d.y);
+        const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, standTiles(ctx.map, d.x, d.y));
+        if (!route) return null;
+        return { job: { kind: d.job, x: d.x, y: d.y, stand: route.stand, progress: 0, work: h.work }, path: route.path };
+      },
+    });
+  }
+  return out;
+}
+
+function haulCandidates(ctx: JobContext, c: Colonist): Candidate[] {
+  if (c.priorities.transportar === 0 || ctx.zones.all().length === 0) return [];
+  const maxPrio = maxStoragePriority(ctx);
+  const out: Candidate[] = [];
+  for (const s of ctx.items.list()) {
+    const current = ctx.zones.priorityFor(s.x, s.y, s.resource);
+    if ((maxPrio[s.resource] ?? 0) <= current) continue;
+    if (ctx.reservations.holder(s.x, s.y, 'pickup') !== undefined) continue;
+    out.push({
+      kind: 'transportar', x: s.x, y: s.y, dist: manhattan(c.tile, s.x, s.y),
+      make: () => {
+        const to = bestStorageTile(ctx, s.resource, current, s);
+        if (!to) return null;
+        const amount = Math.min(s.amount, ctx.items.room(to.x, to.y, s.resource), MAX_STACK[s.resource]);
+        if (amount <= 0) return null;
+        const route = pathToNearest(ctx.map, c.tile, [{ x: s.x, y: s.y }]);
+        if (!route) return null;
+        return {
+          job: {
+            kind: 'transportar', x: s.x, y: s.y, stand: route.stand, progress: 0, work: 0,
+            haul: { resource: s.resource, amount, from: { x: s.x, y: s.y }, to, toBlueprint: false, picked: false },
+          },
+          path: route.path,
+        };
+      },
+    });
+  }
+  return out;
+}
+
+/** Montón más cercano a `near` de alguno de los recursos que pide un plano. */
+function nearestMaterial(ctx: JobContext, s: Structure, near: Point): { x: number; y: number; resource: ResourceId; amount: number } | null {
+  const needs = ctx.structures.needs(s);
+  let best: { x: number; y: number; resource: ResourceId; amount: number } | null = null;
+  let bestDist = Infinity;
+  for (const st of ctx.items.list()) {
+    const want = needs[st.resource] ?? 0;
+    if (want <= 0) continue;
+    if (ctx.reservations.holder(st.x, st.y, 'pickup') !== undefined) continue;
+    const d = manhattan(near, st.x, st.y);
+    if (d < bestDist) {
+      bestDist = d;
+      best = { x: st.x, y: st.y, resource: st.resource, amount: Math.min(want, st.amount, MAX_STACK[st.resource]) };
+    }
+  }
+  return best;
+}
+
+function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
+  if (c.priorities.construir === 0) return [];
+  const out: Candidate[] = [];
+  for (const s of ctx.structures.blueprints()) {
+    const holder = ctx.reservations.holder(s.x, s.y);
+    if (holder !== undefined && holder !== c.id) continue;
+    out.push({
+      kind: 'construir', x: s.x, y: s.y, dist: manhattan(c.tile, s.x, s.y),
+      make: () => {
+        // Hay que poder llegar al lado del plano.
+        const sides = sideTiles(ctx.map, s.x, s.y);
+        if (ctx.structures.needsAny(s)) {
+          const mat = nearestMaterial(ctx, s, c.tile);
+          if (!mat) return null;
+          const route = pathToNearest(ctx.map, c.tile, [{ x: mat.x, y: mat.y }]);
+          if (!route) return null;
+          if (!pathToNearest(ctx.map, { x: mat.x, y: mat.y }, sides)) return null;
+          return {
+            job: {
+              kind: 'construir', x: s.x, y: s.y, stand: route.stand, progress: 0, work: 0,
+              haul: { resource: mat.resource, amount: mat.amount, from: { x: mat.x, y: mat.y }, to: { x: s.x, y: s.y }, toBlueprint: true, picked: false },
+            },
+            path: route.path,
+          };
+        }
+        const here = isBeside(c.tile, s.x, s.y);
+        const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, sides);
+        if (!route) return null;
+        return { job: { kind: 'construir', x: s.x, y: s.y, stand: route.stand, progress: s.progress, work: s.def.work }, path: route.path };
+      },
+    });
+  }
+  return out;
+}
+
+/**
+ * Busca el siguiente trabajo para un colono: primero los de mejor prioridad (1 antes que 4;
+ * 0 = no lo hace) y dentro de ella los más cercanos a los que puede llegar andando.
+ * No reserva nada: lo hace quien acepta el plan.
+ */
+export function findJob(ctx: JobContext, c: Colonist): JobPlan | null {
+  const all = [...buildCandidates(ctx, c), ...harvestCandidates(ctx, c), ...haulCandidates(ctx, c)];
+  const byPriority = new Map<number, Candidate[]>();
+  for (const cand of all) {
+    const p = c.priorities[cand.kind];
+    const list = byPriority.get(p) ?? [];
+    list.push(cand);
+    byPriority.set(p, list);
+  }
+  for (const p of [...byPriority.keys()].sort((a, b) => a - b)) {
+    // Orden estable: distancia, tipo de trabajo y posición, para que sea determinista.
+    const list = byPriority.get(p)!.sort(
+      (a, b) => a.dist - b.dist || WORK_TYPES.indexOf(a.kind) - WORK_TYPES.indexOf(b.kind) || a.y - b.y || a.x - b.x,
+    );
+    for (const cand of list.slice(0, CANDIDATES_PER_SEARCH)) {
+      const plan = cand.make();
+      if (plan) return plan;
+    }
+  }
   return null;
+}
+
+/** Reserva lo que necesita un plan de trabajo. false (y nada reservado) si algo ya estaba cogido. */
+export function reservePlan(r: Reservations, c: Colonist, job: ColonistJob): boolean {
+  const fail = () => {
+    r.releaseAll(c.id);
+    return false;
+  };
+  if (job.kind !== 'transportar' && !r.reserve(job.x, job.y, c.id, 'work')) return fail();
+  const h = job.haul;
+  if (h) {
+    if (!h.picked && !r.reserve(h.from.x, h.from.y, c.id, 'pickup')) return fail();
+    if (!h.toBlueprint && !r.reserve(h.to.x, h.to.y, c.id, 'drop')) return fail();
+  }
+  return true;
 }
 
 /** Nombre del objeto sobre el que se trabaja, para la interfaz. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { checkWorld } from '../src/sim/diagnostics';
-import { canWorkFrom, findJob, Reservations, standTiles, workSpeed } from '../src/sim/jobs';
+import { canWorkFrom, findJob, standTiles, workSpeed } from '../src/sim/jobs';
 import { index, Prop, rollStock, Terrain } from '../src/sim/map';
 import { Rng } from '../src/sim/rng';
 import { World } from '../src/sim/world';
@@ -77,13 +77,12 @@ describe('trabajos', () => {
     put(world, 25, 5, Prop.DeadTree); // más lejos, talar
     world.designations.designateArea({ x0: 0, y0: 0, x1: 29, y1: 29 }, 'talar');
     world.designations.designateArea({ x0: 0, y0: 0, x1: 29, y1: 29 }, 'minar');
-    const res = new Reservations(world.map);
-    expect(findJob(world.map, c, world.designations, res)!.job).toMatchObject({ kind: 'minar', x: 7, y: 5 });
+    expect(findJob(world, c)!.job).toMatchObject({ kind: 'minar', x: 7, y: 5 });
     c.priorities.talar = 1;
-    expect(findJob(world.map, c, world.designations, res)!.job).toMatchObject({ kind: 'talar', x: 20, y: 5 });
+    expect(findJob(world, c)!.job).toMatchObject({ kind: 'talar', x: 20, y: 5 });
     c.priorities.talar = 0;
     c.priorities.minar = 0;
-    expect(findJob(world.map, c, world.designations, res)).toBeNull();
+    expect(findJob(world, c)).toBeNull();
   });
 
   it('dos colonos no cogen la misma tarea', () => {

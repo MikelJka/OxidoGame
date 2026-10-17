@@ -1,0 +1,52 @@
+[
+  {
+    "id": "muro_madera",
+    "name": "Muro de madera",
+    "category": "muro",
+    "cost": { "madera": 5 },
+    "work": 200,
+    "hp": 150,
+    "blocks": true,
+    "colors": { "top": "#b08552", "face": "#7a5634", "dark": "#4e3520" }
+  },
+  {
+    "id": "muro_piedra",
+    "name": "Muro de piedra",
+    "category": "muro",
+    "cost": { "piedra": 6 },
+    "work": 420,
+    "hp": 420,
+    "blocks": true,
+    "colors": { "top": "#b4b1a8", "face": "#8a877f", "dark": "#55534e" }
+  },
+  {
+    "id": "muro_chatarra",
+    "name": "Muro de chatarra",
+    "category": "muro",
+    "cost": { "chatarra": 5 },
+    "work": 300,
+    "hp": 280,
+    "blocks": true,
+    "colors": { "top": "#a7744a", "face": "#7d4f2e", "dark": "#4a2f1d" }
+  },
+  {
+    "id": "puerta_madera",
+    "name": "Puerta de madera",
+    "category": "puerta",
+    "cost": { "madera": 10 },
+    "work": 300,
+    "hp": 120,
+    "blocks": false,
+    "colors": { "top": "#b08552", "face": "#6a4a2c", "dark": "#3e2a18" }
+  },
+  {
+    "id": "puerta_chapa",
+    "name": "Puerta de chapa",
+    "category": "puerta",
+    "cost": { "chatarra": 10, "componentes": 1 },
+    "work": 450,
+    "hp": 220,
+    "blocks": false,
+    "colors": { "top": "#8e8c86", "face": "#6a6862", "dark": "#3d3c38" }
+  }
+]

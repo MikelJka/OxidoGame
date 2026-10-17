@@ -1,11 +1,13 @@
 import { Colonist, createColonist, walkSpeedMultiplier } from './colonist';
-import { GameMap, generateMap, tileMoveCost } from './map';
+import { GameMap, generateMap, isPassable, tileMoveCost } from './map';
 import { findPath, isWalkable, Point } from './pathfinding';
 import { Rng } from './rng';
 import { GroundItems } from './items';
 import { Designations } from './designations';
-import { canWorkFrom, findJob, Reservations, workSpeed } from './jobs';
+import { canWorkFrom, findJob, isBeside, JOB_PATH_NODES, JobContext, reservePlan, Reservations, sideTiles, workSpeed } from './jobs';
 import { harvestAt, harvestTile, Stockpile } from './resources';
+import { StorageZones } from './zones';
+import { Structure, Structures } from './structures';
 import { RESOURCES, STARTING_SUPPLIES } from '../data/resources';
 
 /** Ticks de simulación por segundo real a velocidad x1. */
@@ -35,7 +37,7 @@ export interface WorldOptions {
   colonists?: number;
 }
 
-export class World {
+export class World implements JobContext {
   readonly map: GameMap;
   readonly rng: Rng;
   readonly colonists: Colonist[] = [];
@@ -43,8 +45,12 @@ export class World {
   readonly items: GroundItems;
   /** Casillas marcadas para talar, picar o saquear. */
   readonly designations: Designations;
-  /** Qué colono hace cada casilla designada. */
+  /** Qué colono hace cada tarea (casilla designada, montón, destino, plano). */
   readonly reservations: Reservations;
+  /** Zonas de almacén. */
+  readonly zones: StorageZones;
+  /** Planos y construcciones. */
+  readonly structures: Structures;
   /** Tick a partir del cual cada colono vuelve a buscar trabajo. */
   private nextJobScan = new Map<number, number>();
   tick = 0;
@@ -58,12 +64,16 @@ export class World {
     this.items = new GroundItems(this.map);
     this.designations = new Designations(this.map);
     this.reservations = new Reservations(this.map);
+    this.zones = new StorageZones(this.map);
+    this.structures = new Structures(this.map);
     this.dropStartingSupplies();
   }
 
-  /** Inventario de la colonia: todo lo que hay en el suelo. */
+  /** Inventario de la colonia: lo que hay en el suelo más lo que llevan encima los colonos. */
   inventory(): Stockpile {
-    return this.items.totals();
+    const total = this.items.totals();
+    for (const c of this.colonists) if (c.carrying) total[c.carrying.resource] += c.carrying.amount;
+    return total;
   }
 
   /**
@@ -193,10 +203,10 @@ export class World {
 
   /** Busca trabajo (si toca) y lo empieza. true si ahora tiene uno. */
   private tryStartJob(c: Colonist): boolean {
-    if (this.designations.count === 0) return false;
+    if (this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0) return false;
     if (this.tick < (this.nextJobScan.get(c.id) ?? 0)) return false;
-    const plan = findJob(this.map, c, this.designations, this.reservations);
-    if (!plan || !this.reservations.reserve(plan.job.x, plan.job.y, c.id)) {
+    const plan = findJob(this, c);
+    if (!plan || !reservePlan(this.reservations, c, plan.job)) {
       this.nextJobScan.set(c.id, this.tick + JOB_RETRY_TICKS);
       return false;
     }
@@ -207,20 +217,47 @@ export class World {
     return true;
   }
 
-  /** Deja el trabajo actual (terminado, cancelado o imposible) y suelta su reserva. */
+  /** Deja el trabajo actual (terminado, cancelado o imposible): suelta reservas y lo que lleve encima. */
   private dropJob(c: Colonist): void {
+    this.reservations.releaseAll(c.id);
+    if (c.carrying) {
+      this.items.drop(c.tile.x, c.tile.y, c.carrying.resource, c.carrying.amount);
+      c.carrying = null;
+    }
     if (!c.job) return;
-    this.reservations.release(c.job.x, c.job.y, c.id);
     c.job = null;
     c.path = [];
     c.activity = 'idle';
     c.waitTicks = JOB_PAUSE_TICKS;
   }
 
+  /** El trabajo sigue teniendo sentido (no se ha quitado la orden, el montón sigue ahí…). */
+  private jobStillValid(c: Colonist): boolean {
+    const j = c.job!;
+    const h = j.haul;
+    if (j.kind === 'construir') {
+      const s = this.structures.at(j.x, j.y);
+      if (!s || s.built) return false;
+      if (h && !h.picked) {
+        const st = this.items.at(h.from.x, h.from.y);
+        if (!st || st.resource !== h.resource || (this.structures.needs(s)[h.resource] ?? 0) <= 0) return false;
+      }
+      return true;
+    }
+    if (j.kind === 'transportar') {
+      if (!h) return false;
+      if (!h.picked) {
+        const st = this.items.at(h.from.x, h.from.y);
+        if (!st || st.resource !== h.resource) return false;
+      }
+      return this.zones.priorityFor(h.to.x, h.to.y, h.resource) > 0 && this.items.room(h.to.x, h.to.y, h.resource) > 0;
+    }
+    return this.designations.at(j.x, j.y) === j.kind && harvestAt(this.map, j.x, j.y)?.job === j.kind;
+  }
+
   private updateJob(c: Colonist): void {
     const j = c.job!;
-    // La orden se ha quitado o el objeto ya no da nada: se deja.
-    if (this.designations.at(j.x, j.y) !== j.kind || harvestAt(this.map, j.x, j.y)?.job !== j.kind) {
+    if (!this.jobStillValid(c)) {
       this.dropJob(c);
       return;
     }
@@ -229,8 +266,14 @@ export class World {
       this.moveAlongPath(c);
       return;
     }
-    if (!canWorkFrom(this.map, c.tile, j.x, j.y)) {
-      const path = findPath(this.map, c.tile, j.stand, 12000);
+    if (j.haul) {
+      this.updateHaul(c);
+      return;
+    }
+    const building = j.kind === 'construir';
+    const inPlace = building ? isBeside(c.tile, j.x, j.y) : canWorkFrom(this.map, c.tile, j.x, j.y);
+    if (!inPlace) {
+      const path = findPath(this.map, c.tile, j.stand, JOB_PATH_NODES);
       if (!path || path.length === 0) {
         this.dropJob(c);
         this.nextJobScan.set(c.id, this.tick + JOB_RETRY_TICKS);
@@ -243,9 +286,138 @@ export class World {
     const dx = j.x + 0.5 - c.pos.x;
     if (Math.abs(dx) > 0.01) c.facing = dx > 0 ? 1 : -1;
     j.progress += workSpeed(c, j.kind);
+    if (building) {
+      const s = this.structures.at(j.x, j.y)!;
+      s.progress = Math.min(j.progress, s.def.work);
+      if (j.progress >= j.work) {
+        this.completeStructure(s);
+        this.dropJob(c);
+      }
+      return;
+    }
     if (j.progress >= j.work) {
       this.harvest(j.x, j.y);
       this.dropJob(c);
+    }
+  }
+
+  /** Transporte en dos tramos: ir al montón y cogerlo; llevarlo al almacén o al plano y dejarlo. */
+  private updateHaul(c: Colonist): void {
+    const j = c.job!;
+    const h = j.haul!;
+    if (!h.picked) {
+      if (c.tile.x !== h.from.x || c.tile.y !== h.from.y) {
+        this.repathOrDrop(c, h.from);
+        return;
+      }
+      const got = this.items.take(h.from.x, h.from.y, h.amount);
+      if (!got) {
+        this.dropJob(c);
+        return;
+      }
+      c.carrying = { resource: got.resource, amount: got.amount };
+      h.picked = true;
+      this.reservations.release(h.from.x, h.from.y, c.id, 'pickup');
+      // Al almacén se entra; a un plano se le lleva el material desde el lado.
+      const targets = h.toBlueprint ? sideTiles(this.map, h.to.x, h.to.y) : [h.to];
+      const route = this.routeTo(c, targets);
+      if (!route) {
+        this.dropJob(c);
+        this.nextJobScan.set(c.id, this.tick + JOB_RETRY_TICKS);
+        return;
+      }
+      j.stand = route.stand;
+      c.path = route.path;
+      c.activity = 'toJob';
+      return;
+    }
+    const arrived = h.toBlueprint ? isBeside(c.tile, h.to.x, h.to.y) : c.tile.x === h.to.x && c.tile.y === h.to.y;
+    if (!arrived) {
+      this.repathOrDrop(c, j.stand);
+      return;
+    }
+    const load = c.carrying;
+    if (load) {
+      let left = load.amount;
+      if (h.toBlueprint) {
+        const s = this.structures.at(h.to.x, h.to.y);
+        if (s) left -= this.structures.deliver(s, load.resource, left);
+      } else {
+        left = this.items.addAt(h.to.x, h.to.y, load.resource, left);
+      }
+      c.carrying = left > 0 ? { resource: load.resource, amount: left } : null;
+    }
+    this.dropJob(c); // si sobra algo, lo deja en el suelo donde está
+  }
+
+  /** Vuelve a calcular el camino hasta una casilla; si no hay, deja el trabajo. */
+  private repathOrDrop(c: Colonist, to: Point): void {
+    const path = findPath(this.map, c.tile, to, JOB_PATH_NODES);
+    if (!path || path.length === 0) {
+      this.dropJob(c);
+      this.nextJobScan.set(c.id, this.tick + JOB_RETRY_TICKS);
+      return;
+    }
+    c.path = path;
+  }
+
+  private routeTo(c: Colonist, targets: Point[]): { stand: Point; path: Point[] } | null {
+    const sorted = [...targets].sort((a, b) => Math.abs(a.x - c.tile.x) + Math.abs(a.y - c.tile.y) - (Math.abs(b.x - c.tile.x) + Math.abs(b.y - c.tile.y)));
+    for (const t of sorted) {
+      if (t.x === c.tile.x && t.y === c.tile.y) return { stand: t, path: [] };
+      const path = findPath(this.map, c.tile, t, JOB_PATH_NODES);
+      if (path) return { stand: t, path };
+    }
+    return null;
+  }
+
+  // --- Construcción ------------------------------------------------------------
+
+  /** Quita un plano y suelta en el suelo los materiales que ya se habían llevado. */
+  cancelBlueprint(x: number, y: number): boolean {
+    const back = this.structures.cancel(x, y);
+    if (!back) return false;
+    this.items.dropAll(x, y, back);
+    return true;
+  }
+
+  /** Termina una construcción y aparta lo que quede debajo (montones, colonos). */
+  completeStructure(s: Structure): void {
+    this.structures.complete(s);
+    if (!s.def.blocks) return;
+    const stack = this.items.at(s.x, s.y);
+    if (stack) {
+      const got = this.items.take(s.x, s.y, stack.amount)!;
+      this.items.drop(s.x, s.y, got.resource, got.amount);
+    }
+    for (const c of this.colonists) {
+      if (c.tile.x === s.x && c.tile.y === s.y) this.nudgeColonist(c);
+    }
+    // Los caminos que pasaban por ahí se recalculan.
+    for (const c of this.colonists) {
+      if (!c.path.some((p) => p.x === s.x && p.y === s.y)) continue;
+      const goal = c.path[c.path.length - 1];
+      const path = isPassable(this.map, goal.x, goal.y) ? findPath(this.map, c.tile, goal, JOB_PATH_NODES) : null;
+      c.path = path ?? [];
+    }
+    this.zones.prune();
+  }
+
+  /** Aparta a un colono a la casilla libre más cercana (cuando se levanta un muro donde está). */
+  private nudgeColonist(c: Colonist): void {
+    for (let r = 1; r <= 4; r++) {
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+          const x = c.tile.x + dx;
+          const y = c.tile.y + dy;
+          if (!isPassable(this.map, x, y)) continue;
+          c.tile = { x, y };
+          c.pos = { x: x + 0.5, y: y + 0.5 };
+          c.path = [];
+          return;
+        }
+      }
     }
   }
 

@@ -1,6 +1,7 @@
 import { MAX_STACK } from '../data/resources';
 import { inBounds } from './map';
 import { canDesignate } from './designations';
+import { canZone } from './zones';
 import { isWalkable } from './pathfinding';
 import type { World } from './world';
 
@@ -79,16 +80,39 @@ export function checkWorld(world: World, progress = new Map<number, ProgressMark
       problems.push({ key: `item-amount-${s.x}-${s.y}`, message: `El montón de ${s.resource} en (${s.x}, ${s.y}) tiene ${s.amount} unidades` });
     }
   }
-  // Trabajos y reservas: cada trabajo en curso tiene su reserva y cada reserva, su colono.
+  // Trabajos y reservas: cada trabajo en curso tiene su reserva y cada reserva, su colono con trabajo.
   for (const c of world.colonists) {
-    if (c.job && world.reservations.holder(c.job.x, c.job.y) !== c.id) {
-      problems.push({ key: `job-unreserved-${c.id}`, message: `${c.name} (#${c.id}) trabaja en (${c.job.x}, ${c.job.y}) sin tenerlo reservado` });
+    const j = c.job;
+    if (!j) {
+      if (c.carrying) problems.push({ key: `carry-nojob-${c.id}`, message: `${c.name} (#${c.id}) lleva ${c.carrying.resource} sin tener trabajo` });
+      continue;
+    }
+    if (j.kind !== 'transportar' && world.reservations.holder(j.x, j.y) !== c.id) {
+      problems.push({ key: `job-unreserved-${c.id}`, message: `${c.name} (#${c.id}) trabaja en (${j.x}, ${j.y}) sin tenerlo reservado` });
+    }
+    if (j.haul && !j.haul.picked && world.reservations.holder(j.haul.from.x, j.haul.from.y, 'pickup') !== c.id) {
+      problems.push({ key: `haul-unreserved-${c.id}`, message: `${c.name} (#${c.id}) va a recoger en (${j.haul.from.x}, ${j.haul.from.y}) sin tenerlo reservado` });
     }
   }
   for (const r of world.reservations.list()) {
     const c = world.colonists.find((k) => k.id === r.colonistId);
-    if (!c || !c.job || c.job.x !== r.x || c.job.y !== r.y) {
-      problems.push({ key: `reservation-orphan-${r.x}-${r.y}`, message: `La casilla (${r.x}, ${r.y}) está reservada por #${r.colonistId}, que no la está trabajando` });
+    if (!c || !c.job) {
+      problems.push({ key: `reservation-orphan-${r.x}-${r.y}-${r.slot}`, message: `La casilla (${r.x}, ${r.y}) está reservada (${r.slot}) por #${r.colonistId}, que no tiene trabajo` });
+    }
+  }
+
+  // Almacenes: sus casillas se pueden usar; construcciones terminadas bloquean de verdad.
+  for (const z of world.zones.all()) {
+    for (const i of z.tiles) {
+      const x = i % map.width;
+      const y = Math.floor(i / map.width);
+      if (!canZone(map, x, y)) problems.push({ key: `zone-bad-${x}-${y}`, message: `${z.name} incluye (${x}, ${y}), donde no se puede guardar nada` });
+    }
+  }
+  for (const s of world.structures.all()) {
+    const i = s.y * map.width + s.x;
+    if (s.built !== (map.blocked[i] !== 0)) {
+      problems.push({ key: `structure-${s.x}-${s.y}`, message: `${s.def.name} en (${s.x}, ${s.y}) no coincide con el mapa de bloqueos` });
     }
   }
 

@@ -5,30 +5,47 @@ import { isWalkable } from '../sim/pathfinding';
 import { GameSpeed, World } from '../sim/world';
 import { describeStack } from '../sim/items';
 import { canDesignate, TileRect } from '../sim/designations';
-import { HARVEST_JOB_NAMES, HarvestJob, MAX_STACK, RESOURCE_NAMES, ResourceId } from '../data/resources';
+import { HARVEST_JOB_NAMES, HarvestJob, MAX_STACK, RESOURCE_NAMES, RESOURCES, ResourceId } from '../data/resources';
+import { WorkType } from '../data/work';
+import { BuildingDef, buildingDef } from '../data/buildings';
+import { canZone, STORAGE_PRIORITY_NAMES, StorageZone } from '../sim/zones';
+import { PlaceShape, Structure, Structures } from '../sim/structures';
+import { drawBuilding, wallHeight } from './buildArt';
 import { canvasPropRasterizer, paintGround, TILE } from './mapArt';
-import { liftOf, occludedFraction, pickTile, rowY, setTilt, TILE_H, tiltIndex, TILTS, TOP_MARGIN } from './projection';
+import { LIFT, liftOf, occludedFraction, pickTile, rowY, setTilt, TILE_H, tiltIndex, TILTS, TOP_MARGIN } from './projection';
 import { fromView, normalizeRotation, Rotation, rotateMap, tileFromView, tileToView, toView } from './rotation';
 
 export { TILE };
 const MAP_TEXTURE = 'world-map';
 const MAX_ZOOM = 4;
 const COLONIST_DEPTH = 10;
-/** Los montones del suelo van por debajo de los colonos y de la selección. */
-const ITEM_DEPTH = COLONIST_DEPTH - 2;
 /** Marcas de designación: encima de los montones, debajo de los colonos. */
 const DESIGN_DEPTH = COLONIST_DEPTH - 1.5;
 
-/** Modo de órdenes: designar un trabajo, quitar designaciones o ninguno. */
-export type DesignMode = HarvestJob | 'cancelar' | null;
+/** Zonas de almacén: por debajo de todo lo que está encima del suelo. */
+const ZONE_DEPTH = -0.5;
 
-/** Color de cada trabajo en las marcas y en la vista previa del área. */
-export const DESIGN_COLORS: Record<HarvestJob | 'cancelar', number> = {
+/**
+ * Modo de órdenes: designar un trabajo, quitar designaciones, marcar o quitar almacenes,
+ * colocar planos (la construcción elegida está en `buildDefId`) o quitarlos. null = ninguno.
+ */
+export type DesignMode = HarvestJob | 'cancelar' | 'almacen' | 'quitarAlmacen' | 'construir' | 'quitarPlano' | null;
+
+/** Color de cada trabajo y modo en las marcas y en la vista previa del área. */
+export const DESIGN_COLORS: Record<WorkType | 'cancelar' | 'almacen' | 'quitarAlmacen' | 'quitarPlano', number> = {
   talar: 0x9bc45a,
   minar: 0x8fb4d8,
   saquear: 0xe0913a,
+  transportar: 0xd8c27a,
+  construir: 0x6fa8dc,
   cancelar: 0xd9534f,
+  almacen: 0xd8c27a,
+  quitarAlmacen: 0xd9534f,
+  quitarPlano: 0xd9534f,
 };
+
+/** Color de relleno de un almacén según su prioridad. */
+const ZONE_COLORS: Record<number, number> = { 1: 0x8a7a5a, 2: 0xd8c27a, 3: 0xe0a040, 4: 0xe06a3a };
 const UI_EMIT_MS = 200;
 /** Giro de los dedos (en radianes) que hace falta para girar la vista un cuarto de vuelta. */
 const TWIST_STEP = Math.PI / 4;
@@ -79,6 +96,16 @@ export class WorldScene extends Phaser.Scene {
   private designGfx!: Phaser.GameObjects.Graphics;
   private designPreview!: Phaser.GameObjects.Graphics;
   private designVersion = -1;
+  /** Construcción que se coloca en el modo «construir» y forma del área. */
+  buildDefId = 'muro_madera';
+  buildShape: PlaceShape = 'contorno';
+  private zoneGfx!: Phaser.GameObjects.Graphics;
+  private zoneVersion = -1;
+  private structSprites: Phaser.GameObjects.Image[] = [];
+  private structVersion = -1;
+  private carrySprites = new Map<number, Phaser.GameObjects.Image>();
+  /** Almacén cuyo panel está abierto (se resalta). */
+  selectedZoneId: number | null = null;
   /** Punto del mundo bajo el centro de los dos dedos al empezar el gesto (para moverse con dos dedos). */
   private pinchAnchor = new Phaser.Math.Vector2();
   private uiTimer = 0;
@@ -105,12 +132,18 @@ export class WorldScene extends Phaser.Scene {
     this.itemSprites = [];
     this.itemsVersion = -1;
     this.designVersion = -1;
+    this.zoneVersion = -1;
+    this.structVersion = -1;
+    this.structSprites = [];
+    this.carrySprites.clear();
+    this.selectedZoneId = null;
     this.designStart = null;
     this.designEnd = null;
     this.view = rotateMap(this.map, this.rotation);
     this.drawMap();
     this.selectionGfx = this.add.graphics().setDepth(COLONIST_DEPTH - 1);
     this.designGfx = this.add.graphics().setDepth(DESIGN_DEPTH);
+    this.zoneGfx = this.add.graphics().setDepth(ZONE_DEPTH);
     this.designPreview = this.add.graphics().setDepth(COLONIST_DEPTH + 2);
     this.createColonistSprites();
 
@@ -136,6 +169,8 @@ export class WorldScene extends Phaser.Scene {
     this.syncColonists();
     this.syncItems();
     this.syncDesignations();
+    this.syncZones();
+    this.syncStructures();
     this.drawSelection();
     this.uiTimer += delta;
     if (this.uiTimer >= UI_EMIT_MS) {
@@ -247,6 +282,8 @@ export class WorldScene extends Phaser.Scene {
     this.spriteLift.clear(); // la altura en píxeles de cada nivel puede haber cambiado
     this.itemsVersion = -1; // los montones cambian de sitio en pantalla
     this.designVersion = -1;
+    this.zoneVersion = -1;
+    this.structVersion = -1;
     this.drawDesignPreview();
   }
 
@@ -443,6 +480,7 @@ export class WorldScene extends Phaser.Scene {
 
   select(id: number | null): void {
     if (id !== null && this.designMode) this.setDesignMode(null); // elegir un colono sale del modo de órdenes
+    if (id !== null) this.selectZone(null);
     this.selectedId = id;
     this.game.events.emit('selection', this.selected());
   }
@@ -473,7 +511,13 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
     this.reportTile(p);
-    if (this.selectedId === null) return;
+    if (this.selectedId === null) {
+      // Sin colono elegido, tocar un almacén abre su panel (filtro y prioridad).
+      const t = this.pickRealTile(world.x, world.y);
+      const z = t ? this.world.zones.at(t.x, t.y) : undefined;
+      this.selectZone(z ? z.id : null);
+      return;
+    }
     const tile = this.pickRealTile(world.x, world.y);
     if (!tile) return;
     const { x: tx, y: ty } = tile;
@@ -540,6 +584,7 @@ export class WorldScene extends Phaser.Scene {
       if (hidden > 0) img.setTint(0xb8c4d0);
       else img.clearTint();
       img.setDepth(COLONIST_DEPTH + v.y / 1000);
+      this.syncCarried(c, img);
     }
   }
 
@@ -549,7 +594,10 @@ export class WorldScene extends Phaser.Scene {
   setDesignMode(mode: DesignMode): void {
     this.designMode = mode;
     this.clearDesignDrag();
-    if (mode) this.select(null);
+    if (mode) {
+      this.select(null);
+      this.selectZone(null);
+    }
     this.game.events.emit('design-mode', mode);
   }
 
@@ -570,9 +618,30 @@ export class WorldScene extends Phaser.Scene {
     const mode = this.designMode;
     if (!r || !mode) return;
     const d = this.world.designations;
-    if (mode === 'cancelar') {
+    const toast = (text: string) => this.game.events.emit('toast', text);
+    if (mode === 'almacen') {
+      const start = this.designStart ? this.world.zones.at(this.designStart.x, this.designStart.y) : undefined;
+      if (start) {
+        const n = this.world.zones.extend(start.id, r);
+        toast(n > 0 ? `${start.name}: +${n} casillas` : 'Ahí no se puede ampliar');
+      } else {
+        const z = this.world.zones.create(r);
+        toast(z ? `${z.name} creado (${z.tiles.size} casillas) · tócalo para el filtro y la prioridad` : 'Ahí no se puede guardar nada');
+      }
+    } else if (mode === 'quitarAlmacen') {
+      const n = this.world.zones.removeArea(r);
+      toast(n > 0 ? `Quitadas ${n} casillas de almacén` : 'No había almacén ahí');
+    } else if (mode === 'construir') {
+      const def = buildingDef(this.buildDefId);
+      const n = this.world.structures.placeArea(r, def.id, this.buildShape);
+      toast(n > 0 ? `${def.name}: ${n} ${n === 1 ? 'plano' : 'planos'}` : 'Ahí no se puede construir (hace falta suelo llano y libre)');
+    } else if (mode === 'quitarPlano') {
+      let n = 0;
+      for (const t of Structures.areaTiles(r, 'relleno')) if (this.world.cancelBlueprint(t.x, t.y)) n++;
+      toast(n > 0 ? `${n} ${n === 1 ? 'plano quitado' : 'planos quitados'}` : 'No había planos ahí');
+    } else if (mode === 'cancelar') {
       const n = d.cancelArea(r);
-      this.game.events.emit('toast', n > 0 ? `${n} ${n === 1 ? 'orden quitada' : 'órdenes quitadas'}` : 'No había órdenes ahí');
+      toast(n > 0 ? `${n} ${n === 1 ? 'orden quitada' : 'órdenes quitadas'}` : 'No había órdenes ahí');
     } else {
       const n = d.designateArea(r, mode);
       this.game.events.emit('toast', n > 0 ? `${HARVEST_JOB_NAMES[mode]}: ${n} ${n === 1 ? 'casilla marcada' : 'casillas marcadas'}` : `Ahí no hay nada para ${HARVEST_JOB_NAMES[mode].toLowerCase()}`);
@@ -604,10 +673,21 @@ export class WorldScene extends Phaser.Scene {
     const yb = Math.min(this.map.height - 1, Math.max(r.y0, r.y1));
     const color = DESIGN_COLORS[mode];
     const d = this.world.designations;
+    const st = this.world.structures;
+    const hitAt = (x: number, y: number, edge: boolean): boolean => {
+      switch (mode) {
+        case 'cancelar': return d.at(x, y) !== undefined;
+        case 'almacen': return canZone(this.map, x, y) && !this.world.zones.at(x, y);
+        case 'quitarAlmacen': return this.world.zones.at(x, y) !== undefined;
+        case 'construir': return (this.buildShape === 'relleno' || edge) && st.canPlace(x, y);
+        case 'quitarPlano': return st.at(x, y)?.built === false;
+        default: return canDesignate(this.map, x, y, mode);
+      }
+    };
     for (let y = ya; y <= yb; y++) {
       for (let x = xa; x <= xb; x++) {
         const edge = x === xa || x === xb || y === ya || y === yb;
-        const hit = mode === 'cancelar' ? d.at(x, y) !== undefined : canDesignate(this.map, x, y, mode);
+        const hit = hitAt(x, y, edge);
         if (hit) {
           g.fillStyle(color, 0.55);
           this.fillTile(g, x, y, 1);
@@ -654,6 +734,92 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  /** Abre (o cierra con null) el panel de un almacén. */
+  selectZone(id: number | null): void {
+    if (this.selectedZoneId === id) return;
+    this.selectedZoneId = id;
+    this.zoneVersion = -1;
+    this.game.events.emit('zone-select', id === null ? null : this.world.zones.get(id) ?? null);
+  }
+
+  /** Avisa a la interfaz de que el almacén abierto ha cambiado (prioridad, filtro). */
+  refreshZone(): void {
+    const z = this.selectedZoneId === null ? undefined : this.world.zones.get(this.selectedZoneId);
+    if (!z) this.selectedZoneId = null;
+    this.game.events.emit('zone-select', z ?? null);
+  }
+
+  /** Rehace el dibujo de los almacenes si han cambiado. */
+  private syncZones(): void {
+    const zones = this.world.zones;
+    if (zones.version === this.zoneVersion) return;
+    this.zoneVersion = zones.version;
+    const g = this.zoneGfx;
+    g.clear();
+    for (const z of zones.all()) {
+      const sel = z.id === this.selectedZoneId;
+      g.fillStyle(ZONE_COLORS[z.priority], sel ? 0.4 : 0.22);
+      for (const i of z.tiles) this.fillTile(g, i % this.map.width, Math.floor(i / this.map.width), 0.5);
+      // Borde donde la casilla vecina no es de la misma zona.
+      g.lineStyle(1, ZONE_COLORS[z.priority], sel ? 1 : 0.7);
+      for (const i of z.tiles) this.strokeZoneEdges(g, z, i % this.map.width, Math.floor(i / this.map.width));
+    }
+  }
+
+  private strokeZoneEdges(g: Phaser.GameObjects.Graphics, z: StorageZone, x: number, y: number): void {
+    // Se trabaja en la vista: los lados de la casilla girada.
+    const v = this.viewTile(x, y);
+    const left = v.x * TILE;
+    const top = v.y * TILE_H - liftOf(this.view, v.x, v.y);
+    const same = (vx: number, vy: number) => {
+      const t = tileFromView(vx, vy, this.map.width, this.map.height, this.rotation);
+      return this.world.zones.at(t.x, t.y)?.id === z.id;
+    };
+    g.beginPath();
+    if (!same(v.x, v.y - 1)) { g.moveTo(left, top); g.lineTo(left + TILE, top); }
+    if (!same(v.x, v.y + 1)) { g.moveTo(left, top + TILE_H); g.lineTo(left + TILE, top + TILE_H); }
+    if (!same(v.x - 1, v.y)) { g.moveTo(left, top); g.lineTo(left, top + TILE_H); }
+    if (!same(v.x + 1, v.y)) { g.moveTo(left + TILE, top); g.lineTo(left + TILE, top + TILE_H); }
+    g.strokePath();
+  }
+
+  /** Rehace los dibujos de muros, puertas y planos si han cambiado. */
+  private syncStructures(): void {
+    const st = this.world.structures;
+    if (st.version === this.structVersion) return;
+    this.structVersion = st.version;
+    for (const img of this.structSprites) img.destroy();
+    this.structSprites = [];
+    const wallH = wallHeight(LIFT);
+    for (const s of st.all()) {
+      const key = `build-${s.def.id}-${TILE_H}-${wallH}`;
+      if (!this.textures.exists(key)) drawBuildingTexture(this, key, s.def, wallH);
+      const v = this.viewTile(s.x, s.y);
+      const top = v.y * TILE_H - liftOf(this.view, v.x, v.y);
+      const img = this.add.image(v.x * TILE, top - wallH, key).setOrigin(0, 0);
+      // Delante de lo que está en su fila y en las de detrás; detrás de lo que está más al sur.
+      img.setDepth(COLONIST_DEPTH + (v.y + 0.99) / 1000);
+      if (!s.built) img.setAlpha(0.45).setTint(0x8fc0ff); // plano: translúcido y azulado
+      this.structSprites.push(img);
+    }
+  }
+
+  /** Dibuja lo que lleva cada colono encima de la cabeza. */
+  private syncCarried(c: Colonist, img: Phaser.GameObjects.Image): void {
+    let carry = this.carrySprites.get(c.id);
+    if (!c.carrying) {
+      carry?.setVisible(false);
+      return;
+    }
+    const key = itemTextureKey(c.carrying.resource);
+    if (!this.textures.exists(key)) drawItemTexture(this, key, c.carrying.resource);
+    if (!carry) {
+      carry = this.add.image(0, 0, key).setOrigin(0.5, 1).setScale(0.7);
+      this.carrySprites.set(c.id, carry);
+    }
+    carry.setTexture(key).setVisible(true).setPosition(img.x, img.y - 11).setDepth(img.depth + 0.00001).setAlpha(img.alpha);
+  }
+
   /** Rehace los dibujos de los montones del suelo si han cambiado. */
   private syncItems(): void {
     const items = this.world.items;
@@ -670,7 +836,8 @@ export class WorldScene extends Phaser.Scene {
       // Un montón casi vacío se ve más pequeño que uno lleno.
       const scale = 0.7 + 0.3 * Math.min(1, s.amount / MAX_STACK[s.resource]);
       const img = this.add.image(cx, cy + 2, key).setOrigin(0.5, 0.8).setScale(scale);
-      img.setDepth(ITEM_DEPTH + v.y / 1000);
+      // Por filas, como colonos y muros: lo de delante tapa lo de detrás.
+      img.setDepth(COLONIST_DEPTH + (v.y + 0.4) / 1000);
       // Detrás de una meseta o pared: casi transparente, como los colonos.
       const above = pickTile(this.view, cx, cy - 2);
       if (above && above.y > v.y) img.setAlpha(0.35).setTint(0xb8c4d0);
@@ -729,6 +896,10 @@ export class WorldScene extends Phaser.Scene {
     let text = describeTile(this.map, tile.x, tile.y);
     if (stack) text = `${describeStack(stack, RESOURCE_NAMES)} · ${text}`;
     if (job) text += ` · orden: ${HARVEST_JOB_NAMES[job].toLowerCase()}`;
+    const zone = this.world.zones.at(tile.x, tile.y);
+    if (zone) text = `${zone.name} (${STORAGE_PRIORITY_NAMES[zone.priority].toLowerCase()}) · ${text}`;
+    const s = this.world.structures.at(tile.x, tile.y);
+    if (s) text = `${structureLabel(this.world.structures, s)} · ${text}`;
     this.game.events.emit('tile-info', text);
   }
 
@@ -850,5 +1021,22 @@ function drawItemTexture(scene: Phaser.Scene, key: string, r: ResourceId): void 
       px(4, 5, 4, 1, '#d8c27a');
       break;
   }
+  tex.refresh();
+}
+
+/** Texto de una construcción o plano para la información de casilla. */
+function structureLabel(st: Structures, s: Structure): string {
+  if (s.built) return s.def.name;
+  const needs = st.needs(s);
+  const parts = RESOURCES.filter((r) => (s.def.cost[r] ?? 0) > 0).map(
+    (r) => `${RESOURCE_NAMES[r].toLowerCase()} ${(s.def.cost[r] ?? 0) - (needs[r] ?? 0)}/${s.def.cost[r]}`,
+  );
+  return `Plano: ${s.def.name} (${parts.join(', ')})`;
+}
+
+function drawBuildingTexture(scene: Phaser.Scene, key: string, def: BuildingDef, wallH: number): void {
+  const tex = scene.textures.createCanvas(key, TILE, TILE_H + wallH);
+  if (!tex) return;
+  drawBuilding(tex.getContext(), def, TILE, TILE_H, wallH);
   tex.refresh();
 }

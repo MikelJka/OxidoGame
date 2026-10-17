@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-17 (tarde, 4) — Almacenes y primeras construcciones
+
+- Petición de Mikel: almacenes con filtro y prioridad, mobiliario de almacén, construcción (muros de varios materiales, puertas, muros altos, torres de vigía), materiales nuevos como el metal, pinchos y zanjas, y aplanar o subir el terreno (#2). Todo anotado en `FEEDBACK.md` y en la fase 3 del roadmap; esta sesión hace almacenes, muros y puertas.
+- **Almacenes** (`src/sim/zones.ts`): ⚒ → 📦 Almacén y arrastrar (empezando dentro de uno, se amplía); ✖ Quitar almacén recorta. Al tocar un almacén se abre su panel: prioridad (baja, normal, alta, crítica), qué recursos acepta y borrar. Se ven en el suelo con un color por prioridad.
+- **Transporte**: nuevo trabajo «transportar». Los colonos llevan lo suelto al almacén más importante que lo acepte y tenga sitio (completando montones), y suben las cosas de un almacén a otro de más prioridad. Lo que llevan se ve sobre la cabeza y cuenta en el inventario.
+- **Criterio de la fase 2 cumplido**: se marcan árboles y los colonos los talan y guardan la madera solos (hay un test que lo comprueba). Quedan tareas de la fase 2 (panel de prioridades, rebrote de árboles, agua, guardado), que se harán mientras avanza la fase 3.
+- **Construcción** (`src/data/buildings.json`, `src/sim/structures.ts`): 🏗 → muro de madera (🪵5), piedra (🪨6) o chatarra (🔩5); puerta de madera (🪵10) o de chapa (🔩10 ⚙️1). Los muros se colocan en contorno (un rectángulo hace un cuarto; una línea, un muro) y se puede cambiar a relleno; solo en suelo llano y libre. Los colonos llevan el material al plano y lo levantan desde el lado (habilidad de Construcción). Los muros cortan el paso; las puertas se cruzan algo más despacio. Si se termina un muro donde hay un montón o un colono, se apartan. ✖ Quitar planos devuelve el material ya llevado.
+- Los planos se ven translúcidos y azulados; la información de casilla dice lo que falta («madera 3/5»).
+- Sin npm en este entorno: tests con Bun (100) y tipos de la simulación con `tsc`; el dibujado se comprueba en GitHub Actions.
+- Qué probar: hacer un almacén junto al inicio y ver cómo llevan las provisiones; cambiar su filtro y su prioridad; construir un cuarto de muros de madera con una puerta; probar en el móvil que los menús 🏗 y ⚒ caben y no tapan.
+- Siguiente: muros altos y torres de vigía; después, metal (fundir chatarra), defensas (pinchos, zanjas), mobiliario de almacén y aplanar o subir el terreno.
+
 ## 2026-10-17 (tarde, 3) — Los colonos trabajan solos
 
 - Mikel confirma que todo funciona, también en móvil y PC: **fases 0 y 1 terminadas**.

@@ -4,10 +4,19 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Pendiente
 
+- [ ] **Mobiliario de almacén** (2026-10-17): estanterías, armarios y soportes de pared (p. ej. armeros para armas). Fase 3.
+- [ ] **Muros altos para perímetros y torres de vigía de varios materiales** (2026-10-17). Fase 3.
+- [ ] **Materiales nuevos, como el metal** (2026-10-17): para muros y torres más resistentes. Fase 3.
+- [ ] **Defensas: pinchos y zanjas** (2026-10-17). Fase 3.
+- [ ] **Aplanar el terreno y subir o bajar su nivel** (#2, 2026-10-17): como trabajo de los colonos. Fase 3.
+
 - [ ] **Los árboles vuelven a crecer** (2026-10-17): con el tiempo, para que la madera no se acabe. Va en la fase 2, tras el sistema de trabajos.
 - [ ] **Máquinas que generan recursos: canteras y recicladoras** (2026-10-17): para cuando se acaben la piedra y la chatarra iniciales del mapa. Van en la fase 3 (construcción), en el roadmap.
 
 ## Hecho
+
+- [x] **Almacenes con filtros y prioridad** (2026-10-17): ⚒ → 📦 Almacén y arrastrar. Al tocar un almacén se elige su prioridad (baja, normal, alta, crítica) y qué recursos acepta. Los colonos llevan ahí lo suelto y pasan las cosas a los almacenes más importantes.
+- [x] **Construcción: muros de varios materiales y puertas** (2026-10-17): 🏗 → muro de madera, piedra o chatarra, puerta de madera o de chapa. Los colonos llevan el material al plano y lo levantan; los muros cortan el paso y las puertas se cruzan algo más despacio.
 
 - [x] **Fases 0 y 1 confirmadas** (2026-10-17): Mikel confirma que todo funciona en la URL pública, en móvil y PC (mapa, cámara, colonos, selección y órdenes de movimiento).
 

@@ -161,6 +161,8 @@ export interface GameMap {
   slope: Uint8Array;
   /** Unidades de recurso que quedan en el objeto de cada casilla (0 si no tiene). */
   stock: Uint8Array;
+  /** Construcción en la casilla: 0 nada, 1 impide el paso (muro…), 2 se cruza más despacio (puerta). Lo mantiene `Structures`. */
+  blocked: Uint8Array;
   /** Casilla sugerida para empezar la colonia. */
   start: { x: number; y: number };
 }
@@ -171,6 +173,11 @@ export const RADIATION_THRESHOLD = 0.78;
 export const MAX_LEVEL = 4;
 /** Coste extra de subir o bajar por una pendiente. */
 export const SLOPE_COST = 1.5;
+/** Valores de `blocked`: construcción que impide el paso y construcción que lo frena (puertas). */
+export const BLOCK_SOLID = 1;
+export const BLOCK_SLOW = 2;
+/** Coste extra de cruzar una puerta. */
+export const DOOR_COST = 1.3;
 const LEVEL_NAMES = ['', 'llano bajo', 'llano', 'loma', 'meseta'];
 
 export function index(map: { width: number }, x: number, y: number): number {
@@ -197,15 +204,16 @@ export function isWater(t: Terrain): boolean {
 export function isPassable(map: GameMap, x: number, y: number): boolean {
   if (!inBounds(map, x, y)) return false;
   const i = index(map, x, y);
-  return TERRAIN_INFO[map.terrain[i] as Terrain].walkable && !PROP_INFO[map.props[i] as Prop].blocks && !map.cliff[i];
+  return TERRAIN_INFO[map.terrain[i] as Terrain].walkable && !PROP_INFO[map.props[i] as Prop].blocks && !map.cliff[i] && map.blocked[i] !== BLOCK_SOLID;
 }
 
 /** Coste de pisar la casilla (suelo × objeto). Infinity si no se puede. */
 export function tileMoveCost(map: GameMap, x: number, y: number): number {
   const i = index(map, x, y);
   const prop = PROP_INFO[map.props[i] as Prop];
-  if (prop.blocks || map.cliff[i]) return Infinity;
-  return TERRAIN_INFO[map.terrain[i] as Terrain].moveCost * prop.moveCost * (map.slope[i] ? SLOPE_COST : 1);
+  if (prop.blocks || map.cliff[i] || map.blocked[i] === BLOCK_SOLID) return Infinity;
+  const door = map.blocked[i] === BLOCK_SLOW ? DOOR_COST : 1;
+  return TERRAIN_INFO[map.terrain[i] as Terrain].moveCost * prop.moveCost * (map.slope[i] ? SLOPE_COST : 1) * door;
 }
 
 /** Texto descriptivo de una casilla para la interfaz. */
@@ -251,6 +259,7 @@ export function generateMap(opts: MapOptions): GameMap {
     cliff: new Uint8Array(size),
     slope: new Uint8Array(size),
     stock: new Uint8Array(size),
+    blocked: new Uint8Array(size),
     start: { x: 0, y: 0 },
   };
   const { terrain, elevation, moisture, radiation } = map;
