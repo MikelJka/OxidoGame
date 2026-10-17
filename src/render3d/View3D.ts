@@ -349,7 +349,7 @@ export class View3D {
   }
 
   /** Bloques de una construcción. `look`: terminada, plano (azulado), a demoler (rojiza) o fantasma (blanco). */
-  private structureMeshes(w: World, def: BuildingDef, tiles: { x: number; y: number }[], look: 'hecho' | 'plano' | 'demoler' | 'fantasma', rot: 0 | 1 = 0): THREE.Mesh[] {
+  private structureMeshes(w: World, def: BuildingDef, tiles: { x: number; y: number }[], look: 'hecho' | 'plano' | 'demoler' | 'fantasma' | 'no-cabe', rot: 0 | 1 = 0): THREE.Mesh[] {
     const out: THREE.Mesh[] = [];
     const s = { def, x: tiles[0].x, y: tiles[0].y };
     {
@@ -369,16 +369,17 @@ export class View3D {
       if (cat === 'taller') height = 0.8;
       if (cat === 'puerta' || cat === 'porton') inset = 0.3;
       if (cat === 'torre') inset = 0.12;
-      const ghost = look === 'fantasma';
-      const face = new THREE.Color(ghost ? 0xffffff : s.def.colors.face);
-      const top = new THREE.Color(ghost ? 0xffffff : s.def.colors.top);
+      const ghost = look === 'fantasma' || look === 'no-cabe';
+      const ghostColor = look === 'no-cabe' ? 0xff6a5a : 0xffffff;
+      const face = new THREE.Color(ghost ? ghostColor : s.def.colors.face);
+      const top = new THREE.Color(ghost ? ghostColor : s.def.colors.top);
       const mats = [face, face, top, face, face, face].map((c) =>
         new THREE.MeshLambertMaterial({
           color: c,
           transparent: look === 'plano' || ghost,
-          opacity: ghost ? 0.55 : look === 'plano' ? 0.45 : 1,
+          opacity: ghost ? 0.6 : look === 'plano' ? 0.45 : 1,
           depthWrite: !ghost,
-          emissive: new THREE.Color(look === 'demoler' ? 0x601010 : look === 'plano' ? 0x1a3a6a : ghost ? 0x777777 : 0),
+          emissive: new THREE.Color(look === 'demoler' ? 0x601010 : look === 'plano' ? 0x1a3a6a : ghost ? 0x999999 : 0),
         }),
       );
       // Puertas y portones, más finos en el sentido del paso.
@@ -482,8 +483,8 @@ export class View3D {
     this.clearGroup(this.ghostGroup);
     if (rect && scene.designMode === 'construir') {
       const def = buildingDef(scene.buildDefId);
-      for (const tiles of scene.ghostGroups(rect)) {
-        for (const mesh of this.structureMeshes(w, def, tiles, 'fantasma', scene.buildRot)) this.ghostGroup.add(mesh);
+      for (const { tiles, ok } of scene.ghostGroups(rect)) {
+        for (const mesh of this.structureMeshes(w, def, tiles, ok ? 'fantasma' : 'no-cabe', scene.buildRot)) this.ghostGroup.add(mesh);
       }
     }
     if (this.overlay) {

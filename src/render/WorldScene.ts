@@ -842,17 +842,21 @@ export class WorldScene extends Phaser.Scene {
   }
 
   /** Casillas de cada construcción que se pondría con el área de la vista previa (máx. 300). */
-  ghostGroups(r: TileRect): { x: number; y: number }[][] {
+  ghostGroups(r: TileRect): { tiles: { x: number; y: number }[]; ok: boolean }[] {
     const def = buildingDef(this.buildDefId);
     const st = this.world.structures;
     const [w, h] = def.size ?? [1, 1];
-    const groups: { x: number; y: number }[][] = [];
+    const groups: { tiles: { x: number; y: number }[]; ok: boolean }[] = [];
     if (w * h > 1) {
-      if (st.canPlaceDef(def, r.x0, r.y0, this.buildRot)) groups.push(footprintTiles(def, r.x0, r.y0, this.buildRot));
+      const tiles = footprintTiles(def, r.x0, r.y0, this.buildRot).filter((t) => inBounds(this.map, t.x, t.y));
+      if (tiles.length) groups.push({ tiles, ok: st.canPlaceDef(def, r.x0, r.y0, this.buildRot) });
     } else {
       for (const t of Structures.areaTiles(r, this.buildShape)) {
         if (groups.length >= 300) break;
-        if (st.canPlace(t.x, t.y)) groups.push([t]);
+        if (!inBounds(this.map, t.x, t.y)) continue;
+        const ok = st.canPlace(t.x, t.y);
+        // En un área solo se ven donde caben; bajo el ratón, también en rojo si no cabe.
+        if (ok || (r.x0 === r.x1 && r.y0 === r.y1 && !st.at(t.x, t.y))) groups.push({ tiles: [t], ok });
       }
     }
     return groups;
@@ -861,8 +865,8 @@ export class WorldScene extends Phaser.Scene {
   /** Lo que se va a construir, en blanco translúcido, en cada casilla donde cabe. */
   private drawGhosts(r: TileRect): void {
     const def = buildingDef(this.buildDefId);
-    for (const tiles of this.ghostGroups(r)) {
-      const img = this.buildingImage(def, tiles).setTintFill(0xffffff).setAlpha(0.55);
+    for (const { tiles, ok } of this.ghostGroups(r)) {
+      const img = this.buildingImage(def, tiles).setTintFill(ok ? 0xffffff : 0xff6a5a).setAlpha(0.55);
       img.setDepth(img.depth + 0.0001);
       this.ghostSprites.push(img);
     }
