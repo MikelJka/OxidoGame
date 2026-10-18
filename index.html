@@ -107,6 +107,23 @@
           <button id="save-backup" type="button" title="Volver a la partida guardada anterior"><span class="mi">↶</span><span>Anterior</span></button>
         </div>
         <div id="save-status" class="muted"></div>
+        <div class="menu-sec">☁ Nube · seguir en otro dispositivo</div>
+        <div id="cloud-out" class="cloud-box">
+          <p class="help">Entra con tu cuenta de GitHub y la partida se guardará sola en un gist privado tuyo. En el otro dispositivo, entra con el mismo token y sigue donde lo dejaste.</p>
+          <a class="cloud-link" href="https://github.com/settings/tokens/new?scopes=gist&amp;description=%C3%93xido%20-%20partida%20en%20la%20nube" target="_blank" rel="noopener">1 · Crear un token en GitHub (solo permiso «gist») ↗</a>
+          <div class="cloud-row">
+            <input id="cloud-token" type="password" autocomplete="off" spellcheck="false" placeholder="2 · Pega aquí el token (ghp_…)" aria-label="Token de GitHub" />
+            <button id="cloud-signin" type="button" class="primary">Entrar</button>
+          </div>
+        </div>
+        <div id="cloud-in" class="cloud-box" hidden>
+          <div class="menu-grid">
+            <button id="cloud-up" type="button" title="Subir ya la partida a la nube"><span class="mi">☁⬆</span><span>Subir</span></button>
+            <button id="cloud-down" type="button" title="Cargar la partida de la nube"><span class="mi">☁⬇</span><span>Bajar</span></button>
+            <button id="cloud-signout" type="button" title="Olvidar el token en este dispositivo"><span class="mi">🚪</span><span>Salir</span></button>
+          </div>
+        </div>
+        <div id="cloud-status" class="muted"></div>
         <div class="menu-sec">Vista y más</div>
         <div class="menu-grid">
           <button id="view3d-btn" type="button" title="Vista 3D con giro libre: botón central del ratón (o Alt+arrastrar) para pivotar, dos dedos en el móvil"><span class="mi">🧊</span><span>Vista 3D</span></button>
