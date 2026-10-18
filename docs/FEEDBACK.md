@@ -2,6 +2,10 @@
 
 Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidencia en GitHub con la etiqueta `feedback` y cada sesión la pasa a esta lista.
 
+click mientras se está colocando un objeto para que desaparezca su fantasma y se cancele la construccion
+opcion para mover cierto tipo de desplegables como camas a sitios nuevos, objetos pesados o electrificados no se pueden mover pero si demolerse y recuperar parte de sus recursos
+fuego (por eventos aleatorios como rayos o manualmente con armas... se puede expandir dependiendo del clima(dejalo para mas adelante. surge de explosiones de coches, barcos, desplegables que puedan explotar...
+
 ## Pendiente
 
 - [ ] **Definir todo el contenido antes que nada** (2026-10-18, pedido por Mikel): la 3D queda aparcada; primero se define e implementa todo el contenido. Una sesión ha escrito `docs/CATALOGO.md` con todo lo que falta y sus números: Mikel lo revisa, marca ✅ cada bloque que apruebe y lo aprobado pasa aquí, por fases. La simulación se mantiene portable (reglas en `src/sim`, contenido en `src/data`) para poder pasar más adelante a un motor con mejor 3D.
