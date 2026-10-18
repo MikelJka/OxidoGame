@@ -85,3 +85,5 @@ La primera versión jugable incluye colonos, recursos, construcción, necesidade
 ## Tecnología
 
 TypeScript + Phaser 3 + Vite, tests con Vitest, publicado en GitHub Pages. Simulación separada del dibujado; definiciones de contenido en JSON. Interfaz adaptable a móvil y PC: arrastrar = mover cámara, pellizcar = zoom, tocar = seleccionar, mantener pulsado = órdenes.
+
+Prioridad (Mikel, 2026-10-18): primero todo el contenido (catálogo en `docs/CATALOGO.md`); la vista 3D queda aparcada. La simulación y el contenido se mantienen independientes del motor de dibujado para poder pasar más adelante a uno con mejor 3D.

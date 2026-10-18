@@ -19,6 +19,16 @@ Idioma: el código (nombres de variables, funciones, tipos) en inglés; comentar
 - Nunca uses `Math.random()` dentro de `src/sim/`: usa `Rng`.
 - Partidas guardadas (`src/sim/save.ts`): no las rompas. Si añades estado a la simulación, guárdalo en `serializeWorld` y léelo en `loadWorld` con un valor por defecto para partidas antiguas; si un cambio no se puede leer así, sube `SAVE_VERSION` y añade la migración.
 
+## Contenido primero; 3D aparcada (orden de Mikel del 2026-10-18)
+
+- No se trabaja en la vista 3D (`src/render3d/`) salvo para arreglar algo que rompa el juego. Lo nuevo se dibuja solo en 2D.
+- El contenido que falta está en `docs/CATALOGO.md`. Un bloque marcado «✅ Aprobado» por Mikel pasa a «Pendiente» de `FEEDBACK.md` (por fases) y se implementa sin volver a preguntar; lo no aprobado, no.
+- La simulación debe poder llevarse a otro motor con mejor 3D (Babylon.js, PlayCanvas, Godot…), así que:
+  - Todas las reglas van en `src/sim/` (TypeScript puro, sin Phaser, Three.js ni DOM). El dibujado y la interfaz solo leen el estado y llaman a métodos de `World`; nunca deciden reglas.
+  - El contenido nuevo (objetos, edificios, recetas, armas, enemigos, investigaciones, sucesos) va en JSON en `src/data/`, con su `id`, sus números y su nombre. Nada de números de juego sueltos en el código de dibujado.
+  - El dibujado se basa en ids de contenido (p. ej. `def.id`), no en reglas, para que otro motor pueda poner su modelo a cada id.
+  - La partida guardada (`serializeWorld`) es JSON sin nada propio del navegador.
+
 ## Móvil y PC
 
 Cada función nueva debe funcionar con ratón y con dedo: arrastrar = mover cámara, pellizcar = zoom, tocar = seleccionar, mantener pulsado = menú de órdenes. Botones de al menos 36 px. Probar mentalmente en una pantalla de 380 px de ancho.

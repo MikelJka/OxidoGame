@@ -4,6 +4,8 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Pendiente
 
+- [ ] **Definir todo el contenido antes que nada** (2026-10-18, pedido por Mikel): la 3D queda aparcada; primero se define e implementa todo el contenido. Una sesión ha escrito `docs/CATALOGO.md` con todo lo que falta y sus números: Mikel lo revisa, marca ✅ cada bloque que apruebe y lo aprobado pasa aquí, por fases. La simulación se mantiene portable (reglas en `src/sim`, contenido en `src/data`) para poder pasar más adelante a un motor con mejor 3D.
+
 - [ ] **Armas** (2026-10-17, aprobado por Mikel): cuerpo a cuerpo (cuchillo, tubería, lanza, machete) y a distancia (arco; pistola casera, escopeta y rifle). Decidido con Mikel: cada colono coge solo la mejor arma libre y en su ficha se le puede fijar una o dejarlo desarmado; munición en dos tipos, flechas (madera + fibra) para el arco y balas (chatarra + componentes) para las de fuego; ahora se fabrican en el banco las de cuerpo a cuerpo y el arco, y **las de fuego se desbloquean con investigación (fase 5)**; los saqueadores llegan armados según el día (palos y cuchillos al principio, arcos y armas de fuego más adelante) y al caer sueltan el arma. Incluye los armeros de pared (fase 3). **Hechas** las de cuerpo a cuerpo, el arco, las flechas y el armero; faltan, con la investigación, las de fuego y las balas.
 
 - [ ] **Electricidad** (2026-10-17, aprobada por Mikel): cables por el suelo casilla a casilla (🔩1, también bajo suelos y muros); lo conectado forma una red con producción, consumo y baterías; un cable roto corta la red. Primera versión con todo: generador de leña, placas solares (de día), molino de viento y baterías; lámparas (de noche, con luz se trabaja a velocidad normal, sin luz −20 %, y sube el ánimo); versiones eléctricas de horno, cocina y banco (el doble de rápidas), y recicladora y depuradora con corriente; puertas automáticas que se cierran ante un raid (las torretas, con la investigación). Números aprobados: generador de leña 1 000 W, gasta 1 🪵 cada 2 h, 🔩20 ⚙️2, 2×2; placa solar 600 W de día, 🔩15 ⚙️3, 2×2; molino de viento 0–900 W según el viento, 🪵20 🔩10 ⚙️2, 1×1 sin nada alrededor; batería 6 000 Wh, 🔩10 ⚙️2; cable 🔩1 por casilla. Consumo: lámpara 50 W (ilumina 3 casillas); horno, cocina y banco eléctricos 300 W (el doble de rápidos); recicladora 250 W y depuradora 150 W (**pasan a necesitar corriente**, también en las partidas guardadas: sin red, paradas); puerta automática 20 W. Sin corriente suficiente se apaga primero lo último que se conectó. **Hechos**: cables, generador de leña, batería y lámparas (con la luz de noche), placa solar, molino de viento, recicladora y depuradora con corriente y horno, cocina y banco con «⚡ Electrificar» y el ánimo de la luz («Habitación con luz»); faltan las puertas automáticas. **Elegido por Mikel (2026-10-18)**: horno, cocina y banco eléctricos como **mejora** de los que ya hay: al tocarlos, «⚡ Electrificar» por 🔩10 ⚙️3; con corriente van el doble de rápido (300 W) y sin ella a velocidad normal (nunca se paran). **Puerta automática** 🔩10 ⚙️2, 1×1, aguanta como la de chapa; **ánimo** +5 % «Habitación con luz» a quien duerme o trabaja junto a una lámpara encendida de noche.
@@ -12,14 +14,17 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 - [ ] **Vehículos de asedio y de combate** (2026-10-17, pedido por Mikel), de los colonos y de los asaltantes. **Elegido por Mikel (2026-10-18), con combustible**: nuevo recurso ⛽ (de los barriles del mapa y de una destilería: 10 🪵 → 2 ⛽). **Buggy blindado** (🔩40 🔗10 ⚙️6, 2×2, 1 ⛽ cada hora en marcha): lleva un conductor y un tirador (armadura −40 % de daño), corre el doble que un colono y atropella. Los saqueadores llegan en buggy desde el día 20; si se rompe, queda como chatarra (🔩20). Por partes: primero ⛽ y la destilería, luego el buggy de los colonos, luego el de los saqueadores.
 
-- [ ] **Girar la vista libremente** (2026-10-17): pivotar la cámara a cualquier ángulo e inclinación con el botón central del ratón (y con dos dedos en el móvil), no solo los 4 giros fijos. Decidido: pasar a 3D real con Three.js. Primera versión jugable en ☰ → 🧊 Vista 3D (en pruebas); falta pulirla antes de que sea la vista por defecto. **Hechas** las barras de progreso y de salud y las marcas de almacenes, huertos y órdenes en 3D, y los muros que se unen; falta el rendimiento en móviles antiguos.
+## Aparcado
 
+Lo que Mikel ha pedido dejar para más adelante. No se trabaja en ello salvo para arreglar algo que rompa el juego.
+
+- **Girar la vista libremente** (2026-10-17): pivotar la cámara a cualquier ángulo e inclinación con el botón central del ratón (y con dos dedos en el móvil), no solo los 4 giros fijos. Decidido: pasar a 3D real con Three.js. Primera versión jugable en ☰ → 🧊 Vista 3D (en pruebas); falta pulirla antes de que sea la vista por defecto. **Hechas** las barras de progreso y de salud y las marcas de almacenes, huertos y órdenes en 3D, y los muros que se unen; falta el rendimiento en móviles antiguos. **Aparcada el 2026-10-18** por orden de Mikel hasta tener todo el contenido; quizá se haga con otro motor.
 
 ## Propuestas para Mikel
 
 Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat o con 🐞).
 
-(Ninguna ahora: Mikel eligió el 2026-10-18 las cuatro que había; ya están en «Pendiente».)
+- **Catálogo de contenido** (`docs/CATALOGO.md`, 2026-10-18): 12 bloques con números (infecciones y medicinas, mutantes, investigación, armas de fuego, defensas, máquinas, facciones, mercado, sucesos y, opcionales, caza, estaciones y ocio). Marca ✅ los que apruebes.
 
 ## Hecho
 

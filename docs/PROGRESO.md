@@ -2,6 +2,14 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (tarde, 2) — Contenido primero: catálogo para Mikel y 3D aparcada
+
+- Orden de Mikel: dejar aparcada la 3D, definir e implementar primero todo el contenido y dejar abierta la puerta a otro motor con mejor 3D.
+- Nuevo `docs/CATALOGO.md`: todo el contenido que falta, en 12 bloques con números (infecciones y medicinas, mutantes, banco de investigación y árbol, armas de fuego y balas, puentes, torretas, hidropónica, máquinas y drones, facciones, mercado, sucesos y, opcionales, caza, estaciones y ocio). Mikel marca ✅ los bloques que apruebe y pasan a «Pendiente».
+- En `CLAUDE.md`, reglas nuevas: no se toca la 3D salvo para arreglarla; reglas solo en `src/sim`, contenido nuevo en JSON de `src/data`, dibujado por ids. La simulación ya no depende de Phaser ni de Three.js (comprobado).
+- La vista 3D sigue en ☰ → 🧊 Vista 3D tal como está.
+- Siguiente: lo que quedaba aprobado en «Pendiente» (puerta automática, fuego amigo y posturas, combustible y buggy) y los bloques del catálogo que Mikel apruebe.
+
 ## 2026-10-18 (tarde) — Electricidad: la luz sube el ánimo
 
 - Sin incidencias nuevas en 🐞. Siguiente parte aprobada de la electricidad: el ánimo de la luz, con el número que eligió Mikel.
