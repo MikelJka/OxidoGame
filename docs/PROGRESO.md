@@ -12,7 +12,8 @@ Diario de sesiones, la más reciente arriba.
 - No cambia ninguna regla del juego.
 - Qué probar: pasar a 3D, arrastrar un contorno de muro de piedra (se ve el fantasma unido), dejar que lo levanten y poner una puerta en medio; mirar las esquinas girando la cámara.
 - Sin npm en el entorno: tests con Bun (234); la prueba completa (con la de humo en 3D), en GitHub Actions.
-- Siguiente: rendimiento de la 3D en móviles antiguos. Siguen esperando respuesta de Mikel: horno, cocina y banco eléctricos; puerta automática y ánimo de la luz; fuego amigo y posturas; vehículos.
+- Mikel ha elegido las cuatro propuestas (pasadas a «Pendiente» de FEEDBACK): horno, cocina y banco con «⚡ Electrificar»; puerta automática 🔩10 ⚙️2 y +5 % de ánimo con luz; fuego amigo (25 % de los fallos) y posturas; vehículos con combustible ⛽ y buggy blindado.
+- Siguiente, en el orden de «Pendiente»: máquinas eléctricas (Electrificar), luego puerta automática y ánimo de la luz, fuego amigo y posturas, combustible y buggy; y el rendimiento de la 3D en móviles antiguos.
 
 ## 2026-10-18 (mañana, 5) — Vista 3D: almacenes, huertos y órdenes más visibles
 
