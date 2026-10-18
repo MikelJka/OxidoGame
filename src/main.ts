@@ -27,7 +27,7 @@ import { armorProtection } from './data/armor';
 import { CROPS } from './data/crops';
 import { recipesFor } from './data/recipes';
 import type { ResourceId } from './data/resources';
-import type { Structure } from './sim/structures';
+import { billPending, type Structure } from './sim/structures';
 import type { GrowZone } from './sim/farming';
 import { BUILDING_CATEGORY_NAMES, BuildingCategory, BUILDINGS, buildingDef } from './data/buildings';
 import { STORAGE_PRIORITIES, STORAGE_PRIORITY_NAMES, StorageZone } from './sim/zones';
@@ -644,8 +644,6 @@ function setupConfirmDelete(id: string, label: string, onConfirm: () => void): (
 const stationPanel = $('station-panel');
 setupFold(stationPanel, 'sp-fold');
 $('sp-close').addEventListener('click', () => scene().selectStation(null));
-/** Pasos del objetivo de una orden de fabricación. */
-const TARGET_STEP = 5;
 function renderStationStatus(s: Structure): void {
   const b = s.bill;
   const inv = scene().world.inventory();
@@ -654,9 +652,18 @@ function renderStationStatus(s: Structure): void {
     $('sp-status').textContent = 'Sin orden: elige qué fabricar';
     return;
   }
-  const out = (Object.keys(b.recipe.outputs) as ResourceId[]).map((r) => `${RESOURCE_ICONS[r]} ${inv[r]}/${b.target}`).join(' ');
-  const state = s.upgrade ? '⚡ Electrificando' : b.paused ? '⏸ En pausa' : (Object.keys(b.recipe.outputs) as ResourceId[]).every((r) => inv[r] >= b.target) ? '✔ Objetivo cumplido' : '⚙ Fabricando';
-  $('sp-status').textContent = `${state} · ${b.recipe.name}: tienes ${out}${inside ? ` · dentro: ${inside}` : ''}`;
+  const outs = Object.keys(b.recipe.outputs) as ResourceId[];
+  const dentro = inside ? ` · dentro: ${inside}` : '';
+  if (b.mode === 'count') {
+    const have = outs.map((r) => `${RESOURCE_ICONS[r]} ${inv[r]}`).join(' ');
+    const state = s.upgrade ? '⚡ Electrificando' : b.target <= 0 ? '✔ Hecho' : b.paused ? '⏸ En pausa' : '⚙ Fabricando';
+    const left = b.target > 0 ? `faltan ${b.target}` : 'pide más con +';
+    $('sp-status').textContent = `${state} · ${b.recipe.name}: ${left} (tienes ${have})${dentro}`;
+    return;
+  }
+  const out = outs.map((r) => `${RESOURCE_ICONS[r]} ${inv[r]}/${b.target}`).join(' ');
+  const state = s.upgrade ? '⚡ Electrificando' : b.paused ? '⏸ En pausa' : billPending(b, inv) ? '⚙ Fabricando' : '✔ Objetivo cumplido';
+  $('sp-status').textContent = `${state} · ${b.recipe.name}: tienes ${out}${dentro}`;
 }
 /** Electrificar: botón y estado (con corriente, el doble de rápido; sin ella, normal). */
 function renderStationPower(s: Structure): void {
@@ -729,7 +736,10 @@ game.events.on('station-select', (s: Structure | null) => {
       b.append(top, formula, mk('span', 'ps-desc', r.description));
       b.addEventListener('click', () => {
         const sc = scene();
-        sc.world.structures.setBill(s, on ? null : { recipe: r, target: s.bill?.target ?? 20, paused: false });
+        // La orden nueva sigue el modo de la anterior; sin anterior, «fabricar 1».
+        const prev = s.bill;
+        const mode = prev?.mode ?? (prev ? 'until' : 'count');
+        sc.world.structures.setBill(s, on ? null : { recipe: r, target: prev ? Math.max(1, prev.target) : 1, paused: false, mode });
         sc.refreshStation();
       });
       return b;
@@ -737,25 +747,42 @@ game.events.on('station-select', (s: Structure | null) => {
   );
   const ctl = $('sp-controls');
   ctl.hidden = !s.bill;
-  if (s.bill) $('sp-target').textContent = `Hasta tener ${s.bill.target}`;
+  renderStationAmount(s);
   $('sp-pause').textContent = s.bill?.paused ? '▶ Reanudar' : '⏸ Pausar';
   $('sp-pause').classList.toggle('active', !!s.bill?.paused);
 });
-$('sp-minus').addEventListener('click', () => {
-  const s = scene().selectedStation;
-  if (s?.bill) s.bill.target = Math.max(0, s.bill.target - TARGET_STEP);
-  scene().refreshStation();
+/** Modo de la orden y su número (sin pisar lo que se está escribiendo). */
+function renderStationAmount(s: Structure): void {
+  const b = s.bill;
+  if (!b) return;
+  const count = b.mode === 'count';
+  for (const [id, on] of [['sp-mode-count', count], ['sp-mode-until', !count]] as const) {
+    $(id).classList.toggle('active', on);
+    $(id).setAttribute('aria-pressed', String(on));
+  }
+  const input = $<HTMLInputElement>('sp-target');
+  if (document.activeElement !== input) input.value = String(b.target);
+}
+function changeBill(fn: (s: Structure) => void): void {
+  const sc = scene();
+  const s = sc.selectedStation;
+  if (!s?.bill) return;
+  fn(s);
+  sc.refreshStation();
+}
+$('sp-mode-count').addEventListener('click', () => changeBill((s) => scene().world.structures.setBillMode(s, 'count')));
+$('sp-mode-until').addEventListener('click', () => changeBill((s) => scene().world.structures.setBillMode(s, 'until')));
+$('sp-minus').addEventListener('click', () => changeBill((s) => scene().world.structures.setBillTarget(s, s.bill!.target - 1)));
+$('sp-plus').addEventListener('click', () => changeBill((s) => scene().world.structures.setBillTarget(s, s.bill!.target + 1)));
+$('sp-target').addEventListener('change', (e) => {
+  const v = Number((e.target as HTMLInputElement).value);
+  changeBill((s) => scene().world.structures.setBillTarget(s, v));
 });
-$('sp-plus').addEventListener('click', () => {
-  const s = scene().selectedStation;
-  if (s?.bill) s.bill.target += TARGET_STEP;
-  scene().refreshStation();
+// Al escribir, Intro confirma y suelta el teclado.
+$('sp-target').addEventListener('keydown', (e) => {
+  if ((e as KeyboardEvent).key === 'Enter') (e.target as HTMLInputElement).blur();
 });
-$('sp-pause').addEventListener('click', () => {
-  const s = scene().selectedStation;
-  if (s?.bill) s.bill.paused = !s.bill.paused;
-  scene().refreshStation();
-});
+$('sp-pause').addEventListener('click', () => changeBill((s) => scene().world.structures.toggleBillPause(s)));
 
 // --- Huerto: qué se planta -------------------------------------------------------
 const farmPanel = $('farm-panel');

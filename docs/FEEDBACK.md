@@ -4,8 +4,6 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Pendiente
 
-- [ ] **#11 Fabricar cualquier cantidad, no solo de 5 en 5, y «fabricar hasta tener X»** (2026-10-18, 🐞): en el panel del taller, poder pedir 1 lanza (o el número que sea) y elegir entre «fabricar N» y «fabricar hasta tener N».
-
 - [ ] **Cancelar la construcción con un clic** (2026-10-18, escrito por Mikel en este archivo): mientras se coloca algo, un clic (derecho en el PC; en el móvil, el ✖ que ya hay) quita el fantasma y sale del modo construir.
 
 - [ ] **Mover muebles** (2026-10-18, escrito por Mikel en este archivo): poder llevar a otro sitio cosas como las camas; lo pesado o electrificado no se mueve, pero se puede demoler y recuperar parte de sus recursos (eso ya existe). **Falta que Mikel elija** qué se puede mover (ver «Propuestas para Mikel»).
@@ -47,6 +45,8 @@ elijo la B
 - **Lo que falta de la update del agua** (2026-10-18; ya elegiste 1D, 2 a tu manera, 3B y la balsa): 1. **Molino de agua** (🪵25 🔩10 ⚙️3, 1×2 en un río): A) 0–700 W según la corriente; B) 500 W fijos. 2.elijo la B,500 fijos **Puente en agua profunda**: A) el doble de caro que en la normal; B) el triple. el doble 3. **Vida de los puentes**: A) madera la mitad que la de metal; B) madera un tercio. madera un tercio 4. **Puente levadizo 4×2** (🔗12 ⚙️3, 20 W): A) se alza solo ante un raid si tiene corriente; B) se alza y se baja a mano con un botón; C) las dos. las dos. 5. **Barcos tras la balsa**: A) barca de transporte (🪵30 🔩10, 4 colonos o 200 de carga, velocidad normal) y lancha armada (🔩30 ⚙️4 ⛽, conductor y tirador, armadura −30 %); B) solo la barca de transporte por ahora; el resto, con los vehículos y la investigación. balsa y lancha armada, luego mas vehiculos
 
 ## Hecho
+
+- [x] **#11 Fabricar cualquier cantidad y «fabricar hasta tener X»** (2026-10-18, 🐞): en el panel del taller, abajo, dos modos: 🔨 Fabricar N (hace esas unidades y para, aunque ya haya de sobra) y 🎯 Hasta tener N (como antes). El número va de 1 en 1 con − y +, o se escribe tocándolo. Una orden nueva empieza en «Fabricar 1» (o sigue el modo y número de la anterior). Las órdenes de partidas guardadas siguen como «hasta tener».
 
 - [x] **#12 El superviviente aceptado no aparecía** (2026-10-18, 🐞): si se había construido algo sobre la casilla de inicio de la partida, no se encontraba ningún borde desde el que llegar y el nuevo colono se quedaba en la esquina del mapa, sin poder ir a la colonia (y por lo mismo los raids y las caravanas podían no llegar). Ahora van a la casilla libre más cercana al inicio; si la colonia está cerrada sin entrada, el nuevo aparece junto a un colono. En las partidas guardadas, el que se quedó en la esquina aparece junto a la colonia al cargar.
 

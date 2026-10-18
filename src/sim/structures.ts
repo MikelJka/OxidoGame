@@ -43,11 +43,36 @@ export interface Structure {
   upgrade?: { delivered: Partial<Stockpile>; progress: number };
 }
 
-/** Orden de fabricación de un taller: hacer la receta hasta que la colonia tenga `target` del producto. */
+/**
+ * Modo de una orden de fabricación:
+ * - `until`: «hasta tener N»: fabrica mientras la colonia tenga menos de `target` del producto.
+ * - `count`: «fabricar N»: fabrica `target` unidades más y para (cada tanda resta lo que sale).
+ */
+export type BillMode = 'until' | 'count';
+
+/** Orden de fabricación de un taller. */
 export interface Bill {
   recipe: RecipeDef;
+  /** «Hasta tener»: cuántos quiere la colonia. «Fabricar»: cuántos faltan por hacer. */
   target: number;
   paused: boolean;
+  /** Sin poner = `until` (así eran todas antes del 2026-10-18). */
+  mode?: BillMode;
+}
+
+/** Máximo que se puede pedir en una orden. */
+export const BILL_MAX_TARGET = 999;
+
+/** Cuántas unidades del producto principal (el primero de la receta) salen de una tanda. */
+export function billBatchSize(b: Bill): number {
+  const first = Object.values(b.recipe.outputs)[0] ?? 1;
+  return Math.max(1, first);
+}
+
+/** Una orden aún tiene trabajo según su modo, sabiendo lo que tiene la colonia. */
+export function billPending(b: Bill, inv: Stockpile): boolean {
+  if (b.mode === 'count') return b.target > 0;
+  return (Object.keys(b.recipe.outputs) as ResourceId[]).some((r) => inv[r] < b.target);
 }
 
 /** Parte del coste que se recupera al demoler. */
@@ -365,7 +390,9 @@ export class Structures {
       }
       return out;
     }
-    const wanted = s.built ? (s.bill && !s.bill.paused ? s.bill.recipe.inputs : {}) : s.def.cost;
+    // Una orden «fabricar N» ya terminada no pide más material.
+    const active = s.bill && !s.bill.paused && !(s.bill.mode === 'count' && s.bill.target <= 0);
+    const wanted = s.built ? (active ? s.bill!.recipe.inputs : {}) : s.def.cost;
     for (const r of RESOURCES) {
       const want = (wanted[r] ?? 0) - (s.delivered[r] ?? 0);
       if (want > 0) out[r] = want;
@@ -384,13 +411,35 @@ export class Structures {
     this.version++;
   }
 
-  /** Gasta los materiales de una tanda. false si no estaban todos. */
+  /** Cambia el número de la orden (sin bajar de 0 ni pasar de `BILL_MAX_TARGET`). */
+  setBillTarget(s: Structure, target: number): void {
+    if (!s.bill) return;
+    s.bill.target = Math.max(0, Math.min(BILL_MAX_TARGET, Math.floor(Number.isFinite(target) ? target : 0)));
+    this.version++;
+  }
+
+  /** Cambia entre «fabricar N» y «hasta tener N» (el número se queda igual). */
+  setBillMode(s: Structure, mode: BillMode): void {
+    if (!s.bill) return;
+    s.bill.mode = mode;
+    this.version++;
+  }
+
+  /** Pausa o reanuda la orden. */
+  toggleBillPause(s: Structure): void {
+    if (!s.bill) return;
+    s.bill.paused = !s.bill.paused;
+    this.version++;
+  }
+
+  /** Gasta los materiales de una tanda. false si no estaban todos. En «fabricar N», descuenta lo que sale. */
   consumeInputs(s: Structure): boolean {
     if (!s.bill || this.needsAny(s)) return false;
     for (const [r, n] of Object.entries(s.bill.recipe.inputs) as [ResourceId, number][]) {
       s.delivered[r] = (s.delivered[r] ?? 0) - n;
       if (!s.delivered[r]) delete s.delivered[r];
     }
+    if (s.bill.mode === 'count') s.bill.target = Math.max(0, s.bill.target - billBatchSize(s.bill));
     this.version++;
     return true;
   }
