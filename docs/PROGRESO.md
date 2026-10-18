@@ -4,7 +4,7 @@ Diario de sesiones, la más reciente arriba.
 
 ## 2026-10-18 (mañana, 2) — Ficha del colono rehecha
 
-- Siguiente parte de «Menús de la partida más accesibles» (aprobado por Mikel). La ficha del colono pasa a ser una hoja como las de 📜 y ☰: en el móvil en vertical ocupa todo el ancho encima de la fila de colonos (como mucho media pantalla); en horizontal es una columna a la izquierda; en PC, abajo a la izquierda.
+- Siguiente parte de «Menús de la partida más accesibles» (aprobado por Mikel). La ficha del colono pasa a ser una hoja como las de 📜 y ☰: en el móvil en vertical ocupa todo el ancho encima de la fila de colonos (como mucho el 40 % de la pantalla, para que se vea el mapa); en horizontal es una columna a la izquierda; en PC, abajo a la izquierda.
 - Arriba, siempre a la vista: nombre, edad, qué está haciendo, sus heridas y un botón grande 🎖 Reclutar. ▾ recoge la ficha (solo queda eso, para ver el mapa) y ✕ la cierra.
 - Cuatro pestañas grandes (se recuerda la última): **Estado** (comida, agua, descanso y ánimo, con los motivos del ánimo uno por línea en verde o rojo), **Equipo** (arma y armadura, cada una en su tarjeta con selector grande), **Trabajos** (botones de prioridad de 40 px) y **Perfil** (rasgos: tocar uno muestra qué hace, también en el móvil; habilidades con 🔥 pasión y • interés).
 - Con un grupo elegido solo se ve qué hace cada uno y el botón de reclutar.
