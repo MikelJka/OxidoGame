@@ -12,7 +12,7 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 - [ ] **Vehículos de asedio y de combate** (2026-10-17, pedido por Mikel), de los colonos y de los asaltantes. Antes de hacerlo hay que proponerle a Mikel cómo funcionan (qué vehículos, combustible, cómo se fabrican, qué pueden romper).
 
-- [ ] **Girar la vista libremente** (2026-10-17): pivotar la cámara a cualquier ángulo e inclinación con el botón central del ratón (y con dos dedos en el móvil), no solo los 4 giros fijos. Decidido: pasar a 3D real con Three.js. Primera versión jugable en ☰ → 🧊 Vista 3D (en pruebas); falta pulirla antes de que sea la vista por defecto. **Hechas** las barras de progreso y de salud y las marcas de almacenes, huertos y órdenes en 3D; faltan muros que se unan y el rendimiento en móviles antiguos.
+- [ ] **Girar la vista libremente** (2026-10-17): pivotar la cámara a cualquier ángulo e inclinación con el botón central del ratón (y con dos dedos en el móvil), no solo los 4 giros fijos. Decidido: pasar a 3D real con Three.js. Primera versión jugable en ☰ → 🧊 Vista 3D (en pruebas); falta pulirla antes de que sea la vista por defecto. **Hechas** las barras de progreso y de salud y las marcas de almacenes, huertos y órdenes en 3D, y los muros que se unen; falta el rendimiento en móviles antiguos.
 
 
 ## Propuestas para Mikel

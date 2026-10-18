@@ -17,6 +17,10 @@ import { cameraPosition, clampOrbit, northLabel3d, OrbitState, panOrbit } from '
 import { buildTerrainGeometry, paintBankTexture, paintGroundTexture } from './terrain3d';
 import { paintSurface } from './structTex3d';
 import { drawBuilding } from '../render/buildArt';
+import { boxQuads, QuadSink, wallBoxes } from './walls3d';
+
+/** Cómo se ve una construcción: terminada, plano (azulado), a demoler (rojiza) o fantasma (blanco o rojo si no cabe). */
+type StructLook = 'hecho' | 'plano' | 'demoler' | 'fantasma' | 'no-cabe';
 
 /** Altura de un nivel de terreno (en casillas). */
 const LEVEL_H = 0.5;
@@ -395,15 +399,29 @@ export class View3D {
 
   private buildStructures(w: World): void {
     this.clearGroup(this.structGroup);
+    // Los muros, juntos por tipo y aspecto: se unen con los de al lado y son una sola malla.
+    const walls = new Map<string, { def: BuildingDef; look: StructLook; tiles: { x: number; y: number }[] }>();
     for (const s of w.structures.all()) {
-      for (const mesh of this.structureMeshes(w, s.def, w.structures.tilesOf(s), s.built ? (s.demolish ? 'demoler' : 'hecho') : 'plano', s.rot)) {
+      const look: StructLook = s.built ? (s.demolish ? 'demoler' : 'hecho') : 'plano';
+      if (s.def.category === 'muro') {
+        const key = `${s.def.id}|${look}`;
+        let g = walls.get(key);
+        if (!g) walls.set(key, (g = { def: s.def, look, tiles: [] }));
+        g.tiles.push(...w.structures.tilesOf(s));
+        continue;
+      }
+      for (const mesh of this.structureMeshes(w, s.def, w.structures.tilesOf(s), look, s.rot)) {
         this.structGroup.add(mesh);
       }
+    }
+    for (const g of walls.values()) {
+      const mesh = this.wallMesh(w, g.def, g.tiles, g.look);
+      if (mesh) this.structGroup.add(mesh);
     }
   }
 
   /** Bloques de una construcción. `look`: terminada, plano (azulado), a demoler (rojiza) o fantasma (blanco). */
-  private structureMeshes(w: World, def: BuildingDef, tiles: { x: number; y: number }[], look: 'hecho' | 'plano' | 'demoler' | 'fantasma' | 'no-cabe', rot: 0 | 1 = 0): THREE.Mesh[] {
+  private structureMeshes(w: World, def: BuildingDef, tiles: { x: number; y: number }[], look: StructLook, rot: 0 | 1 = 0): THREE.Mesh[] {
     const out: THREE.Mesh[] = [];
     const s = { def, x: tiles[0].x, y: tiles[0].y };
     {
@@ -433,28 +451,9 @@ export class View3D {
         else height = 0.7;
       }
       const ghost = look === 'fantasma' || look === 'no-cabe';
-      const ghostColor = look === 'no-cabe' ? 0xff6a5a : 0xffffff;
-      const face = new THREE.Color(ghost ? ghostColor : s.def.colors.face);
-      const top = new THREE.Color(ghost ? ghostColor : s.def.colors.top);
-      let mats: THREE.Material[];
-      if (ghost || look === 'plano') {
-        mats = [face, face, top, face, face, face].map((c) =>
-          new THREE.MeshLambertMaterial({
-            color: c,
-            transparent: true,
-            opacity: ghost ? 0.6 : 0.45,
-            depthWrite: !ghost,
-            emissive: new THREE.Color(look === 'plano' ? 0x1a3a6a : 0x999999),
-          }),
-        );
-      } else {
-        // Terminada: con la textura de su material (tablones, sillares, chapa…).
-        const emissive = new THREE.Color(look === 'demoler' ? 0x601010 : 0);
-        const sideMat = new THREE.MeshLambertMaterial({ map: this.surface(s.def, true), emissive });
-        const topMap = cat === 'mueble' && !s.def.storage ? this.furnitureTop(s.def, sw, sh) : this.surface(s.def, false);
-        const topMat = new THREE.MeshLambertMaterial({ map: topMap, emissive });
-        mats = [sideMat, sideMat, topMat, sideMat, sideMat, sideMat];
-      }
+      const top = new THREE.Color(ghost ? (look === 'no-cabe' ? 0xff6a5a : 0xffffff) : s.def.colors.top);
+      const [sideMat, topMat] = this.structMaterials(s.def, look, sw, sh);
+      const mats: THREE.Material[] = [sideMat, sideMat, topMat, sideMat, sideMat, sideMat];
       // Puertas y portones, más finos en el sentido del paso.
       // Una puerta de una casilla girada se cruza de este a oeste en vez de norte a sur.
       const along = sw === sh ? rot === 0 : sw > sh;
@@ -483,6 +482,76 @@ export class View3D {
       }
     }
     return out;
+  }
+
+  /** Materiales [lados, arriba] de una construcción según cómo se vea. */
+  private structMaterials(def: BuildingDef, look: StructLook, sw = 1, sh = 1): [THREE.Material, THREE.Material] {
+    const ghost = look === 'fantasma' || look === 'no-cabe';
+    if (ghost || look === 'plano') {
+      const ghostColor = look === 'no-cabe' ? 0xff6a5a : 0xffffff;
+      const make = (c: number) =>
+        new THREE.MeshLambertMaterial({
+          color: new THREE.Color(ghost ? ghostColor : c),
+          transparent: true,
+          opacity: ghost ? 0.6 : 0.45,
+          depthWrite: !ghost,
+          emissive: new THREE.Color(look === 'plano' ? 0x1a3a6a : 0x999999),
+        });
+      return [make(def.colors.face), make(def.colors.top)];
+    }
+    // Terminada: con la textura de su material (tablones, sillares, chapa…).
+    const emissive = new THREE.Color(look === 'demoler' ? 0x601010 : 0);
+    const sideMat = new THREE.MeshLambertMaterial({ map: this.surface(def, true), emissive });
+    const topMap = def.category === 'mueble' && !def.storage ? this.furnitureTop(def, sw, sh) : this.surface(def, false);
+    return [sideMat, new THREE.MeshLambertMaterial({ map: topMap, emissive })];
+  }
+
+  /**
+   * Muros de un mismo tipo y aspecto en una sola malla: cada uno se une con los muros,
+   * puertas, portones y torres de al lado (y con `extra`, las casillas que se están colocando).
+   */
+  private wallMesh(w: World, def: BuildingDef, tiles: { x: number; y: number }[], look: StructLook, extra?: Set<number>): THREE.Mesh | null {
+    if (tiles.length === 0) return null;
+    const joins = (x: number, y: number): boolean => {
+      if (x < 0 || y < 0 || x >= w.map.width || y >= w.map.height) return false;
+      if (extra?.has(y * w.map.width + x)) return true;
+      const cat = w.structures.mainAt(x, y)?.def.category;
+      return cat === 'muro' || cat === 'puerta' || cat === 'porton' || cat === 'torre';
+    };
+    const height = def.height * WALL_H;
+    const pos: number[] = [];
+    const nor: number[] = [];
+    const uv: number[] = [];
+    const idx: [number[], number[]] = [[], []];
+    const sink: QuadSink = {
+      quad: (top, corners, normal, uvs) => {
+        const v0 = pos.length / 3;
+        for (let k = 0; k < 4; k++) {
+          pos.push(...corners[k]);
+          nor.push(...normal);
+          uv.push(...uvs[k]);
+        }
+        idx[top ? 1 : 0].push(v0, v0 + 1, v0 + 2, v0, v0 + 2, v0 + 3);
+      },
+    };
+    for (const t of tiles) {
+      const base = tileTopY(w, t.x, t.y);
+      const boxes = wallBoxes({ n: joins(t.x, t.y - 1), e: joins(t.x + 1, t.y), s: joins(t.x, t.y + 1), w: joins(t.x - 1, t.y) });
+      for (const b of boxes) boxQuads(sink, t.x + b.x0, t.x + b.x1, base, base + height, t.y + b.z0, t.y + b.z1);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    geo.setIndex([...idx[0], ...idx[1]]);
+    geo.addGroup(0, idx[0].length, 0);
+    geo.addGroup(idx[0].length, idx[1].length, 1);
+    geo.computeBoundingSphere();
+    const ghost = look === 'fantasma' || look === 'no-cabe';
+    const mesh = new THREE.Mesh(geo, this.structMaterials(def, look));
+    mesh.castShadow = !ghost && look !== 'plano';
+    mesh.receiveShadow = !ghost;
+    return mesh;
   }
 
   /** Textura (que se repite) del material de una construcción. */
@@ -622,8 +691,19 @@ export class View3D {
     this.clearGroup(this.ghostGroup);
     if (rect && scene.designMode === 'construir') {
       const def = buildingDef(scene.buildDefId);
-      for (const { tiles, ok } of scene.ghostGroups(rect)) {
-        for (const mesh of this.structureMeshes(w, def, tiles, ok ? 'fantasma' : 'no-cabe', scene.buildRot)) this.ghostGroup.add(mesh);
+      const groups = scene.ghostGroups(rect);
+      if (def.category === 'muro') {
+        // Los muros que se están colocando se unen entre sí y con los que ya hay.
+        const extra = new Set<number>();
+        for (const g of groups) for (const t of g.tiles) extra.add(t.y * w.map.width + t.x);
+        for (const ok of [true, false]) {
+          const mesh = this.wallMesh(w, def, groups.filter((g) => g.ok === ok).flatMap((g) => g.tiles), ok ? 'fantasma' : 'no-cabe', extra);
+          if (mesh) this.ghostGroup.add(mesh);
+        }
+      } else {
+        for (const { tiles, ok } of groups) {
+          for (const mesh of this.structureMeshes(w, def, tiles, ok ? 'fantasma' : 'no-cabe', scene.buildRot)) this.ghostGroup.add(mesh);
+        }
       }
     }
     for (const old of this.overlays) {

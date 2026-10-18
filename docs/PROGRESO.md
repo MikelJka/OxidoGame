@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (mañana, 6) — Vista 3D: muros que se unen
+
+- Sin incidencias nuevas en 🐞. Siguiente parte aprobada: pulir la vista 3D (pedida por Mikel).
+- En 3D, los **muros ya no son cubos sueltos**: son más finos (media casilla) y se unen con los muros, puertas, portones y torres de al lado, formando tramos rectos, esquinas, cruces y uniones en T. Un muro suelto es un tramo de este a oeste.
+- La textura (tablones, sillares, chapa…) sigue de una casilla a la siguiente sin cortes.
+- El fantasma blanco al colocar muros también se une, con los que ya hay y con los que estás arrastrando; los planos y los muros marcados para demoler, igual.
+- Todos los muros del mismo tipo se dibujan de una vez: menos trabajo para el móvil con colonias grandes (primer paso del rendimiento).
+- No cambia ninguna regla del juego.
+- Qué probar: pasar a 3D, arrastrar un contorno de muro de piedra (se ve el fantasma unido), dejar que lo levanten y poner una puerta en medio; mirar las esquinas girando la cámara.
+- Sin npm en el entorno: tests con Bun (234); la prueba completa (con la de humo en 3D), en GitHub Actions.
+- Siguiente: rendimiento de la 3D en móviles antiguos. Siguen esperando respuesta de Mikel: horno, cocina y banco eléctricos; puerta automática y ánimo de la luz; fuego amigo y posturas; vehículos.
+
 ## 2026-10-18 (mañana, 5) — Vista 3D: almacenes, huertos y órdenes más visibles
 
 - Sin incidencias nuevas en 🐞. Siguiente parte aprobada: pulir la vista 3D (pedida por Mikel).
