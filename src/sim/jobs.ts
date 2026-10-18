@@ -20,7 +20,7 @@ export const TALK_HOURS = 6;
 export function canTalk(tick: number, o: Colonist): boolean {
   return !!o.prisoner && o.prisoner.mode === 'convencer' && !o.downed && tick - o.prisoner.lastTalk >= TALK_HOURS * TICKS_PER_HOUR;
 }
-import { Structure, Structures } from './structures';
+import { billPending, Structure, Structures } from './structures';
 import { StorageZones } from './zones';
 import { GrowZones } from './farming';
 import { TERRAIN_WORK, terrainBlocker, TerrainOrders } from './terrain';
@@ -108,8 +108,7 @@ export function stationWantsWork(ctx: JobContext, s: Structure): boolean {
   if (!s.built || !b || b.paused || s.demolish || s.upgrade) return false;
   // La recicladora sin corriente está parada.
   if (lacksPower(s)) return false;
-  const inv = ctx.inventory();
-  return (Object.entries(b.recipe.outputs) as [ResourceId, number][]).some(([r]) => inv[r] < b.target);
+  return billPending(b, ctx.inventory());
 }
 
 /** Casillas desde las que se puede trabajar un objeto: la suya si se pisa, si no las de los lados. */

@@ -397,11 +397,17 @@
         <div class="ps-label">Qué fabricar <span class="ps-hint">los colonos traen el material y lo hacen solos (trabajo «fabricar»); toca otra vez para quitar la orden</span></div>
         <div id="sp-recipes" class="ps-cards"></div>
       </div>
-      <div id="sp-controls" class="ps-foot" hidden>
-        <button id="sp-minus" type="button" aria-label="Menos">−5</button>
-        <span id="sp-target"></span>
-        <button id="sp-plus" type="button" aria-label="Más">+5</button>
-        <button id="sp-pause" type="button">⏸ Pausar</button>
+      <div id="sp-controls" class="ps-foot sp-foot" hidden>
+        <div class="sp-modes" role="group" aria-label="Cómo fabricar">
+          <button id="sp-mode-count" type="button" aria-pressed="false">🔨 Fabricar</button>
+          <button id="sp-mode-until" type="button" aria-pressed="false">🎯 Hasta tener</button>
+        </div>
+        <div class="sp-amount">
+          <button id="sp-minus" type="button" aria-label="Uno menos">−</button>
+          <input id="sp-target" type="number" inputmode="numeric" min="0" max="999" step="1" aria-label="Cantidad" />
+          <button id="sp-plus" type="button" aria-label="Uno más">+</button>
+          <button id="sp-pause" type="button">⏸ Pausar</button>
+        </div>
       </div>
     </section>
 

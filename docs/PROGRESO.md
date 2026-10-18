@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (tarde, 8) — Talleres: fabricar cualquier cantidad o «hasta tener» (#11)
+
+- Sin incidencias nuevas en 🐞. Esta sesión, **#11**.
+- Al tocar un taller, abajo hay dos modos: **🔨 Fabricar N** (hace exactamente esas unidades y para, aunque ya tengas de sobra; cada tanda resta lo que sale, p. ej. 5 de metal por tanda de horno) y **🎯 Hasta tener N** (lo de siempre). El número va de 1 en 1 con − y + y se puede escribir tocándolo (hasta 999). Una orden nueva empieza en «Fabricar 1», o sigue el modo y el número de la que había.
+- Una orden «Fabricar» terminada ya no hace traer más material al taller. Las órdenes de partidas guardadas siguen siendo «hasta tener».
+- Qué probar: en el banco de trabajo, elegir la lanza con «🔨 Fabricar 1» y ver que hace una sola; luego cambiar a «🎯 Hasta tener» y escribir un número. En el móvil, que los botones y el número quepan en vertical.
+- Sin npm en el entorno: tests con Bun (266, 2 nuevos) y tipos con `tsc`; la prueba completa, en GitHub Actions.
+- Siguiente: cancelar la construcción con un clic (clic derecho en el PC). Siguen esperando respuesta: el hambre del principio (#13), qué muebles se pueden mover y los números del agua.
+
 ## 2026-10-18 (tarde, 7) — Arreglado: el superviviente aceptado no aparecía (#12)
 
 - Tres incidencias nuevas en 🐞 (#11, #12, #13), pasadas a `FEEDBACK.md` y cerradas. Esta sesión, el bug **#12**.
