@@ -489,7 +489,7 @@ export class View3D {
     const ghost = look === 'fantasma' || look === 'no-cabe';
     if (ghost || look === 'plano') {
       const ghostColor = look === 'no-cabe' ? 0xff6a5a : 0xffffff;
-      const make = (c: number) =>
+      const make = (c: THREE.ColorRepresentation) =>
         new THREE.MeshLambertMaterial({
           color: new THREE.Color(ghost ? ghostColor : c),
           transparent: true,
