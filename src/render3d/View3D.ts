@@ -6,7 +6,7 @@ import { Prop, Terrain, isWater, index } from '../sim/map';
 import type { World } from '../sim/world';
 import type { Colonist } from '../sim/colonist';
 import type { WorldScene } from '../render/WorldScene';
-import { DESIGN_COLORS } from '../render/WorldScene';
+import { DESIGN_COLORS, ZONE_COLORS } from '../render/WorldScene';
 import { drawProp, PROP_HEADROOM } from '../render/mapArt';
 import { colonistLookKey, COLONIST_SIZE, CROP_SIZE, ITEM_H, ITEM_W, paintColonist, paintCrop, paintItem } from '../render/spriteArt';
 import { plantStage } from '../sim/farming';
@@ -26,6 +26,18 @@ const BASE_H = 0.3;
 const WALL_H = 0.9;
 /** Variantes de dibujo por tipo de objeto del mapa. */
 const PROP_VARIANTS = 3;
+
+interface OverlayMark {
+  x: number;
+  y: number;
+  color: number;
+}
+
+interface OverlayEdge extends OverlayMark {
+  /** Lado de la casilla: norte, sur, oeste o este. */
+  side: 'n' | 's' | 'o' | 'e';
+  thick: number;
+}
 
 function inBounds3(world: World, x: number, y: number): boolean {
   return x >= 0 && y >= 0 && x < world.map.width && y < world.map.height;
@@ -92,7 +104,7 @@ export class View3D {
   private plantGroup = new THREE.Group();
   private ghostGroup = new THREE.Group();
   private plantsVersion = -1;
-  private overlay?: THREE.InstancedMesh;
+  private overlays: THREE.InstancedMesh[] = [];
   private overlayKey = '';
   private colonistSprites = new Map<number, THREE.Sprite>();
   private carrySprites = new Map<number, THREE.Sprite>();
@@ -547,21 +559,51 @@ export class View3D {
     const rect = scene.currentDesignRect();
     const key = [
       w.zones.version, w.farms.zoneVersion, w.designations.version, w.terrain.version, w.terrainVersion,
+      scene.selectedZoneId ?? '-', scene.selectedFarmId ?? '-',
       rect ? `${rect.x0},${rect.y0},${rect.x1},${rect.y1},${scene.designMode},${scene.buildRot}` : '-',
     ].join(':');
     if (key === this.overlayKey) return;
     this.overlayKey = key;
-    const marks: { x: number; y: number; color: number; alpha: number }[] = [];
-    for (const z of w.zones.all()) for (const i of z.tiles) marks.push({ x: i % w.map.width, y: Math.floor(i / w.map.width), color: 0xd8c27a, alpha: 0.35 });
-    for (const f of w.farms.all()) for (const i of f.tiles) marks.push({ x: i % w.map.width, y: Math.floor(i / w.map.width), color: 0x6a4a24, alpha: 0.6 });
-    for (const d of w.designations.list()) marks.push({ x: d.x, y: d.y, color: DESIGN_COLORS[d.job], alpha: 0.7 });
-    for (const o of w.terrain.list()) marks.push({ x: o.x, y: o.y, color: DESIGN_COLORS[o.job], alpha: 0.7 });
+    const width = w.map.width;
+    // Relleno de almacenes y huertos (casilla entera, para que la zona se vea de una pieza).
+    const fills: OverlayMark[] = [];
+    // Borde de las zonas: una tira por cada lado que no linda con la misma zona.
+    const edges: OverlayEdge[] = [];
+    // Órdenes, obras y lo arrastrado: una baldosa por casilla.
+    const marks: OverlayMark[] = [];
+    const zoneEdges = (tiles: Iterable<number>, inZone: (x: number, y: number) => boolean, color: number, thick: number) => {
+      for (const i of tiles) {
+        const x = i % width;
+        const y = Math.floor(i / width);
+        if (!inZone(x, y - 1)) edges.push({ x, y, side: 'n', color, thick });
+        if (!inZone(x, y + 1)) edges.push({ x, y, side: 's', color, thick });
+        if (!inZone(x - 1, y)) edges.push({ x, y, side: 'o', color, thick });
+        if (!inZone(x + 1, y)) edges.push({ x, y, side: 'e', color, thick });
+      }
+    };
+    const tint = new THREE.Color();
+    const white = new THREE.Color(0xffffff);
+    for (const f of w.farms.all()) {
+      const sel = f.id === scene.selectedFarmId;
+      const soil = tint.setHex(0x4a3a24).lerp(white, sel ? 0.18 : 0).getHex();
+      for (const i of f.tiles) fills.push({ x: i % width, y: Math.floor(i / width), color: soil });
+      zoneEdges(f.tiles, (x, y) => w.farms.at(x, y)?.id === f.id, sel ? 0xc8f090 : 0x8fc060, sel ? 0.13 : 0.08);
+    }
+    for (const z of w.zones.all()) {
+      const sel = z.id === scene.selectedZoneId;
+      const base = ZONE_COLORS[z.priority] ?? 0xd8c27a;
+      const fill = tint.setHex(base).lerp(white, sel ? 0.3 : 0).getHex();
+      for (const i of z.tiles) fills.push({ x: i % width, y: Math.floor(i / width), color: fill });
+      zoneEdges(z.tiles, (x, y) => w.zones.at(x, y)?.id === z.id, sel ? tint.setHex(base).lerp(white, 0.45).getHex() : base, sel ? 0.13 : 0.08);
+    }
+    for (const d of w.designations.list()) marks.push({ x: d.x, y: d.y, color: DESIGN_COLORS[d.job] });
+    for (const o of w.terrain.list()) marks.push({ x: o.x, y: o.y, color: DESIGN_COLORS[o.job] });
     if (rect && scene.designMode) {
       const mode = scene.designMode;
       if (mode === 'construir' && (buildingDef(scene.buildDefId).size ?? [1, 1]).reduce((a, b) => a * b, 1) > 1) {
         const def = buildingDef(scene.buildDefId);
         const ok = w.structures.canPlaceDef(def, rect.x0, rect.y0, scene.buildRot);
-        for (const t of footprintTiles(def, rect.x0, rect.y0, scene.buildRot)) marks.push({ x: t.x, y: t.y, color: ok ? 0x8fc060 : 0xd9534f, alpha: 0.7 });
+        for (const t of footprintTiles(def, rect.x0, rect.y0, scene.buildRot)) marks.push({ x: t.x, y: t.y, color: ok ? 0x8fc060 : 0xd9534f });
       } else {
         const xa = Math.max(0, Math.min(rect.x0, rect.x1));
         const xb = Math.min(w.map.width - 1, Math.max(rect.x0, rect.x1));
@@ -570,8 +612,8 @@ export class View3D {
         for (let y = ya; y <= yb; y++) {
           for (let x = xa; x <= xb; x++) {
             const edge = x === xa || x === xb || y === ya || y === yb;
-            if (scene.designHitAt(x, y, edge)) marks.push({ x, y, color: DESIGN_COLORS[mode], alpha: 0.8 });
-            else if (edge) marks.push({ x, y, color: 0xf0d7b0, alpha: 0.35 });
+            if (scene.designHitAt(x, y, edge)) marks.push({ x, y, color: DESIGN_COLORS[mode] });
+            else if (edge) marks.push({ x, y, color: 0xb8a888 });
           }
         }
       }
@@ -584,26 +626,65 @@ export class View3D {
         for (const mesh of this.structureMeshes(w, def, tiles, ok ? 'fantasma' : 'no-cabe', scene.buildRot)) this.ghostGroup.add(mesh);
       }
     }
-    if (this.overlay) {
-      this.scene3.remove(this.overlay);
-      this.overlay.dispose();
-      (this.overlay.material as THREE.Material).dispose();
-      this.overlay = undefined;
+    for (const old of this.overlays) {
+      this.scene3.remove(old);
+      old.geometry.dispose();
+      old.dispose();
+      (old.material as THREE.Material).dispose();
     }
-    if (marks.length === 0) return;
-    const geo = new THREE.PlaneGeometry(0.94, 0.94);
-    geo.rotateX(-Math.PI / 2);
-    const mesh = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, depthWrite: false }), marks.length);
+    this.overlays = [];
     const mat = new THREE.Matrix4();
     const color = new THREE.Color();
-    marks.forEach((k, i) => {
-      mat.makeTranslation(k.x + 0.5, tileTopY(w, k.x, k.y) + 0.02, k.y + 0.5);
-      mesh.setMatrixAt(i, mat);
-      mesh.setColorAt(i, color.setHex(k.color).multiplyScalar(0.6 + k.alpha * 0.4));
-    });
-    mesh.renderOrder = 2;
-    this.overlay = mesh;
-    this.scene3.add(mesh);
+    const add = (geo: THREE.BufferGeometry, opacity: number, count: number, place: (i: number) => number, order: number) => {
+      if (count === 0) {
+        geo.dispose();
+        return;
+      }
+      const mesh = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity, depthWrite: false }), count);
+      for (let i = 0; i < count; i++) {
+        // `place` deja en `mat` dónde va la marca y devuelve su color.
+        mesh.setColorAt(i, color.setHex(place(i)));
+        mesh.setMatrixAt(i, mat);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      mesh.renderOrder = order;
+      this.overlays.push(mesh);
+      this.scene3.add(mesh);
+    };
+    const flat = (sx: number, sz: number) => {
+      const g = new THREE.PlaneGeometry(sx, sz);
+      g.rotateX(-Math.PI / 2);
+      return g;
+    };
+    add(flat(1, 1), 0.3, fills.length, (i) => {
+      const k = fills[i];
+      mat.makeTranslation(k.x + 0.5, tileTopY(w, k.x, k.y) + 0.015, k.y + 0.5);
+      return k.color;
+    }, 2);
+    // Las tiras de borde, un poco levantadas y casi opacas: se ven bien desde lejos y de lado.
+    const scale = new THREE.Vector3();
+    const pos = new THREE.Vector3();
+    const noTurn = new THREE.Quaternion();
+    const turn = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2);
+    add(flat(1, 1), 0.9, edges.length, (i) => {
+      const k = edges[i];
+      const h = tileTopY(w, k.x, k.y) + 0.03;
+      const t = k.thick;
+      if (k.side === 'n') pos.set(k.x + 0.5, h, k.y + t / 2);
+      else if (k.side === 's') pos.set(k.x + 0.5, h, k.y + 1 - t / 2);
+      else if (k.side === 'o') pos.set(k.x + t / 2, h, k.y + 0.5);
+      else pos.set(k.x + 1 - t / 2, h, k.y + 0.5);
+      // Tira de 1 × grosor; las de los lados este y oeste, giradas un cuarto de vuelta.
+      scale.set(1, 1, t);
+      mat.compose(pos, k.side === 'n' || k.side === 's' ? noTurn : turn, scale);
+      return k.color;
+    }, 3);
+    add(flat(0.86, 0.86), 0.62, marks.length, (i) => {
+      const k = marks[i];
+      mat.makeTranslation(k.x + 0.5, tileTopY(w, k.x, k.y) + 0.04, k.y + 0.5);
+      return k.color;
+    }, 4);
   }
 
   private colonistTexture(c: Colonist): THREE.CanvasTexture {

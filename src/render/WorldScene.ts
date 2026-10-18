@@ -63,7 +63,7 @@ export const DESIGN_COLORS: Record<WorkType | TerrainJob | 'cancelar' | 'almacen
 };
 
 /** Color de relleno de un almacén según su prioridad. */
-const ZONE_COLORS: Record<number, number> = { 1: 0x8a7a5a, 2: 0xd8c27a, 3: 0xe0a040, 4: 0xe06a3a };
+export const ZONE_COLORS: Record<number, number> = { 1: 0x8a7a5a, 2: 0xd8c27a, 3: 0xe0a040, 4: 0xe06a3a };
 const UI_EMIT_MS = 200;
 /** Giro de los dedos (en radianes) que hace falta para girar la vista un cuarto de vuelta. */
 const TWIST_STEP = Math.PI / 4;

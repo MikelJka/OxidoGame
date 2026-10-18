@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (mañana, 5) — Vista 3D: almacenes, huertos y órdenes más visibles
+
+- Sin incidencias nuevas en 🐞. Siguiente parte aprobada: pulir la vista 3D (pedida por Mikel).
+- En 3D, los **almacenes** se pintan del color de su prioridad (como en 2D) y de una pieza, con un **borde** marcado alrededor; los **huertos**, con tierra oscura y borde verde. Se ven bien desde lejos y con la cámara inclinada.
+- El almacén o huerto elegido se ve más claro y con el borde más grueso, para saber cuál estás tocando.
+- Las órdenes (talar, picar, construir…) y lo que se arrastra van en baldosas algo más pequeñas encima, para que no se confundan con las zonas.
+- No cambia ninguna regla del juego.
+- Qué probar: pasar a 3D, crear dos almacenes y cambiar la prioridad de uno (cambia de color); tocar un almacén y un huerto y ver que se resaltan; arrastrar una orden de talar encima de un almacén.
+- Sin npm en el entorno: tests con Bun (229) y `tsc`; la prueba completa (con la de humo en 3D), en GitHub Actions.
+- Siguiente: más pulido de la 3D (muros que se unan, rendimiento en móviles antiguos). Siguen esperando respuesta de Mikel: horno, cocina y banco eléctricos; puerta automática y ánimo de la luz; fuego amigo y posturas; vehículos.
+
 ## 2026-10-18 (mañana, 4) — Vista 3D: barras de progreso y de salud
 
 - Sin incidencias nuevas en 🐞. Siguiente parte aprobada: pulir la vista 3D (pedida por Mikel) antes de que sea la vista por defecto.
