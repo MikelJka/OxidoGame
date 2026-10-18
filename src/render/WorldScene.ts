@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GameMap, describeTile, inBounds } from '../sim/map';
-import { activityLabel, Colonist, type Stance } from '../sim/colonist';
+import { activityLabel, Colonist, groupSummary, type Stance } from '../sim/colonist';
 import { isWalkable } from '../sim/pathfinding';
 import { GameSpeed, World } from '../sim/world';
 import { loadWorld } from '../sim/save';
@@ -35,10 +35,12 @@ const ZONE_DEPTH = -0.5;
  * Modo de órdenes: designar un trabajo, quitar designaciones, marcar o quitar almacenes,
  * colocar planos (la construcción elegida está en `buildDefId`) o quitarlos. null = ninguno.
  */
-export type DesignMode = HarvestJob | TerrainJob | 'cancelar' | 'almacen' | 'cultivo' | 'quitarAlmacen' | 'construir' | 'quitarPlano' | null;
+export type DesignMode = HarvestJob | TerrainJob | 'cancelar' | 'almacen' | 'cultivo' | 'quitarAlmacen' | 'construir' | 'quitarPlano' | 'seleccionar' | 'mover' | null;
 
 /** Color de cada trabajo y modo en las marcas y en la vista previa del área. */
-export const DESIGN_COLORS: Record<WorkType | TerrainJob | 'cancelar' | 'almacen' | 'cultivo' | 'quitarAlmacen' | 'quitarPlano', number> = {
+export const DESIGN_COLORS: Record<WorkType | TerrainJob | 'cancelar' | 'almacen' | 'cultivo' | 'quitarAlmacen' | 'quitarPlano' | 'seleccionar' | 'mover', number> = {
+  seleccionar: 0xf0d7b0,
+  mover: 0x6fa8dc,
   rebajar: 0xc09060,
   elevar: 0xc09060,
   rampa: 0xc09060,
@@ -125,6 +127,8 @@ export class WorldScene extends Phaser.Scene {
   private itemsVersion = -1;
   /** Modo de órdenes activo: arrastrar o tocar marca casillas en lugar de mover la cámara. */
   designMode: DesignMode = null;
+  /** El próximo «soltar» no cuenta como toque (el clic derecho que ha cancelado un modo). */
+  private swallowUp = false;
   private designStart: ViewPoint | null = null;
   private designEnd: ViewPoint | null = null;
   private designGfx!: Phaser.GameObjects.Graphics;
@@ -247,6 +251,11 @@ export class WorldScene extends Phaser.Scene {
       this.emitClock();
       if (this.selectedId !== null) this.emitSelection();
       if (this.selectedStation) this.game.events.emit('station-tick', this.selectedStation);
+      if (this.selectedPiece) {
+        // Demolido mientras se miraba: se cierra el panel.
+        if (this.world.structures.get(this.selectedPiece.id) !== this.selectedPiece) this.selectPiece(null);
+        else this.game.events.emit('piece-select', this.selectedPiece);
+      }
       if (this.selectedZoneId !== null) {
         const z = this.world.zones.get(this.selectedZoneId);
         if (z) this.game.events.emit('zone-tick', z);
@@ -430,6 +439,12 @@ export class WorldScene extends Phaser.Scene {
         this.startPinch();
         return;
       }
+      if (this.designMode && p.rightButtonDown()) {
+        // Clic derecho mientras se coloca algo (o se marcan órdenes): quita el fantasma y sale del modo.
+        this.setDesignMode(null);
+        this.swallowUp = true;
+        return;
+      }
       if (this.designMode) {
         // En modo de órdenes, un dedo (o el ratón) marca un área en lugar de mover la cámara.
         const w = cam.getWorldPoint(p.x, p.y);
@@ -437,6 +452,13 @@ export class WorldScene extends Phaser.Scene {
         this.designEnd = this.designStart;
         this.dragging = false;
         this.drawDesignPreview();
+        return;
+      }
+      if (p.rightButtonDown()) {
+        // Clic derecho: soltar sin mover da la orden; arrastrar elige a todos los del recuadro.
+        const w = cam.getWorldPoint(p.x, p.y);
+        this.boxStart = { x: w.x, y: w.y };
+        this.dragging = false;
         return;
       }
       this.dragging = true;
@@ -466,6 +488,10 @@ export class WorldScene extends Phaser.Scene {
         this.reportTile(p);
         return;
       }
+      if (this.boxStart && p.isDown) {
+        const w = cam.getWorldPoint(p.x, p.y);
+        this.drawSelectBox(this.boxStart, w);
+      }
       if (this.dragging && p.isDown) {
         cam.scrollX = this.camStart.x - (p.x - this.dragStart.x) / cam.zoom;
         cam.scrollY = this.camStart.y - (p.y - this.dragStart.y) / cam.zoom;
@@ -475,15 +501,31 @@ export class WorldScene extends Phaser.Scene {
 
     // Si el dedo se levanta encima de un panel, Phaser avisa con «pointerupoutside»: se cierra el gesto.
     this.input.on('pointerupoutside', () => {
+      this.endSelectBox();
       this.dragging = false;
       this.pinchStartDist = 0;
       this.clearDesignDrag();
     });
 
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
+      if (this.swallowUp) {
+        // El clic que ha cancelado el modo construir no cuenta como toque.
+        this.swallowUp = false;
+        this.dragging = false;
+        return;
+      }
       const moved = Phaser.Math.Distance.Between(p.downX, p.downY, p.upX, p.upY);
       const wasPinch = this.pinchStartDist > 0 || this.time.now - this.lastPinchAt < 350;
-      if (this.designMode) {
+      if (this.boxStart) {
+        const start = this.boxStart;
+        this.endSelectBox();
+        if (moved >= 8 && !wasPinch) {
+          const w = cam.getWorldPoint(p.x, p.y);
+          this.selectInScreenBox(start, w);
+        } else if (!wasPinch) {
+          this.handleTap(p);
+        }
+      } else if (this.designMode) {
         if (!wasPinch) this.finishDesignDrag(p.wasTouch);
         this.clearDesignDrag();
       } else if (moved < 8 && !wasPinch) {
@@ -527,7 +569,7 @@ export class WorldScene extends Phaser.Scene {
       kb.on('keydown-Q', cam2d(() => this.rotate(-1)));
       kb.on('keydown-E', cam2d(() => this.rotate(1)));
       // Al construir, R gira lo que se va a poner (lo hace main.ts); si no, inclina la vista.
-      kb.on('keydown-R', cam2d(() => this.designMode !== 'construir' && this.tilt(-1)));
+      kb.on('keydown-R', cam2d(() => !this.placing && this.tilt(-1)));
       kb.on('keydown-F', cam2d(() => this.tilt(1)));
     }
   }
@@ -632,6 +674,7 @@ export class WorldScene extends Phaser.Scene {
       this.selectZone(null);
       this.selectFarm(null);
       this.selectStation(null);
+      this.selectPiece(null);
     }
     this.selectedId = id;
     this.extraIds.clear();
@@ -663,6 +706,58 @@ export class WorldScene extends Phaser.Scene {
     this.select(ids[0] ?? null);
     for (const id of ids.slice(1)) this.extraIds.add(id);
     this.emitSelection();
+  }
+
+  /** Elige a un grupo de personas: los colonos quedan elegidos y del resto se da un resumen. */
+  selectPawns(pawns: Colonist[]): void {
+    const colonists = pawns.filter((c) => c.role === 'colono');
+    const others = pawns.filter((c) => c.role !== 'colono');
+    if (colonists.length > 0) {
+      this.select(colonists[0].id);
+      for (const c of colonists.slice(1)) this.extraIds.add(c.id);
+      this.emitSelection();
+    }
+    if (others.length > 0) {
+      this.game.events.emit('toast', groupSummary(others), 4000);
+    } else if (colonists.length === 0) {
+      this.game.events.emit('toast', 'No hay nadie en el recuadro');
+    }
+  }
+
+  /** Recuadro del clic derecho arrastrado (en coordenadas del mundo de la cámara). */
+  private boxStart: { x: number; y: number } | null = null;
+  private boxGfx: Phaser.GameObjects.Graphics | null = null;
+
+  private drawSelectBox(a: { x: number; y: number }, b: { x: number; y: number }): void {
+    if (!this.boxGfx) this.boxGfx = this.add.graphics().setDepth(COLONIST_DEPTH + 2);
+    const g = this.boxGfx;
+    g.clear();
+    const x = Math.min(a.x, b.x);
+    const y = Math.min(a.y, b.y);
+    const w = Math.abs(a.x - b.x);
+    const h = Math.abs(a.y - b.y);
+    g.fillStyle(0xf0d7b0, 0.12).fillRect(x, y, w, h);
+    g.lineStyle(1.5 / this.cameras.main.zoom, 0xf0d7b0, 0.9).strokeRect(x, y, w, h);
+  }
+
+  private endSelectBox(): void {
+    this.boxStart = null;
+    this.boxGfx?.clear();
+  }
+
+  /** Elige a las personas cuyo dibujo cae dentro del recuadro (lo que se ve es lo que se elige). */
+  private selectInScreenBox(a: { x: number; y: number }, b: { x: number; y: number }): void {
+    const x0 = Math.min(a.x, b.x);
+    const x1 = Math.max(a.x, b.x);
+    const y0 = Math.min(a.y, b.y);
+    const y1 = Math.max(a.y, b.y);
+    const inside = this.world.pawns().filter((c) => {
+      const v = this.toViewPoint(c.pos.x, c.pos.y);
+      const px = v.x * TILE;
+      const py = rowY(v.y) - this.colonistLift(c) - 4; // centro del cuerpo
+      return px >= x0 - 3 && px <= x1 + 3 && py >= y0 - 6 && py <= y1 + 6;
+    });
+    this.selectPawns(inside);
   }
 
   /** Ids de los colonos elegidos (el principal primero). */
@@ -758,6 +853,7 @@ export class WorldScene extends Phaser.Scene {
     this.tapAt(this.colonistAtScreen(world.x, world.y), this.pickRealTile(world.x, world.y), {
       right: p.rightButtonReleased(),
       additive: !!ev && (ev.shiftKey || ev.ctrlKey || ev.metaKey),
+      mouse: !p.wasTouch,
     });
   }
 
@@ -765,7 +861,7 @@ export class WorldScene extends Phaser.Scene {
    * Toque o clic (sin arrastrar) sobre un colono o una casilla real: elegir colono, abrir el
    * panel de lo tocado, mandar a los elegidos u ordenar un trabajo. Lo usan la vista 2D y la 3D.
    */
-  tapAt(hit: Colonist | undefined, t: { x: number; y: number } | null, opts: { right: boolean; additive: boolean }): void {
+  tapAt(hit: Colonist | undefined, t: { x: number; y: number } | null, opts: { right: boolean; additive: boolean; mouse?: boolean }): void {
     // Modo Dios con una herramienta elegida: el toque es para ella.
     if (this.godTap && t && this.godTap(t, hit)) return;
     if (this.attackPick) {
@@ -788,6 +884,9 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
     if (t) this.reportTileAt(t);
+    // Con ratón, el clic izquierdo en el suelo deselecciona; las órdenes van con el derecho.
+    // Con el dedo no hay botón derecho: tocar el suelo sigue mandando a los elegidos.
+    if (opts.mouse && !opts.right && this.selectedId !== null) this.select(null);
     if (this.selectedId === null) {
       // Sin colono elegido, tocar un almacén abre su panel (filtro y prioridad).
       const z = t ? this.world.zones.at(t.x, t.y) : undefined;
@@ -796,6 +895,7 @@ export class WorldScene extends Phaser.Scene {
       this.selectZone(z ? z.id : null);
       this.selectFarm(f ? f.id : null);
       this.selectStation(st && st.built && st.def.category === 'taller' ? st : null);
+      this.selectPiece(st && st.built && st.def.movable && st.def.category !== 'taller' ? st : null);
       return;
     }
     const tile = t;
@@ -902,6 +1002,7 @@ export class WorldScene extends Phaser.Scene {
 
   /** Activa un modo de órdenes (o lo quita con null). */
   setDesignMode(mode: DesignMode): void {
+    if (mode !== 'mover') this.moveSid = null;
     this.designMode = mode;
     this.designHover = null;
     this.setPendingBuild(null);
@@ -911,8 +1012,46 @@ export class WorldScene extends Phaser.Scene {
       this.selectZone(null);
       this.selectFarm(null);
       this.selectStation(null);
+      this.selectPiece(null);
     }
     this.game.events.emit('design-mode', mode);
+  }
+
+  /** Mueble o taller que se está llevando a otro sitio (modo «mover»). */
+  private moveSid: number | null = null;
+
+  /** Se está poniendo algo (construir o mover): se ve el fantasma bajo el ratón. */
+  get placing(): boolean {
+    return this.designMode === 'construir' || this.designMode === 'mover';
+  }
+
+  movingStructure(): Structure | undefined {
+    return this.moveSid === null ? undefined : this.world.structures.get(this.moveSid);
+  }
+
+  /** ✋ Mover: se coloca el fantasma del mueble donde se quiera llevar; un colono lo lleva. */
+  startMove(s: Structure): void {
+    if (!this.world.structures.canMove(s)) {
+      this.game.events.emit('toast', s.electric ? 'Electrificado no se mueve: demuélelo para recuperar parte del material' : 'Esto no se puede mover');
+      return;
+    }
+    this.selectStation(null);
+    this.selectPiece(null);
+    this.buildDefId = s.def.id;
+    this.buildRot = s.rot;
+    this.moveSid = s.id;
+    this.designMode = null; // para que setDesignMode no borre moveSid antes de tiempo
+    this.setDesignMode('mover');
+    this.moveSid = s.id;
+  }
+
+  /** Mueble tocado (cama, armario, lámpara…): su panel con «✋ Mover». */
+  private selectedPiece: Structure | null = null;
+
+  selectPiece(s: Structure | null): void {
+    if (this.selectedPiece === s) return;
+    this.selectedPiece = s;
+    this.game.events.emit('piece-select', s);
   }
 
   /** Vista 3D: empieza, sigue y termina un arrastre de órdenes en casillas reales. */
@@ -936,7 +1075,7 @@ export class WorldScene extends Phaser.Scene {
   /** Al soltar: con el dedo y al construir, deja la construcción pendiente de confirmar; si no, la aplica. */
   private finishDesignDrag(touch: boolean): void {
     const r = this.designRect();
-    if (touch && this.designMode === 'construir' && r) {
+    if (touch && this.placing && r) {
       this.setPendingBuild(r);
       return;
     }
@@ -957,7 +1096,7 @@ export class WorldScene extends Phaser.Scene {
   /** ✔ Pone la construcción pendiente. */
   confirmPendingBuild(): void {
     const r = this.pendingBuild;
-    if (!r || this.designMode !== 'construir') return;
+    if (!r || !this.placing) return;
     this.designStart = { x: r.x0, y: r.y0 };
     this.designEnd = { x: r.x1, y: r.y1 };
     this.applyDesignDrag();
@@ -979,9 +1118,9 @@ export class WorldScene extends Phaser.Scene {
   private previewRect(): TileRect | null {
     const r = this.designRect();
     if (r) return r;
-    if (this.pendingBuild && this.designMode === 'construir') return this.pendingBuild;
+    if (this.pendingBuild && this.placing) return this.pendingBuild;
     const h = this.designHover;
-    return h && this.designMode === 'construir' ? { x0: h.x, y0: h.y, x1: h.x, y1: h.y } : null;
+    return h && this.placing ? { x0: h.x, y0: h.y, x1: h.x, y1: h.y } : null;
   }
 
   /** Vuelve a dibujar la vista previa (p. ej. al girar lo que se va a construir). */
@@ -993,7 +1132,7 @@ export class WorldScene extends Phaser.Scene {
   setDesignHover(t: { x: number; y: number } | null): void {
     if (t?.x === this.designHover?.x && t?.y === this.designHover?.y) return;
     this.designHover = t;
-    if (this.designMode === 'construir' && !this.designStart && !this.pendingBuild) this.drawDesignPreview();
+    if (this.placing && !this.designStart && !this.pendingBuild) this.drawDesignPreview();
   }
 
   /** Casillas de cada construcción que se pondría con el área de la vista previa (máx. 300). */
@@ -1002,9 +1141,10 @@ export class WorldScene extends Phaser.Scene {
     const st = this.world.structures;
     const [w, h] = def.size ?? [1, 1];
     const groups: { tiles: { x: number; y: number }[]; ok: boolean }[] = [];
-    if (w * h > 1) {
+    if (w * h > 1 || this.designMode === 'mover') {
+      // Al mover, solo cuenta la esquina donde se suelta (un mueble entero, nunca un área).
       const tiles = footprintTiles(def, r.x0, r.y0, this.buildRot).filter((t) => inBounds(this.map, t.x, t.y));
-      if (tiles.length) groups.push({ tiles, ok: st.canPlaceDef(def, r.x0, r.y0, this.buildRot) });
+      if (tiles.length) groups.push({ tiles, ok: st.canPlaceDef(def, r.x0, r.y0, this.buildRot, this.movingStructure()) });
     } else {
       for (const t of Structures.areaTiles(r, this.buildShape)) {
         if (groups.length >= 300) break;
@@ -1050,27 +1190,44 @@ export class WorldScene extends Phaser.Scene {
     if (!r || !mode) return;
     const d = this.world.designations;
     const toast = (text: string) => this.game.events.emit('toast', text);
+    if (mode === 'seleccionar') {
+      const xa = Math.min(r.x0, r.x1), xb = Math.max(r.x0, r.x1), ya = Math.min(r.y0, r.y1), yb = Math.max(r.y0, r.y1);
+      const inside = this.world.pawns().filter((c) => c.tile.x >= xa && c.tile.x <= xb && c.tile.y >= ya && c.tile.y <= yb);
+      this.setDesignMode(null);
+      this.selectPawns(inside);
+      return;
+    }
     if (mode === 'almacen') {
       const start = this.designStart ? this.world.zones.at(this.designStart.x, this.designStart.y) : undefined;
       if (start) {
         const n = this.world.extendStorageZone(start.id, r);
-        toast(n > 0 ? `${start.name}: +${n} casillas` : 'Ahí no se puede ampliar');
+        const c = this.world.clearing.countFor('almacen', start.id);
+        toast(n > 0 || c > 0 ? `${start.name}: +${n} casillas${clearNote(c)}` : 'Ahí no se puede ampliar');
       } else {
         const z = this.world.createStorageZone(r);
-        toast(z ? `${z.name} creado (${z.tiles.size} casillas) · tócalo para el filtro y la prioridad` : 'Ahí no se puede guardar nada');
+        toast(z ? `${z.name} creado (${z.tiles.size} casillas)${clearNote(this.world.clearing.countFor('almacen', z.id))} · tócalo para el filtro y la prioridad` : 'Ahí no se puede guardar nada');
       }
     } else if (mode === 'cultivo') {
       const start = this.designStart ? this.world.farms.at(this.designStart.x, this.designStart.y) : undefined;
       if (start) {
         const n = this.world.extendGrowZone(start.id, r);
-        toast(n > 0 ? `${start.name}: +${n} casillas` : 'Ahí no se puede ampliar');
+        const c = this.world.clearing.countFor('huerto', start.id);
+        toast(n > 0 || c > 0 ? `${start.name}: +${n} casillas${clearNote(c)}` : 'Ahí no se puede ampliar');
       } else {
         const z = this.world.createGrowZone(r);
-        toast(z ? `${z.name} creado (${z.tiles.size} casillas) · tócalo para elegir qué plantar` : 'Ahí no se puede cultivar (hace falta tierra)');
+        toast(z ? `${z.name} creado (${z.tiles.size} casillas)${clearNote(this.world.clearing.countFor('huerto', z.id))} · tócalo para elegir qué plantar` : 'Ahí no se puede cultivar (hace falta tierra)');
       }
     } else if (mode === 'quitarAlmacen') {
-      const n = this.world.zones.removeArea(r) + this.world.farms.removeArea(r);
+      const n = this.world.removeZonesArea(r);
       toast(n > 0 ? `Quitadas ${n} casillas de almacenes y huertos` : 'No había zonas ahí');
+    } else if (mode === 'mover') {
+      const moving = this.movingStructure();
+      const ok = !!moving && this.world.orderMoveStructure(moving.id, r.x0, r.y0, this.buildRot);
+      toast(ok ? `✋ ${moving!.def.name}: un colono lo llevará ahí` : 'Ahí no cabe (hace falta suelo llano y libre)');
+      if (ok) {
+        this.setDesignMode(null);
+        return;
+      }
     } else if (mode === 'construir') {
       const def = buildingDef(this.buildDefId);
       const n = this.world.structures.placeArea(r, def.id, this.buildShape, this.buildRot);
@@ -1114,7 +1271,7 @@ export class WorldScene extends Phaser.Scene {
     const r = this.previewRect();
     const mode = this.designMode;
     if (!r || !mode) return;
-    if (mode === 'construir' && this.scene.isVisible()) this.drawGhosts(r);
+    if ((mode === 'construir' || mode === 'mover') && this.scene.isVisible()) this.drawGhosts(r);
     const xa = Math.max(0, Math.min(r.x0, r.x1));
     const xb = Math.min(this.map.width - 1, Math.max(r.x0, r.x1));
     const ya = Math.max(0, Math.min(r.y0, r.y1));
@@ -1122,11 +1279,11 @@ export class WorldScene extends Phaser.Scene {
     const color = DESIGN_COLORS[mode];
     const st = this.world.structures;
     // Construcción de varias casillas: se ve lo que ocupará (verde si cabe, rojo si no).
-    if (mode === 'construir') {
+    if (mode === 'construir' || mode === 'mover') {
       const def = buildingDef(this.buildDefId);
       const [w, h] = def.size ?? [1, 1];
-      if (w * h > 1) {
-        const ok = st.canPlaceDef(def, r.x0, r.y0, this.buildRot);
+      if (w * h > 1 || mode === 'mover') {
+        const ok = st.canPlaceDef(def, r.x0, r.y0, this.buildRot, this.movingStructure());
         g.fillStyle(ok ? 0x8fc060 : 0xd9534f, 0.55);
         for (const t of footprintTiles(def, r.x0, r.y0, this.buildRot)) {
           if (inBounds(this.map, t.x, t.y)) this.fillTile(g, t.x, t.y, 1);
@@ -1168,6 +1325,8 @@ export class WorldScene extends Phaser.Scene {
         case 'quitarAlmacen': return this.world.zones.at(x, y) !== undefined || this.world.farms.at(x, y) !== undefined;
         case 'construir': return (this.buildShape === 'relleno' || edge) && st.canPlace(x, y, buildingDef(this.buildDefId));
         case 'quitarPlano': return st.at(x, y) !== undefined;
+        case 'mover': return false;
+        case 'seleccionar': return this.world.pawns().some((c) => c.tile.x === x && c.tile.y === y);
         default: return canDesignate(this.map, x, y, mode);
       }
   }
@@ -1354,6 +1513,15 @@ export class WorldScene extends Phaser.Scene {
       if (!s.built) img.setAlpha(0.45).setTint(0x8fc0ff); // plano: translúcido y azulado
       else if (s.demolish) img.setTint(0xff8a7a); // marcada para demoler: rojiza
       this.structSprites.push(img);
+      if (s.moveTo) {
+        // Adónde se va a llevar: su fantasma en blanco.
+        const ghost = this.buildingImage(s.def, footprintTiles(s.def, s.moveTo.x, s.moveTo.y, s.moveTo.rot)).setTintFill(0xffffff).setAlpha(0.35);
+        this.structSprites.push(ghost);
+      }
+    }
+    // Lo que un colono está llevando: el fantasma en su sitio nuevo.
+    for (const s of st.liftedList()) {
+      this.structSprites.push(this.buildingImage(s.def, st.tilesOf(s)).setTintFill(0xffffff).setAlpha(0.35));
     }
   }
 
@@ -1550,6 +1718,11 @@ export class WorldScene extends Phaser.Scene {
 }
 
 /** El jugador está escribiendo en un cuadro de texto: el teclado no mueve la cámara ni cambia la velocidad. */
+/** Aviso de lo que hay que despejar dentro de una zona nueva o ampliada (#14). */
+function clearNote(n: number): string {
+  return n > 0 ? ` · ${n} ${n === 1 ? 'casilla' : 'casillas'} por despejar (árboles, rocas o chatarra)` : '';
+}
+
 function isTyping(): boolean {
   const el = document.activeElement;
   return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || (el instanceof HTMLElement && el.isContentEditable);

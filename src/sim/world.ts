@@ -4,10 +4,11 @@ import { findPath, isWalkable, Point } from './pathfinding';
 import { Rng } from './rng';
 import { GroundItems } from './items';
 import { Designations } from './designations';
-import { canWorkFrom, findJob, findJobAt, stationWantsWork, JOB_PATH_NODES, JobContext, reservePlan, Reservations, workSpeed } from './jobs';
+import { canWorkFrom, findJob, findJobAt, stationWantsWork, JOB_PATH_NODES, JobContext, pathToNearest, reservePlan, Reservations, workSpeed } from './jobs';
 import { harvestAt, harvestTile, Stockpile } from './resources';
 import { StorageZones } from './zones';
-import { GrowZones } from './farming';
+import { ZoneClearing } from './clearing';
+import { fertilityAt, GrowZones } from './farming';
 import { regrowNature } from './nature';
 import { Rooms } from './rooms';
 import { tickHealth, treatWounds } from './health';
@@ -123,6 +124,8 @@ export class World implements JobContext {
   readonly farms: GrowZones;
   /** Obras de terreno pendientes (rebajar, elevar, rampas). */
   readonly terrain: TerrainOrders;
+  /** Casillas de almacenes y huertos que hay que despejar antes de usarlas (#14). */
+  readonly clearing: ZoneClearing;
   /** Habitaciones cerradas (se recalculan solas cuando cambian construcciones o relieve). */
   readonly rooms: Rooms;
   /** Casillas cuyo objeto ha cambiado desde la última vez que se preguntó (para repintarlas). */
@@ -180,6 +183,7 @@ export class World implements JobContext {
     this.structures = new Structures(this.map);
     this.farms = new GrowZones(this.map);
     this.terrain = new TerrainOrders(this.map);
+    this.clearing = new ZoneClearing(this.map);
     this.rooms = new Rooms(this.map, this.structures, () => `${this.structures.version}:${this.terrainVersion}:${this.propsVersion}`);
     if (!opts.map) this.dropStartingSupplies();
   }
@@ -287,6 +291,8 @@ export class World implements JobContext {
         else delete c.needs.inLight;
       }
     }
+    // Zonas por despejar: lo que ya está libre se suma a su almacén o huerto.
+    if (this.tick % TICKS_PER_SECOND === 0 && this.clearing.count > 0) this.updateClearing();
     for (const c of this.colonists) this.updateColonist(c);
     updateOthers(this);
   }
@@ -934,7 +940,7 @@ export class World implements JobContext {
   /** Busca trabajo (si toca) y lo empieza. true si ahora tiene uno. */
   private tryStartJob(c: Colonist): boolean {
     const people = this.others.length > 0 || this.colonists.some((k) => k.wounds.some((w) => w.bleeding));
-    if (!people && this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.structures.stations().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0 && !this.structures.all().some((s) => s.built && !!s.def.fuel)) return false;
+    if (!people && this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.structures.toMove().length === 0 && this.structures.stations().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0 && !this.structures.all().some((s) => s.built && !!s.def.fuel)) return false;
     if (this.tick < (this.nextJobScan.get(c.id) ?? 0)) return false;
     const plan = findJob(this, c);
     if (!plan || !reservePlan(this.reservations, c, plan.job)) {
@@ -956,6 +962,11 @@ export class World implements JobContext {
       c.carrying = null;
     }
     if (!c.job) return;
+    if (c.job.move === 'montar') {
+      // Se deja a medio camino: el mueble vuelve a su sitio (la orden sigue, otro lo intentará).
+      const s = this.jobStructure(c.job);
+      if (s?.lifted) this.returnLifted(s, false);
+    }
     if (c.job.escorting) {
       // Suelta a quien llevaba a la celda donde esté.
       for (const o of this.others) if (o.carriedBy === c.id) o.carriedBy = undefined;
@@ -988,6 +999,8 @@ export class World implements JobContext {
     if (j.kind === 'construir') {
       const s = this.jobStructure(j);
       if (j.demolish) return !!s && s.built && !!s.demolish;
+      if (j.move === 'desmontar') return !!s && !!s.moveTo && this.structures.canMove(s);
+      if (j.move === 'montar') return !!s && !!s.lifted;
       if (j.upgrade) {
         if (!s || !s.built || !s.upgrade || s.demolish) return false;
       } else if (!s || s.built) return false;
@@ -1073,6 +1086,10 @@ export class World implements JobContext {
     // Un taller electrificado con corriente va el doble de rápido.
     const boost = (j.kind === 'fabricar' || j.kind === 'cocinar') && target ? stationSpeed(target) : 1;
     j.progress += workSpeed(c, j.kind) * this.lightFactor(c.tile) * boost;
+    if (building && j.move) {
+      if (j.progress >= j.work) this.finishMoveStep(c);
+      return;
+    }
     if (building && j.demolish) {
       if (j.progress >= j.work) {
         this.demolishStructure(this.jobStructure(j)!);
@@ -1237,20 +1254,62 @@ export class World implements JobContext {
 
   /** Crea un huerto (sin pisar almacenes). */
   createGrowZone(r: TileRect): ReturnType<GrowZones['create']> {
-    return this.farms.create(r, undefined, (x, y) => this.zones.at(x, y) !== undefined);
+    const z = this.farms.create(r, undefined, (x, y) => this.zones.at(x, y) !== undefined);
+    if (z) this.markClearing(r, 'huerto', z.id);
+    return z;
   }
 
   extendGrowZone(id: number, r: TileRect): number {
-    return this.farms.extend(id, r, (x, y) => this.zones.at(x, y) !== undefined);
+    const n = this.farms.extend(id, r, (x, y) => this.zones.at(x, y) !== undefined);
+    if (this.farms.get(id)) this.markClearing(r, 'huerto', id);
+    return n;
   }
 
   /** Crea un almacén (sin pisar huertos). */
   createStorageZone(r: TileRect): ReturnType<StorageZones['create']> {
-    return this.zones.create(r, (x, y) => this.farms.at(x, y) !== undefined);
+    const z = this.zones.create(r, (x, y) => this.farms.at(x, y) !== undefined);
+    if (z) this.markClearing(r, 'almacen', z.id);
+    return z;
   }
 
   extendStorageZone(id: number, r: TileRect): number {
-    return this.zones.extend(id, r, (x, y) => this.farms.at(x, y) !== undefined);
+    const n = this.zones.extend(id, r, (x, y) => this.farms.at(x, y) !== undefined);
+    if (this.zones.get(id)) this.markClearing(r, 'almacen', id);
+    return n;
+  }
+
+  /** Quita casillas de almacenes y huertos (y lo que faltaba por despejar en ellas). */
+  removeZonesArea(r: TileRect): number {
+    this.clearing.removeArea(r);
+    return this.zones.removeArea(r) + this.farms.removeArea(r);
+  }
+
+  /**
+   * Despejar zonas (#14): lo que haya dentro del rectángulo que se tale, pique o saquee queda
+   * marcado; las casillas de otra zona o con una construcción se respetan.
+   */
+  private markClearing(r: TileRect, kind: 'almacen' | 'huerto', id: number): number {
+    return this.clearing.markArea(r, kind, id, this.designations, (x, y) => {
+      if (this.structures.at(x, y)) return true;
+      const z = this.zones.at(x, y);
+      const f = this.farms.at(x, y);
+      if (kind === 'almacen') return !!f || (!!z && z.id !== id);
+      if (z || (f && f.id !== id)) return true;
+      return fertilityAt(this.map, x, y) === 0; // en un huerto, solo lo que se podrá cultivar
+    });
+  }
+
+  /** Revisa lo que falta por despejar; lo que ya está libre entra en su zona. */
+  private updateClearing(): void {
+    this.clearing.update(
+      this.designations,
+      (kind, id) => (kind === 'almacen' ? !!this.zones.get(id) : !!this.farms.get(id)),
+      (x, y, m) => {
+        const r = { x0: x, y0: y, x1: x, y1: y };
+        if (m.kind === 'almacen') this.zones.extend(m.zone, r, (a, b) => this.farms.at(a, b) !== undefined);
+        else this.farms.extend(m.zone, r, (a, b) => this.zones.at(a, b) !== undefined);
+      },
+    );
   }
 
   /** Transporte en dos tramos: ir al montón y cogerlo; llevarlo al almacén o al plano y dejarlo. */
@@ -1348,6 +1407,89 @@ export class World implements JobContext {
   }
 
   /** Derriba una construcción terminada y deja en el suelo parte de su material. */
+  // --- Mover muebles -------------------------------------------------------------
+
+  /** Pide llevar una construcción a otro sitio (✋ Mover). false si no se mueve o no cabe allí. */
+  orderMoveStructure(id: number, x: number, y: number, rot: 0 | 1): boolean {
+    const s = this.structures.get(id);
+    return !!s && this.structures.orderMove(s, x, y, rot);
+  }
+
+  /** Quita la orden de mover (si nadie lo lleva aún). */
+  cancelMoveStructure(id: number): boolean {
+    const s = this.structures.get(id);
+    return !!s && this.structures.cancelMove(s);
+  }
+
+  /** Termina un paso de mover: al desmontar se lo lleva hacia el destino; al montar lo deja puesto. */
+  private finishMoveStep(c: Colonist): void {
+    const j = c.job!;
+    const s = this.jobStructure(j);
+    if (!s) {
+      this.dropJob(c);
+      return;
+    }
+    if (j.move === 'desmontar') {
+      const to = s.moveTo;
+      if (!to || !this.structures.canPlaceDef(s.def, to.x, to.y, to.rot, s)) {
+        s.moveTo = undefined;
+        this.addLog(`✋ ${s.def.name}: ya no cabe donde se quería llevar; se queda donde está.`, 'info');
+        this.dropJob(c);
+        return;
+      }
+      this.structures.lift(s);
+      // Ya montado encima de su sitio de antes (lo movió un poco): se monta sin andar.
+      const here = this.structures.isBesideStructure(c.tile, s);
+      const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(this.map, c.tile, this.structures.sidesOf(s));
+      if (!route) {
+        this.returnLifted(s, true);
+        this.addLog(`✋ ${s.def.name}: no hay camino hasta donde se quería llevar.`, 'info');
+        this.dropJob(c);
+        return;
+      }
+      j.move = 'montar';
+      j.x = s.x;
+      j.y = s.y;
+      j.stand = route.stand;
+      j.progress = 0;
+      c.path = route.path;
+      c.activity = 'toJob';
+      this.reservations.releaseAll(c.id);
+      return;
+    }
+    // Montar en el destino.
+    if (!this.structures.putDown(s, s.x, s.y, s.rot)) {
+      this.returnLifted(s, true);
+      this.addLog(`✋ ${s.def.name}: el sitio nuevo se ha ocupado; vuelve a donde estaba.`, 'info');
+    } else {
+      s.moveTo = undefined;
+      this.settleStructure(s);
+    }
+    this.dropJob(c);
+  }
+
+  /**
+   * Devuelve un mueble que se estaba llevando: a su sitio de antes o, si se ha ocupado, al lado.
+   * Si no cabe en ningún sitio, se desmonta del todo y deja su material. `forget` quita la orden.
+   */
+  private returnLifted(s: Structure, forget: boolean): void {
+    const from = s.moveFrom ?? { x: s.x, y: s.y, rot: s.rot };
+    const spots: { x: number; y: number }[] = [from];
+    for (let r = 1; r <= 4; r++) {
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r) spots.push({ x: from.x + dx, y: from.y + dy });
+    }
+    const keep = forget ? undefined : s.moveTo;
+    for (const p of spots) {
+      if (this.structures.putDown(s, p.x, p.y, from.rot)) {
+        s.moveTo = keep && !(keep.x === s.x && keep.y === s.y && keep.rot === s.rot) ? keep : undefined;
+        this.settleStructure(s);
+        return;
+      }
+    }
+    const back = this.structures.discardLifted(s);
+    this.items.dropAll(from.x, from.y, back);
+  }
+
   demolishStructure(s: Structure): void {
     const back = this.structures.demolish(s);
     this.items.dropAll(s.x, s.y, back);
@@ -1476,6 +1618,14 @@ export class World implements JobContext {
   /** Termina una construcción y aparta lo que quede debajo (montones, colonos). */
   completeStructure(s: Structure): void {
     this.structures.complete(s);
+    this.settleStructure(s);
+  }
+
+  /**
+   * Lo que pasa al quedar puesta una construcción (al terminarla o al montar un mueble movido):
+   * lo que no cabe en ella sale a un lado y nadie se queda dentro ni encerrado.
+   */
+  private settleStructure(s: Structure): void {
     if (s.def.storageFor) {
       // Lo que no se guarda en él (en un armero, lo que no es arma) sale a un lado.
       for (const t of this.structures.tilesOf(s)) {

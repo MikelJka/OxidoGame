@@ -3,7 +3,7 @@ import { WorldScene } from './render/WorldScene';
 import { northLabel, Rotation } from './render/rotation';
 import { DEFAULT_TILT, TILTS } from './render/projection';
 import { seedFromString } from './sim/rng';
-import { Colonist, activityLabel, Stance, WorkPriority } from './sim/colonist';
+import { Colonist, activityLabel, groupSummary, Stance, WorkPriority } from './sim/colonist';
 import { isFood, moodOf, STARVING } from './sim/needs';
 import { WORK_NAMES, WORK_TYPES } from './data/work';
 import { SKILLS, SKILL_NAMES } from './data/colonists';
@@ -466,6 +466,8 @@ const DESIGN_HINTS: Record<Exclude<DesignMode, null>, string> = {
   rellenar: 'Rellenar: arrastra sobre las zanjas que quieras tapar',
   quitarAlmacen: 'Quitar zona: arrastra sobre las casillas de almacén o huerto que ya no quieras',
   construir: 'Construir',
+  mover: 'Mover',
+  seleccionar: 'Elegir varios: arrastra un recuadro sobre los colonos (o sobre saqueadores y visitantes para ver su resumen)',
   quitarPlano: 'Demoler: arrastra sobre construcciones (devuelven la mitad del material) o planos (todo lo llevado)',
 };
 /**
@@ -518,13 +520,14 @@ $('build-rot').addEventListener('click', () => rotateBuild());
 const buildOk = $<HTMLButtonElement>('build-ok');
 const buildCancel = $<HTMLButtonElement>('build-cancel');
 buildOk.addEventListener('click', () => scene().confirmPendingBuild());
-buildCancel.addEventListener('click', () => scene().cancelPendingBuild());
+// ✖ quita la vista previa y sale del modo construir (como el clic derecho en el PC).
+buildCancel.addEventListener('click', () => scene().setDesignMode(null));
 game.events.on('build-pending', (on: boolean) => {
   buildOk.hidden = !on;
   buildCancel.hidden = !on;
   shapeBtn.hidden = on;
   buildModes.querySelector<HTMLElement>('.ts-tools [data-mode="quitarPlano"]')!.hidden = on;
-  if (on) designHint.textContent = '¿Aquí? ↻ para girar, toca otro sitio para moverlo · ✔ Colocar o ✖';
+  if (on) designHint.textContent = '¿Aquí? ↻ para girar, toca otro sitio para moverlo · ✔ Colocar o ✖ para dejar de construir';
 });
 function rotateBuild(): void {
   const s = scene();
@@ -544,7 +547,7 @@ game.events.on('design-mode', (mode: DesignMode) => {
     b.classList.toggle('active', on);
   }
   shapeBtn.textContent = s.buildShape === 'contorno' ? '▭ Contorno' : '■ Relleno';
-  if (mode === 'construir' || mode === 'quitarPlano') {
+  if (mode === 'construir' || mode === 'quitarPlano' || mode === 'mover') {
     if (buildModes.hidden) showMenu('build');
   } else if (mode && orderModes.hidden) {
     showMenu('orders');
@@ -555,7 +558,7 @@ game.events.on('design-mode', (mode: DesignMode) => {
   }
   // Lo elegido, en la cabecera de la hoja (se ve también recogida).
   const active = modeButtons.find((b) => b.classList.contains('active'));
-  const label = mode === 'construir' ? buildingDef(s.buildDefId).name : active?.querySelector('.tl')?.textContent ?? active?.textContent?.trim() ?? '';
+  const label = mode === 'construir' ? buildingDef(s.buildDefId).name : mode === 'mover' ? `✋ Mover ${buildingDef(s.buildDefId).name.toLowerCase()}` : active?.querySelector('.tl')?.textContent ?? active?.textContent?.trim() ?? '';
   for (const sheet of [orderModes, buildModes]) {
     sheet.querySelector('.ts-current')!.textContent = mode && !sheet.hidden ? `· ${label}` : '';
     setCollapsed(sheet, !!mode && smallScreen.matches);
@@ -565,7 +568,10 @@ game.events.on('design-mode', (mode: DesignMode) => {
     const def = buildingDef(s.buildDefId);
     const how = s.buildShape === 'contorno' ? 'arrastra un rectángulo para su contorno (o una línea)' : 'arrastra o toca las casillas';
     const touchFirst = window.matchMedia('(pointer: coarse)').matches;
-    designHint.textContent = `${def.name}: ${how}${touchFirst ? ', míralo y pulsa ✔ Colocar' : ''} · solo en suelo llano y libre · dos dedos: mover la cámara`;
+    designHint.textContent = `${def.name}: ${how}${touchFirst ? ', míralo y pulsa ✔ Colocar (✖ para salir)' : ' · clic derecho: cancelar'} · solo en suelo llano y libre · dos dedos: mover la cámara`;
+  } else if (mode === 'mover') {
+    const touchFirst = window.matchMedia('(pointer: coarse)').matches;
+    designHint.textContent = `✋ ${buildingDef(s.buildDefId).name}: toca dónde llevarlo (↻ para girarlo)${touchFirst ? ', míralo y pulsa ✔ Colocar (✖ para salir)' : ' · clic derecho: cancelar'}`;
   } else if (mode) {
     designHint.textContent = `${DESIGN_HINTS[mode]} o toca una casilla · dos dedos: mover la cámara`;
   }
@@ -584,7 +590,7 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'b' || e.key === 'B') showMenu(buildModes.hidden ? 'build' : null);
   if (e.key === 'x' || e.key === 'X') rotateBuild();
   // R también gira lo que se va a construir (fuera del modo construir, R inclina la vista).
-  if ((e.key === 'r' || e.key === 'R') && scene().designMode === 'construir') rotateBuild();
+  if ((e.key === 'r' || e.key === 'R') && scene().placing) rotateBuild();
 });
 
 // --- Paneles de almacén, taller y huerto: hojas con cabecera, cuerpo y pie fijos -----
@@ -707,6 +713,49 @@ $('sp-electrify-cancel').addEventListener('click', () => {
 game.events.on('station-tick', (s: Structure) => {
   renderStationStatus(s);
   renderStationPower(s);
+  renderStationMove(s);
+});
+/** Fila «✋ Mover» del taller: solo si se mueve (sin electrificar). */
+function renderStationMove(s: Structure): void {
+  const movable = !!s.def.movable && !s.electric && !s.upgrade;
+  $('sp-move-row').hidden = !movable;
+  $('sp-move').hidden = !!s.moveTo;
+  $('sp-unmove').hidden = !s.moveTo;
+}
+$('sp-move').addEventListener('click', () => {
+  const sc = scene();
+  if (sc.selectedStation) sc.startMove(sc.selectedStation);
+});
+$('sp-unmove').addEventListener('click', () => {
+  const sc = scene();
+  const s = sc.selectedStation;
+  if (s) sc.world.cancelMoveStructure(s.id);
+  sc.refreshStation();
+});
+
+// --- Muebles: panel con «✋ Mover» (camas, armarios, estanterías, armeros, lámparas) -----
+const piecePanel = $('piece-panel');
+let selectedPiece: Structure | null = null;
+function renderPiece(): void {
+  const s = selectedPiece;
+  piecePanel.hidden = !s;
+  if (!s) return;
+  $('pc-name').textContent = s.def.name;
+  $('pc-status').textContent = s.lifted ? '✋ Un colono lo está llevando' : s.moveTo ? '✋ Esperando a que un colono lo lleve' : 'Se puede llevar a otro sitio sin gastar nada';
+  $('pc-move').hidden = !!s.moveTo;
+  $('pc-unmove').hidden = !s.moveTo || !!s.lifted;
+}
+game.events.on('piece-select', (s: Structure | null) => {
+  selectedPiece = s;
+  renderPiece();
+});
+$('pc-close').addEventListener('click', () => scene().selectPiece(null));
+$('pc-move').addEventListener('click', () => {
+  if (selectedPiece) scene().startMove(selectedPiece);
+});
+$('pc-unmove').addEventListener('click', () => {
+  if (selectedPiece) scene().world.cancelMoveStructure(selectedPiece.id);
+  renderPiece();
 });
 let lastStation: Structure | null = null;
 game.events.on('station-select', (s: Structure | null) => {
@@ -720,6 +769,7 @@ game.events.on('station-select', (s: Structure | null) => {
   $('sp-name').textContent = `🛠 ${s.def.name}${s.electric ? ' ⚡' : ''}`;
   renderStationStatus(s);
   renderStationPower(s);
+  renderStationMove(s);
   const inv = scene().world.inventory();
   $('sp-recipes').replaceChildren(
     ...recipesFor(s.def.id).map((r) => {
@@ -945,6 +995,7 @@ window.addEventListener('keydown', (e) => {
   if (!zonePanel.hidden) s.selectZone(null);
   else if (!farmPanel.hidden) s.selectFarm(null);
   else if (!stationPanel.hidden) s.selectStation(null);
+  else if (!piecePanel.hidden) s.selectPiece(null);
 });
 
 // --- Información de casilla y avisos -----------------------------------------
@@ -959,7 +1010,7 @@ function showToast(text: string, ms = 1600): void {
   window.clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => (toast.hidden = true), ms);
 }
-game.events.on('toast', (text: string) => showToast(text));
+game.events.on('toast', (text: string, ms?: number) => showToast(text, ms));
 
 // --- Informar de bugs, peticiones y cambios ----------------------------------
 const report = $('report');
@@ -1403,7 +1454,7 @@ game.events.on('selection', (c: Colonist | null, group: Colonist[] = c ? [c] : [
     lastGroupKey = groupKey;
     lastPanelId = null;
     $('cp-name').textContent = `👥 ${group.length} colonos`;
-    $('cp-sub').textContent = 'Toca el suelo para mandarlos juntos';
+    $('cp-sub').textContent = `${groupSummary(group).replace(/^👥 /, '')} · ${window.matchMedia('(pointer: coarse)').matches ? 'toca el suelo' : 'clic derecho en el suelo'} para mandarlos juntos`;
     $('cp-traits').replaceChildren();
     $('cp-trait-desc').textContent = '';
     $('cp-skills').replaceChildren();

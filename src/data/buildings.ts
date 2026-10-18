@@ -58,6 +58,8 @@ export interface BuildingDef {
   electrify?: { cost: Partial<Record<ResourceId, number>>; power: number; work: number };
   /** Puerta automática: con corriente se cierra a los saqueadores mientras dura un raid. */
   autoDoor?: boolean;
+  /** Se puede llevar a otro sitio con «✋ Mover» (muebles y talleres sin electrificar). */
+  movable?: boolean;
   /** Lámpara: casillas que ilumina alrededor. */
   light?: number;
   /** Casillas de vista desde lo alto (torres; servirá para ver venir a los enemigos). */
@@ -95,6 +97,7 @@ export function validateBuilding(d: unknown): BuildingDef {
     if (!(e.power > 0) || !(e.work > 0)) fail('electrificar: vatios o trabajo no válidos');
   }
   if (b.autoDoor && (b.category !== 'puerta' || !((b.power ?? 0) < 0))) fail('una puerta automática es una puerta que gasta corriente');
+  if (b.movable !== undefined && (typeof b.movable !== 'boolean' || !['mueble', 'taller', 'electricidad'].includes(b.category))) fail('solo se mueven muebles, talleres y lámparas');
   if (!b.colors?.top || !b.colors.face || !b.colors.dark) fail('faltan colores');
   return b;
 }

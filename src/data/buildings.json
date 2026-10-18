@@ -563,6 +563,7 @@
   },
   {
     "id": "cama",
+    "movable": true,
     "name": "Cama",
     "category": "mueble",
     "cost": {
@@ -585,6 +586,7 @@
   },
   {
     "id": "estanteria_madera",
+    "movable": true,
     "name": "Estantería de madera",
     "category": "mueble",
     "cost": {
@@ -604,6 +606,7 @@
   },
   {
     "id": "estanteria_metal",
+    "movable": true,
     "name": "Estantería de metal",
     "category": "mueble",
     "cost": {
@@ -623,6 +626,7 @@
   },
   {
     "id": "armario",
+    "movable": true,
     "name": "Armario",
     "category": "mueble",
     "cost": {
@@ -647,6 +651,7 @@
   },
   {
     "id": "armero",
+    "movable": true,
     "name": "Armero",
     "category": "mueble",
     "cost": {
@@ -672,6 +677,7 @@
   },
   {
     "id": "cama_prision",
+    "movable": true,
     "name": "Cama de prisionero",
     "category": "mueble",
     "cost": {
@@ -695,6 +701,7 @@
   },
   {
     "id": "cocina",
+    "movable": true,
     "name": "Cocina",
     "category": "taller",
     "cost": {
@@ -726,6 +733,7 @@
   },
   {
     "id": "horno",
+    "movable": true,
     "name": "Horno de fundición",
     "category": "taller",
     "cost": {
@@ -756,6 +764,7 @@
   },
   {
     "id": "banco_trabajo",
+    "movable": true,
     "name": "Banco de trabajo",
     "category": "taller",
     "cost": {
@@ -979,6 +988,7 @@
   },
   {
     "id": "lampara",
+    "movable": true,
     "name": "Lámpara",
     "category": "electricidad",
     "cost": {

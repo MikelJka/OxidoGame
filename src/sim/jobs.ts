@@ -38,6 +38,11 @@ export function workSpeed(c: Colonist, kind: WorkType): number {
   return (skill ? 0.6 + c.skills[skill] * 0.05 : 1) * needsWorkFactor(c);
 }
 
+/** Trabajo de desmontar (y otro tanto de montar) un mueble que se mueve: un cuarto de construirlo. */
+export function moveWork(buildWork: number): number {
+  return Math.max(30, Math.ceil(buildWork / 4));
+}
+
 /** Huecos de reserva de una casilla: el trabajo en ella, recoger su montón o dejar algo en ella. */
 export type ReservationSlot = 'work' | 'pickup' | 'drop';
 const SLOTS: readonly ReservationSlot[] = ['work', 'pickup', 'drop'];
@@ -150,7 +155,7 @@ interface Candidate {
 const manhattan = (a: Point, x: number, y: number) => Math.abs(a.x - x) + Math.abs(a.y - y);
 
 /** Camino hasta la casilla más cercana de una lista a la que se pueda llegar. */
-function pathToNearest(map: GameMap, from: Point, targets: Point[]): { stand: Point; path: Point[] } | null {
+export function pathToNearest(map: GameMap, from: Point, targets: Point[]): { stand: Point; path: Point[] } | null {
   const sorted = [...targets].sort((a, b) => manhattan(from, a.x, a.y) - manhattan(from, b.x, b.y));
   for (const t of sorted) {
     if (t.x === from.x && t.y === from.y) return { stand: { ...t }, path: [] };
@@ -393,6 +398,20 @@ function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
         const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, ctx.structures.sidesOf(s));
         if (!route) return null;
         return { job: { kind: 'construir', sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: 0, work: Math.ceil(s.def.work / 2), demolish: true }, path: route.path };
+      },
+    });
+  }
+  // Mover muebles: ir a desmontarlo (luego el mismo colono lo lleva y lo monta en el destino).
+  for (const s of ctx.structures.toMove()) {
+    const holder = ctx.reservations.holder(s.x, s.y);
+    if (holder !== undefined && holder !== c.id) continue;
+    out.push({
+      kind: 'construir', x: s.x, y: s.y, dist: manhattan(c.tile, s.x, s.y),
+      make: () => {
+        const here = ctx.structures.isBesideStructure(c.tile, s);
+        const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, ctx.structures.sidesOf(s));
+        if (!route) return null;
+        return { job: { kind: 'construir', sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: 0, work: moveWork(s.def.work), move: 'desmontar' }, path: route.path };
       },
     });
   }

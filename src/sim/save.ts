@@ -46,12 +46,14 @@ export interface SaveData {
   items: { x: number; y: number; resource: string; amount: number }[];
   designations: { x: number; y: number; job: string }[];
   zones: { id: number; name: string; priority: number; accepts: Record<string, boolean>; tiles: number[] }[];
-  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number; demolish?: boolean; bill?: { recipe: string; target: number; paused: boolean; mode?: string }; rot?: number; stored?: number; fuel?: number; electric?: boolean; upgrade?: { delivered: Record<string, number>; progress: number } }[];
+  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number; demolish?: boolean; bill?: { recipe: string; target: number; paused: boolean; mode?: string }; rot?: number; stored?: number; fuel?: number; electric?: boolean; upgrade?: { delivered: Record<string, number>; progress: number }; moveTo?: { x: number; y: number; rot: number } }[];
   /** Obras de terreno pendientes (desde que existen). */
   terrain?: { x: number; y: number; job: string }[];
   /** Huertos (desde que existe el cultivo; las partidas anteriores no los tienen). */
   farms?: { id: number; name: string; crop: string; tiles: number[] }[];
   plants?: { i: number; crop: string; growth: number }[];
+  /** Casillas de almacenes y huertos por despejar (#14; las partidas anteriores no las tienen). */
+  clearing?: { i: number; kind: string; zone: number; prop: number }[];
   /** Saqueadores, prisioneros y comerciantes (desde que existen). */
   others?: SavedColonist[];
   /** Raids en marcha, para su moral (desde que existe; las anteriores, ninguno). */
@@ -199,10 +201,13 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     zones: world.zones.all().map((z) => ({ id: z.id, name: z.name, priority: z.priority, accepts: { ...z.accepts }, tiles: [...z.tiles] })),
     farms: world.farms.all().map((z) => ({ id: z.id, name: z.name, crop: z.crop.id, tiles: [...z.tiles] })),
     plants: world.farms.plantList().map(({ x, y, plant }) => ({ i: y * m.width + x, crop: plant.crop.id, growth: plant.growth })),
-    structures: world.structures.all().map((s) => ({
-      def: s.def.id, x: s.x, y: s.y, built: s.built, delivered: { ...s.delivered } as Record<string, number>, progress: s.progress, hp: s.hp,
+    clearing: world.clearing.list(),
+    // Un mueble que alguien lleva en brazos se guarda en su sitio de antes, con la orden de moverlo.
+    structures: [...world.structures.all(), ...world.structures.liftedList()].map((s) => ({
+      def: s.def.id, x: s.lifted && s.moveFrom ? s.moveFrom.x : s.x, y: s.lifted && s.moveFrom ? s.moveFrom.y : s.y, built: s.built, delivered: { ...s.delivered } as Record<string, number>, progress: s.progress, hp: s.hp,
       demolish: s.demolish || undefined,
-      rot: s.rot || undefined,
+      rot: (s.lifted && s.moveFrom ? s.moveFrom.rot : s.rot) || undefined,
+      moveTo: s.moveTo ? { ...s.moveTo } : undefined,
       bill: s.bill ? { recipe: s.bill.recipe.id, target: s.bill.target, paused: s.bill.paused, mode: s.bill.mode === 'count' ? 'count' : undefined } : undefined,
       stored: s.stored || undefined,
       fuel: s.fuel || undefined,
@@ -392,6 +397,8 @@ export function loadWorld(input: string | unknown): World {
       continue;
     }
     if (s.demolish) world.structures.markDemolish(s.x, s.y);
+    // Orden de mover (desde el 2026-10-18): si ya no cabe donde iba, se olvida.
+    if (s.moveTo) world.structures.orderMove(restored, num(s.moveTo.x, -1), num(s.moveTo.y, -1), s.moveTo.rot === 1 ? 1 : 0);
     // Electricidad (desde que existe): carga de las baterías y combustible de los generadores.
     if (def.battery) restored.stored = Math.max(0, Math.min(def.battery, num(s.stored, 0)));
     if (def.fuel) restored.fuel = Math.max(0, Math.min(def.fuel.capacity, num(s.fuel, 0)));
@@ -476,6 +483,10 @@ export function loadWorld(input: string | unknown): World {
   for (const p of d.plants ?? []) {
     const crop = cropDef(String(p.crop));
     if (crop) world.farms.restorePlant(num(p.i, -1), crop, num(p.growth, 0));
+  }
+  for (const c of d.clearing ?? []) {
+    if (c.kind !== 'almacen' && c.kind !== 'huerto') continue;
+    world.clearing.restore(num(c.i, -1), { kind: c.kind, zone: num(c.zone, 0), prop: num(c.prop, 0) });
   }
   // Colonos que quedaran sobre una casilla que ya no se pisa se apartan.
   for (const c of world.colonists) {

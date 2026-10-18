@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { checkWorld } from '../src/sim/diagnostics';
-import { moodOf, needsWorkFactor } from '../src/sim/needs';
+import { moodOf, needsWorkFactor, restGain } from '../src/sim/needs';
 import { loadWorld, serializeWorld } from '../src/sim/save';
 import { TICKS_PER_DAY, TICKS_PER_HOUR } from '../src/sim/world';
 import { flatWorld } from './helpers';
@@ -58,6 +58,27 @@ describe('necesidades', () => {
     expect(slept).toBe(true);
     expect(c.needs.rest).toBeGreaterThan(0.84);
     expect(c.needs.sleptIn).toBe('cama');
+  });
+
+  it('se recupera del todo en 6 h en cama y en 8 h en el suelo (#15, opción A)', () => {
+    expect(restGain(true, TICKS_PER_HOUR) * 6 * TICKS_PER_HOUR).toBeCloseTo(1);
+    expect(restGain(false, TICKS_PER_HOUR) * 8 * TICKS_PER_HOUR).toBeCloseTo(1);
+    // Una noche: de vacío a lleno en cama tarda menos de 6,5 h de juego.
+    const world = flatWorld(1, { needs: true });
+    const c = world.colonists[0];
+    buildNow(world, c.tile.x, c.tile.y, 'cama');
+    c.needs.rest = 0.05;
+    c.needs.food = 1;
+    c.needs.water = 1;
+    let asleep = -1;
+    let t = 0;
+    for (; t < TICKS_PER_HOUR * 12; t++) {
+      world.step();
+      if (asleep < 0 && c.activity === 'sleeping') asleep = t;
+      if (asleep >= 0 && c.activity !== 'sleeping') break;
+    }
+    expect(asleep).toBeGreaterThanOrEqual(0);
+    expect((t - asleep) / TICKS_PER_HOUR).toBeLessThan(6.5);
   });
 
   it('sin cama duerme en el suelo, y eso baja el ánimo', () => {

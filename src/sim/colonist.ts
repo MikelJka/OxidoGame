@@ -53,6 +53,8 @@ export interface ColonistJob {
   demolish?: boolean;
   /** Electrificar el taller (mejora). */
   upgrade?: boolean;
+  /** Mover un mueble: primero se desmonta; luego se lleva y se monta en el destino. */
+  move?: 'desmontar' | 'montar';
   /** Construcción a la que va el trabajo (construir, demoler, fabricar). */
   sid?: number;
   /** Persona a la que va el trabajo (curar, capturar, alimentar, convencer). */
@@ -299,4 +301,34 @@ function pickTraits(rng: Rng): TraitDef[] {
     if (!conflict) chosen.push(t);
   }
   return chosen;
+}
+
+const ROLE_PLURAL: Record<PawnRole, [string, string]> = {
+  colono: ['colono', 'colonos'],
+  saqueador: ['saqueador', 'saqueadores'],
+  prisionero: ['prisionero', 'prisioneros'],
+  comerciante: ['comerciante', 'comerciantes'],
+};
+
+/**
+ * Resumen de un grupo de personas (lo que se ve al elegir varias de golpe): cuántas hay de cada
+ * tipo, cuántas están caídas o heridas, la salud media y, de los saqueadores, si va el líder.
+ */
+export function groupSummary(pawns: readonly Colonist[]): string {
+  if (pawns.length === 0) return 'Nadie';
+  const parts: string[] = [];
+  for (const role of Object.keys(ROLE_PLURAL) as PawnRole[]) {
+    const of = pawns.filter((c) => c.role === role);
+    if (of.length === 0) continue;
+    const [one, many] = ROLE_PLURAL[role];
+    const downed = of.filter((c) => c.downed).length;
+    const hurt = of.filter((c) => !c.downed && (c.wounds.length > 0 || c.health < 0.999)).length;
+    const extra: string[] = [];
+    if (downed) extra.push(`${downed} en el suelo`);
+    if (hurt) extra.push(`${hurt} ${hurt === 1 ? 'herido' : 'heridos'}`);
+    if (role === 'saqueador' && of.some((c) => c.raider?.leader)) extra.push('con el líder ★');
+    parts.push(`${of.length} ${of.length === 1 ? one : many}${extra.length ? ` (${extra.join(', ')})` : ''}`);
+  }
+  const avg = pawns.reduce((s, c) => s + c.health, 0) / pawns.length;
+  return `👥 ${parts.join(' · ')} · ❤ salud media ${Math.round(avg * 100)} %`;
 }

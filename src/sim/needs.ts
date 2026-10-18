@@ -8,8 +8,8 @@ export const FOOD_DAYS = 1.5;
 /** Horas despierto que tarda en agotarse el descanso. */
 export const AWAKE_HOURS = 18;
 /** Horas de sueño para recuperarse del todo: en cama y en el suelo. */
-export const SLEEP_HOURS_BED = 7;
-export const SLEEP_HOURS_GROUND = 10;
+export const SLEEP_HOURS_BED = 6;
+export const SLEEP_HOURS_GROUND = 8;
 /** Comida que da cada unidad de un alimento (de 0 a 1). Una ración cocinada sale de 2,5 a 3 crudos y alimenta más. */
 export const NUTRITION: Partial<Record<ResourceId, number>> = { comida: 0.35, patata: 0.1, maiz: 0.1, setas: 0.08 };
 /** Casillas de más que un colono está dispuesto a andar para comer cocinado en vez de crudo. */

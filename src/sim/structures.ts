@@ -41,6 +41,12 @@ export interface Structure {
   electric?: boolean;
   /** Electrificación pedida y aún sin terminar: material ya traído y trabajo hecho. */
   upgrade?: { delivered: Partial<Stockpile>; progress: number };
+  /** Mover: adónde la quiere llevar el jugador (un colono la desmonta y la lleva). */
+  moveTo?: { x: number; y: number; rot: 0 | 1 };
+  /** La lleva un colono: no ocupa casillas; `x`, `y` y `rot` ya son las del destino. */
+  lifted?: boolean;
+  /** Mientras se lleva: dónde estaba (por si hay que devolverla). */
+  moveFrom?: { x: number; y: number; rot: 0 | 1 };
 }
 
 /**
@@ -159,8 +165,86 @@ export class Structures {
     return this.byId.get(id);
   }
 
+  /** Construcciones puestas en el mapa (sin las que lleva un colono al moverlas). */
   all(): Structure[] {
-    return [...this.byId.values()];
+    return [...this.byId.values()].filter((s) => !s.lifted);
+  }
+
+  /** Las que está llevando un colono a otro sitio. */
+  liftedList(): Structure[] {
+    return [...this.byId.values()].filter((s) => s.lifted);
+  }
+
+  /** Se puede mover: es un mueble o taller que se mueve, terminado, sin electrificar ni otra orden. */
+  canMove(s: Structure): boolean {
+    return s.built && !!s.def.movable && !s.electric && !s.upgrade && !s.demolish && !s.lifted;
+  }
+
+  /** Pide llevar una construcción a otro sitio. false si no se mueve o no cabe allí. */
+  orderMove(s: Structure, x: number, y: number, rot: 0 | 1): boolean {
+    if (!this.canMove(s) || (s.x === x && s.y === y && s.rot === rot)) return false;
+    if (!this.canPlaceDef(s.def, x, y, rot, s)) return false;
+    s.moveTo = { x, y, rot };
+    this.version++;
+    return true;
+  }
+
+  /** Quita la orden de mover (si aún no la lleva nadie). */
+  cancelMove(s: Structure): boolean {
+    if (!s.moveTo || s.lifted) return false;
+    s.moveTo = undefined;
+    this.version++;
+    return true;
+  }
+
+  /** Construcciones con orden de mover que esperan a que alguien las desmonte. */
+  toMove(): Structure[] {
+    return this.all().filter((s) => !!s.moveTo && this.canMove(s));
+  }
+
+  /** Un colono la desmonta y se la lleva: deja libres sus casillas y pasa a tener las del destino. */
+  lift(s: Structure): void {
+    const to = s.moveTo;
+    if (!to || s.lifted || this.byId.get(s.id) !== s) return;
+    for (const t of this.tilesOf(s)) {
+      const i = index(this.map, t.x, t.y);
+      this.layer(s).delete(i);
+      this.refreshBlocked(i);
+    }
+    s.moveFrom = { x: s.x, y: s.y, rot: s.rot };
+    s.x = to.x;
+    s.y = to.y;
+    s.rot = to.rot;
+    s.lifted = true;
+    this.version++;
+  }
+
+  /** La deja montada en (x, y). false si ya no cabe ahí. */
+  putDown(s: Structure, x: number, y: number, rot: 0 | 1): boolean {
+    if (!s.lifted || !this.canPlaceDef(s.def, x, y, rot)) return false;
+    s.x = x;
+    s.y = y;
+    s.rot = rot;
+    s.lifted = false;
+    s.moveFrom = undefined;
+    for (const t of this.tilesOf(s)) {
+      const i = index(this.map, t.x, t.y);
+      this.layer(s).set(i, s);
+      this.refreshBlocked(i);
+    }
+    this.version++;
+    return true;
+  }
+
+  /** Quita del todo una que se llevaba y no cabe en ningún sitio (devuelve su material, como al demoler). */
+  discardLifted(s: Structure): Partial<Stockpile> {
+    if (!s.lifted) return {};
+    s.lifted = false;
+    s.moveTo = undefined;
+    const back = this.demolishRefund(s);
+    this.byId.delete(s.id);
+    this.version++;
+    return back;
   }
 
   private layer(s: Structure): Map<number, Structure> {
@@ -276,6 +360,11 @@ export class Structures {
       this.refreshBlocked(i);
     }
     this.version++;
+    return this.demolishRefund(s);
+  }
+
+  /** Material que se recupera al demoler una construcción. */
+  private demolishRefund(s: Structure): Partial<Stockpile> {
     const back: Partial<Stockpile> = {};
     for (const r of RESOURCES) {
       // La mitad del material y, en un taller, todo lo que tenía dentro.
@@ -291,7 +380,7 @@ export class Structures {
    * Se puede poner un plano en esa casilla: terreno llano y libre, sin objeto ni otra construcción.
    * Sobre un suelo se puede construir de todo menos lo del agua; un suelo va donde no haya otro.
    */
-  canPlace(x: number, y: number, def?: BuildingDef): boolean {
+  canPlace(x: number, y: number, def?: BuildingDef, ignore?: Structure): boolean {
     const blocker = buildBlocker(this.map, x, y);
     // Los cables también van por las pendientes.
     if (blocker !== null && !(blocker === 'pendiente' && def && isCable(def))) return false;
@@ -299,15 +388,16 @@ export class Structures {
     if (isCable(def)) return !this.cableAt(x, y);
     if (isFloor(def)) return !this.floorAt(x, y);
     if (def.category === 'agua' && this.floorAt(x, y)) return false;
-    return !this.mainAt(x, y);
+    const main = this.mainAt(x, y);
+    return !main || (!!ignore && main === ignore);
   }
 
   /** Cabe una construcción (de varias casillas) en (x, y): todas libres y a la misma altura. */
-  canPlaceDef(def: BuildingDef, x: number, y: number, rot: 0 | 1 = 0): boolean {
+  canPlaceDef(def: BuildingDef, x: number, y: number, rot: 0 | 1 = 0, ignore?: Structure): boolean {
     const tiles = footprintTiles(def, x, y, rot);
     if (!inBounds(this.map, x, y)) return false;
     const level = this.map.level[index(this.map, x, y)];
-    if (!tiles.every((t) => this.canPlace(t.x, t.y, def) && this.map.level[index(this.map, t.x, t.y)] === level)) return false;
+    if (!tiles.every((t) => this.canPlace(t.x, t.y, def, ignore) && this.map.level[index(this.map, t.x, t.y)] === level)) return false;
     // La depuradora tiene que tocar agua.
     if (def.nearWater && !tiles.some((t) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
       const nx = t.x + dx;
