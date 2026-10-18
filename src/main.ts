@@ -562,8 +562,62 @@ window.addEventListener('keydown', (e) => {
   if ((e.key === 'r' || e.key === 'R') && scene().designMode === 'construir') rotateBuild();
 });
 
-// --- Panel de un taller: qué fabricar y hasta cuánto ---------------------------
+// --- Paneles de almacén, taller y huerto: hojas con cabecera, cuerpo y pie fijos -----
+/** Elemento con clase y texto. */
+function mk<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = ''): HTMLElementTagNameMap[K] {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text) e.textContent = text;
+  return e;
+}
+const fmtRes = (part: Partial<Record<ResourceId, number>>) =>
+  (Object.entries(part) as [ResourceId, number][]).map(([res, n]) => `${RESOURCE_ICONS[res]}${n}`).join(' ');
+
+/** Prepara ▾ (recoger: solo queda la cabecera, para ver el mapa) en una hoja de lugar. */
+function setupFold(panel: HTMLElement, foldId: string): void {
+  const fold = $<HTMLButtonElement>(foldId);
+  const set = (folded: boolean) => {
+    panel.classList.toggle('folded', folded);
+    fold.textContent = folded ? '▴' : '▾';
+    fold.title = folded ? 'Desplegar' : 'Recoger';
+    fold.setAttribute('aria-label', fold.title);
+  };
+  fold.addEventListener('click', () => set(!panel.classList.contains('folded')));
+  // Recogida, tocar el título la vuelve a abrir.
+  panel.querySelector('.ps-title')?.addEventListener('click', () => {
+    if (panel.classList.contains('folded')) set(false);
+  });
+  (panel as HTMLElement & { unfold?: () => void }).unfold = () => set(false);
+}
+function unfold(panel: HTMLElement): void {
+  (panel as HTMLElement & { unfold?: () => void }).unfold?.();
+}
+
+/** Botón de borrar que pide un segundo toque antes de hacerlo. */
+function setupConfirmDelete(id: string, label: string, onConfirm: () => void): () => void {
+  const btn = $<HTMLButtonElement>(id);
+  let timer = 0;
+  const reset = () => {
+    window.clearTimeout(timer);
+    btn.classList.remove('confirm');
+    btn.textContent = label;
+  };
+  btn.addEventListener('click', () => {
+    if (!btn.classList.contains('confirm')) {
+      btn.classList.add('confirm');
+      btn.textContent = '¿Seguro? Toca otra vez para borrar';
+      timer = window.setTimeout(reset, 3000);
+      return;
+    }
+    reset();
+    onConfirm();
+  });
+  return reset;
+}
+
+// --- Taller: qué fabricar y hasta cuánto ---------------------------------------
 const stationPanel = $('station-panel');
+setupFold(stationPanel, 'sp-fold');
 $('sp-close').addEventListener('click', () => scene().selectStation(null));
 /** Pasos del objetivo de una orden de fabricación. */
 const TARGET_STEP = 5;
@@ -572,36 +626,42 @@ function renderStationStatus(s: Structure): void {
   const inv = scene().world.inventory();
   const inside = RESOURCES.filter((r) => (s.delivered[r] ?? 0) > 0).map((r) => `${RESOURCE_ICONS[r]}${s.delivered[r]}`).join(' ');
   if (!b) {
-    $('sp-status').textContent = 'Sin orden: elige qué fabricar.';
+    $('sp-status').textContent = 'Sin orden: elige qué fabricar';
     return;
   }
   const out = (Object.keys(b.recipe.outputs) as ResourceId[]).map((r) => `${RESOURCE_ICONS[r]} ${inv[r]}/${b.target}`).join(' ');
   const state = b.paused ? '⏸ En pausa' : (Object.keys(b.recipe.outputs) as ResourceId[]).every((r) => inv[r] >= b.target) ? '✔ Objetivo cumplido' : '⚙ Fabricando';
-  $('sp-status').textContent = `${state} · tiene ${out}${inside ? ` · dentro: ${inside}` : ''}`;
+  $('sp-status').textContent = `${state} · ${b.recipe.name}: tienes ${out}${inside ? ` · dentro: ${inside}` : ''}`;
 }
 game.events.on('station-tick', (s: Structure) => renderStationStatus(s));
+let lastStation: Structure | null = null;
 game.events.on('station-select', (s: Structure | null) => {
   stationPanel.hidden = !s;
-  if (!s) return;
+  if (!s) {
+    lastStation = null;
+    return;
+  }
+  if (s !== lastStation) unfold(stationPanel);
+  lastStation = s;
   $('sp-name').textContent = `🛠 ${s.def.name}`;
   renderStationStatus(s);
-  const list = $('sp-recipes');
-  list.replaceChildren(
+  const inv = scene().world.inventory();
+  $('sp-recipes').replaceChildren(
     ...recipesFor(s.def.id).map((r) => {
-      const b = document.createElement('button');
+      const on = s.bill?.recipe.id === r.id;
+      const b = mk('button', 'ps-card');
       b.type = 'button';
-      b.className = 'crop-btn';
-      b.classList.toggle('active', s.bill?.recipe.id === r.id);
-      const fmt = (part: Partial<Record<ResourceId, number>>) =>
-        (Object.entries(part) as [ResourceId, number][]).map(([res, n]) => `${RESOURCE_ICONS[res]}${n}`).join(' ');
-      const title = document.createElement('strong');
-      title.textContent = `${r.name}: ${fmt(r.inputs)} → ${fmt(r.outputs)}`;
-      const info = document.createElement('span');
-      info.textContent = ` · ${r.description}`;
-      b.append(title, info);
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+      const top = mk('span', 'ps-card-top');
+      top.append(mk('strong', '', r.name), mk('span', 'ps-check', on ? '✔ En marcha' : ''));
+      const have = (Object.keys(r.inputs) as ResourceId[]).every((res) => inv[res] >= (r.inputs[res] ?? 0));
+      const formula = mk('span', 'ps-formula', `${fmtRes(r.inputs)} → ${fmtRes(r.outputs)}`);
+      if (!have) formula.append(mk('span', 'ps-lack', ' · falta material'));
+      b.append(top, formula, mk('span', 'ps-desc', r.description));
       b.addEventListener('click', () => {
         const sc = scene();
-        sc.world.structures.setBill(s, s.bill?.recipe.id === r.id ? null : { recipe: r, target: s.bill?.target ?? 20, paused: false });
+        sc.world.structures.setBill(s, on ? null : { recipe: r, target: s.bill?.target ?? 20, paused: false });
         sc.refreshStation();
       });
       return b;
@@ -611,6 +671,7 @@ game.events.on('station-select', (s: Structure | null) => {
   ctl.hidden = !s.bill;
   if (s.bill) $('sp-target').textContent = `Hasta tener ${s.bill.target}`;
   $('sp-pause').textContent = s.bill?.paused ? '▶ Reanudar' : '⏸ Pausar';
+  $('sp-pause').classList.toggle('active', !!s.bill?.paused);
 });
 $('sp-minus').addEventListener('click', () => {
   const s = scene().selectedStation;
@@ -628,31 +689,66 @@ $('sp-pause').addEventListener('click', () => {
   scene().refreshStation();
 });
 
-// --- Panel de un huerto: qué se planta -------------------------------------------
+// --- Huerto: qué se planta -------------------------------------------------------
 const farmPanel = $('farm-panel');
-const fpCrops = $('fp-crops');
+setupFold(farmPanel, 'fp-fold');
 $('fp-close').addEventListener('click', () => scene().selectFarm(null));
-$('fp-delete').addEventListener('click', () => {
+const resetFarmDelete = setupConfirmDelete('fp-delete', '🗑 Borrar huerto', () => {
   const s = scene();
   if (s.selectedFarmId !== null) s.world.farms.delete(s.selectedFarmId);
   s.selectFarm(null);
 });
+/** Cuántas casillas del huerto están vacías, creciendo o maduras. */
+function renderFarmState(f: GrowZone): void {
+  const farms = scene().world.farms;
+  const w = scene().world.map.width;
+  let empty = 0;
+  let growing = 0;
+  let ripe = 0;
+  let other = 0;
+  for (const i of f.tiles) {
+    const p = farms.plantAt(i % w, Math.floor(i / w));
+    if (!p) empty++;
+    else if (p.growth >= 1) ripe++;
+    else growing++;
+    if (p && p.crop.id !== f.crop.id) other++;
+  }
+  const box = $('fp-state');
+  box.replaceChildren(
+    mk('span', 'ps-chip', `🟫 ${empty} sin sembrar`),
+    mk('span', 'ps-chip', `🌱 ${growing} creciendo`),
+    mk('span', `ps-chip${ripe ? ' good' : ''}`, `🌾 ${ripe} maduras`),
+  );
+  if (other) box.append(mk('span', 'ps-note', `${other} con el cultivo anterior: se cambian al cosecharlas.`));
+}
+game.events.on('farm-tick', (f: GrowZone) => renderFarmState(f));
+let lastFarm: number | null = null;
 game.events.on('farm-select', (f: GrowZone | null) => {
   farmPanel.hidden = !f;
-  if (!f) return;
+  if (!f) {
+    lastFarm = null;
+    resetFarmDelete();
+    return;
+  }
+  if (f.id !== lastFarm) {
+    unfold(farmPanel);
+    resetFarmDelete();
+  }
+  lastFarm = f.id;
   $('fp-name').textContent = `🌱 ${f.name}`;
-  $('fp-sub').textContent = `${f.tiles.size} casillas · los colonos siembran y cosechan solos (trabajo «cultivar»)`;
-  fpCrops.replaceChildren(
+  $('fp-sub').textContent = `${f.tiles.size} casillas · ${RESOURCE_ICONS[f.crop.resource]} ${f.crop.name}`;
+  renderFarmState(f);
+  $('fp-crops').replaceChildren(
     ...CROPS.map((crop) => {
-      const b = document.createElement('button');
+      const on = f.crop.id === crop.id;
+      const b = mk('button', 'ps-card');
       b.type = 'button';
-      b.className = 'crop-btn';
-      b.classList.toggle('active', f.crop.id === crop.id);
-      const title = document.createElement('strong');
-      title.textContent = `${RESOURCE_ICONS[crop.resource]} ${crop.name}`;
-      const info = document.createElement('span');
-      info.textContent = ` · ${crop.growDays} días · ${crop.yield[0]}–${crop.yield[1]} por casilla${crop.growsInDark ? ' · crece de noche' : ''} · ${crop.description}`;
-      b.append(title, info);
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+      const top = mk('span', 'ps-card-top');
+      top.append(mk('strong', '', `${RESOURCE_ICONS[crop.resource]} ${crop.name}`), mk('span', 'ps-check', on ? '✔ Plantando' : ''));
+      const facts = `⏱ ${crop.growDays} días · ${crop.yield[0]}–${crop.yield[1]} por casilla${crop.growsInDark ? ' · 🌙 crece de noche' : ''}`;
+      b.append(top, mk('span', 'ps-formula', facts), mk('span', 'ps-desc', crop.description));
       b.addEventListener('click', () => {
         scene().world.farms.setCrop(f.id, crop);
         scene().refreshFarm();
@@ -662,26 +758,64 @@ game.events.on('farm-select', (f: GrowZone | null) => {
   );
 });
 
-// --- Panel de un almacén: prioridad y filtro -----------------------------------
+// --- Almacén: prioridad y filtro -------------------------------------------------
 const zonePanel = $('zone-panel');
-const zpPriority = $('zp-priority');
-const zpFilter = $('zp-filter');
+setupFold(zonePanel, 'zp-fold');
 $('zp-close').addEventListener('click', () => scene().selectZone(null));
-$('zp-delete').addEventListener('click', () => {
+const resetZoneDelete = setupConfirmDelete('zp-delete', '🗑 Borrar almacén', () => {
   const s = scene();
   if (s.selectedZoneId !== null) s.world.zones.delete(s.selectedZoneId);
   s.selectZone(null);
 });
+function setAllAccepts(value: boolean): void {
+  const s = scene();
+  if (s.selectedZoneId === null) return;
+  for (const r of RESOURCES) s.world.zones.setAccepts(s.selectedZoneId, r, value);
+  s.refreshZone();
+}
+$('zp-all').addEventListener('click', () => setAllAccepts(true));
+$('zp-none').addEventListener('click', () => setAllAccepts(false));
+/** Lo que hay guardado ahora en el almacén. */
+function renderZoneStock(z: StorageZone): void {
+  const world = scene().world;
+  const w = world.map.width;
+  const sum: Partial<Record<ResourceId, number>> = {};
+  let used = 0;
+  for (const i of z.tiles) {
+    const st = world.items.at(i % w, Math.floor(i / w));
+    if (!st) continue;
+    used++;
+    sum[st.resource] = (sum[st.resource] ?? 0) + st.amount;
+  }
+  const box = $('zp-stock');
+  const list = RESOURCES.filter((r) => (sum[r] ?? 0) > 0);
+  box.replaceChildren(mk('div', 'ps-label', `Guardado ahora · ${used}/${z.tiles.size} casillas ocupadas`));
+  if (!list.length) box.append(mk('span', 'ps-note', 'Vacío.'));
+  for (const r of list) box.append(mk('span', 'ps-chip', `${RESOURCE_ICONS[r]} ${sum[r]}`));
+}
+game.events.on('zone-tick', (z: StorageZone) => renderZoneStock(z));
+let lastZone: number | null = null;
 game.events.on('zone-select', (z: StorageZone | null) => {
   zonePanel.hidden = !z;
-  if (!z) return;
+  if (!z) {
+    lastZone = null;
+    resetZoneDelete();
+    return;
+  }
+  if (z.id !== lastZone) {
+    unfold(zonePanel);
+    resetZoneDelete();
+  }
+  lastZone = z.id;
+  const accepted = RESOURCES.filter((r) => z.accepts[r]).length;
   $('zp-name').textContent = `📦 ${z.name}`;
-  $('zp-sub').textContent = `${z.tiles.size} casillas · se llenan antes los de más prioridad`;
-  zpPriority.replaceChildren(
+  $('zp-sub').textContent = `${z.tiles.size} casillas · prioridad ${STORAGE_PRIORITY_NAMES[z.priority].toLowerCase()} · guarda ${accepted === RESOURCES.length ? 'de todo' : `${accepted} de ${RESOURCES.length}`}`;
+  $('zp-priority').replaceChildren(
     ...STORAGE_PRIORITIES.map((p) => {
-      const b = document.createElement('button');
+      const b = mk('button', `prio-${p}`, STORAGE_PRIORITY_NAMES[p]);
       b.type = 'button';
-      b.textContent = STORAGE_PRIORITY_NAMES[p];
+      b.setAttribute('role', 'radio');
+      b.setAttribute('aria-checked', String(z.priority === p));
       b.classList.toggle('active', z.priority === p);
       b.addEventListener('click', () => {
         scene().world.zones.setPriority(z.id, p);
@@ -690,12 +824,16 @@ game.events.on('zone-select', (z: StorageZone | null) => {
       return b;
     }),
   );
-  zpFilter.replaceChildren(
+  $<HTMLButtonElement>('zp-all').disabled = accepted === RESOURCES.length;
+  $<HTMLButtonElement>('zp-none').disabled = accepted === 0;
+  $('zp-filter').replaceChildren(
     ...RESOURCES.map((r) => {
-      const b = document.createElement('button');
+      const on = z.accepts[r];
+      const b = mk('button', 'ps-tile');
       b.type = 'button';
-      b.textContent = `${z.accepts[r] ? '☑' : '☐'} ${RESOURCE_ICONS[r]} ${RESOURCE_NAMES[r]}`;
-      b.classList.toggle('active', z.accepts[r]);
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+      b.append(mk('span', 'ps-tile-icon', RESOURCE_ICONS[r]), mk('span', 'ps-tile-name', RESOURCE_NAMES[r]));
       b.addEventListener('click', () => {
         scene().world.zones.setAccepts(z.id, r, !z.accepts[r]);
         scene().refreshZone();
@@ -703,6 +841,15 @@ game.events.on('zone-select', (z: StorageZone | null) => {
       return b;
     }),
   );
+  renderZoneStock(z);
+});
+// Esc cierra la hoja de lugar abierta.
+window.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const s = scene();
+  if (!zonePanel.hidden) s.selectZone(null);
+  else if (!farmPanel.hidden) s.selectFarm(null);
+  else if (!stationPanel.hidden) s.selectStation(null);
 });
 
 // --- Información de casilla y avisos -----------------------------------------

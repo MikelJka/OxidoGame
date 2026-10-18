@@ -12,8 +12,6 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 - [ ] **Vehículos de asedio y de combate** (2026-10-17, pedido por Mikel), de los colonos y de los asaltantes. Antes de hacerlo hay que proponerle a Mikel cómo funcionan (qué vehículos, combustible, cómo se fabrican, qué pueden romper).
 
-- [ ] **Menús de la partida más accesibles e intuitivos** (2026-10-17): rehacer los menús dentro de la partida (☰, 🏗, ⚒, 📜, fichas y paneles) para que se entiendan mejor y funcionen bien en el móvil en vertical y en horizontal. Hechos el menú de inicio, ☰, 🏗 Construir, ⚒ Órdenes, 📜 Colonia y la ficha del colono; faltan los paneles de almacén, huerto y taller.
-
 - [ ] **Girar la vista libremente** (2026-10-17): pivotar la cámara a cualquier ángulo e inclinación con el botón central del ratón (y con dos dedos en el móvil), no solo los 4 giros fijos. Decidido: pasar a 3D real con Three.js. Primera versión jugable en ☰ → 🧊 Vista 3D (en pruebas); falta pulirla antes de que sea la vista por defecto.
 
 
@@ -37,6 +35,8 @@ Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat 
   3. Sin fuego amigo por ahora; solo las posturas de la 1, más «Defender» (se queda a 5 casillas de donde se le manda y ataca a quien entre).
 
 ## Hecho
+
+- [x] **Menús de la partida más accesibles e intuitivos** (2026-10-17, terminado el 2026-10-18): menú de inicio, ☰, 🏗 Construir, ⚒ Órdenes, 📜 Colonia, ficha del colono y, por último, los paneles de almacén, huerto y taller rehechos como hojas: a todo lo ancho en el móvil en vertical, columna a la izquierda en horizontal, con ▾ para recogerlos, botones grandes y borrar con doble toque.
 
 - [x] **#10 «No se pudo abrir la vista 3D» tras publicar una versión nueva** (2026-10-17, 🐞): con la página abierta desde antes de una publicación, el archivo de la 3D de la versión vieja ya no existía. Ahora el juego guarda la partida, se recarga solo con la versión nueva y vuelve a abrir la 3D, sin pasar por el menú de inicio (como mucho una vez por minuto, para no quedarse recargando).
 

@@ -247,6 +247,14 @@ export class WorldScene extends Phaser.Scene {
       this.emitClock();
       if (this.selectedId !== null) this.emitSelection();
       if (this.selectedStation) this.game.events.emit('station-tick', this.selectedStation);
+      if (this.selectedZoneId !== null) {
+        const z = this.world.zones.get(this.selectedZoneId);
+        if (z) this.game.events.emit('zone-tick', z);
+      }
+      if (this.selectedFarmId !== null) {
+        const f = this.world.farms.get(this.selectedFarmId);
+        if (f) this.game.events.emit('farm-tick', f);
+      }
     }
     if (!this.keys || isTyping() || !this.cameraKeysEnabled) return;
     const cam = this.cameras.main;

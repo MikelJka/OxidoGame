@@ -332,50 +332,65 @@
     <section id="offer-panel" class="panel" hidden></section>
     <section id="gameover" class="panel" hidden></section>
 
-    <section id="zone-panel" class="panel" hidden>
-      <div class="cp-head">
-        <div>
-          <div id="zp-name"></div>
-          <div id="zp-sub" class="muted"></div>
+    <section id="zone-panel" class="panel sheet place-sheet" hidden role="dialog" aria-label="Almacén">
+      <div class="sheet-head">
+        <div class="ps-title">
+          <div id="zp-name" class="ps-name"></div>
+          <div id="zp-sub" class="ps-sub"></div>
         </div>
-        <button id="zp-close" type="button" title="Cerrar">✕</button>
+        <button id="zp-fold" class="ps-fold" type="button" title="Recoger" aria-label="Recoger">▾</button>
+        <button id="zp-close" class="ps-close" type="button" title="Cerrar (Esc)" aria-label="Cerrar">✕</button>
       </div>
-      <div class="zp-label">Prioridad</div>
-      <div id="zp-priority" class="zp-row"></div>
-      <div class="zp-label">Qué se guarda</div>
-      <div id="zp-filter" class="zp-row"></div>
-      <button id="zp-delete" type="button">🗑 Borrar almacén</button>
+      <div class="sheet-body">
+        <div class="ps-label">Prioridad <span class="ps-hint">se llenan antes los de más prioridad</span></div>
+        <div id="zp-priority" class="ps-seg" role="radiogroup" aria-label="Prioridad"></div>
+        <div class="ps-label">Qué se guarda <span class="ps-hint">toca para quitar o poner</span></div>
+        <div class="ps-quick">
+          <button id="zp-all" type="button">☑ Todo</button>
+          <button id="zp-none" type="button">☐ Nada</button>
+        </div>
+        <div id="zp-filter" class="ps-grid"></div>
+        <div id="zp-stock" class="ps-stock"></div>
+        <button id="zp-delete" class="ps-delete" type="button">🗑 Borrar almacén</button>
+      </div>
     </section>
 
-    <section id="station-panel" class="panel" hidden>
-      <div class="cp-head">
-        <div>
-          <div id="sp-name"></div>
-          <div id="sp-status" class="muted"></div>
+    <section id="station-panel" class="panel sheet place-sheet" hidden role="dialog" aria-label="Taller">
+      <div class="sheet-head">
+        <div class="ps-title">
+          <div id="sp-name" class="ps-name"></div>
+          <div id="sp-status" class="ps-sub"></div>
         </div>
-        <button id="sp-close" type="button" title="Cerrar">✕</button>
+        <button id="sp-fold" class="ps-fold" type="button" title="Recoger" aria-label="Recoger">▾</button>
+        <button id="sp-close" class="ps-close" type="button" title="Cerrar (Esc)" aria-label="Cerrar">✕</button>
       </div>
-      <div class="zp-label">Qué fabricar (los colonos traen el material y lo hacen solos; trabajo «fabricar»)</div>
-      <div id="sp-recipes"></div>
-      <div id="sp-controls" class="zp-row" hidden>
-        <button id="sp-minus" type="button">−5</button>
+      <div class="sheet-body">
+        <div class="ps-label">Qué fabricar <span class="ps-hint">los colonos traen el material y lo hacen solos (trabajo «fabricar»); toca otra vez para quitar la orden</span></div>
+        <div id="sp-recipes" class="ps-cards"></div>
+      </div>
+      <div id="sp-controls" class="ps-foot" hidden>
+        <button id="sp-minus" type="button" aria-label="Menos">−5</button>
         <span id="sp-target"></span>
-        <button id="sp-plus" type="button">+5</button>
+        <button id="sp-plus" type="button" aria-label="Más">+5</button>
         <button id="sp-pause" type="button">⏸ Pausar</button>
       </div>
     </section>
 
-    <section id="farm-panel" class="panel" hidden>
-      <div class="cp-head">
-        <div>
-          <div id="fp-name"></div>
-          <div id="fp-sub" class="muted"></div>
+    <section id="farm-panel" class="panel sheet place-sheet" hidden role="dialog" aria-label="Huerto">
+      <div class="sheet-head">
+        <div class="ps-title">
+          <div id="fp-name" class="ps-name"></div>
+          <div id="fp-sub" class="ps-sub"></div>
         </div>
-        <button id="fp-close" type="button" title="Cerrar">✕</button>
+        <button id="fp-fold" class="ps-fold" type="button" title="Recoger" aria-label="Recoger">▾</button>
+        <button id="fp-close" class="ps-close" type="button" title="Cerrar (Esc)" aria-label="Cerrar">✕</button>
       </div>
-      <div class="zp-label">Qué se planta</div>
-      <div id="fp-crops"></div>
-      <button id="fp-delete" type="button">🗑 Borrar huerto</button>
+      <div class="sheet-body">
+        <div id="fp-state" class="ps-stock"></div>
+        <div class="ps-label">Qué se planta <span class="ps-hint">los colonos siembran y cosechan solos (trabajo «cultivar»)</span></div>
+        <div id="fp-crops" class="ps-cards"></div>
+        <button id="fp-delete" class="ps-delete" type="button">🗑 Borrar huerto</button>
+      </div>
     </section>
 
     <nav id="roster" class="panel" aria-label="Colonos"></nav>

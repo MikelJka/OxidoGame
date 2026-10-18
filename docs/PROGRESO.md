@@ -2,6 +2,19 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (mañana, 3) — Paneles de almacén, huerto y taller rehechos
+
+- Última parte de «Menús de la partida más accesibles» (aprobado por Mikel): con esto quedan rehechos todos los menús de la partida.
+- Los tres paneles pasan a ser hojas como la ficha del colono: en el móvil en vertical, a todo lo ancho encima de la fila de colonos (como mucho el 45 % de la pantalla); en horizontal, una columna a la izquierda; en PC, abajo a la izquierda. ▾ los recoge (solo queda el nombre, para ver el mapa) y ✕ o Esc los cierra.
+- **Almacén**: la prioridad en cuatro botones grandes en fila; el filtro, una baldosa por recurso (encendida o apagada) con «☑ Todo» y «☐ Nada»; abajo, lo que hay guardado ahora y cuántas casillas están ocupadas (se actualiza solo).
+- **Huerto**: cuántas casillas hay sin sembrar, creciendo y maduras; los cultivos en tarjetas con días, cosecha y descripción, y «✔ Plantando» en el elegido.
+- **Taller**: recetas en tarjetas («✔ En marcha» en la elegida y «falta material» si no hay con qué); −5, el objetivo, +5 y Pausar quedan fijos abajo, siempre a la vista.
+- Borrar un almacén o un huerto pide un segundo toque.
+- No cambia ninguna regla del juego.
+- Qué probar: en el móvil en vertical, tocar un almacén y quitar y poner recursos, «Nada» y «Todo», y cambiar la prioridad; tocar un huerto y cambiar de cultivo; tocar un banco o un horno, elegir una receta y subir el objetivo. Recoger con ▾ y girar el móvil a horizontal.
+- Sin npm en el entorno: tests con Bun (229) y tipos con `tsc`; maquetas de las hojas en 380×740, 780×360 y PC. La prueba completa, en GitHub Actions.
+- Siguiente: nada aprobado sin decidir. Esperan respuesta de Mikel: horno, cocina y banco eléctricos; puerta automática y ánimo de la luz; fuego amigo y posturas. Vehículos de asedio: hay que proponerle cómo funcionan.
+
 ## 2026-10-18 (mañana, 2) — Ficha del colono rehecha
 
 - Siguiente parte de «Menús de la partida más accesibles» (aprobado por Mikel). La ficha del colono pasa a ser una hoja como las de 📜 y ☰: en el móvil en vertical ocupa todo el ancho encima de la fila de colonos (como mucho el 40 % de la pantalla, para que se vea el mapa); en horizontal es una columna a la izquierda; en PC, abajo a la izquierda.
