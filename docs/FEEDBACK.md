@@ -12,7 +12,7 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 - [ ] **Vehículos de asedio y de combate** (2026-10-17, pedido por Mikel), de los colonos y de los asaltantes. Antes de hacerlo hay que proponerle a Mikel cómo funcionan (qué vehículos, combustible, cómo se fabrican, qué pueden romper).
 
-- [ ] **Menús de la partida más accesibles e intuitivos** (2026-10-17): rehacer los menús dentro de la partida (☰, 🏗, ⚒, 📜, fichas y paneles) para que se entiendan mejor y funcionen bien en el móvil en vertical y en horizontal. Hechos el menú de inicio, ☰, 🏗 Construir, ⚒ Órdenes y 📜 Colonia; faltan la ficha del colono y los paneles de almacén, huerto y taller.
+- [ ] **Menús de la partida más accesibles e intuitivos** (2026-10-17): rehacer los menús dentro de la partida (☰, 🏗, ⚒, 📜, fichas y paneles) para que se entiendan mejor y funcionen bien en el móvil en vertical y en horizontal. Hechos el menú de inicio, ☰, 🏗 Construir, ⚒ Órdenes, 📜 Colonia y la ficha del colono; faltan los paneles de almacén, huerto y taller.
 
 - [ ] **Girar la vista libremente** (2026-10-17): pivotar la cámara a cualquier ángulo e inclinación con el botón central del ratón (y con dos dedos en el móvil), no solo los 4 giros fijos. Decidido: pasar a 3D real con Three.js. Primera versión jugable en ☰ → 🧊 Vista 3D (en pruebas); falta pulirla antes de que sea la vista por defecto.
 

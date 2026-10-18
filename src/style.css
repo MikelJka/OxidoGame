@@ -176,30 +176,73 @@ button.active { border-color: var(--accent); color: var(--accent); }
 #roster button { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 #roster .dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
 
+/* Ficha del colono: hoja con cabecera, resumen fijo y pestañas (Estado, Equipo, Trabajos, Perfil). */
 #colonist-panel {
   bottom: calc(64px + env(safe-area-inset-bottom));
   left: 8px;
-  width: min(320px, calc(100% - 16px));
-  max-height: 55vh;
-  overflow-y: auto;
-  padding: 10px;
+  width: min(360px, calc(100% - 16px));
+  max-height: min(62vh, calc(100% - 140px - env(safe-area-inset-top)));
+  z-index: 6;
 }
-.cp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-#cp-name { font-size: 15px; color: var(--text); }
-#cp-sub, #cp-activity { color: var(--muted); }
-#cp-activity { margin: 6px 0; }
-#cp-traits { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
-.trait { border: 1px solid var(--border); border-radius: 3px; padding: 2px 6px; font-size: 12px; }
-.skill { display: grid; grid-template-columns: 1fr 24px 80px 14px; gap: 6px; align-items: center; line-height: 1.7; }
-.skill .bar { height: 6px; background: #2c241d; border-radius: 2px; overflow: hidden; }
+.cp-head { align-items: center; }
+.cp-title { flex: 1; min-width: 0; }
+#cp-name { font-size: 15px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#cp-sub { color: var(--muted); font-size: 12px; }
+.cp-head #cp-fold { margin-left: 0; font-size: 16px; }
+.cp-head #cp-close { margin-left: 0; }
+.cp-summary { display: flex; align-items: center; gap: 8px; padding: 8px 12px; flex: none; }
+.cp-now { flex: 1; min-width: 0; font-size: 13px; line-height: 1.35; }
+#cp-activity { color: var(--text); }
+#cp-draft { flex: none; min-height: 44px; padding: 4px 12px; font-size: 13px; }
+#cp-draft.active { border-color: var(--accent); color: var(--accent); }
+#colonist-panel .pp-tabs { padding-top: 0; }
+#colonist-panel.folded .pp-tabs, #colonist-panel.folded .sheet-body { display: none; }
+#colonist-panel.folded .cp-title { cursor: pointer; }
+#colonist-panel.group .pp-tabs, #colonist-panel.group .sheet-body, #colonist-panel.group #cp-fold { display: none; }
+.cp-page { display: flex; flex-direction: column; gap: 6px; }
+.cp-page[hidden] { display: none; }
+.cp-page p { margin: 0; }
+#cp-traits { display: flex; flex-wrap: wrap; gap: 6px; }
+.trait { border: 1px solid var(--border); border-radius: 14px; padding: 2px 12px; font-size: 12px; min-height: 36px; }
+#cp-trait-desc:empty { display: none; }
+.skill { display: grid; grid-template-columns: 1fr 24px 90px 16px; gap: 8px; align-items: center; min-height: 28px; font-size: 13px; }
+.skill .bar { height: 7px; background: #2c241d; border-radius: 2px; overflow: hidden; }
 .skill .bar span { display: block; height: 100%; background: var(--accent); }
-.skill .num { text-align: right; color: var(--muted); }
+.skill .num { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
 .skill .passion { color: #e8a040; }
+.cp-gear { border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; background: rgba(255, 255, 255, 0.02); }
+.cp-gear-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.cp-gear-now { font-size: 13px; line-height: 1.35; }
+#cp-weapon, #cp-armor { font: inherit; font-size: 13px; color: var(--text); background: var(--btn); border: 1px solid var(--border); border-radius: 3px; min-height: 40px; padding: 2px 6px; width: 100%; }
+#cp-work { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
+#cp-work .prio { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 4px 10px; min-height: 40px; }
+#cp-work .prio strong { min-width: 16px; text-align: right; font-size: 15px; }
+#cp-work .prio-1 strong { color: #e0a040; }
+#cp-work .prio-0 { opacity: 0.55; }
+#cp-needs { display: flex; flex-direction: column; gap: 6px; }
+#cp-needs .need { font-size: 13px; grid-template-columns: 80px 1fr 28px; }
+#cp-mood { display: flex; flex-direction: column; gap: 3px; font-size: 13px; line-height: 1.35; }
+#cp-health { font-size: 12px; color: #e8826a; }
+#cp-health:empty { display: none; }
 
-@media (max-width: 600px) {
-  #colonist-panel { max-height: 34vh; padding: 8px; }
-  .skill { line-height: 1.45; font-size: 12px; }
+/* Móvil en vertical: a todo lo ancho, encima de la fila de colonos. */
+@media (max-width: 600px) and (orientation: portrait) {
+  #colonist-panel {
+    left: 0; right: 0; width: 100%;
+    max-height: 50%;
+    border-radius: 12px 12px 0 0;
+  }
+  .cp-summary { padding: 6px 10px; }
   #cp-name { font-size: 14px; }
+}
+/* Móvil en horizontal: columna a la izquierda, de arriba a la fila de colonos. */
+@media (orientation: landscape) and (max-height: 520px) {
+  #colonist-panel {
+    top: calc(4px + env(safe-area-inset-top)); left: max(4px, env(safe-area-inset-left));
+    width: min(360px, 48%); max-height: none;
+  }
+  #colonist-panel.folded { top: auto; }
+  #colonist-panel .tab-icon { display: none; }
 }
 
 /* --- Informar: bugs, peticiones y cambios ----------------------------------- */
@@ -419,20 +462,7 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 .build-group { color: var(--muted); font-size: 11px; margin: 4px 2px 0; text-transform: uppercase; letter-spacing: 1px; }
 
 /* --- Reclutar y prioridades ------------------------------------------------------ */
-#cp-draft { margin: 2px 0 6px; font-size: 12px; }
-#cp-weapon-row, #cp-armor-row { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 12px; flex-wrap: wrap; }
-#cp-weapon-now, #cp-armor-now { flex: 1; min-width: 120px; }
-#colonist-panel.group #cp-armor-row { display: none; }
-#cp-weapon, #cp-armor { font: inherit; font-size: 12px; color: var(--text); background: var(--btn); border: 1px solid var(--border); border-radius: 3px; min-height: 36px; padding: 2px 6px; }
-#colonist-panel.group #cp-weapon-row { display: none; }
-#cp-draft.active { border-color: var(--accent); color: var(--accent); }
 .draft-flag:empty { display: none; }
-#cp-work { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 4px; margin-bottom: 8px; }
-#cp-work .prio { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 4px 8px; }
-#cp-work .prio strong { min-width: 14px; text-align: right; }
-#cp-work .prio-1 strong { color: #e0a040; }
-#cp-work .prio-0 { opacity: 0.55; }
-#colonist-panel.group .zp-label { display: none; }
 #order-modes button[data-mode="rebajar"].active, #order-modes button[data-mode="elevar"].active, #order-modes button[data-mode="rampa"].active, #order-modes button[data-mode="zanja"].active, #order-modes button[data-mode="rellenar"].active { border-color: #c09060; color: #c09060; }
 #sp-recipes { display: flex; flex-direction: column; gap: 4px; }
 #sp-controls { align-items: center; }
@@ -440,14 +470,10 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 #sp-name { font-size: 15px; }
 
 /* --- Necesidades ------------------------------------------------------------------- */
-#cp-needs { display: flex; flex-direction: column; gap: 3px; margin: 4px 0; }
 .need { display: grid; grid-template-columns: 70px 1fr 28px; align-items: center; gap: 6px; font-size: 12px; }
 .need .bar { height: 6px; background: #2a241e; border-radius: 3px; overflow: hidden; }
 .need .bar span { display: block; height: 100%; }
 .need .num { text-align: right; color: var(--muted); }
-#cp-mood { font-size: 11px; margin-bottom: 4px; }
-#cp-mood:empty { display: none; }
-#colonist-panel.group #cp-needs, #colonist-panel.group #cp-mood { display: none; }
 
 /* --- Vista 3D ------------------------------------------------------------------ */
 #view3d { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
@@ -539,8 +565,6 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 #gameover { top: 25%; border-color: #d9534f; }
 .offer-title { font-size: 15px; color: var(--accent); }
 #offer-panel .zp-row button { flex: 1; }
-#cp-health { font-size: 12px; margin: 2px 0 4px; }
-#cp-health:empty { display: none; }
 @media (max-width: 440px) {
   #topbar .brand { display: none; }
   #topbar { gap: 5px; padding: 6px 6px; }

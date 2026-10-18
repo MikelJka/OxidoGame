@@ -180,34 +180,62 @@
     </div>
     <div id="toast" class="panel" hidden></div>
 
-    <section id="colonist-panel" class="panel" hidden>
-      <div class="cp-head">
-        <div>
+    <section id="colonist-panel" class="panel sheet" hidden role="dialog" aria-label="Ficha del colono">
+      <div class="sheet-head cp-head">
+        <div class="cp-title">
           <div id="cp-name"></div>
           <div id="cp-sub"></div>
         </div>
-        <button id="cp-close" type="button" title="Deseleccionar">✕</button>
+        <button id="cp-fold" type="button" title="Recoger o desplegar la ficha" aria-label="Recoger la ficha" aria-expanded="true">▾</button>
+        <button id="cp-close" type="button" title="Deseleccionar (Esc)" aria-label="Cerrar">✕</button>
       </div>
-      <div id="cp-activity"></div>
-      <div id="cp-health"></div>
-      <div id="cp-needs"></div>
-      <div id="cp-mood" class="muted"></div>
-      <button id="cp-draft" type="button" title="Reclutado: deja de trabajar y solo obedece tus órdenes (tecla G)">🎖 Reclutar (G)</button>
-      <div id="cp-weapon-row">
-        <span id="cp-weapon-now"></span>
-        <select id="cp-weapon" aria-label="Arma" title="Qué arma usa: la mejor libre, una concreta o ninguna"></select>
+      <div class="cp-summary">
+        <div class="cp-now">
+          <div id="cp-activity"></div>
+          <div id="cp-health"></div>
+        </div>
+        <button id="cp-draft" type="button" title="Reclutado: deja de trabajar y solo obedece tus órdenes (tecla G)">🎖 Reclutar (G)</button>
       </div>
-      <div id="cp-armor-row" class="cp-gear-row">
-        <span id="cp-armor-now"></span>
-        <select id="cp-armor" aria-label="Armadura" title="Armadura: la mejor libre o ninguna">
-          <option value="auto">Armadura: la mejor libre</option>
-          <option value="ninguna">Sin armadura</option>
-        </select>
+      <div id="cp-tabs" class="ts-tabs pp-tabs" role="tablist" aria-label="Apartado de la ficha">
+        <button type="button" role="tab" data-tab="estado"><span class="tab-icon">❤</span><span class="tab-label">Estado</span></button>
+        <button type="button" role="tab" data-tab="equipo"><span class="tab-icon">🗡</span><span class="tab-label">Equipo</span></button>
+        <button type="button" role="tab" data-tab="trabajos"><span class="tab-icon">🔨</span><span class="tab-label">Trabajos</span></button>
+        <button type="button" role="tab" data-tab="perfil"><span class="tab-icon">👤</span><span class="tab-label">Perfil</span></button>
       </div>
-      <div class="zp-label">Trabajos (toca para cambiar la prioridad: 1 primero, — no lo hace)</div>
-      <div id="cp-work"></div>
-      <div id="cp-traits"></div>
-      <div id="cp-skills"></div>
+      <div id="cp-body" class="sheet-body">
+        <div class="cp-page" data-page="estado">
+          <div id="cp-needs"></div>
+          <div class="zp-label">Ánimo: por qué</div>
+          <div id="cp-mood"></div>
+        </div>
+        <div class="cp-page" data-page="equipo">
+          <div class="cp-gear">
+            <div class="cp-gear-label">Arma</div>
+            <div id="cp-weapon-now" class="cp-gear-now"></div>
+            <select id="cp-weapon" aria-label="Arma" title="Qué arma usa: la mejor libre, una concreta o ninguna"></select>
+          </div>
+          <div class="cp-gear">
+            <div class="cp-gear-label">Armadura</div>
+            <div id="cp-armor-now" class="cp-gear-now"></div>
+            <select id="cp-armor" aria-label="Armadura" title="Armadura: la mejor libre o ninguna">
+              <option value="auto">La mejor libre</option>
+              <option value="ninguna">Sin armadura</option>
+            </select>
+          </div>
+          <p class="pp-hint">Coge sola lo mejor que haya libre en el almacén o el armero, salvo que le fijes algo aquí.</p>
+        </div>
+        <div class="cp-page" data-page="trabajos">
+          <p class="pp-hint">Toca un trabajo para cambiar su prioridad: <strong>1</strong> lo primero … <strong>4</strong> lo último, <strong>—</strong> no lo hace.</p>
+          <div id="cp-work"></div>
+        </div>
+        <div class="cp-page" data-page="perfil">
+          <div class="zp-label">Rasgos (toca uno para ver qué hace)</div>
+          <div id="cp-traits"></div>
+          <div id="cp-trait-desc" class="pp-hint"></div>
+          <div class="zp-label">Habilidades (de 0 a 20 · 🔥 pasión · • interés)</div>
+          <div id="cp-skills"></div>
+        </div>
+      </div>
     </section>
 
     <section id="god-panel" class="panel" hidden>

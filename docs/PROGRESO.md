@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (mañana, 2) — Ficha del colono rehecha
+
+- Siguiente parte de «Menús de la partida más accesibles» (aprobado por Mikel). La ficha del colono pasa a ser una hoja como las de 📜 y ☰: en el móvil en vertical ocupa todo el ancho encima de la fila de colonos (como mucho media pantalla); en horizontal es una columna a la izquierda; en PC, abajo a la izquierda.
+- Arriba, siempre a la vista: nombre, edad, qué está haciendo, sus heridas y un botón grande 🎖 Reclutar. ▾ recoge la ficha (solo queda eso, para ver el mapa) y ✕ la cierra.
+- Cuatro pestañas grandes (se recuerda la última): **Estado** (comida, agua, descanso y ánimo, con los motivos del ánimo uno por línea en verde o rojo), **Equipo** (arma y armadura, cada una en su tarjeta con selector grande), **Trabajos** (botones de prioridad de 40 px) y **Perfil** (rasgos: tocar uno muestra qué hace, también en el móvil; habilidades con 🔥 pasión y • interés).
+- Con un grupo elegido solo se ve qué hace cada uno y el botón de reclutar.
+- No cambia ninguna regla del juego.
+- Qué probar: en el móvil en vertical, tocar un colono, pasar por las cuatro pestañas, cambiar una prioridad y el arma, recoger con ▾ y mandarlo a algún sitio tocando el suelo. Girar el móvil a horizontal.
+- Siguiente: los paneles de almacén, huerto y taller (última parte de los menús). Siguen esperando respuesta de Mikel: horno, cocina y banco eléctricos; puerta automática y ánimo de la luz; fuego amigo y posturas.
+
 ## 2026-10-18 (madrugada, 2) — Menú 📜 Colonia rehecho
 
 - Siguiente parte de «Menús de la partida más accesibles» (aprobado por Mikel). El 📜 pasa a ser una hoja como la de ☰: en el móvil en vertical sale desde abajo, en horizontal es una columna a la derecha, y en PC queda a la derecha. ✕ grande para cerrar (también Esc) y el botón 📜 se ve encendido mientras está abierta; al abrirla se cierra ☰ y al revés.

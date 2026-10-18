@@ -942,7 +942,7 @@ $('cp-draft').addEventListener('click', () => scene().toggleDraftSelected());
 // Arma del colono: la mejor libre (sola), una concreta o ninguna.
 const weaponSelect = $<HTMLSelectElement>('cp-weapon');
 weaponSelect.append(
-  new Option('Arma: la mejor libre', 'auto'),
+  new Option('La mejor libre', 'auto'),
   new Option('Sin arma', 'ninguna'),
   ...WEAPON_IDS.map((id) => new Option(`Solo ${RESOURCE_NAMES[id].toLowerCase()}`, id)),
 );
@@ -1007,7 +1007,20 @@ function renderNeeds(c: Colonist): void {
       return row;
     }),
   );
-  $('cp-mood').textContent = reasons.map((r) => `${r.value > 0 ? '+' : '−'} ${r.text}`).join(' · ');
+  const moodKey = reasons.map((r) => `${r.value}${r.text}`).join('|');
+  const moodEl = $('cp-mood');
+  if (moodEl.dataset.key === moodKey) return;
+  moodEl.dataset.key = moodKey;
+  moodEl.replaceChildren(
+    ...(reasons.length
+      ? reasons.map((r) => {
+          const row = document.createElement('div');
+          row.className = r.value > 0 ? 'log-bueno' : 'log-malo';
+          row.textContent = `${r.value > 0 ? '▲' : '▼'} ${r.text}`;
+          return row;
+        })
+      : [Object.assign(document.createElement('div'), { className: 'muted', textContent: 'Nada en especial.' })]),
+  );
 }
 
 /** Texto de cada prioridad de trabajo (0 = no lo hace). */
@@ -1041,6 +1054,51 @@ function renderPriorities(c: Colonist): void {
 
 const panel = $('colonist-panel');
 $('cp-close').addEventListener('click', () => scene().select(null));
+// Pestañas de la ficha: se recuerda la última elegida (en el navegador, si se puede).
+type CpTab = 'estado' | 'equipo' | 'trabajos' | 'perfil';
+const CP_TABS: CpTab[] = ['estado', 'equipo', 'trabajos', 'perfil'];
+let cpTab: CpTab = 'estado';
+try {
+  const saved = localStorage.getItem('oxido.cpTab');
+  if (saved && (CP_TABS as string[]).includes(saved)) cpTab = saved as CpTab;
+} catch {
+  /* sin almacenamiento: se empieza en Estado */
+}
+function setCpTab(tab: CpTab): void {
+  cpTab = tab;
+  for (const b of panel.querySelectorAll<HTMLButtonElement>('#cp-tabs button')) {
+    const on = b.dataset.tab === tab;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', String(on));
+  }
+  for (const page of panel.querySelectorAll<HTMLElement>('.cp-page')) page.hidden = page.dataset.page !== tab;
+  $('cp-body').scrollTop = 0;
+  try {
+    localStorage.setItem('oxido.cpTab', tab);
+  } catch {
+    /* nada */
+  }
+}
+for (const b of panel.querySelectorAll<HTMLButtonElement>('#cp-tabs button')) {
+  b.addEventListener('click', () => {
+    setCpTab(b.dataset.tab as CpTab);
+    setCpFolded(false);
+  });
+}
+setCpTab(cpTab);
+
+// Recoger la ficha: solo queda la cabecera, qué hace y el botón de reclutar (para ver el mapa en el móvil).
+function setCpFolded(on: boolean): void {
+  panel.classList.toggle('folded', on);
+  const fold = $('cp-fold');
+  fold.textContent = on ? '▴' : '▾';
+  fold.setAttribute('aria-expanded', String(!on));
+  fold.setAttribute('aria-label', on ? 'Desplegar la ficha' : 'Recoger la ficha');
+}
+$('cp-fold').addEventListener('click', () => setCpFolded(!panel.classList.contains('folded')));
+panel.querySelector('.cp-title')!.addEventListener('click', () => {
+  if (panel.classList.contains('folded')) setCpFolded(false);
+});
 let lastPanelId: number | null = null;
 
 let lastGroupKey = '';
@@ -1063,6 +1121,8 @@ game.events.on('selection', (c: Colonist | null, group: Colonist[] = c ? [c] : [
   // Al abrirse la ficha, los menús de órdenes se cierran para no taparse en el móvil
   // (solo al abrirse: luego se pueden volver a abrir con la ficha a la vista).
   if (panel.hidden && (!orderModes.hidden || !buildModes.hidden)) showMenu(null);
+  // Cada vez que se abre, la ficha sale desplegada.
+  if (panel.hidden) setCpFolded(false);
   panel.hidden = false;
   const draftBtn = $('cp-draft');
   const allDrafted = group.every((k) => k.drafted);
@@ -1079,6 +1139,7 @@ game.events.on('selection', (c: Colonist | null, group: Colonist[] = c ? [c] : [
     $('cp-name').textContent = `👥 ${group.length} colonos`;
     $('cp-sub').textContent = 'Toca el suelo para mandarlos juntos';
     $('cp-traits').replaceChildren();
+    $('cp-trait-desc').textContent = '';
     $('cp-skills').replaceChildren();
     $('cp-work').replaceChildren();
     lastPriorityKey = '';
@@ -1099,14 +1160,25 @@ game.events.on('selection', (c: Colonist | null, group: Colonist[] = c ? [c] : [
   $('cp-sub').textContent = `${c.age} años`;
 
   const traits = $('cp-traits');
+  const traitDesc = $('cp-trait-desc');
+  traitDesc.textContent = '';
   traits.replaceChildren(
-    ...c.traits.map((t) => {
-      const el = document.createElement('span');
-      el.className = 'trait';
-      el.textContent = t.name;
-      el.title = t.description;
-      return el;
-    }),
+    ...(c.traits.length
+      ? c.traits.map((t) => {
+          const el = document.createElement('button');
+          el.type = 'button';
+          el.className = 'trait';
+          el.textContent = t.name;
+          el.title = t.description;
+          el.addEventListener('click', () => {
+            const on = !el.classList.contains('active');
+            for (const o of traits.querySelectorAll('.trait')) o.classList.remove('active');
+            el.classList.toggle('active', on);
+            traitDesc.textContent = on ? `${t.name}: ${t.description}` : '';
+          });
+          return el;
+        })
+      : [Object.assign(document.createElement('span'), { className: 'muted', textContent: 'Sin rasgos especiales.' })]),
   );
 
   const skills = $('cp-skills');
@@ -1126,7 +1198,7 @@ game.events.on('selection', (c: Colonist | null, group: Colonist[] = c ? [c] : [
       bar.append(fill);
       const passion = document.createElement('span');
       passion.className = 'passion';
-      passion.textContent = c.passions[s] === 2 ? '🔥' : c.passions[s] === 1 ? '·' : '';
+      passion.textContent = c.passions[s] === 2 ? '🔥' : c.passions[s] === 1 ? '•' : '';
       passion.title = c.passions[s] === 2 ? 'Pasión' : c.passions[s] === 1 ? 'Interés' : '';
       row.append(name, num, bar, passion);
       return row;
