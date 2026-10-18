@@ -8,6 +8,7 @@ Diario de sesiones, la más reciente arriba.
 - Al mover un mueble, el colono que lo llevaba al sitio nuevo y lo montaba no tenía reservado ese sitio: saltaba el aviso en 🐞 y otro colono podía ponerse a montar lo mismo. Ahora lo reserva (y si ya lo tiene otro, lo suelta y el mueble vuelve a su sitio con la orden en pie). Los avisos de «encerrado» que venían en la incidencia eran de otra partida del 2026-10-17, ya arreglados.
 - Qué probar: mover una cama o el banco de trabajo con ✋ Mover y ver que no sale ningún aviso nuevo en 🐞.
 - Sin npm en el entorno: tests con Bun (285, 1 nuevo); la prueba completa, en GitHub Actions.
+- Pedido por Mikel en el chat: la sesión automática pasa a ser **cada dos horas** (a las :19 de las horas pares, hora de Madrid) y, tras cada subida a `main` que cambie este diario, un workflow nuevo («Resumen a Telegram») manda la última entrada a Telegram. Necesita los secretos `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID` en el repositorio; sin ellos no hace nada.
 - Espera la respuesta de Mikel: cómo conseguir más colonos (#21), con cuatro opciones en «Propuestas para Mikel».
 - Siguiente: #17 y #18, avisos en pantalla de raids, combates y visitas.
 

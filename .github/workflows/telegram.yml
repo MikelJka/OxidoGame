@@ -1,0 +1,43 @@
+name: Resumen a Telegram
+
+# Tras cada subida a main, manda a Telegram la última entrada de docs/PROGRESO.md
+# (lo que ha hecho la sesión, qué probar y qué sigue). Necesita dos secretos del repositorio:
+# TELEGRAM_BOT_TOKEN (el token que da @BotFather) y TELEGRAM_CHAT_ID (tu id de chat).
+# Sin ellos, no hace nada.
+on:
+  push:
+    branches: [main]
+    paths: ['docs/PROGRESO.md']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  enviar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enviar la última entrada del diario
+        env:
+          TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -z "$TOKEN" ] || [ -z "$CHAT" ]; then
+            echo "Faltan los secretos TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID: no se envía nada."
+            exit 0
+          fi
+          # Primera entrada «## …» del diario (sin la cabecera del archivo).
+          awk 'NR>3 && /^## /{n++} n==1' docs/PROGRESO.md | sed 's/\*\*//g; s/`//g' > resumen.txt
+          {
+            echo "🛠 Óxido — nueva versión"
+            echo
+            head -c 3500 resumen.txt
+            echo
+            echo "🎮 https://mikeljka.github.io/OxidoGame/"
+          } > mensaje.txt
+          curl -sS --fail -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${CHAT}" \
+            --data-urlencode "text@mensaje.txt" \
+            -d "disable_web_page_preview=true" > /dev/null
+          echo "Enviado."
