@@ -111,7 +111,8 @@ export function startTrader(w: World): Colonist | null {
   for (let i = 0; i < nSlaves; i++) slaves.push(w.makePawn('prisionero'));
   t.trader = { stock, slaves, leaveAt: w.tick + Math.round(TICKS_PER_DAY * 0.75), leaving: false };
   w.others.push(t);
-  const path = findPath(w.map, t.tile, nearFree(w, w.map.start) ?? w.map.start, 60000);
+  const home = w.colonyPoint();
+  const path = home ? findPath(w.map, t.tile, nearFree(w, home) ?? home, 60000) : null;
   if (path) t.path = path;
   w.addLog(`🐫 Llega una caravana de ${t.name}${nSlaves ? ` con ${nSlaves} ${nSlaves === 1 ? 'esclavo' : 'esclavos'}` : ''}. Toca al comerciante para comerciar.`, 'bueno');
   return t;

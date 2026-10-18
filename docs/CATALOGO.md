@@ -10,21 +10,21 @@ Lo ya aprobado y pendiente (puerta automática, fuego amigo y posturas, combusti
 
 ---
 
-## 1. Salud: infecciones y medicinas (fase 4) — sin aprobar
+## 1. Salud: infecciones y medicinas (fase 4) — ✅ Aprobado (2026-10-18)
 
 - **Infección**: una herida que no se cura en 12 h tiene un 20 % de infectarse (8 % si la curó alguien sin medicina, 2 % con medicina). Infectado: −15 % de ánimo y de velocidad de trabajo; empeora cada día salvo que se le trate con una medicina (1 💊 al día durante 2 días). Sin tratar 3 días seguidos, muere.
 - **Nuevo recurso 💊 Medicina** (valor 20). Se fabrica en la **mesa de boticario** (🪵15 🔩6, 2×1, 🏗 → Talleres): 4 🌿 hierba + 1 🧵 → 1 💊 (300 de trabajo, habilidad Medicina). También aparece en ruinas y la venden las caravanas.
 - **Nuevo cultivo 🌿 Hierba curativa**: 5 días, cosecha 4–6, tierra media (fertilidad ≥ 0,45).
 - Curar con medicina cierra la herida el doble de rápido.
 
-## 2. Mutantes y criaturas (fase 4) — sin aprobar
+## 2. Mutantes y criaturas (fase 4) — ✅ Aprobado (2026-10-18)
 
 - **Perros mutantes**: manada de 3 a 8 desde el día 8; rápidos (×1,5 al andar), poca vida (60 % de un colono), mordisco ×1,2. Huyen al caer la mitad. No rompen muros ni puertas.
 - **Bruto mutante**: desde el día 15, 1 por cada 3 perros; lento (×0,7), el triple de vida, golpe ×3, **rompe muros y puertas** (como un saqueador con tubería).
 - Llegan en lugar de un raid de saqueadores 1 de cada 3 veces (1 de cada 2 si la colonia está a menos de 25 casillas de una zona irradiada).
 - Al morir dejan **cadáver**: se puede quemar en una hoguera (🪵5) o dejar que se pudra (−5 % de ánimo a quien lo ve a 5 casillas).
 
-## 3. Banco de investigación y árbol (fase 5) — sin aprobar
+## 3. Banco de investigación y árbol (fase 5) — ✅ Aprobado (2026-10-18)
 
 - **Banco de investigación** (🪵20 🔩15 ⚙️2, 2×1, 🏗 → Talleres). Trabajo nuevo «Investigar» (habilidad Investigación). Se elige un proyecto en 📜 → 🔬 Investigación; avanza mientras alguien investiga. Lo construido hasta ahora sigue libre, no hace falta investigarlo.
 - **Árbol** (horas para un colono con Investigación 10; entre paréntesis, lo que pide antes):
@@ -42,7 +42,7 @@ Lo ya aprobado y pendiente (puerta automática, fuego amigo y posturas, combusti
 | Artillería (Torretas) | 20 | Torreta pesada y mortero |
 | Radio (Medicina de campo) | 10 | Radio: contactar con facciones (fase 6) |
 
-## 4. Armas de fuego y balas (fase 5, ya aprobadas; faltan los números) — sin aprobar
+## 4. Armas de fuego y balas (fase 5, ya aprobadas; faltan los números) — ✅ Aprobado (2026-10-18)
 
 | Arma | Daño | Ritmo | Alcance | Coste (banco de trabajo) |
 | --- | --- | --- | --- | --- |
@@ -53,7 +53,7 @@ Lo ya aprobado y pendiente (puerta automática, fuego amigo y posturas, combusti
 - **Balas**: 🔩3 ⚙️1 → 15 balas (cada disparo gasta 1). Los tiradores cogen 20 como con las flechas.
 - Saqueadores: pistolas desde el día 15, escopetas y rifles desde el día 25.
 
-## 5. Defensas, agua y construcción (fase 5) — sin aprobar
+## 5. Defensas, agua y construcción (fase 5) — ✅ Aprobado (2026-10-18)
 
 - **Puente** de madera (🪵8 por casilla, se pudre: pierde vida si no se repara en 20 días) y de metal (🔗4 por casilla). Sobre agua de hasta 4 casillas de ancho.
 - **Torreta ligera** (🔩25 ⚙️4, 1×1, 120 W): dispara sola como una pistola a 9 casillas sin gastar balas; sin corriente, apagada.
@@ -62,14 +62,14 @@ Lo ya aprobado y pendiente (puerta automática, fuego amigo y posturas, combusti
 - **Bandeja hidropónica** (🔩10 ⚙️2, 1×2, 100 W): cultiva patatas, maíz o hierba bajo techo y sobre suelo, ×1,5 más rápido, sin fertilidad; sin corriente, no crece.
 - **Chaleco táctico** (🔗10 ⚙️2 🧵6: −45 % de daño, −5 % al andar) y **casco táctico** (🔗6 ⚙️1: −20 %).
 
-## 6. Máquinas y drones (fase 5) — sin aprobar
+## 6. Máquinas y drones (fase 5) — ✅ Aprobado (2026-10-18)
 
 - Desde el día 30, 1 de cada 4 ataques. Muy resistentes y sin moral (no huyen).
 - **Dron de vigilancia**: vuela (ignora muros, zanjas y barricadas), poca vida, dispara como una pistola. 2–4 por ataque.
 - **Araña de chatarra**: el cuádruple de vida que un colono, golpe ×3, armadura −40 %, rompe muros; 1–2 por ataque.
 - Al destruirlos dejan 🔩10–20 y ⚙️2–4. Las armas de fuego hacen +25 % a las máquinas.
 
-## 7. Facciones y diplomacia (fase 6) — sin aprobar
+## 7. Facciones y diplomacia (fase 6) — ✅ Aprobado (2026-10-18)
 
 - Tres asentamientos fijos en cada partida (nombres al azar), con relación de −100 a 100:
   - **Chatarreros** (empiezan en 20): comerciantes; traen las caravanas.
@@ -80,13 +80,13 @@ Lo ya aprobado y pendiente (puerta automática, fuego amigo y posturas, combusti
 - **Tributo**: los Hijos del Óxido pueden pedir recursos (unas 200 chapas); pagar evita su próximo raid.
 - Con la **Radio** (investigación), en 📜 → Facciones se puede llamar a una caravana o pedir ayuda.
 
-## 8. Comercio y mercado (fase 6) — sin aprobar
+## 8. Comercio y mercado (fase 6) — ✅ Aprobado (2026-10-18)
 
 - El trueque por valor ya existe; se añade un **mercado**: el valor de cada recurso va del 50 % al 200 % de su base según lo que hay en el mundo. Si vendes mucho de algo, baja; si escasea, sube. Se recupera un 10 % al día hacia su valor base.
 - Cada caravana viene con **necesidades** (2–3 recursos que paga a +50 %) y **sobrantes** (que vende a −30 %), según su facción.
 - 📜 → Comercio muestra la tendencia de cada recurso (▲ ▼).
 
-## 9. Sucesos (fase 6) — sin aprobar
+## 9. Sucesos (fase 6) — ✅ Aprobado (2026-10-18)
 
 | Suceso | Efecto |
 | --- | --- |
@@ -98,16 +98,16 @@ Lo ya aprobado y pendiente (puerta automática, fuego amigo y posturas, combusti
 | Refugiado herido | Pide ayuda; si se le cura, se une o se marcha (+relación con su facción) |
 | Ola de frío | *(Solo si se aprueba el bloque 11)* |
 
-## 10. Animales y caza *(opcional)* — sin aprobar
+## 10. Animales y caza *(opcional)* — ✅ Aprobado (2026-10-18)
 
 - Ciervos mutados, jabalíes y ratas gigantes por el mapa. Orden ⚒ → 🎯 Cazar: dan **🥩 carne** (cruda, se cocina como lo demás) y **🟫 cuero**; el chaleco de cuero pasaría a pedir cuero en vez de fibra.
 - Los jabalíes heridos atacan; las ratas gigantes roban comida de los almacenes sin muros.
 
-## 11. Temperatura, estaciones y ropa *(opcional)* — sin aprobar
+## 11. Temperatura, estaciones y ropa *(opcional)* — ✅ Aprobado (2026-10-18)
 
 - Estaciones de 10 días (primavera, verano, otoño, invierno). En invierno no crece nada al aire libre y hace frío de noche: sin estar en una habitación con **estufa** (🪨10 🔩6, gasta 🪵1 cada 3 h) o con **abrigo** (🧵10), −10 % de ánimo y riesgo de hipotermia.
 
-## 12. Ocio y habitaciones *(opcional)* — sin aprobar
+## 12. Ocio y habitaciones *(opcional)* — ✅ Aprobado (2026-10-18)
 
 - Calidad de las habitaciones según su tamaño y muebles (mesa, sillas, alfombra, cuadro): de −5 % a +10 % de ánimo.
 - Ocio: mesa de juego (🪵15) y hoguera para reunirse; sin ratos libres en 2 días, −8 % de ánimo.

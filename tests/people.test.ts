@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { flatWorld } from './helpers';
+import { buildingDef } from '../src/data/buildings';
+import { Terrain } from '../src/sim/map';
 import { attack, checkRaidMorale, dealBalance, makeDeal, makePrisoner, startRaid, startTrader, talkToPrisoner } from '../src/sim/people';
 import { hurt, tickHealth } from '../src/sim/health';
 import { loadWorld, serializeWorld } from '../src/sim/save';
@@ -256,6 +258,51 @@ describe('supervivientes', () => {
     w.acceptOffer();
     expect(w.colonists.length).toBe(2);
     expect(w.offer).toBeNull();
+  });
+});
+
+describe('#12: el superviviente aceptado llega aunque se haya construido sobre el inicio', () => {
+  const blockStart = (w: ReturnType<typeof flatWorld>) => {
+    w.map.start = { x: 15, y: 15 };
+    w.structures.restore(buildingDef('muro_madera'), 15, 15, true, {}, 1, 100);
+  };
+
+  it('entra por un borde y camina hacia la colonia', () => {
+    const w = flatWorld(1);
+    blockStart(w);
+    expect(w.colonyPoint()).not.toEqual({ x: 15, y: 15 });
+    const c = w.makePawn('colono');
+    w.offer = { kind: 'superviviente', pawn: c, until: w.tick + 100 };
+    w.acceptOffer();
+    const { x, y } = c.tile;
+    expect(x === 0 && y === 0).toBe(false);
+    expect(x === 0 || y === 0 || x === 29 || y === 29).toBe(true);
+    expect(c.path.length).toBeGreaterThan(0);
+  });
+
+  it('con la colonia cerrada sin entrada, aparece junto a un colono', () => {
+    const w = flatWorld(1);
+    // Anillo de muros alrededor del colono (5, 5) y del inicio.
+    w.map.start = { x: 5, y: 6 };
+    for (let x = 2; x <= 14; x++) for (let y = 2; y <= 14; y++) {
+      if (x === 2 || x === 14 || y === 2 || y === 14) w.structures.restore(buildingDef('muro_madera'), x, y, true, {}, 1, 100);
+    }
+    const c = w.makePawn('colono');
+    w.offer = { kind: 'superviviente', pawn: c, until: w.tick + 100 };
+    w.acceptOffer();
+    expect(Math.max(Math.abs(c.tile.x - 5), Math.abs(c.tile.y - 5))).toBeLessThanOrEqual(2);
+  });
+
+  it('las partidas con un colono atascado en (0, 0) lo traen a la colonia al cargar', async () => {
+    const { serializeWorld, loadWorld } = await import('../src/sim/save');
+    const w = flatWorld(1);
+    w.map.terrain[0] = Terrain.DeepWater;
+    const c = w.makePawn('colono');
+    w.colonists.push(c); // como lo dejaba el fallo: en la esquina
+    const back = loadWorld(serializeWorld(w));
+    const k = back.colonists.find((o) => o.id === c.id)!;
+    expect(k.tile.x === 0 && k.tile.y === 0).toBe(false);
+    expect(Math.max(Math.abs(k.tile.x - 5), Math.abs(k.tile.y - 5))).toBeLessThanOrEqual(2);
   });
 });
 

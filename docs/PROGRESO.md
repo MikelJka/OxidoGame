@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (tarde, 7) — Arreglado: el superviviente aceptado no aparecía (#12)
+
+- Tres incidencias nuevas en 🐞 (#11, #12, #13), pasadas a `FEEDBACK.md` y cerradas. Esta sesión, el bug **#12**.
+- La causa: los que llegan (supervivientes, raids, caravanas) buscan un borde desde el que se pueda caminar hasta la casilla de inicio de la partida. Si se ha construido algo encima de esa casilla (un muro, una cama…), no había camino desde ningún borde y el superviviente aceptado se quedaba en la esquina (0, 0) del mapa, a menudo en agua o roca, sin poder llegar a la colonia. Por lo mismo, los raids no llegaban y las caravanas no sabían adónde ir.
+- Ahora todos van a la casilla libre más cercana al inicio. Si la colonia está cerrada sin ninguna entrada, el superviviente aparece junto a un colono. En las partidas guardadas, quien se quedó en la esquina aparece junto a la colonia al cargar.
+- Qué probar: cargar la partida donde pasó (semilla 504451): el colono que no se veía debe estar junto a la colonia. En otra partida, construir algo en el centro del sitio de inicio y aceptar al siguiente superviviente (con 🪄 se puede hacer venir).
+- Mikel ha escrito en `FEEDBACK.md` tres peticiones (cancelar la construcción con un clic, mover muebles y fuego, este último para más adelante), ha elegido las opciones del agua y ha aprobado los 12 bloques del catálogo: todo queda en «Pendiente» (el fuego, en «Aparcado»).
+- Esperan su respuesta: cómo evitar el hambre del principio (#13), qué muebles se pueden mover y los números que faltan del agua.
+- Sin npm en el entorno: tests con Bun (264, 3 nuevos) y tipos de `src/sim` con `tsc`; la prueba completa, en GitHub Actions.
+- Siguiente: #11, fabricar cualquier cantidad y «hasta tener X».
+
 ## 2026-10-18 (tarde, 6) — Combate: posturas del reclutado
 
 - Sin incidencias nuevas en 🐞. Último punto aprobado de las reglas de combate: las posturas, tal como las decidió Mikel.

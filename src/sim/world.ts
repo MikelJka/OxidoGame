@@ -49,6 +49,8 @@ const GEAR_SCAN_TICKS = TICKS_PER_SECOND * 5;
 const RESCUE_TICKS = TICKS_PER_HOUR / 6;
 /** Distancia máxima a la que se saca a alguien encerrado. */
 const RESCUE_RADIUS = 8;
+/** Hasta dónde se busca, alrededor de la casilla de inicio, una casilla libre a la que llegar. */
+const COLONY_POINT_RADIUS = 40;
 /** Lado (en casillas) de los mapas de partida. */
 export const MAP_SIZE = 140;
 
@@ -335,18 +337,69 @@ export class World implements JobContext {
   /** Coloca a una persona en una casilla transitable del borde del mapa (desde donde se llegue al inicio). */
   placeAtEdge(c: Colonist): boolean {
     const m = this.map;
+    const home = this.colonyPoint();
+    if (!home) return false;
     for (let tries = 0; tries < 200; tries++) {
       const side = this.rng.int(0, 3);
       const k = this.rng.int(0, (side % 2 === 0 ? m.width : m.height) - 1);
       const p = side === 0 ? { x: k, y: 0 } : side === 1 ? { x: m.width - 1, y: k } : side === 2 ? { x: k, y: m.height - 1 } : { x: 0, y: k };
       if (!isPassable(m, p.x, p.y)) continue;
-      if (!findPath(m, p, m.start, 60000)) continue;
+      if (!findPath(m, p, home, 60000)) continue;
       c.tile = { ...p };
       c.pos = { x: p.x + 0.5, y: p.y + 0.5 };
       c.path = [];
       return true;
     }
     return false;
+  }
+
+  /**
+   * Casilla a la que van los que llegan a la colonia: la de inicio o, si se ha construido encima
+   * (un muro, una cama…), la transitable más cercana a ella. null si no hay ninguna cerca.
+   */
+  colonyPoint(): Point | null {
+    const m = this.map;
+    const s = m.start;
+    if (isPassable(m, s.x, s.y)) return { ...s };
+    for (let r = 1; r <= COLONY_POINT_RADIUS; r++) {
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+          if (isPassable(m, s.x + dx, s.y + dy)) return { x: s.x + dx, y: s.y + dy };
+        }
+      }
+    }
+    return null;
+  }
+
+  /** Pone a alguien junto a la colonia (al lado de un colono, o en la casilla de llegada). */
+  placeNearColony(c: Colonist): boolean {
+    const others = this.colonists.filter((k) => k !== c);
+    const spots = [...others.map((k) => k.tile), ...[this.colonyPoint()].filter((p): p is Point => !!p)];
+    for (const at of spots) {
+      const p = this.nearestOpenTile(at, RESCUE_RADIUS) ?? (isPassable(this.map, at.x, at.y) ? at : null);
+      if (!p) continue;
+      c.tile = { ...p };
+      c.pos = { x: p.x + 0.5, y: p.y + 0.5 };
+      c.path = [];
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Arreglo para partidas guardadas con el fallo #12: un superviviente aceptado se quedaba en la
+   * esquina (0, 0) sin poder llegar a la colonia. Se le trae junto a ella.
+   */
+  bringHomeStranded(): number {
+    let n = 0;
+    for (const c of this.colonists) {
+      if (c.tile.x !== 0 || c.tile.y !== 0) continue;
+      const home = this.colonyPoint();
+      if (home && isPassable(this.map, 0, 0) && findPath(this.map, c.tile, home, 60000)) continue;
+      if (this.placeNearColony(c)) n++;
+    }
+    return n;
   }
 
   /** El jugador acepta lo que se le ofrece. */
@@ -373,11 +426,14 @@ export class World implements JobContext {
     c.drafted = false;
     c.job = null;
     c.need = null;
-    if (c.pos.x === 0.5 && c.pos.y === 0.5 && c.tile.x === 0 && c.tile.y === 0) this.placeAtEdge(c);
+    // Llega por un borde desde el que se llegue a la colonia; si no hay ninguno (colonia
+    // amurallada sin puertas), aparece junto a ella. Nunca se queda en la esquina (0, 0).
+    if (c.pos.x === 0.5 && c.pos.y === 0.5 && c.tile.x === 0 && c.tile.y === 0 && !this.placeAtEdge(c)) this.placeNearColony(c);
     // Que nadie comparta id.
     if (this.colonists.some((k) => k.id === c.id)) c.id = this.nextPawnId++;
     this.colonists.push(c);
-    const path = findPath(this.map, c.tile, this.map.start, 60000);
+    const home = this.colonyPoint();
+    const path = home ? findPath(this.map, c.tile, home, 60000) : null;
     if (path) {
       c.path = path;
       c.activity = 'moving';

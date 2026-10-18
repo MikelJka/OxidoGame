@@ -439,6 +439,7 @@ export function loadWorld(input: string | unknown): World {
     : initialSchedule(TICKS_PER_DAY, world.tick);
   const ids = [...world.colonists, ...world.others, ...world.others.flatMap((o) => o.trader?.slaves ?? []), ...(world.offer ? [world.offer.pawn] : [])].map((c) => c.id);
   world.eventsEnabled = d.events !== false;
+  world.bringHomeStranded(); // #12: supervivientes que se quedaron en la esquina (0, 0)
   world.difficulty = makeDifficulty(d.difficulty);
   world.nextPawnId = Math.max(num(d.nextPawnId, 1), ...ids.map((i) => i + 1), 1);
   for (const it of d.items ?? []) {
