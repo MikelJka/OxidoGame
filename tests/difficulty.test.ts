@@ -40,6 +40,16 @@ describe('dificultad', () => {
     expect(total(a)).toBeGreaterThan(total(b));
   });
 
+  it('se empieza con el doble de comida que antes en cada dureza (#13)', () => {
+    // Antes eran 60 patatas en Normal (90 / 60 / 45 / 30 según la dureza).
+    const before: Record<string, number> = { tranquila: 90, normal: 60, dura: 45, brutal: 30 };
+    for (const level of ['tranquila', 'normal', 'dura', 'brutal'] as const) {
+      expect(scaledSupplies(STARTING_SUPPLIES, level).patata, level).toBe(before[level] * 2);
+      const w = new World({ seed: 7, width: 60, height: 60, difficulty: { level } });
+      expect(w.inventory().patata, level).toBe(before[level] * 2);
+    }
+  });
+
   it('en Brutal los saqueadores pegan más fuerte', () => {
     const avg = (level: 'tranquila' | 'brutal') => {
       const w = flatWorld(1);

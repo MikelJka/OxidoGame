@@ -126,5 +126,5 @@ export const STARTING_SUPPLIES: Partial<Record<ResourceId, number>> = {
   piedra: 30,
   chatarra: 20,
   componentes: 5,
-  patata: 60,
+  patata: 120,
 };

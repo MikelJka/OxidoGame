@@ -4,11 +4,15 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Pendiente
 
-- [ ] **#13 Los colonos pasan hambre antes de la primera cosecha** (2026-10-18, 🐞; **elegido por Mikel: A**): se empieza con el doble de comida que ahora, en cada dificultad.
-
 - [ ] **Cancelar la construcción con un clic** (2026-10-18, escrito por Mikel en este archivo): mientras se coloca algo, un clic (derecho en el PC; en el móvil, el ✖ que ya hay) quita el fantasma y sale del modo construir.
 
 - [ ] **Mover muebles** (2026-10-18, escrito por Mikel en este archivo): poder llevar a otro sitio cosas como las camas; lo pesado o electrificado no se mueve, pero se puede demoler y recuperar parte de sus recursos (eso ya existe). **Elegido por Mikel (2026-10-18): B**: se mueven camas, armarios, estanterías, armeros y lámparas, y los talleres sin electrificar (banco, cocina, horno, mesa de boticario): «✋ Mover» al tocarlos, se coloca el fantasma en el sitio nuevo y un colono lo lleva (sin gastar nada).
+
+- [ ] **#14 Despejar las zonas al marcarlas** (2026-10-18, 🐞): si en una zona marcada como huerto o almacén hay árboles, piedras o chatarra, los colonos los retiran (talan, pican o recogen) para dejar la zona entera libre.
+
+- [ ] **#15 Los colonos duermen demasiado** (2026-10-18, 🐞; «revísalo»): hay que decidir cuánto; propuesta con opciones en «Propuestas para Mikel».
+
+- [ ] **#16 Clic izquierdo y derecho, y seleccionar varios arrastrando** (2026-10-18, 🐞): con un colono elegido, solo el clic derecho lo manda a un sitio o a una tarea; el clic izquierdo lo deselecciona. Arrastrando con el clic derecho se eligen varios colonos o personajes a la vez, y se ve la información del grupo.
 
 - [ ] **Definir todo el contenido antes que nada** (2026-10-18, pedido por Mikel): la 3D queda aparcada; primero se define e implementa todo el contenido. Una sesión ha escrito `docs/CATALOGO.md` con todo lo que falta y sus números: Mikel lo revisa, marca ✅ cada bloque que apruebe y lo aprobado pasa aquí, por fases. La simulación se mantiene portable (reglas en `src/sim`, contenido en `src/data`) para poder pasar más adelante a un motor con mejor 3D.
 
@@ -38,10 +42,15 @@ Lo que Mikel ha pedido dejar para más adelante. No se trabaja en ello salvo par
 
 Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat o con 🐞).
 
-Ahora no hay ninguna esperando respuesta.
+- **#15 Cuánto duermen los colonos** (2026-10-18). Ahora: el descanso se gasta en 18 h despierto; se recupera en 7 h en cama o 10 h en el suelo; de noche (22:00–6:00) se acuestan si tienen menos del 75 % y no se levantan hasta llenarlo (de día, en cuanto pasan del 85 %); de día se acuestan si bajan del 25 %. Opciones:
+  - **A** Dormir más rápido: 6 h en cama y 8 h en el suelo (el resto igual).
+  - **B** Acostarse menos: de noche solo si tienen menos del 50 %, y levantarse a las 6:00 si ya pasan del 85 %.
+  - **C** Aguantar más despiertos: el descanso se gasta en 24 h en vez de 18 h.
+  - **D** A + B juntas.
 
 ## Hecho
 
+- [x] **#13 Los colonos pasan hambre antes de la primera cosecha** (2026-10-18, 🐞; elegido por Mikel: A): se empieza con el doble de comida que antes en cada dificultad (Tranquila 180 🥔, Normal 120, Dura 90, Brutal 60).
 - [x] **#11 Fabricar cualquier cantidad y «fabricar hasta tener X»** (2026-10-18, 🐞): en el panel del taller, abajo, dos modos: 🔨 Fabricar N (hace esas unidades y para, aunque ya haya de sobra) y 🎯 Hasta tener N (como antes). El número va de 1 en 1 con − y +, o se escribe tocándolo. Una orden nueva empieza en «Fabricar 1» (o sigue el modo y número de la anterior). Las órdenes de partidas guardadas siguen como «hasta tener».
 
 - [x] **#12 El superviviente aceptado no aparecía** (2026-10-18, 🐞): si se había construido algo sobre la casilla de inicio de la partida, no se encontraba ningún borde desde el que llegar y el nuevo colono se quedaba en la esquina del mapa, sin poder ir a la colonia (y por lo mismo los raids y las caravanas podían no llegar). Ahora van a la casilla libre más cercana al inicio; si la colonia está cerrada sin entrada, el nuevo aparece junto a un colono. En las partidas guardadas, el que se quedó en la esquina aparece junto a la colonia al cargar.

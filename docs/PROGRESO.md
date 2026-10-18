@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (tarde, 9) — El doble de comida al empezar (#13)
+
+- Tres incidencias nuevas en 🐞 (#14, #15, #16), pasadas a «Pendiente» de `FEEDBACK.md` y cerradas. Esta sesión, **#13** con la opción A que eligió Mikel.
+- La colonia empieza con el doble de patatas que antes: **Tranquila 180, Normal 120, Dura 90, Brutal 60**. El resto de provisiones no cambia. Las partidas ya empezadas no cambian.
+- Qué probar: empezar una partida nueva en Normal y ver que en el inventario hay 120 🥔; que los colonos llegan a la primera cosecha sin pasar hambre.
+- Sin npm en el entorno: tests con Bun (267, 1 nuevo); la prueba completa, en GitHub Actions.
+- Espera la respuesta de Mikel: cuánto deben dormir los colonos (#15), con cuatro opciones en «Propuestas para Mikel».
+- Siguiente: cancelar la construcción con un clic; después, mover muebles, #14 (despejar zonas) y #16 (clics y selección múltiple).
+
 ## 2026-10-18 (tarde, 8) — Talleres: fabricar cualquier cantidad o «hasta tener» (#11)
 
 - Sin incidencias nuevas en 🐞. Esta sesión, **#11**.
