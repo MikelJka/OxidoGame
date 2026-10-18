@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (mañana) — Electricidad: la recicladora y la depuradora piden corriente
+
+- Como aprobó Mikel, la **recicladora** gasta 250 W y la **depuradora** 150 W, también en las partidas guardadas.
+- Sin corriente, la recicladora está parada: nadie la trabaja y, si se va la luz a media tanda, el colono la deja. La depuradora sin corriente no limpia el agua (el pozo sigue sin necesitarla).
+- Al tocarlas se ve «en marcha» o «sin corriente: parada» y su red.
+- Tests en `tests/power.test.ts`.
+- Qué probar: en una partida guardada con depuradora, ver que deja de dar agua limpia; llevarle un cable desde un generador o una placa y comprobar que vuelve. Lo mismo con la recicladora y su orden.
+- Siguiente: horno, cocina y banco eléctricos (el doble de rápidos, 300 W). Falta que Mikel diga cuánto cuestan (propuesta en `FEEDBACK.md`).
+
 ## 2026-10-18 (madrugada) — Electricidad: placas solares y molinos de viento
 
 - Segunda parte de la electricidad, con los números aprobados por Mikel. En 🏗 → **Electricidad**:

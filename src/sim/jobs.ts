@@ -10,6 +10,7 @@ import { GameMap, index, isPassable, PROP_INFO, Prop } from './map';
 import { findPath, Point } from './pathfinding';
 import { harvestAt, Stockpile } from './resources';
 import { isFood, needsWorkFactor } from './needs';
+import { lacksPower } from './power';
 import { TICKS_PER_HOUR } from './time';
 
 /** Horas entre charlas con un prisionero. */
@@ -104,6 +105,8 @@ export interface JobContext {
 export function stationWantsWork(ctx: JobContext, s: Structure): boolean {
   const b = s.bill;
   if (!s.built || !b || b.paused || s.demolish) return false;
+  // La recicladora sin corriente está parada.
+  if (lacksPower(s)) return false;
   const inv = ctx.inventory();
   return (Object.entries(b.recipe.outputs) as [ResourceId, number][]).some(([r]) => inv[r] < b.target);
 }

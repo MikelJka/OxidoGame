@@ -4,6 +4,7 @@ import { updatePower, windStrength } from '../src/sim/power';
 import { Prop } from '../src/sim/map';
 import { loadWorld, serializeWorld } from '../src/sim/save';
 import { TICKS_PER_HOUR } from '../src/sim/world';
+import { recipeDef } from '../src/data/recipes';
 
 /** Pone y termina una construcción al momento. */
 function build(w: ReturnType<typeof flatWorld>, x: number, y: number, id: string) {
@@ -126,5 +127,42 @@ describe('electricidad', () => {
     expect(vals.every((v) => v >= 0 && v <= 1)).toBe(true);
     expect(Math.max(...vals) - Math.min(...vals)).toBeGreaterThan(0.4);
     expect(windStrength(37.5, 7)).toBe(windStrength(37.5, 7));
+  });
+});
+
+describe('máquinas que necesitan corriente', () => {
+  it('la depuradora solo da agua limpia con corriente', () => {
+    const w = flatWorld(1);
+    const m = w.map;
+    const water = m.terrain[1 * m.width + 1];
+    m.terrain[20 * m.width + 21] = water;
+    m.contaminated[20 * m.width + 21] = 1;
+    build(w, 20, 20, 'depuradora');
+    updatePower(w.structures, 1);
+    expect(w.drinkAt(20, 19)).toBeNull();
+    const gen = build(w, 16, 19, 'generador_lena');
+    gen.fuel = 5;
+    build(w, 18, 20, 'cable');
+    build(w, 19, 20, 'cable');
+    updatePower(w.structures, 1);
+    expect(w.drinkAt(20, 19)).toBe('limpia');
+  });
+
+  it('la recicladora sin corriente está parada; con corriente, saca chatarra', () => {
+    const w = flatWorld(1);
+    const rec = build(w, 14, 10, 'recicladora');
+    w.structures.setBill(rec, { recipe: recipeDef('reciclar_restos')!, target: 4, paused: false });
+    for (let t = 0; t < 4000; t++) w.step();
+    expect(rec.powered).toBe(false);
+    expect(w.inventory().chatarra).toBe(0);
+    const gen = build(w, 10, 10, 'generador_lena');
+    build(w, 12, 10, 'cable');
+    build(w, 13, 10, 'cable');
+    for (let t = 0; t < 20000 && w.inventory().chatarra < 4; t++) {
+      gen.fuel = 10;
+      w.step();
+    }
+    expect(rec.powered).toBe(true);
+    expect(w.inventory().chatarra).toBeGreaterThanOrEqual(4);
   });
 });

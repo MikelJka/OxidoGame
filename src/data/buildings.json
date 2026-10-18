@@ -773,6 +773,7 @@
     "hp": 300,
     "blocks": true,
     "height": 1,
+    "power": -250,
     "colors": {
       "top": "#8a7a6a",
       "face": "#6a5a4a",
@@ -814,6 +815,7 @@
     "blocks": true,
     "height": 1,
     "nearWater": true,
+    "power": -150,
     "colors": {
       "top": "#5a8a9a",
       "face": "#6a6862",

@@ -22,7 +22,7 @@ import {
 } from './needs';
 import { applyTerrainJob, LOWER_STONE, terrainBlocker, TerrainJob, TerrainOrders } from './terrain';
 import { Structure, Structures } from './structures';
-import { litTiles, PowerNet, updatePower, windStrength } from './power';
+import { lacksPower, litTiles, PowerNet, updatePower, windStrength } from './power';
 import type { TileRect } from './designations';
 import { RESOURCES, ResourceId, STARTING_SUPPLIES } from '../data/resources';
 
@@ -674,7 +674,8 @@ export class World implements JobContext {
       const i = ny * this.map.width + nx;
       if (this.map.props[i] === Prop.Spring) return 'limpia';
       const s = this.structures.at(nx, ny);
-      if (s && s.built && s.def.category === 'agua') return 'limpia';
+      // La depuradora solo limpia el agua con corriente; el pozo no la necesita.
+      if (s && s.built && s.def.category === 'agua' && !lacksPower(s)) return 'limpia';
       if (isWater(this.map.terrain[i] as Terrain)) {
         if (!this.map.contaminated[i]) return 'limpia';
         dirty = true;
@@ -990,6 +991,12 @@ export class World implements JobContext {
       return;
     }
     if (j.kind === 'fabricar' || j.kind === 'cocinar') {
+      const st = this.jobStructure(j);
+      // Si se va la corriente a media tanda, la máquina se para y se deja el trabajo.
+      if (st && lacksPower(st)) {
+        this.dropJob(c);
+        return;
+      }
       if (j.progress >= j.work) {
         const s = this.jobStructure(j)!;
         if (this.structures.consumeInputs(s)) this.dropBeside(s, s.bill!.recipe.outputs);

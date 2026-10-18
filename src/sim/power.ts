@@ -79,6 +79,11 @@ export function isElectric(s: Structure): boolean {
   return !!s.def.power || !!s.def.battery;
 }
 
+/** Necesita corriente para funcionar (recicladora, depuradora, lámpara…) y ahora no le llega. */
+export function lacksPower(s: Structure): boolean {
+  return (s.def.power ?? 0) < 0 && !s.powered;
+}
+
 /** Redes de cable terminado: cada casilla de cable → id de su red. */
 function cableNets(st: Structures): { netOf: Map<number, number>; tiles: Map<number, number[]> } {
   const map = st.map;
