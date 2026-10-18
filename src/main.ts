@@ -18,6 +18,7 @@ import { mountGodMode } from './ui/godMode';
 import { makePrisoner, offerWanderer, startRaid, startTrader } from './sim/people';
 import { healthLabel } from './sim/health';
 import { downloadWorld, pickSaveFile, readBackupSave, readStoredSave, storeWorld } from './ui/saveGame';
+import { mountCloudSync } from './ui/cloudSync';
 import { parseSave } from './sim/save';
 import { reachableResources } from './sim/resources';
 import { BASE_RESOURCES, HarvestJob, RESOURCE_ICONS, RESOURCE_NAMES, RESOURCES } from './data/resources';
@@ -344,6 +345,30 @@ $('save-backup').addEventListener('click', () => {
   menu.hidden = true;
   lastLoadedText = text;
   scene().scene.restart({ seed, save: text });
+});
+// Partida en la nube (☰ → ☁ Nube): la misma partida en varios dispositivos.
+mountCloudSync({
+  saveLocal: () => {
+    saveNow(false);
+    return saveError ? null : readStoredSave();
+  },
+  label: () => {
+    const w = scene().world;
+    return `${w.clockLabel()} · ${w.colonists.length} ${w.colonists.length === 1 ? 'colono' : 'colonos'}`;
+  },
+  loadText: (text) => {
+    try {
+      parseSave(text);
+    } catch (err) {
+      showToast(`⚠️ ${err instanceof Error ? err.message : String(err)}`, 5000);
+      return;
+    }
+    menu.hidden = true;
+    lastLoadedText = text;
+    scene().scene.restart({ seed, save: text });
+  },
+  toast: (msg, ms) => showToast(msg, ms),
+  onError: (msg) => recordError('guardado', msg),
 });
 game.events.on('load-failed', (why: string) => {
   recordError('guardado', `No se pudo cargar la partida guardada: ${why}`);

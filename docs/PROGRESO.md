@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (tarde, 5) — Partida en la nube: la misma partida en varios dispositivos
+
+- Pedido por Mikel en el chat: un login para seguir la misma partida desde varios dispositivos. Elegido por él: **GitHub** por ahora (sencillo; quizá Firebase si escala) y **sincronización automática**.
+- ☰ → **☁ Nube**: «Crear un token en GitHub» abre la página de GitHub con solo el permiso «gist» marcado; se pega el token y «Entrar». La partida se guarda en un **gist privado** del jugador, comprimida (unas diez veces menos que el JSON).
+- Se sube sola **cada 2 minutos** y al salir de la pestaña o cambiar de app. Al abrir el juego o volver a la pestaña, si otro dispositivo ha subido una partida más nueva, pregunta si seguir con ella (si se cancela, se sigue con la de aquí y se sube encima). Antes de subir comprueba que no haya una más nueva de otro dispositivo, para no pisarla.
+- Botones ☁ Subir, ☁ Bajar (carga la de la nube) y 🚪 Salir (olvida el token en ese dispositivo; la de la nube no se borra). La línea de estado dice la cuenta y cuándo se subió.
+- Todo va por una interfaz `CloudStore` (`src/ui/cloudSave.ts`): cambiar a Firebase será escribir otra implementación.
+- Qué probar: en el PC, ☰ → ☁ Nube, crear el token, pegarlo y entrar; jugar un poco y «☁ Subir». En el móvil, entrar con el mismo token: pregunta si seguir con la partida de la nube.
+- Tests nuevos con un GitHub de mentira (subir, recuperar desde otro dispositivo, token malo, gist borrado). Sin npm en el entorno: tests con Bun (251); la prueba completa, en GitHub Actions.
+- Siguiente: lo que quede en «Pendiente» (posturas, combustible ⛽ y la destilería) y los bloques de `docs/CATALOGO.md` que Mikel apruebe.
+
 ## 2026-10-18 (tarde, 4) — Combate: fuego amigo
 
 - Sin incidencias nuevas en 🐞. Siguiente punto aprobado de «Pendiente»: fuego amigo y posturas; esta sesión, la primera parte (el fuego amigo), con el número que eligió Mikel.

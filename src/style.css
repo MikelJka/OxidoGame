@@ -86,7 +86,14 @@ button.active { border-color: var(--accent); color: var(--accent); }
   min-height: 60px; padding: 6px 2px; font-size: 11px; line-height: 1.15; text-align: center;
 }
 .menu-grid .mi { font-size: 20px; line-height: 1; }
-#save-status, #map-resources { font-size: 11px; }
+#save-status, #map-resources, #cloud-status { font-size: 11px; }
+.cloud-box { display: flex; flex-direction: column; gap: 6px; }
+.cloud-box[hidden] { display: none; }
+.cloud-box .help { margin: 0; }
+.cloud-link { color: var(--accent); font-size: 12px; min-height: 36px; display: flex; align-items: center; }
+.cloud-row { display: flex; gap: 6px; }
+.cloud-row input { flex: 1; min-width: 0; min-height: 40px; font: inherit; font-size: 16px; color: var(--text); background: var(--btn); border: 1px solid var(--border); border-radius: 3px; padding: 4px 8px; }
+.cloud-row button { min-height: 40px; min-width: 72px; }
 .menu-help { border: 1px solid var(--border); border-radius: 4px; padding: 0 10px; }
 .menu-help summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
 .help { margin: 0 0 10px; color: var(--muted); line-height: 1.5; font-size: 12px; }
