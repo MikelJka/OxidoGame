@@ -23,22 +23,26 @@ Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat 
   1. **Construcciones aparte** (🏗 → Electricidad), del mismo tamaño que las normales: horno eléctrico 🔩20 ⚙️4, cocina eléctrica 🔩15 ⚙️3, banco eléctrico 🔩15 🪵10 ⚙️3. Sin corriente, paradas.
   2. **Mejora de la que ya tienes**: al tocar un horno, cocina o banco, «⚡ Electrificar» por 🔩10 ⚙️3. Con corriente va el doble de rápido; sin ella, a velocidad normal (no se para nunca).
   3. Como la 1, pero más baratas (🔩10 ⚙️2 cada una) y sin corriente funcionan a velocidad normal.
+  elijo la opcion 2
 
 - **Puertas automáticas y luz que sube el ánimo** (2026-10-18): de la electricidad está aprobado que la puerta automática gasta 20 W y se cierra ante un raid, y que la luz sube el ánimo, pero no cuánto cuesta la puerta ni cuánto ánimo da la luz. Opciones:
   1. **Puerta automática** 🔩10 ⚙️2 (como una de chapa, 1×1); **ánimo** +5 % «Habitación con luz» a quien duerme o trabaja junto a una lámpara encendida de noche.
   2. Puerta 🔗4 ⚙️2 (de metal, aguanta como la blindada); ánimo +8 % durante la noche a quien pase la mayor parte de ella cerca de una lámpara.
   3. Puerta 🔩8 ⚙️1 (más barata, aguanta como la de chapa); ánimo: sin luz de noche −5 % «A oscuras», con luz nada (castiga en lugar de premiar).
+  elijo la opcion 1
 
 - **Fuego amigo y posturas** (2026-10-18): es la última regla de combate aprobada, pero falta decidir cómo funciona. Opciones:
   1. **Fuego amigo**: un disparo que falla puede dar a un colono que esté en la línea de tiro a 1 casilla del objetivo (25 % de las veces que falla). **Posturas** en la ficha y en la barra del reclutado: «Mantener posición» (no se mueve; dispara a lo que tenga a tiro), «Atacar a…» (tocar un enemigo: va solo a por él) y «Retirarse» (vuelve a la cama/habitación más cercana sin pelear).
   2. Fuego amigo solo con las armas de fuego (cuando lleguen); el arco nunca da a los tuyos. Mismas posturas que la 1.
   3. Sin fuego amigo por ahora; solo las posturas de la 1, más «Defender» (se queda a 5 casillas de donde se le manda y ataca a quien entre).
+  elijo la opcion 1
 
 - **Vehículos de asedio y de combate** (2026-10-18): lo pediste tú, pero antes hay que decidir cómo funcionan. Todavía no hay combustible en el juego, así que cada opción dice de dónde sale. Opciones:
   1. **Sencillo, sin combustible**: un **ariete con techo** (🪵30 🔩10, 1×2) que empujan 2 colonos o saqueadores: rompe muros y puertas al triple de velocidad y protege a quien lo empuja (−50 % de acierto contra ellos). Los saqueadores lo traen desde el día 15. Se fabrica en 🏗 → Defensa y se mueve como un colono reclutado.
   2. **Con combustible**: nuevo recurso ⛽ (de los barriles del mapa y de una destilería: 10 🪵 → 2 ⛽). **Buggy blindado** (🔩40 🔗10 ⚙️6, 2×2, 1 ⛽ cada hora en marcha): lleva un conductor y un tirador (+ armadura −40 % de daño), corre el doble que un colono y atropella. Los saqueadores llegan en buggy desde el día 20; si se le rompe, queda como chatarra (🔩20).
   3. **Las dos cosas por fases**: primero el ariete de la 1 (sin combustible); más adelante, con la investigación de la fase 5, el combustible y el buggy de la 2, y un **camión de asalto** de los saqueadores (3×2, aguanta mucho y rompe muros al chocar, desde el día 30).
   4. Solo de los asaltantes por ahora: los saqueadores traen arietes (de la 1) desde el día 15; los colonos no fabrican vehículos hasta que haya combustible.
+  elijo la opcion 2
 
 ## Hecho
 
