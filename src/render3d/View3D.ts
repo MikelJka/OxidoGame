@@ -27,6 +27,10 @@ const WALL_H = 0.9;
 /** Variantes de dibujo por tipo de objeto del mapa. */
 const PROP_VARIANTS = 3;
 
+function inBounds3(world: World, x: number, y: number): boolean {
+  return x >= 0 && y >= 0 && x < world.map.width && y < world.map.height;
+}
+
 /** Altura de la cara de arriba de una casilla. */
 export function tileTopY(world: World, x: number, y: number): number {
   const m = world.map;
@@ -97,6 +101,9 @@ export class View3D {
   private flags: THREE.Mesh[] = [];
   private flagGeo = new THREE.ConeGeometry(0.12, 0.25, 4);
   private flagMat = new THREE.MeshBasicMaterial({ color: 0xd96c2c });
+  /** Barras de progreso y de salud (fondo y relleno), reutilizadas de un fotograma a otro. */
+  private bars: THREE.Sprite[] = [];
+  private barsUsed = 0;
   private textureCache = new Map<string, THREE.CanvasTexture>();
   private raycaster = new THREE.Raycaster();
   // Entrada.
@@ -265,6 +272,7 @@ export class View3D {
     }
     this.buildOverlay(scene);
     this.syncColonists(scene);
+    this.syncBars(w);
     this.syncLight(w);
   }
 
@@ -684,6 +692,62 @@ export class View3D {
         this.scene3.add(flag);
       }
     }
+  }
+
+  /** Un sprite de barra libre (se crean al vuelo y se reutilizan). */
+  private barSprite(color: number, order: number): THREE.Sprite {
+    let s = this.bars[this.barsUsed];
+    if (!s) {
+      s = new THREE.Sprite(new THREE.SpriteMaterial({ color, depthTest: false, depthWrite: false, fog: false }));
+      this.bars.push(s);
+      this.scene3.add(s);
+    }
+    this.barsUsed++;
+    (s.material as THREE.SpriteMaterial).color.setHex(color);
+    s.renderOrder = order;
+    s.visible = true;
+    return s;
+  }
+
+  /**
+   * Barra con fondo oscuro, siempre de cara a la cámara y por encima de todo. El relleno se
+   * ancla en el borde izquierdo del fondo: con un ancho f·W, el centro 1/(2f) lo deja ahí.
+   */
+  private addBar(x: number, y: number, z: number, width: number, frac: number, color: number): void {
+    const h = 0.11;
+    const bg = this.barSprite(0x1a1410, 20);
+    bg.center.set(0.5, 0.5);
+    bg.scale.set(width + 0.06, h + 0.05, 1);
+    bg.position.set(x, y, z);
+    const f = Math.max(0.04, Math.min(1, frac));
+    const fg = this.barSprite(color, 21);
+    fg.center.set(1 / (2 * f), 0.5);
+    fg.scale.set(width * f, h, 1);
+    fg.position.set(x, y, z);
+  }
+
+  /** Lo mismo que en 2D: progreso de cada trabajo en marcha y salud de quien está herido. */
+  private syncBars(w: World): void {
+    this.barsUsed = 0;
+    for (const c of w.colonists) {
+      const j = c.job;
+      if (!j || c.activity !== 'working' || !inBounds3(w, j.x, j.y)) continue;
+      const st = w.structures.at(j.x, j.y);
+      const above = st ? st.def.height * WALL_H : 0;
+      const y = tileTopY(w, j.x, j.y) + Math.max(1.3, above + 0.4);
+      this.addBar(j.x + 0.5, y, j.y + 0.5, 0.85, j.progress / j.work, DESIGN_COLORS[j.kind]);
+    }
+    for (const k of w.pawns()) {
+      if (k.health >= 0.999 || k.carriedBy !== undefined) continue;
+      const tx = Math.max(0, Math.min(w.map.width - 1, k.tile.x));
+      const ty = Math.max(0, Math.min(w.map.height - 1, k.tile.y));
+      let y = tileTopY(w, tx, ty);
+      const st = w.structures.at(tx, ty);
+      if (st && st.built && st.def.category === 'torre') y += st.def.height * WALL_H + 0.1;
+      const color = k.health > 0.5 ? 0x7fae5a : k.health > 0.25 ? 0xd9a22b : 0xc8442c;
+      this.addBar(k.pos.x, y + (k.downed ? 0.7 : 1.5), k.pos.y, 0.6, k.health, color);
+    }
+    for (let i = this.barsUsed; i < this.bars.length; i++) this.bars[i].visible = false;
   }
 
   /** Luz según la hora: mediodía claro, noche azulada y oscura. */

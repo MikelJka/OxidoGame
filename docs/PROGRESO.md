@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (mañana, 4) — Vista 3D: barras de progreso y de salud
+
+- Sin incidencias nuevas en 🐞. Siguiente parte aprobada: pulir la vista 3D (pedida por Mikel) antes de que sea la vista por defecto.
+- En 3D ya se ven, como en 2D: la **barra de progreso** sobre lo que se está talando, picando, construyendo o cosechando (del color de la orden), y la **barra de salud** sobre quien está herido, colonos y saqueadores (verde, amarilla o roja; más baja si está en el suelo). Siempre miran a la cámara y se ven por encima de muros y árboles.
+- No cambia ninguna regla del juego.
+- Qué probar: pasar a 3D, mandar talar unos árboles y levantar un muro, y ver cómo se llenan las barras al girar la cámara; en el modo Dios 🪄, herir a un colono y lanzar un ⚔️ Raid.
+- Sin npm en el entorno: tipos con `tsc`; la prueba completa (con la de humo en 3D), en GitHub Actions.
+- Siguiente: más pulido de la 3D (marcas de zona, muros que se unan, rendimiento). Siguen esperando respuesta de Mikel: horno, cocina y banco eléctricos; puerta automática y ánimo de la luz; fuego amigo y posturas; vehículos.
+
 ## 2026-10-18 (mañana, 3) — Paneles de almacén, huerto y taller rehechos
 
 - Última parte de «Menús de la partida más accesibles» (aprobado por Mikel): con esto quedan rehechos todos los menús de la partida.
