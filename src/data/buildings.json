@@ -282,6 +282,27 @@
     }
   },
   {
+    "id": "puerta_auto",
+    "name": "Puerta automática",
+    "category": "puerta",
+    "cost": {
+      "chatarra": 10,
+      "componentes": 2
+    },
+    "work": 450,
+    "hp": 220,
+    "blocks": false,
+    "moveCost": 1.3,
+    "height": 1,
+    "power": -20,
+    "autoDoor": true,
+    "colors": {
+      "top": "#8e9a8c",
+      "face": "#5e6a5c",
+      "dark": "#333b32"
+    }
+  },
+  {
     "id": "torre_madera",
     "name": "Torre de vigía de madera",
     "category": "torre",

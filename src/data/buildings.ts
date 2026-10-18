@@ -56,6 +56,8 @@ export interface BuildingDef {
    * lleva. Electrificado y con corriente trabaja el doble de rápido; sin ella, a velocidad normal.
    */
   electrify?: { cost: Partial<Record<ResourceId, number>>; power: number; work: number };
+  /** Puerta automática: con corriente se cierra a los saqueadores mientras dura un raid. */
+  autoDoor?: boolean;
   /** Lámpara: casillas que ilumina alrededor. */
   light?: number;
   /** Casillas de vista desde lo alto (torres; servirá para ver venir a los enemigos). */
@@ -92,6 +94,7 @@ export function validateBuilding(d: unknown): BuildingDef {
     if (!e.cost || Object.keys(e.cost).length === 0 || Object.entries(e.cost).some(([r, n]) => !RESOURCES.includes(r as ResourceId) || !Number.isInteger(n) || (n as number) <= 0)) fail('coste de electrificar no válido');
     if (!(e.power > 0) || !(e.work > 0)) fail('electrificar: vatios o trabajo no válidos');
   }
+  if (b.autoDoor && (b.category !== 'puerta' || !((b.power ?? 0) < 0))) fail('una puerta automática es una puerta que gasta corriente');
   if (!b.colors?.top || !b.colors.face || !b.colors.dark) fail('faltan colores');
   return b;
 }

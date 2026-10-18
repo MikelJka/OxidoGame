@@ -232,6 +232,19 @@ export function updatePower(st: Structures, hours: number, env: PowerEnv = { hou
   return [...nets.values()];
 }
 
+/**
+ * Casillas de las puertas automáticas cerradas: mientras dura un raid, las que tienen corriente
+ * no dejan pasar a los saqueadores (los colonos sí). Sin corriente se quedan como una puerta normal.
+ */
+export function shutDoorTiles(st: Structures, raid: boolean): Set<number> {
+  const out = new Set<number>();
+  if (!raid) return out;
+  for (const s of st.all()) {
+    if (s.def.autoDoor && s.built && s.powered) out.add(s.y * st.map.width + s.x);
+  }
+  return out;
+}
+
 /** Casillas iluminadas por lámparas encendidas. */
 export function litTiles(st: Structures): Set<number> {
   const out = new Set<number>();

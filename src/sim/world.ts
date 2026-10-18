@@ -23,7 +23,7 @@ import {
 } from './needs';
 import { applyTerrainJob, LOWER_STONE, terrainBlocker, TerrainJob, TerrainOrders } from './terrain';
 import { Structure, Structures } from './structures';
-import { isDaylight, lacksPower, litTiles, PowerNet, stationSpeed, updatePower, windStrength } from './power';
+import { isDaylight, lacksPower, litTiles, PowerNet, shutDoorTiles, stationSpeed, updatePower, windStrength } from './power';
 import type { TileRect } from './designations';
 import { RESOURCES, ResourceId, STARTING_SUPPLIES } from '../data/resources';
 
@@ -146,6 +146,8 @@ export class World implements JobContext {
   powerNets: PowerNet[] = [];
   /** Casillas iluminadas por lámparas encendidas. */
   lit = new Set<number>();
+  /** Casillas de puertas automáticas cerradas a los saqueadores (durante un raid y con corriente). */
+  shutDoors = new Set<number>();
   /** Arqueros reclutados que van a una casilla con cobertura (no se guarda). */
   readonly coverMoves = new Set<number>();
   tick = 0;
@@ -269,6 +271,12 @@ export class World implements JobContext {
     if (this.tick % TICKS_PER_SECOND === 0) {
       this.powerNets = updatePower(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR, { hour: this.hour, wind: this.wind });
       this.lit = litTiles(this.structures);
+      // Puertas automáticas: con corriente, se cierran a los saqueadores mientras dura el raid.
+      const raid = this.others.some((o) => o.role === 'saqueador' && !o.downed && !o.raider?.fleeing);
+      const before = this.shutDoors.size;
+      this.shutDoors = shutDoorTiles(this.structures, raid);
+      if (!before && this.shutDoors.size) this.addLog('🚪 Las puertas automáticas se cierran: los saqueadores no pueden pasar.', 'bueno');
+      else if (before && !this.shutDoors.size && !raid) this.addLog('🚪 Las puertas automáticas se abren.', 'info');
       // Ánimo: de noche, quien duerme o trabaja junto a una lámpara encendida está más a gusto.
       const night = !isDaylight(this.hour);
       for (const c of this.colonists) {

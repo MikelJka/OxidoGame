@@ -21,10 +21,12 @@ function moveCost(map: GameMap, x: number, y: number): number {
 /**
  * A* en 8 direcciones, sin cortar esquinas, con coste de movimiento por terreno.
  * Devuelve la lista de casillas desde la siguiente al origen hasta el destino
- * (vacía si origen == destino) o null si no hay camino.
+ * (vacía si origen == destino) o null si no hay camino. `shut`: casillas (y·ancho + x) cerradas
+ * para quien busca el camino (las puertas automáticas para los saqueadores durante un raid).
  */
-export function findPath(map: GameMap, from: Point, to: Point, maxNodes = 20000): Point[] | null {
+export function findPath(map: GameMap, from: Point, to: Point, maxNodes = 20000, shut?: ReadonlySet<number>): Point[] | null {
   if (!isWalkable(map, to.x, to.y) || !isWalkable(map, from.x, from.y)) return null;
+  if (shut?.has(to.y * map.width + to.x)) return null;
   if (from.x === to.x && from.y === to.y) return [];
 
   const w = map.width;
@@ -56,6 +58,7 @@ export function findPath(map: GameMap, from: Point, to: Point, maxNodes = 20000)
       // Sin cortar esquinas: en diagonal, ambas casillas laterales deben ser transitables.
       if (dx !== 0 && dy !== 0 && (!isWalkable(map, cx + dx, cy) || !isWalkable(map, cx, cy + dy))) continue;
       const n = ny * w + nx;
+      if (shut && (shut.has(n) || (dx !== 0 && dy !== 0 && (shut.has(cy * w + cx + dx) || shut.has((cy + dy) * w + cx))))) continue;
       if (closed[n]) continue;
       const cost = g[current] + step * moveCost(map, nx, ny);
       if (cost < g[n]) {

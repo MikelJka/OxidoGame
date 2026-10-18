@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (noche) — Electricidad: puerta automática
+
+- Sin incidencias nuevas en 🐞. Última parte aprobada de la electricidad: la puerta automática, con los números de Mikel.
+- 🏗 → Puertas → **Puerta automática** (🔩10 ⚙️2, 1×1, aguanta como la de chapa). Gasta **20 W** de su red (un cable debajo o pegado).
+- Con corriente, **mientras dura un raid se cierra a los saqueadores**: no la cruzan, buscan otro camino y, si no lo hay, se quedan fuera; los colonos la siguen usando. Al acabar el raid (o si todos huyen) se abre. El diario lo avisa («🚪 Las puertas automáticas se cierran…»).
+- Sin corriente se queda abierta, como una puerta normal. La información de la casilla dice en cuál de los casos está; en 2D lleva un piloto verde.
+- No cambia el guardado (lo de cerrada se calcula solo); las partidas antiguas no cambian.
+- Qué probar: con 🪄, cerrar un recinto con muros y una puerta automática, conectarla con un cable a un generador de leña y lanzar un ⚔️ Raid: los saqueadores se quedan fuera. Quitar el cable y repetir: entran.
+- Con esto queda terminada la electricidad (las torretas, con la investigación).
+- Sin npm en el entorno: tests con Bun (245) y tipos de `src/sim` con `tsc`; la prueba completa, en GitHub Actions.
+- Siguiente, en el orden de «Pendiente»: fuego amigo y posturas; luego combustible ⛽ y la destilería, y el rendimiento de la 3D en móviles antiguos.
+
 ## 2026-10-18 (tarde) — Electricidad: la luz sube el ánimo
 
 - Sin incidencias nuevas en 🐞. Siguiente parte aprobada de la electricidad: el ánimo de la luz, con el número que eligió Mikel.
