@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (noche, 3) — Avisos en pantalla de raids, peleas y visitas (#17, #18)
+
+- Sin incidencias nuevas en 🐞. Esta sesión, **#17 y #18**: ahora es difícil perderse un raid o una pelea.
+- Arriba, en el centro, se apilan avisos (como mucho 4) que se quedan 12 s, o 20 s los raids, los colonos caídos y las muertes; se quitan con ✕. Avisan de: ⚔️ raid, ⚔️ colono que pelea o al que ataca un saqueador, 🩸 colono herido o caído, 💀 muerte, 😱 pánico, 🚶 superviviente que pide unirse y 🐫 caravana. Al tocar uno, la cámara va adonde ha pasado (si no tiene sitio, se abre el diario).
+- De peleas y heridas se avisa como mucho una vez por colono y hora de juego. Todo queda en 📜 Diario (también con «❗ Solo lo importante»), con un botón 📍 para ir al sitio. Las partidas guardadas siguen cargando.
+- Qué probar: con 🪄 lanzar un ⚔️ Raid y ver el aviso; tocarlo y ver que la cámara va a los saqueadores; reclutar a un colono y mandarlo a pelear; en el móvil en vertical, que los avisos quepan y el ✕ se pueda tocar.
+- Sin npm en el entorno: tests con Bun (290, 5 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Sigue esperando la respuesta de Mikel: cómo conseguir más colonos (#21).
+- Siguiente: #20, llevar material a varios planos de una vez.
+
 ## 2026-10-18 (noche, 2) — Arreglado: aviso «trabaja sin tenerlo reservado» al mover muebles (#19)
 
 - Seis incidencias nuevas en 🐞 (#17 a #22), pasadas a «Pendiente» de `FEEDBACK.md` y cerradas. Esta sesión, el bug **#19**.

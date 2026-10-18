@@ -498,6 +498,8 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 .pp-day { position: sticky; top: -10px; z-index: 1; margin: 4px -12px 0; padding: 4px 12px; background: rgba(22, 19, 16, 0.97); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); }
 .log-row { display: flex; gap: 8px; line-height: 1.4; border-bottom: 1px solid #2a241e; padding: 5px 0; }
 .log-row .log-time { flex: none; width: 38px; color: var(--muted); font-size: 11px; padding-top: 1px; font-variant-numeric: tabular-nums; }
+.log-row .log-text { flex: 1; min-width: 0; }
+.log-row .log-go { flex: none; min-width: 36px; min-height: 36px; padding: 0; margin: -6px 0; }
 .log-malo { color: #e8826a; }
 .log-bueno { color: #a8cf7a; }
 .pp-grave { border: 1px solid var(--border); border-radius: 4px; padding: 0 10px; }
@@ -787,3 +789,38 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
   }
   .place-sheet.folded { top: auto; }
 }
+
+/* --- Avisos en pantalla: raids, peleas, heridos, visitas (#17, #18) ---------------- */
+#alerts {
+  position: fixed;
+  z-index: 7;
+  top: calc(62px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(360px, calc(100% - 16px));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
+}
+#alerts:empty { display: none; }
+.alert-card {
+  position: static;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 10px;
+  min-height: 40px;
+  font-size: 13px;
+  line-height: 1.3;
+  cursor: pointer;
+  border-left: 4px solid var(--muted);
+  animation: alert-in 0.25s ease-out;
+}
+.alert-card .alert-text { flex: 1; min-width: 0; }
+.alert-card button { flex: none; min-width: 36px; min-height: 36px; padding: 0; }
+.alert-malo { border-left-color: #d9534f; color: #f2b3a3; }
+.alert-bueno { border-left-color: #8fbf5a; }
+.alert-k-raid, .alert-k-muerte { background: rgba(70, 18, 14, 0.94); }
+@keyframes alert-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }

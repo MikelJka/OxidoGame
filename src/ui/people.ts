@@ -9,6 +9,7 @@ import { RESOURCE_VALUES } from '../data/values';
 import { SKILLS, SKILL_NAMES } from '../data/colonists';
 import { TICKS_PER_DAY, TICKS_PER_HOUR } from '../sim/time';
 import { START_HOUR } from '../sim/world';
+import { mountAlerts } from './alerts';
 
 export interface PeopleUI {
   /** Abre la pestaña de una persona tocada en el mapa (prisionero o comerciante). */
@@ -121,7 +122,7 @@ export function mountPeople(opts: Options): PeopleUI {
       filter.append(b);
     }
     out.push(filter);
-    const entries = [...w.log].reverse().filter((l) => logFilter === 'todo' || l.kind !== 'info').slice(0, 120);
+    const entries = [...w.log].reverse().filter((l) => logFilter === 'todo' || l.kind !== 'info' || l.alert).slice(0, 120);
     if (entries.length === 0) {
       out.push(empty('📜', logFilter === 'todo' ? 'Aún no ha pasado nada digno de contar.' : 'Nada importante por ahora: aquí salen los raids, las heridas, las muertes y las buenas noticias.'));
     }
@@ -137,7 +138,13 @@ export function mountPeople(opts: Options): PeopleUI {
       const hh = String(Math.floor(mins / 60)).padStart(2, '0');
       const mm = String(mins % 60).padStart(2, '0');
       const row = el('div', `log-row log-${l.kind}`);
-      row.append(el('span', 'log-time', `${hh}:${mm}`), el('span', undefined, l.text));
+      row.append(el('span', 'log-time', `${hh}:${mm}`), el('span', 'log-text', l.text));
+      const at = l.at;
+      if (at) {
+        const go = button('📍', () => opts.focus(at.x, at.y), 'Ir adonde pasó');
+        go.className = 'log-go';
+        row.append(go);
+      }
       out.push(row);
     }
     if (w.graveyard.length) {
@@ -390,20 +397,36 @@ export function mountPeople(opts: Options): PeopleUI {
   }
 
   // --- Avisos del diario --------------------------------------------------------------
+  // Los avisos (raids, peleas, heridos, visitas…) se apilan arriba y se quedan unos segundos;
+  // lo demás importante sale como antes, en el aviso corto del centro.
+  const alerts = mountAlerts({
+    focus: (x, y) => opts.focus(x, y),
+    openLog: () => {
+      tab = 'diario';
+      body.scrollTop = 0;
+      setOpen(true);
+    },
+  });
   function announce(w: World): void {
     if (seenWorld !== w) {
       // Partida nueva o cargada: lo antiguo no se anuncia.
       seenWorld = w;
       seenLog = w.log[w.log.length - 1] ?? null;
+      alerts.clear();
       return;
     }
     const last = w.log[w.log.length - 1];
     if (!last || last === seenLog) return;
-    const from = seenLog ? w.log.indexOf(seenLog) + 1 : 0;
+    // Si lo último visto ya salió del diario (guarda 200), se sigue desde su hora.
+    const seen = seenLog;
+    const idx = seen ? w.log.lastIndexOf(seen) : -1;
+    const from = !seen ? 0 : idx >= 0 ? idx + 1 : w.log.findIndex((l) => l.tick > seen.tick);
     seenLog = last;
-    const fresh = w.log.slice(Math.max(0, from));
-    const important = fresh.filter((l) => l.kind !== 'info' || /Raid|caravana|pide unirse/.test(l.text));
-    const shown = important[important.length - 1] ?? fresh[fresh.length - 1];
+    const fresh = from < 0 ? [] : w.log.slice(from);
+    for (const l of fresh) if (l.alert) alerts.push(l);
+    const rest = fresh.filter((l) => !l.alert);
+    const important = rest.filter((l) => l.kind !== 'info');
+    const shown = important[important.length - 1] ?? (fresh.some((l) => l.alert) ? undefined : rest[rest.length - 1]);
     if (shown) opts.toast(shown.text, shown.kind === 'malo' ? 4500 : 3000);
     btn.classList.toggle('alert', fresh.some((l) => l.kind === 'malo'));
   }

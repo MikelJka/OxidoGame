@@ -77,7 +77,18 @@ export interface LogEntry {
   tick: number;
   text: string;
   kind: 'info' | 'bueno' | 'malo';
+  /** Si es un aviso que salta en pantalla (#17, #18): de qué tipo. */
+  alert?: AlertKind;
+  /** Dónde ha pasado, para llevar la cámara al tocar el aviso. */
+  at?: Point;
 }
+
+/** Tipos de aviso en pantalla: raids, peleas, heridos, caídos, muertes, pánico y visitas. */
+export type AlertKind = 'raid' | 'combate' | 'herido' | 'caido' | 'muerte' | 'panico' | 'visita' | 'caravana';
+export const ALERT_KINDS: readonly AlertKind[] = ['raid', 'combate', 'herido', 'caido', 'muerte', 'panico', 'visita', 'caravana'];
+
+/** Cada cuánto, como mucho, se avisa de que un mismo colono pelea o está herido (1 hora de juego). */
+export const COMBAT_ALERT_GAP = TICKS_PER_HOUR;
 
 /** Algo que el jugador tiene que decidir (p. ej. aceptar a un superviviente). */
 export interface Offer {
@@ -304,9 +315,24 @@ export class World implements JobContext {
 
   // --- Personas: diario, muertes y llegadas ------------------------------------------
 
-  addLog(text: string, kind: LogEntry['kind'] = 'info'): void {
-    this.log.push({ tick: this.tick, text, kind });
+  addLog(text: string, kind: LogEntry['kind'] = 'info', alert?: AlertKind, at?: Point): void {
+    const entry: LogEntry = { tick: this.tick, text, kind };
+    if (alert) entry.alert = alert;
+    if (at) entry.at = { x: at.x, y: at.y };
+    this.log.push(entry);
     if (this.log.length > 200) this.log.splice(0, this.log.length - 200);
+  }
+
+  /** Último aviso de pelea o herida por colono (clave `tipo:id`); no se guarda: solo evita repetir avisos. */
+  private readonly combatAlerts = new Map<string, number>();
+
+  /** Aviso de pelea o herida de un colono, como mucho uno de cada tipo por colono y hora. */
+  combatAlert(c: Colonist, alert: 'combate' | 'herido', text: string): void {
+    const key = `${alert}:${c.id}`;
+    const last = this.combatAlerts.get(key);
+    if (last !== undefined && this.tick - last < COMBAT_ALERT_GAP) return;
+    this.combatAlerts.set(key, this.tick);
+    this.addLog(text, 'malo', alert, c.tile);
   }
 
   /** Todas las personas del mapa. */
@@ -323,10 +349,10 @@ export class World implements JobContext {
       const i = this.colonists.indexOf(c);
       if (i >= 0) this.colonists.splice(i, 1);
       this.graveyard.push({ name: c.name, cause, day: this.day });
-      this.addLog(`💀 ${c.name} «${c.nickname}» ha muerto (${cause}).`, 'malo');
+      this.addLog(`💀 ${c.name} «${c.nickname}» ha muerto (${cause}).`, 'malo', 'muerte', c.tile);
       if (this.colonists.length === 0 && !this.gameOver) {
         this.gameOver = { day: this.day, cause };
-        this.addLog('La colonia ha caído: no queda nadie.', 'malo');
+        this.addLog('La colonia ha caído: no queda nadie.', 'malo', 'muerte');
       }
     } else {
       this.reservations.releaseAll(c.id);

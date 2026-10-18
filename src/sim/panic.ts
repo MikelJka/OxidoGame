@@ -63,7 +63,7 @@ export function startPanic(w: World, c: Colonist, cause: PanicCause): void {
   c.activity = 'moving';
   const why = cause === 'herido' ? 'herido y hundido' : 'al ver caer a un compañero';
   const where = refuge ? (refuge.bed ? 'corre a una cama' : 'corre a encerrarse') : 'se queda encogido donde está';
-  w.addLog(`😱 ${c.name} entra en pánico ${why}: suelta lo que hacía y ${where}.`, 'malo');
+  w.addLog(`😱 ${c.name} entra en pánico ${why}: suelta lo que hacía y ${where}.`, 'malo', 'panico', c.tile);
 }
 
 /** Un tick de un colono en pánico: corre a su refugio y se queda ahí hasta que se le pasa. */

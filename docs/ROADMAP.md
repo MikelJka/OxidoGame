@@ -70,6 +70,7 @@ Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed 
 - [ ] Raids de saqueadores y mutantes que escalan con la riqueza (hechos los saqueadores; faltan los mutantes)
 - [ ] Combate: armas cuerpo a cuerpo y a distancia, cobertura con bonificaciones, control directo (hecho: control con 🎖, armas cuerpo a cuerpo y arco, cobertura y alcance, armadura, la moral de los raids con su líder ★ y el pánico de los colonos y el fuego amigo y las posturas; faltan las armas de fuego, con la investigación)
 - [x] Muerte permanente y fin de partida
+- [x] Avisos en pantalla de raids, peleas, heridos, caídos, muertes, pánico, visitas y caravanas (#17, #18)
 - [x] Supervivientes que piden unirse, prisioneros (capturar, retener, convencer, liberar) y caravanas con esclavos
 
 ## Fase 5 — Investigación y máquinas

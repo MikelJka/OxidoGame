@@ -11,7 +11,7 @@ import { WORK_TYPES, WorkType } from '../data/work';
 import { Colonist, DEFAULT_PRIORITY, STANCES, WorkPriority } from './colonist';
 import { GameMap, isPassable } from './map';
 import type { StoragePriority } from './zones';
-import { GameSpeed, TICKS_PER_DAY, World } from './world';
+import { ALERT_KINDS, GameSpeed, LogEntry, TICKS_PER_DAY, World } from './world';
 import { initialSchedule, makeDifficulty } from './storyteller';
 import { isWeapon } from '../data/weapons';
 import { ARMORS, isArmor } from '../data/armor';
@@ -58,7 +58,8 @@ export interface SaveData {
   others?: SavedColonist[];
   /** Raids en marcha, para su moral (desde que existe; las anteriores, ninguno). */
   raidGroups?: { id: number; size: number; leaderId: number; escaped: number[]; routed: boolean }[];
-  log?: { tick: number; text: string; kind: string }[];
+  /** `alert` y `at`: avisos en pantalla (desde #17; las partidas anteriores no los tienen). */
+  log?: { tick: number; text: string; kind: string; alert?: string; at?: { x: number; y: number } }[];
   graveyard?: { name: string; cause: string; day: number }[];
   gameOver?: { day: number; cause: string } | null;
   offer?: { pawn: SavedColonist; until: number } | null;
@@ -427,7 +428,11 @@ export function loadWorld(input: string | unknown): World {
   }
   for (const l of d.log ?? []) {
     const kind = (['info', 'bueno', 'malo'] as const).find((k) => k === l.kind) ?? 'info';
-    world.log.push({ tick: num(l.tick, 0), text: String(l.text ?? ''), kind });
+    const entry: LogEntry = { tick: num(l.tick, 0), text: String(l.text ?? ''), kind };
+    const alert = ALERT_KINDS.find((a) => a === l.alert);
+    if (alert) entry.alert = alert;
+    if (l.at && Number.isFinite(l.at.x) && Number.isFinite(l.at.y)) entry.at = { x: num(l.at.x, 0), y: num(l.at.y, 0) };
+    world.log.push(entry);
   }
   for (const g of d.graveyard ?? []) world.graveyard.push({ name: String(g.name ?? ''), cause: String(g.cause ?? ''), day: num(g.day, 1) });
   world.gameOver = d.gameOver ? { day: num(d.gameOver.day, 1), cause: String(d.gameOver.cause ?? '') } : null;

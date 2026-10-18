@@ -7,7 +7,7 @@ import { isGear, raiderWeaponPool, WEAPONS, WeaponDef } from '../data/weapons';
 import { armorProtection, isArmor, raiderVestPool } from '../data/armor';
 import type { Colonist } from './colonist';
 import type { Structure } from './structures';
-import { BODY_PARTS, hurt } from './health';
+import { BODY_PARTS, healthLabel, hurt } from './health';
 import { findPath, Point } from './pathfinding';
 import { inBounds, isPassable, Prop, Terrain } from './map';
 import { DIFFICULTIES, raidGap, raidSize, TRADER_GAP, WANDERER_GAP } from './storyteller';
@@ -60,7 +60,7 @@ export function runStoryteller(w: World): void {
 export function offerWanderer(w: World): void {
   const c = w.makePawn('colono');
   w.offer = { kind: 'superviviente', pawn: c, until: w.tick + TICKS_PER_DAY / 2 };
-  w.addLog(`🚶 ${c.name} «${c.nickname}», ${c.age} años, pide unirse a la colonia.`, 'info');
+  w.addLog(`🚶 ${c.name} «${c.nickname}», ${c.age} años, pide unirse a la colonia.`, 'info', 'visita');
 }
 
 /** Llega un raid de `n` saqueadores por un mismo borde. */
@@ -95,7 +95,7 @@ export function startRaid(w: World, n: number): Colonist[] {
   for (const r of out) r.raider!.group = first.id;
   w.raidGroups.push({ id: first.id, size: out.length, leaderId: leader.id, escaped: [], routed: false });
   const lead = out.length > 1 ? `, con ${leader.name} ★ al frente` : '';
-  w.addLog(`⚔️ ¡Raid! ${n} ${n === 1 ? 'saqueador llega' : 'saqueadores llegan'}${lead}. Recluta a los colonos (🎖) para defenderos.`, 'malo');
+  w.addLog(`⚔️ ¡Raid! ${n} ${n === 1 ? 'saqueador llega' : 'saqueadores llegan'}${lead}. Recluta a los colonos (🎖) para defenderos.`, 'malo', 'raid', first.tile);
   return out;
 }
 
@@ -115,7 +115,7 @@ export function startTrader(w: World): Colonist | null {
   const home = w.colonyPoint();
   const path = home ? findPath(w.map, t.tile, nearFree(w, home) ?? home, 60000) : null;
   if (path) t.path = path;
-  w.addLog(`🐫 Llega una caravana de ${t.name}${nSlaves ? ` con ${nSlaves} ${nSlaves === 1 ? 'esclavo' : 'esclavos'}` : ''}. Toca al comerciante para comerciar.`, 'bueno');
+  w.addLog(`🐫 Llega una caravana de ${t.name}${nSlaves ? ` con ${nSlaves} ${nSlaves === 1 ? 'esclavo' : 'esclavos'}` : ''}. Toca al comerciante para comerciar.`, 'bueno', 'caravana', t.tile);
   return t;
 }
 
@@ -226,6 +226,7 @@ export function canHit(w: World, a: Colonist, b: Colonist): boolean {
 /** Un golpe (o un disparo, con arco). Devuelve true si acierta. */
 export function attack(w: World, a: Colonist, b: Colonist): boolean {
   const weapon = usableWeapon(a);
+  fightAlert(w, a, b);
   a.attackCooldown = Math.round(ATTACK_COOLDOWN * (weapon?.cooldown ?? 1));
   const dx = b.pos.x - a.pos.x;
   if (Math.abs(dx) > 0.01) a.facing = dx > 0 ? 1 : -1;
@@ -243,7 +244,7 @@ export function attack(w: World, a: Colonist, b: Colonist): boolean {
     if (weapon?.ammo) {
       const victim = strayVictim(w, a, b);
       if (victim && w.rng.chance(FRIENDLY_FIRE)) {
-        w.addLog(`🎯 ${a.name} falla el disparo y le da a ${victim.name}.`, 'malo');
+        w.addLog(`🎯 ${a.name} falla el disparo y le da a ${victim.name}.`, 'malo', 'herido', victim.tile);
         applyHit(w, a, victim, weapon);
       }
     }
@@ -251,6 +252,12 @@ export function attack(w: World, a: Colonist, b: Colonist): boolean {
   }
   applyHit(w, a, b, weapon);
   return true;
+}
+
+/** Aviso de pelea (#17, #18): un colono ataca o es atacado por un saqueador (uno por colono y hora). */
+function fightAlert(w: World, a: Colonist, b: Colonist): void {
+  if (a.role === 'colono' && b.role === 'saqueador') w.combatAlert(a, 'combate', `⚔️ ${a.name} está peleando con ${b.name}.`);
+  else if (b.role === 'colono' && a.role === 'saqueador') w.combatAlert(b, 'combate', `⚔️ ${a.name} (saqueador) ataca a ${b.name}.`);
 }
 
 /** Parte de los fallos a distancia que dan a un colono en la línea de tiro (número aprobado por Mikel). */
@@ -288,10 +295,12 @@ function applyHit(w: World, a: Colonist, b: Colonist, weapon: WeaponDef | null |
   const wasDown = b.downed;
   hurt(b, dmg, part);
   if (!wasDown && b.downed) {
-    w.addLog(b.role === 'colono' ? `🩸 ${b.name} cae herido (${part}).` : `${b.name} (saqueador) cae al suelo.`, b.role === 'colono' ? 'malo' : 'bueno');
+    if (b.role === 'colono') w.addLog(`🩸 ${b.name} cae herido (${part}).`, 'malo', 'caido', b.tile);
+    else w.addLog(`${b.name} (saqueador) cae al suelo.`, 'bueno');
     // Quienes lo ven caer pueden entrar en pánico.
     if (b.role === 'colono') witnessFall(w, b);
   } else if (b.role === 'colono' && !b.downed) {
+    w.combatAlert(b, 'herido', `🩸 ${b.name} está herido (${part}) · salud ${healthLabel(b).toLowerCase()}.`);
     // Herido y con el ánimo por los suelos: puede entrar en pánico.
     maybePanic(w, b, 'herido');
   }
