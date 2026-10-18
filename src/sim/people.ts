@@ -6,6 +6,7 @@ import { personValue, RESOURCE_VALUES } from '../data/values';
 import { isGear, raiderWeaponPool, WEAPONS, WeaponDef } from '../data/weapons';
 import { armorProtection, isArmor, raiderVestPool } from '../data/armor';
 import type { Colonist } from './colonist';
+import type { Structure } from './structures';
 import { BODY_PARTS, hurt } from './health';
 import { findPath, Point } from './pathfinding';
 import { inBounds, isPassable, Prop, Terrain } from './map';
@@ -294,6 +295,79 @@ function applyHit(w: World, a: Colonist, b: Colonist, weapon: WeaponDef | null |
     // Herido y con el ánimo por los suelos: puede entrar en pánico.
     maybePanic(w, b, 'herido');
   }
+}
+
+// --- Torretas (defensas activas con electricidad) --------------------------------------
+
+/** Puntería de una torreta: como un colono con Combate 8. Sin corriente, no dispara. */
+export const TURRET_AIM_SKILL = 8;
+/** Ticks que se ve el trazo de un disparo de torreta (solo para el dibujado). */
+export const TURRET_SHOT_TICKS = 12;
+
+/** Disparo de torreta reciente (para dibujar el trazo; no se guarda). */
+export interface TurretShot {
+  from: Point;
+  to: Point;
+  tick: number;
+  hit: boolean;
+}
+
+/** Casilla de la torreta más cercana a un punto y su distancia (en diagonal cuenta como una). */
+function turretTileNear(w: World, s: Structure, p: Point): { from: Point; d: number } {
+  let best = { from: { x: s.x, y: s.y }, d: Infinity };
+  for (const t of w.structures.tilesOf(s)) {
+    const d = Math.max(Math.abs(t.x - p.x), Math.abs(t.y - p.y));
+    if (d < best.d) best = { from: t, d };
+  }
+  return best;
+}
+
+/**
+ * Torretas: cada una con corriente dispara al saqueador más cercano a su alcance que no esté
+ * detrás de un muro. No gastan munición. Los fallos no dan a los colonos.
+ */
+export function updateTurrets(w: World): void {
+  // Se olvidan los trazos viejos (van en orden de tiempo).
+  const fresh = w.turretShots.findIndex((k) => w.tick - k.tick <= TURRET_SHOT_TICKS);
+  w.turretShots.splice(0, fresh < 0 ? w.turretShots.length : fresh);
+  for (const [id, cd] of w.turretCooldown) {
+    if (cd <= 1) w.turretCooldown.delete(id);
+    else w.turretCooldown.set(id, cd - 1);
+  }
+  const enemies = w.others.filter(hostile);
+  if (enemies.length === 0) return;
+  for (const s of w.structures.turrets()) {
+    const t = s.def.turret!;
+    if (!s.powered || w.turretCooldown.has(s.id)) continue;
+    let best: { e: Colonist; from: Point; d: number } | null = null;
+    for (const e of enemies) {
+      const { from, d } = turretTileNear(w, s, e.tile);
+      if (d > t.reach) continue;
+      if (d > 1 && coverAt(w, from, e.tile) >= FULL_COVER) continue;
+      if (!best || d < best.d) best = { e, from, d };
+    }
+    if (!best) continue;
+    w.turretCooldown.set(s.id, Math.round(ATTACK_COOLDOWN * t.cooldown));
+    const hit = turretShot(w, s, best.e, best.from, best.d);
+    w.turretShots.push({ from: { ...best.from }, to: { ...best.e.tile }, tick: w.tick, hit });
+  }
+}
+
+/** Un disparo de torreta: acierta como un tirador con Combate 8 y hace el daño de su arma. */
+function turretShot(w: World, s: Structure, b: Colonist, from: Point, dist: number): boolean {
+  const t = s.def.turret!;
+  let hitChance = Math.min(0.95, 0.55 + TURRET_AIM_SKILL * 0.02);
+  hitChance = Math.max(0.2, hitChance * (1 - 0.06 * Math.max(0, dist - 1)));
+  hitChance *= 1 - Math.min(FULL_COVER, coverAt(w, from, b.tile));
+  if (!w.rng.chance(hitChance)) return false;
+  const tough = b.traits.some((k) => k.id === 'duro') ? 0.75 : 1;
+  const armor = 1 - armorProtection([b.vest, b.helmet]);
+  const dmg = (0.08 + w.rng.next() * 0.1) * (1 + TURRET_AIM_SKILL * 0.03) * tough * t.damage * armor;
+  const part = BODY_PARTS[w.rng.int(0, BODY_PARTS.length - 1)];
+  const wasDown = b.downed;
+  hurt(b, dmg, part);
+  if (!wasDown && b.downed) w.addLog(`🔫 La ${s.def.name.toLowerCase()} derriba a ${b.name} (saqueador).`, 'bueno');
+  return true;
 }
 
 /** Cada cuánto mira un arquero reclutado si tiene mejor cobertura cerca. */

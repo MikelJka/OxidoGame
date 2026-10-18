@@ -14,7 +14,7 @@ import { Rooms } from './rooms';
 import { tickHealth, treatWounds } from './health';
 import { Difficulty, initialSchedule, makeDifficulty, scaledSupplies, StorySchedule } from './storyteller';
 import { findRefuge, updatePanic } from './panic';
-import { canTalk, colonistFight, dropGear, makePrisoner, runStoryteller, talkToPrisoner, updateOthers, validAttackTarget } from './people';
+import { canTalk, colonistFight, dropGear, makePrisoner, runStoryteller, talkToPrisoner, TurretShot, updateOthers, updateTurrets, validAttackTarget } from './people';
 import { AMMO_CARRY, AMMO_LOW, isGear, isWeapon, WEAPON_IDS, WEAPONS, weaponScore } from '../data/weapons';
 import { ARMOR_IDS, ARMORS, isArmor } from '../data/armor';
 import { TRAPPED_TILES } from './diagnostics';
@@ -155,6 +155,10 @@ export class World implements JobContext {
   shutDoors = new Set<number>();
   /** Arqueros reclutados que van a una casilla con cobertura (no se guarda). */
   readonly coverMoves = new Set<number>();
+  /** Torretas: ticks hasta su siguiente disparo (no se guarda). */
+  readonly turretCooldown = new Map<number, number>();
+  /** Disparos recientes de las torretas, para dibujar el trazo (no se guarda). */
+  readonly turretShots: TurretShot[] = [];
   tick = 0;
   speed: GameSpeed = 1;
   private accumulator = 0;
@@ -295,6 +299,7 @@ export class World implements JobContext {
     if (this.tick % TICKS_PER_SECOND === 0 && this.clearing.count > 0) this.updateClearing();
     for (const c of this.colonists) this.updateColonist(c);
     updateOthers(this);
+    updateTurrets(this);
   }
 
   // --- Personas: diario, muertes y llegadas ------------------------------------------

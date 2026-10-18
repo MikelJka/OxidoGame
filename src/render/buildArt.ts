@@ -54,6 +54,10 @@ export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, ti
     drawGate(ctx, def, tile, tileH, wallH);
     return;
   }
+  if (def.turret) {
+    drawTurret(ctx, def, tile, tileH, wallH);
+    return;
+  }
   if (def.category === 'defensa') {
     drawBarricade(ctx, def, tile, tileH, wallH);
     return;
@@ -433,4 +437,32 @@ function drawElectric(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: num
     px(tile - 6, 2, 2, 2, '#e0e4e0');
     px(4, tileH, tile - 8, 1, '#8fc060');
   }
+}
+
+/** Torreta: base blindada, cúpula arriba con el cañón hacia delante y un piloto verde. */
+function drawTurret(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, wallH: number): void {
+  const { top, face, dark } = def.colors;
+  const px = painter(ctx);
+  const h = tileH + wallH;
+  ctx.clearRect(0, 0, tile, h);
+  const big = tile > 20;
+  // Base: un bloque con remaches.
+  px(1, Math.floor(tileH / 2), tile - 2, h - Math.floor(tileH / 2), '#1a1410');
+  px(2, Math.floor(tileH / 2) + 1, tile - 4, h - Math.floor(tileH / 2) - 2, face);
+  px(2, h - 3, tile - 4, 1, dark);
+  for (let x = 4; x < tile - 3; x += big ? 6 : 4) px(x, tileH + 1, 1, 1, top);
+  // Cúpula.
+  const cw = Math.max(6, Math.floor(tile * 0.55));
+  const cx = Math.floor((tile - cw) / 2);
+  const cy = Math.max(1, Math.floor(tileH / 2) - (big ? 6 : 4));
+  const ch = big ? 9 : 6;
+  px(cx - 1, cy - 1, cw + 2, ch + 2, '#1a1410');
+  px(cx, cy, cw, ch, top);
+  px(cx, cy + ch - 2, cw, 2, dark);
+  // Cañón (dos en la pesada).
+  const barrel = big ? 3 : 2;
+  px(cx + cw, cy + 2, Math.max(3, tile - cx - cw - 1), barrel, '#2a2a2a');
+  if (big) px(cx + cw, cy + 6, Math.max(3, tile - cx - cw - 1), 2, '#2a2a2a');
+  // Piloto (se ve si hay corriente; el dibujo es el mismo, la luz ayuda a reconocerla).
+  px(cx + 1, cy + 1, 2, 1, '#7fe07a');
 }

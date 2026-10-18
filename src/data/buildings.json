@@ -490,6 +490,58 @@
     }
   },
   {
+    "id": "torreta_ligera",
+    "name": "Torreta ligera",
+    "category": "defensa",
+    "cost": {
+      "chatarra": 25,
+      "componentes": 4
+    },
+    "work": 600,
+    "hp": 250,
+    "blocks": true,
+    "height": 1,
+    "power": -120,
+    "turret": {
+      "damage": 2.2,
+      "cooldown": 1,
+      "reach": 9
+    },
+    "colors": {
+      "top": "#8a8f84",
+      "face": "#5e635a",
+      "dark": "#30332e"
+    }
+  },
+  {
+    "id": "torreta_pesada",
+    "name": "Torreta pesada",
+    "category": "defensa",
+    "cost": {
+      "metal": 30,
+      "componentes": 6
+    },
+    "work": 1000,
+    "hp": 500,
+    "blocks": true,
+    "height": 2,
+    "power": -300,
+    "turret": {
+      "damage": 3.0,
+      "cooldown": 1.35,
+      "reach": 14
+    },
+    "colors": {
+      "top": "#7c8590",
+      "face": "#525a63",
+      "dark": "#2a2f35"
+    },
+    "size": [
+      2,
+      2
+    ]
+  },
+  {
     "id": "suelo_madera",
     "name": "Suelo de madera",
     "category": "suelo",

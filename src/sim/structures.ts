@@ -170,6 +170,11 @@ export class Structures {
     return [...this.byId.values()].filter((s) => !s.lifted);
   }
 
+  /** Torretas terminadas. */
+  turrets(): Structure[] {
+    return this.all().filter((s) => s.built && !!s.def.turret);
+  }
+
   /** Las que está llevando un colono a otro sitio. */
   liftedList(): Structure[] {
     return [...this.byId.values()].filter((s) => s.lifted);

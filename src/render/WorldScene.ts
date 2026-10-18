@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GameMap, describeTile, inBounds } from '../sim/map';
 import { activityLabel, Colonist, groupSummary, type Stance } from '../sim/colonist';
+import { TURRET_SHOT_TICKS } from '../sim/people';
 import { isWalkable } from '../sim/pathfinding';
 import { GameSpeed, World } from '../sim/world';
 import { loadWorld } from '../sim/save';
@@ -239,6 +240,7 @@ export class WorldScene extends Phaser.Scene {
     this.world.update(delta);
     this.repaintChangedTiles();
     this.syncColonists();
+    this.drawTurretShots();
     this.syncItems();
     this.syncDesignations();
     this.syncZones();
@@ -358,6 +360,29 @@ export class WorldScene extends Phaser.Scene {
   }
 
   /** Elevación dibujada de una casilla real. */
+  /** Trazos de los disparos recientes de las torretas (amarillo si aciertan, gris si fallan). */
+  private shotGfx: Phaser.GameObjects.Graphics | null = null;
+
+  private drawTurretShots(): void {
+    const shots = this.world.turretShots;
+    if (!this.shotGfx) {
+      if (shots.length === 0) return;
+      this.shotGfx = this.add.graphics().setDepth(COLONIST_DEPTH + 1.5);
+    }
+    const g = this.shotGfx;
+    g.clear();
+    for (const k of shots) {
+      const age = (this.world.tick - k.tick) / TURRET_SHOT_TICKS;
+      if (age > 1) continue;
+      const a = this.toViewPoint(k.from.x + 0.5, k.from.y + 0.5);
+      const b = this.toViewPoint(k.to.x + 0.5, k.to.y + 0.5);
+      const ay = rowY(a.y) - this.liftAt(k.from.x, k.from.y) - 8;
+      const by = rowY(b.y) - this.liftAt(k.to.x, k.to.y) - 4;
+      g.lineStyle(1.5, k.hit ? 0xffd27a : 0xb8b0a0, 1 - age);
+      g.lineBetween(a.x * TILE, ay, b.x * TILE, by);
+    }
+  }
+
   private liftAt(tx: number, ty: number): number {
     const v = this.viewTile(tx, ty);
     return liftOf(this.view, v.x, v.y);

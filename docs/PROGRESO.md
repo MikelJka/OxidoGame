@@ -2,6 +2,20 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (noche) — Sesión larga: clics, selección múltiple, zonas, mover muebles y torretas
+
+- Sesión larga pedida por Mikel en el chat. Él eligió hacer los cinco puntos de «Pendiente» que venían ahora, el sueño con la opción A y además las torretas eléctricas.
+- **Cancelar construcción**: mientras se coloca algo (o se marcan órdenes), el clic derecho quita el fantasma y sale del modo. En el móvil, el ✖ hace lo mismo.
+- **Sueño (#15, A)**: se recuperan en 6 h en cama y en 8 h en el suelo (antes 7 y 10).
+- **Clics y elegir varios (#16)**: en el PC, con un colono elegido, el clic izquierdo en el suelo deselecciona (y abre el panel de lo tocado) y el derecho da la orden. Arrastrar con el clic derecho elige a todos los del recuadro; de saqueadores, prisioneros y comerciantes sale un resumen (cuántos, caídos, heridos, líder, salud media). En el móvil (Mikel no eligió cómo), botón ⚒ Órdenes → **⬚ Elegir varios** y arrastrar; tocar el suelo sigue mandando a los elegidos. La ficha del grupo dice heridos y salud media.
+- **Despejar zonas (#14)**: al marcar o ampliar un almacén o un huerto, lo que hay dentro que se tala, pica o saquea queda marcado; cuando la casilla queda libre (también tras el tocón o las piedras que deja), entra en la zona. Si se quita la orden o la zona, se olvida. Se guarda con la partida.
+- **Mover muebles (B)**: al tocar una cama, armario, estantería, armero o lámpara sale un panel con **✋ Mover**; en los talleres sin electrificar, el botón está en su panel. Se coloca el fantasma (↻ gira) y un colono lo desmonta (un cuarto del trabajo de construirlo), lo lleva y lo monta, sin gastar nada; mientras tanto se ve su fantasma blanco en el destino. Si el destino se ocupa, vuelve a su sitio. El taller conserva su orden. La mesa de boticario aún no existe; se moverá cuando llegue.
+- **Torretas** (números del bloque 5 del catálogo): en Construir → Defensa, la **ligera** (🔩25 ⚙️4, 120 W, como una pistola a 9 casillas) y la **pesada** (🔗30 ⚙️6, 2×2, 300 W, como un rifle a 14). Con corriente disparan solas al saqueador más cercano que no esté tras un muro, sin munición; se ve el trazo del disparo. Lo que no decía el catálogo y he puesto yo: apuntan como un colono con Combate 8, sus fallos no dan a los colonos y no disparan a quien huye (como los colonos). Los saqueadores aún no rompen construcciones, así que por ahora no se pueden destruir.
+- Qué probar: construir un generador, cable y una torreta, y lanzar un ⚔️ Raid con 🪄; mover una cama y el banco de trabajo; marcar un almacén sobre árboles; en el PC, clic izquierdo y derecho con un colono elegido y arrastrar con el derecho; en el móvil, ⬚ Elegir varios.
+- Sin npm en el entorno: tests con Bun (284, 18 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Espera la respuesta de Mikel: si las torretas pasarán a pedir investigación cuando llegue el banco (propuesta en `FEEDBACK.md`).
+- Siguiente: lo que queda en «Pendiente» en su orden: combustible ⛽ y la destilería (primera parte de los vehículos) y, después, puentes y plataformas (primera parte del agua).
+
 ## 2026-10-18 (tarde, 9) — El doble de comida al empezar (#13)
 
 - Tres incidencias nuevas en 🐞 (#14, #15, #16), pasadas a «Pendiente» de `FEEDBACK.md` y cerradas. Esta sesión, **#13** con la opción A que eligió Mikel.

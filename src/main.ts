@@ -438,6 +438,7 @@ for (const def of BUILDINGS) {
   n.textContent = cost;
   b.append(name, n);
   b.title = `${BUILDING_CATEGORY_NAMES[def.category]} · ${def.name} · coste ${cost}`;
+  if (def.turret) b.title += ` · gasta ${-(def.power ?? 0)} W · con corriente dispara sola a ${def.turret.reach} casillas, sin munición`;
   buildList.append(b);
 }
 function setBuildCategory(cat: BuildingCategory): void {
