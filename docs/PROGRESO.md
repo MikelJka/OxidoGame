@@ -10,7 +10,8 @@ Diario de sesiones, la más reciente arriba.
 - La postura se guarda con la partida; las partidas antiguas cargan sin postura (como hasta ahora).
 - Qué probar: con 🪄, lanzar un ⚔️ Raid, reclutar a dos colonos, poner a uno en «Mantener» y al otro «Atacar a…» tocando a un saqueador lejano; probar «Retirarse» con una cama construida.
 - Con esto quedan terminadas las reglas de combate. Sin npm en el entorno: tests con Bun (261, 7 nuevos) y tipos de `src/sim` con `tsc`; la prueba completa, en GitHub Actions.
-- Siguiente: combustible ⛽ y la destilería (primera parte de los vehículos) y los bloques de `docs/CATALOGO.md` que Mikel apruebe.
+- Mikel ha pedido en el chat una update grande del agua (puentes, plataformas, muelles…): queda en «Pendiente» y su propuesta con opciones, en «Propuestas para Mikel», esperando que elija.
+- Siguiente: combustible ⛽ y la destilería (primera parte de los vehículos); la update del agua, en cuanto Mikel elija las opciones.
 
 ## 2026-10-18 (tarde, 5) — Partida en la nube: la misma partida en varios dispositivos
 

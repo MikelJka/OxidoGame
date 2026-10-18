@@ -10,6 +10,8 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 - [ ] **Vehículos de asedio y de combate** (2026-10-17, pedido por Mikel), de los colonos y de los asaltantes. **Elegido por Mikel (2026-10-18), con combustible**: nuevo recurso ⛽ (de los barriles del mapa y de una destilería: 10 🪵 → 2 ⛽). **Buggy blindado** (🔩40 🔗10 ⚙️6, 2×2, 1 ⛽ cada hora en marcha): lleva un conductor y un tirador (armadura −40 % de daño), corre el doble que un colono y atropella. Los saqueadores llegan en buggy desde el día 20; si se rompe, queda como chatarra (🔩20). Por partes: primero ⛽ y la destilería, luego el buggy de los colonos, luego el de los saqueadores.
 
+- [ ] **Update grande del agua: puentes, plataformas, muelles… todo** (2026-10-18, pedido por Mikel en el chat): va después de lo que ya está en cola. **Falta que Mikel elija** el alcance y los números (ver «Propuestas para Mikel»); hasta entonces no se implementa. Se hará por partes, cada una en una sesión.
+
 ## Aparcado
 
 Lo que Mikel ha pedido dejar para más adelante. No se trabaja en ello salvo para arreglar algo que rompa el juego.
@@ -19,6 +21,12 @@ Lo que Mikel ha pedido dejar para más adelante. No se trabaja en ello salvo par
 ## Propuestas para Mikel
 
 Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat o con 🐞).
+
+- **Update grande del agua** (2026-10-18, lo pediste tú; elige una opción de cada punto, p. ej. «1C 2B 3A 4B»):
+  1. **Alcance**. A) Básica: puentes y plataformas sobre el agua (se construye encima como sobre suelo, menos huertos). B) Media: A + muelles con pesca (nuevo recurso 🐟 pescado, comida cruda o cocinada en la cocina) y trampas de pesca. C) Todo: B + molino de agua (electricidad en los ríos), balsas para cruzar agua profunda y puente levadizo que se alza ante un raid con corriente. D) Como C y además los saqueadores llegan en balsa desde el agua a partir del día 15.
+  2. **Puentes**. A) Madera 🪵8 y metal 🔗4 por casilla, sin desgaste. B) Como el catálogo: madera 🪵8 que se pudre (pierde vida si no se repara en 20 días) y metal 🔗4 que no. C) Tres tipos: madera 🪵8 (se pudre), piedra 🪨10 (solo agua poco profunda o normal, no se pudre) y metal 🔗4 (cualquier agua). En todos: hasta 6 casillas de ancho de agua y se pueden demoler y quemar.
+  3. **Plataformas y muelles**. A) Plataforma de madera 🪵12 por casilla (en agua poco profunda o normal) y muelle de madera 🪵10 por casilla pegado a la orilla, desde el que se pesca. B) A + plataforma de metal 🔩10 ⚙️1 por casilla también en agua profunda. C) Solo muelles (sin plataformas para construir).
+  4. **Pesca y molino** (si eliges B, C o D en el punto 1). Pesca: un colono en el muelle saca 1 🐟 cada 1–2 h según Supervivencia; trampa de pesca 🪵6 🧵2, 1 🐟 al día sola. Molino de agua 🪵25 🔩10 ⚙️3, 1×2 en un río: A) 0–700 W según la corriente; B) 500 W fijos; C) sin molino. Balsa 🪵20: lleva 2 colonos, va a la mitad de velocidad sobre agua profunda.
 
 - **Catálogo de contenido** (`docs/CATALOGO.md`, 2026-10-18): 12 bloques con números (infecciones y medicinas, mutantes, investigación, armas de fuego, defensas, máquinas, facciones, mercado, sucesos y, opcionales, caza, estaciones y ocio). Marca ✅ los que apruebes.
 
