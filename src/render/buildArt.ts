@@ -65,6 +65,7 @@ export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, ti
     px(3, tileH, tile - 6, wallH - 1, face);
     for (let x = 5; x < tile - 3; x += 3) px(x, tileH, 1, wallH - 1, dark);
     px(tile - 6, tileH + Math.floor(wallH / 2), 2, 1, '#d8c27a'); // tirador
+    if (def.autoDoor) px(Math.floor(tile / 2) - 1, tileH - 1, 2, 1, '#7fe07a'); // piloto de la puerta automática
     return;
   }
   // Cara de arriba con un borde claro.

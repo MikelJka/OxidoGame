@@ -415,6 +415,7 @@ function goAway(w: World, o: Colonist, why: string): void {
     leaveMap(w, o, why);
     return;
   }
+  if (o.raider) dropShutPath(w, o);
   if (o.path.length > 0) {
     w.moveAlongPath(o);
     return;
@@ -427,7 +428,7 @@ function goAway(w: World, o: Colonist, why: string): void {
     for (let k = 0; k < 20; k++) {
       const p = e.x === 0 || e.x === m.width - 1 ? { x: e.x, y: Math.min(m.height - 1, Math.max(0, e.y + (k % 2 ? k : -k))) } : { x: Math.min(m.width - 1, Math.max(0, e.x + (k % 2 ? k : -k))), y: e.y };
       if (!isPassable(m, p.x, p.y)) continue;
-      const path = findPath(m, o.tile, p, 30000);
+      const path = findPath(m, o.tile, p, 30000, o.raider ? w.shutDoors : undefined);
       if (path) {
         o.path = path;
         return;
@@ -436,6 +437,12 @@ function goAway(w: World, o: Colonist, why: string): void {
   }
   // No hay salida: se queda (y se rinde si es saqueador).
   leaveMap(w, o, why);
+}
+
+/** Si una puerta automática se ha cerrado en el camino de un saqueador, lo olvida y busca otro. */
+function dropShutPath(w: World, o: Colonist): void {
+  if (!w.shutDoors.size || !o.path.length) return;
+  if (o.path.some((p) => w.shutDoors.has(p.y * w.map.width + p.x))) o.path = [];
 }
 
 function updateRaider(w: World, o: Colonist): void {
@@ -459,10 +466,11 @@ function updateRaider(w: World, o: Colonist): void {
         if (got) o.carrying = { resource: got.resource, amount: got.amount };
         r.fleeing = true;
       } else if (stack && o.path.length === 0) {
-        o.path = findPath(w.map, o.tile, stack, 30000) ?? [];
+        o.path = findPath(w.map, o.tile, stack, 30000, w.shutDoors) ?? [];
         if (o.path.length === 0) r.fleeing = true;
       }
     }
+    dropShutPath(w, o);
     if (o.path.length) w.moveAlongPath(o);
     return;
   }
@@ -474,8 +482,9 @@ function updateRaider(w: World, o: Colonist): void {
     return;
   }
   // Recalcula el camino de vez en cuando (el objetivo se mueve).
+  dropShutPath(w, o);
   if (o.path.length === 0 || (w.tick + o.id) % 30 === 0) {
-    const path = findPath(w.map, o.tile, target.tile, 20000);
+    const path = findPath(w.map, o.tile, target.tile, 20000, w.shutDoors);
     o.path = path ? path.slice(0, Math.max(1, path.length - 1)) : [];
     if (!path) {
       // No llega (muros): da vueltas un rato y acabará marchándose.
