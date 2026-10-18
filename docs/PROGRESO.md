@@ -13,7 +13,7 @@ Diario de sesiones, la más reciente arriba.
 - No cambia ninguna regla del juego.
 - Qué probar: en el móvil en vertical, tocar un almacén y quitar y poner recursos, «Nada» y «Todo», y cambiar la prioridad; tocar un huerto y cambiar de cultivo; tocar un banco o un horno, elegir una receta y subir el objetivo. Recoger con ▾ y girar el móvil a horizontal.
 - Sin npm en el entorno: tests con Bun (229) y tipos con `tsc`; maquetas de las hojas en 380×740, 780×360 y PC. La prueba completa, en GitHub Actions.
-- Siguiente: nada aprobado sin decidir. Esperan respuesta de Mikel: horno, cocina y banco eléctricos; puerta automática y ánimo de la luz; fuego amigo y posturas. Vehículos de asedio: hay que proponerle cómo funcionan.
+- Siguiente: nada aprobado sin decidir. Esperan respuesta de Mikel: horno, cocina y banco eléctricos; puerta automática y ánimo de la luz; fuego amigo y posturas. Nueva propuesta: vehículos de asedio y de combate (ariete, buggy con combustible…).
 
 ## 2026-10-18 (mañana, 2) — Ficha del colono rehecha
 

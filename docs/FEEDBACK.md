@@ -34,6 +34,12 @@ Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat 
   2. Fuego amigo solo con las armas de fuego (cuando lleguen); el arco nunca da a los tuyos. Mismas posturas que la 1.
   3. Sin fuego amigo por ahora; solo las posturas de la 1, más «Defender» (se queda a 5 casillas de donde se le manda y ataca a quien entre).
 
+- **Vehículos de asedio y de combate** (2026-10-18): lo pediste tú, pero antes hay que decidir cómo funcionan. Todavía no hay combustible en el juego, así que cada opción dice de dónde sale. Opciones:
+  1. **Sencillo, sin combustible**: un **ariete con techo** (🪵30 🔩10, 1×2) que empujan 2 colonos o saqueadores: rompe muros y puertas al triple de velocidad y protege a quien lo empuja (−50 % de acierto contra ellos). Los saqueadores lo traen desde el día 15. Se fabrica en 🏗 → Defensa y se mueve como un colono reclutado.
+  2. **Con combustible**: nuevo recurso ⛽ (de los barriles del mapa y de una destilería: 10 🪵 → 2 ⛽). **Buggy blindado** (🔩40 🔗10 ⚙️6, 2×2, 1 ⛽ cada hora en marcha): lleva un conductor y un tirador (+ armadura −40 % de daño), corre el doble que un colono y atropella. Los saqueadores llegan en buggy desde el día 20; si se le rompe, queda como chatarra (🔩20).
+  3. **Las dos cosas por fases**: primero el ariete de la 1 (sin combustible); más adelante, con la investigación de la fase 5, el combustible y el buggy de la 2, y un **camión de asalto** de los saqueadores (3×2, aguanta mucho y rompe muros al chocar, desde el día 30).
+  4. Solo de los asaltantes por ahora: los saqueadores traen arietes (de la 1) desde el día 15; los colonos no fabrican vehículos hasta que haya combustible.
+
 ## Hecho
 
 - [x] **Menús de la partida más accesibles e intuitivos** (2026-10-17, terminado el 2026-10-18): menú de inicio, ☰, 🏗 Construir, ⚒ Órdenes, 📜 Colonia, ficha del colono y, por último, los paneles de almacén, huerto y taller rehechos como hojas: a todo lo ancho en el móvil en vertical, columna a la izquierda en horizontal, con ▾ para recogerlos, botones grandes y borrar con doble toque.
