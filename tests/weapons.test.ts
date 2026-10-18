@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { flatWorld } from './helpers';
-import { attack, canHit, coverAt, reachOf, seekCover, startRaid, updateOthers } from '../src/sim/people';
+import { attack, canHit, coverAt, FRIENDLY_FIRE, reachOf, seekCover, startRaid, strayVictim, updateOthers } from '../src/sim/people';
 import { Prop } from '../src/sim/map';
 import { loadWorld, serializeWorld } from '../src/sim/save';
 import { TICKS_PER_DAY } from '../src/sim/world';
@@ -196,6 +196,74 @@ describe('cobertura y alcance', () => {
     e.raider = { fleeing: false, leaveAt: w.tick + 100000 };
     expect(seekCover(w, c, e)).toBe(true);
     expect(c.path[c.path.length - 1]).toEqual({ x: 11, y: 11 });
+  });
+});
+
+describe('fuego amigo', () => {
+  it('solo cuenta quien está pegado al objetivo y en la línea de tiro', () => {
+    const w = flatWorld(3);
+    const [a, b, c] = w.colonists;
+    a.tile = { x: 5, y: 10 };
+    const e = raiderAt(w, 12, 10);
+    b.tile = { x: 11, y: 10 }; // delante del objetivo
+    c.tile = { x: 12, y: 12 }; // a 2 casillas: no
+    expect(strayVictim(w, a, e)).toBe(b);
+    b.tile = { x: 13, y: 10 }; // detrás del objetivo, también en la línea
+    expect(strayVictim(w, a, e)).toBe(b);
+    b.tile = { x: 12, y: 11 }; // al lado, fuera de la línea
+    expect(strayVictim(w, a, e)).toBeNull();
+    b.tile = { x: 11, y: 10 };
+    b.downed = true; // en el suelo no
+    expect(strayVictim(w, a, e)).toBeNull();
+  });
+
+  it('una cuarta parte de los disparos fallados da al colono de la línea de tiro', () => {
+    const w = flatWorld(2);
+    const [a, b] = w.colonists;
+    a.tile = { x: 2, y: 10 };
+    a.pos = { x: 2.5, y: 10.5 };
+    a.weapon = 'arco';
+    a.skills.combate = 0;
+    b.tile = { x: 9, y: 10 };
+    b.traits = [];
+    const e = raiderAt(w, 10, 10); // a 8 casillas: se falla mucho
+    let misses = 0;
+    let stray = 0;
+    for (let i = 0; i < 4000; i++) {
+      a.ammo = 5;
+      const before = b.health;
+      const eBefore = e.health;
+      if (!attack(w, a, e)) {
+        misses++;
+        if (b.health < before) stray++;
+      }
+      expect(e.health <= eBefore).toBe(true);
+      b.health = 1;
+      b.wounds = [];
+      b.downed = false;
+      e.health = 1;
+      e.wounds = [];
+      e.downed = false;
+    }
+    expect(misses).toBeGreaterThan(1000);
+    expect(stray / misses).toBeGreaterThan(FRIENDLY_FIRE - 0.04);
+    expect(stray / misses).toBeLessThan(FRIENDLY_FIRE + 0.04);
+  });
+
+  it('cuerpo a cuerpo no hay fuego amigo', () => {
+    const w = flatWorld(2);
+    const [a, b] = w.colonists;
+    a.tile = { x: 9, y: 10 };
+    a.weapon = null;
+    b.tile = { x: 11, y: 10 };
+    const e = raiderAt(w, 10, 10);
+    for (let i = 0; i < 300; i++) {
+      attack(w, a, e);
+      e.health = 1;
+      e.wounds = [];
+      e.downed = false;
+    }
+    expect(b.health).toBe(1);
   });
 });
 

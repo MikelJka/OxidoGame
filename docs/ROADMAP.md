@@ -68,7 +68,7 @@ Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed 
 - [ ] Salud: heridas localizadas, tratamiento, infecciones (hechas heridas y curas; faltan infecciones)
 - [x] Dificultad configurable al empezar (días sin raids, dureza)
 - [ ] Raids de saqueadores y mutantes que escalan con la riqueza (hechos los saqueadores; faltan los mutantes)
-- [ ] Combate: armas cuerpo a cuerpo y a distancia, cobertura con bonificaciones, control directo (hecho: control con 🎖, armas cuerpo a cuerpo y arco, cobertura y alcance, armadura, la moral de los raids con su líder ★ y el pánico de los colonos; faltan el fuego amigo y las posturas, y las armas de fuego, con la investigación)
+- [ ] Combate: armas cuerpo a cuerpo y a distancia, cobertura con bonificaciones, control directo (hecho: control con 🎖, armas cuerpo a cuerpo y arco, cobertura y alcance, armadura, la moral de los raids con su líder ★ y el pánico de los colonos y el fuego amigo; faltan las posturas, y las armas de fuego, con la investigación)
 - [x] Muerte permanente y fin de partida
 - [x] Supervivientes que piden unirse, prisioneros (capturar, retener, convencer, liberar) y caravanas con esclavos
 

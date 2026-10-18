@@ -236,7 +236,47 @@ export function attack(w: World, a: Colonist, b: Colonist): boolean {
     if (onTower(w, a)) hitChance = Math.min(0.98, hitChance + TOWER_AIM);
     hitChance *= 1 - Math.min(FULL_COVER, coverAt(w, a.tile, b.tile));
   }
-  if (!w.rng.chance(hitChance)) return false;
+  if (!w.rng.chance(hitChance)) {
+    // Fuego amigo: un disparo fallado puede dar a un colono en la línea de tiro junto al objetivo.
+    if (weapon?.ammo) {
+      const victim = strayVictim(w, a, b);
+      if (victim && w.rng.chance(FRIENDLY_FIRE)) {
+        w.addLog(`🎯 ${a.name} falla el disparo y le da a ${victim.name}.`, 'malo');
+        applyHit(w, a, victim, weapon);
+      }
+    }
+    return false;
+  }
+  applyHit(w, a, b, weapon);
+  return true;
+}
+
+/** Parte de los fallos a distancia que dan a un colono en la línea de tiro (número aprobado por Mikel). */
+export const FRIENDLY_FIRE = 0.25;
+
+/**
+ * Colono que puede llevarse un disparo fallado de `a` a `b`: de pie, pegado al objetivo (a 1
+ * casilla) y en la línea de tiro (por delante o por detrás del objetivo). El más cercano a la línea.
+ */
+export function strayVictim(w: World, a: Colonist, b: Colonist): Colonist | null {
+  const dx = b.tile.x - a.tile.x;
+  const dy = b.tile.y - a.tile.y;
+  const len = Math.hypot(dx, dy);
+  if (len === 0) return null;
+  let best: { c: Colonist; off: number } | null = null;
+  for (const c of w.pawns()) {
+    if (c === a || c === b || c.role !== 'colono' || c.downed) continue;
+    if (Math.max(Math.abs(c.tile.x - b.tile.x), Math.abs(c.tile.y - b.tile.y)) !== 1) continue;
+    // Distancia de la casilla a la recta del disparo.
+    const off = Math.abs((c.tile.x - a.tile.x) * dy - (c.tile.y - a.tile.y) * dx) / len;
+    if (off > 0.75) continue;
+    if (!best || off < best.off) best = { c, off };
+  }
+  return best?.c ?? null;
+}
+
+/** El golpe o disparo que acierta en `b`: daño según arma, Combate, rasgos y armadura. */
+function applyHit(w: World, a: Colonist, b: Colonist, weapon: WeaponDef | null | undefined): void {
   const tough = b.traits.some((t) => t.id === 'duro') ? 0.75 : 1;
   // La dureza de la partida solo cambia los golpes de los saqueadores.
   const hard = a.role === 'saqueador' ? DIFFICULTIES[w.difficulty.level].enemyDamage : 1;
@@ -253,7 +293,6 @@ export function attack(w: World, a: Colonist, b: Colonist): boolean {
     // Herido y con el ánimo por los suelos: puede entrar en pánico.
     maybePanic(w, b, 'herido');
   }
-  return true;
 }
 
 /** Cada cuánto mira un arquero reclutado si tiene mejor cobertura cerca. */

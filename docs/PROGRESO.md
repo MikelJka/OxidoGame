@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (tarde, 4) — Combate: fuego amigo
+
+- Sin incidencias nuevas en 🐞. Siguiente punto aprobado de «Pendiente»: fuego amigo y posturas; esta sesión, la primera parte (el fuego amigo), con el número que eligió Mikel.
+- Cuando un disparo a distancia (arco) **falla**, si hay un colono de pie **pegado al objetivo y en la línea de tiro** (por delante o por detrás), **una de cada cuatro veces** le da a él: recibe el daño normal del arma (con su armadura) y el diario lo avisa («🎯 … falla el disparo y le da a …»). Vale para los disparos de los colonos y de los saqueadores. Cuerpo a cuerpo no hay fuego amigo.
+- No cambia el guardado; las partidas antiguas no cambian.
+- Qué probar: con 🪄, dar un arco y flechas a un colono, reclutarlo y lanzar un ⚔️ Raid; mandar a otro colono a pelear cuerpo a cuerpo con un saqueador que esté en la línea de tiro del arquero y mirar el diario.
+- Sin npm en el entorno: tests con Bun (248) y tipos de `src/sim` con `tsc`; la prueba completa, en GitHub Actions.
+- Siguiente: las posturas («Mantener posición», «Atacar a…», «Retirarse») en la ficha y en la barra del reclutado; luego combustible ⛽ y la destilería.
+
 ## 2026-10-18 (tarde, 3) — Electricidad: puerta automática
 
 - Sin incidencias nuevas en 🐞. Última parte aprobada de la electricidad: la puerta automática, con los números de Mikel.
