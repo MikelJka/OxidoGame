@@ -5,6 +5,7 @@ import { Prop } from '../src/sim/map';
 import { loadWorld, serializeWorld } from '../src/sim/save';
 import { TICKS_PER_HOUR } from '../src/sim/world';
 import { recipeDef } from '../src/data/recipes';
+import { LIGHT_MOOD, moodOf } from '../src/sim/needs';
 
 /** Pone y termina una construcción al momento. */
 function build(w: ReturnType<typeof flatWorld>, x: number, y: number, id: string) {
@@ -76,6 +77,40 @@ describe('electricidad', () => {
     build(w, 7, 10, 'lampara');
     for (let i = 0; i < 40; i++) w.step();
     expect(w.lightFactor({ x: 6, y: 9 })).toBe(1);
+  });
+
+  it('de noche, quien duerme junto a una lámpara encendida gana ánimo («Habitación con luz»)', () => {
+    const w = flatWorld(1, { needs: true });
+    w.tick = TICKS_PER_HOUR * 23 - 7 * TICKS_PER_HOUR; // las 23:00
+    const gen = build(w, 10, 10, 'generador_lena');
+    gen.fuel = 5;
+    build(w, 9, 10, 'cable');
+    build(w, 8, 10, 'cable');
+    build(w, 7, 10, 'lampara');
+    const c = w.colonists[0];
+    const sleepAt = (x: number, y: number) => {
+      c.tile = { x, y };
+      c.pos = { x: x + 0.5, y: y + 0.5 };
+      c.path = [];
+      c.needs.rest = 0.1;
+      c.need = { type: 'dormir', x, y, bed: false, progress: 0 };
+      c.activity = 'sleeping';
+    };
+    sleepAt(6, 9);
+    for (let i = 0; i < 40; i++) w.step();
+    expect(c.activity).toBe('sleeping');
+    const lit = moodOf(c, w.tick);
+    expect(lit.reasons.some((r) => r.text === 'Habitación con luz' && r.value === LIGHT_MOOD)).toBe(true);
+    // Lejos de la lámpara, nada.
+    sleepAt(20, 20);
+    for (let i = 0; i < 40; i++) w.step();
+    expect(moodOf(c, w.tick).reasons.some((r) => r.text === 'Habitación con luz')).toBe(false);
+    expect(moodOf(c, w.tick).mood).toBeCloseTo(lit.mood - LIGHT_MOOD);
+    // De día no cuenta, aunque esté junto a la lámpara.
+    w.tick = TICKS_PER_HOUR * 12 - 7 * TICKS_PER_HOUR;
+    sleepAt(6, 9);
+    for (let i = 0; i < 40; i++) w.step();
+    expect(c.needs.inLight).toBeUndefined();
   });
 
   it('la carga y el combustible se guardan con la partida', () => {

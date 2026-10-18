@@ -23,7 +23,7 @@ import {
 } from './needs';
 import { applyTerrainJob, LOWER_STONE, terrainBlocker, TerrainJob, TerrainOrders } from './terrain';
 import { Structure, Structures } from './structures';
-import { lacksPower, litTiles, PowerNet, stationSpeed, updatePower, windStrength } from './power';
+import { isDaylight, lacksPower, litTiles, PowerNet, stationSpeed, updatePower, windStrength } from './power';
 import type { TileRect } from './designations';
 import { RESOURCES, ResourceId, STARTING_SUPPLIES } from '../data/resources';
 
@@ -269,6 +269,13 @@ export class World implements JobContext {
     if (this.tick % TICKS_PER_SECOND === 0) {
       this.powerNets = updatePower(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR, { hour: this.hour, wind: this.wind });
       this.lit = litTiles(this.structures);
+      // Ánimo: de noche, quien duerme o trabaja junto a una lámpara encendida está más a gusto.
+      const night = !isDaylight(this.hour);
+      for (const c of this.colonists) {
+        const on = night && (c.activity === 'sleeping' || c.activity === 'working') && this.lit.has(c.tile.y * this.map.width + c.tile.x);
+        if (on) c.needs.inLight = true;
+        else delete c.needs.inLight;
+      }
     }
     for (const c of this.colonists) this.updateColonist(c);
     updateOthers(this);

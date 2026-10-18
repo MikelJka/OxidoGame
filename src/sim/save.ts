@@ -82,7 +82,7 @@ interface SavedColonist {
   priorities: Record<string, number>;
   carrying: { resource: string; amount: number } | null;
   drafted?: boolean;
-  needs?: { food: number; rest: number; sleptIn: string | null; water?: number; badWaterUntil?: number; lastMeal?: string | null };
+  needs?: { food: number; rest: number; sleptIn: string | null; water?: number; badWaterUntil?: number; lastMeal?: string | null; inLight?: boolean };
   health?: number;
   wounds?: { part: string; severity: number; bleeding: boolean; treated: boolean }[];
   downed?: boolean;
@@ -335,6 +335,8 @@ function restoreColonist(s: SavedColonist): Colonist {
       rest: Math.max(0, Math.min(1, num(s.needs?.rest, 0.85))),
       sleptIn: (['cama', 'suelo', 'habitacion'] as const).find((k) => k === s.needs?.sleptIn) ?? null,
       lastMeal: (['cocinada', 'cruda'] as const).find((k) => k === s.needs?.lastMeal) ?? null,
+      // Partidas de antes de la luz: sin lámpara cerca (se recalcula al segundo).
+      ...(s.needs?.inLight ? { inLight: true } : {}),
     },
     need: null,
     // Partidas de antes de las armas: sin arma, eligiendo sola la mejor.

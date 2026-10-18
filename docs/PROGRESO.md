@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (tarde) — Electricidad: la luz sube el ánimo
+
+- Sin incidencias nuevas en 🐞. Siguiente parte aprobada de la electricidad: el ánimo de la luz, con el número que eligió Mikel.
+- De noche (20:00–6:00), quien **duerme o trabaja** en una casilla iluminada por una lámpara encendida tiene **+5 % de ánimo**: en la ficha sale «Habitación con luz». Se nota mientras sigue ahí; al irse, apagarse la lámpara o hacerse de día, desaparece.
+- Se guarda con la partida; las partidas antiguas no cambian.
+- Qué probar: con 🪄, poner un generador de leña, un cable y una lámpara junto a una cama; de noche, cuando un colono duerma en ella, tocarlo y ver «▲ Habitación con luz» en los motivos del ánimo.
+- Sin npm en el entorno: tests con Bun (241) y tipos con `tsc`; la prueba completa, en GitHub Actions.
+- Siguiente, en el orden de «Pendiente»: la puerta automática (🔩10 ⚙️2, se cierra ante un raid); luego fuego amigo y posturas, combustible y buggy, y el rendimiento de la 3D en móviles antiguos.
+
 ## 2026-10-18 (mediodía) — Electricidad: horno, cocina y banco con «⚡ Electrificar»
 
 - Sin incidencias nuevas en 🐞. Siguiente parte aprobada de la electricidad, como la eligió Mikel: las máquinas eléctricas son una **mejora** de las que ya hay.

@@ -45,6 +45,8 @@ export interface Needs {
   sleptIn: 'cama' | 'suelo' | 'habitacion' | null;
   /** Qué comió la última vez: cuenta para el ánimo hasta la siguiente comida. */
   lastMeal: 'cocinada' | 'cruda' | null;
+  /** De noche, duerme o trabaja junto a una lámpara encendida (lo actualiza `World` cada segundo). */
+  inLight?: boolean;
 }
 
 export function defaultNeeds(): Needs {
@@ -82,6 +84,9 @@ export function restGain(inBed: boolean, ticksPerHour: number): number {
   return 1 / ((inBed ? SLEEP_HOURS_BED : SLEEP_HOURS_GROUND) * ticksPerHour);
 }
 
+/** Ánimo de más por dormir o trabajar de noche junto a una lámpara encendida (aprobado por Mikel). */
+export const LIGHT_MOOD = 0.05;
+
 /** Motivo del ánimo, con su efecto (positivo o negativo). */
 export interface MoodReason {
   text: string;
@@ -104,6 +109,7 @@ export function moodOf(c: Colonist, tick = 0): { mood: number; reasons: MoodReas
   if (n.sleptIn === 'suelo') reasons.push({ text: 'Durmió en el suelo', value: -0.08 });
   else if (n.sleptIn === 'habitacion') reasons.push({ text: 'Durmió en una cama bajo techo', value: 0.08 });
   else if (n.sleptIn === 'cama') reasons.push({ text: 'Durmió en una cama', value: 0.04 });
+  if (n.inLight) reasons.push({ text: 'Habitación con luz', value: LIGHT_MOOD });
   if (c.traits.some((t) => t.id === 'optimista')) reasons.push({ text: 'Optimista', value: 0.1 });
   if (c.traits.some((t) => t.id === 'pesimista')) reasons.push({ text: 'Pesimista', value: -0.1 });
   const mood = Math.max(0, Math.min(1, 0.55 + reasons.reduce((a, r) => a + r.value, 0)));
