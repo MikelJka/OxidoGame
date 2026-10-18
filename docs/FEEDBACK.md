@@ -6,6 +6,14 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 - [ ] **Definir todo el contenido antes que nada** (2026-10-18, pedido por Mikel): la 3D queda aparcada; primero se define e implementa todo el contenido. Una sesión ha escrito `docs/CATALOGO.md` con todo lo que falta y sus números: Mikel lo revisa, marca ✅ cada bloque que apruebe y lo aprobado pasa aquí, por fases. La simulación se mantiene portable (reglas en `src/sim`, contenido en `src/data`) para poder pasar más adelante a un motor con mejor 3D.
 
+- [ ] **#17 y #18 Enterarse de raids, combates y visitas** (2026-10-18, 🐞): Mikel no se enteró de un raid ni de que un colono estaba peleando. Que salten avisos en pantalla (raid, combate, colono herido o caído, visitas, caravanas…) que se queden también en el diario.
+
+- [ ] **#20 Llevar material a varios planos de una vez** (2026-10-18, 🐞): cuando un colono va a llevar material a un plano y hay otros planos cerca que necesitan lo mismo, que coja hasta llenar lo que puede llevar y lo reparta entre los planos cercanos.
+
+- [ ] **#22 Derribar en vez de matar; capturar, saquear o rematar** (2026-10-18, 🐞): las torretas y los colonos disparan a los saqueadores hasta dejarlos en el suelo (no hasta matarlos). Con uno en el suelo se puede elegir: capturarlo y curarlo si hay cama de prisionero, quitarle lo que lleva o rematarlo.
+
+- [ ] **#21 Más colonos o formas de ampliar la colonia** (2026-10-18, 🐞): el progreso es lento con tan pocos colonos. Hay que decidir cómo: propuesta con opciones en «Propuestas para Mikel».
+
 - [ ] **Armas** (2026-10-17, aprobado por Mikel): cuerpo a cuerpo (cuchillo, tubería, lanza, machete) y a distancia (arco; pistola casera, escopeta y rifle). Decidido con Mikel: cada colono coge solo la mejor arma libre y en su ficha se le puede fijar una o dejarlo desarmado; munición en dos tipos, flechas (madera + fibra) para el arco y balas (chatarra + componentes) para las de fuego; ahora se fabrican en el banco las de cuerpo a cuerpo y el arco, y **las de fuego se desbloquean con investigación (fase 5)**; los saqueadores llegan armados según el día (palos y cuchillos al principio, arcos y armas de fuego más adelante) y al caer sueltan el arma. Incluye los armeros de pared (fase 3). **Hechas** las de cuerpo a cuerpo, el arco, las flechas y el armero; faltan, con la investigación, las de fuego y las balas.
 
 - [ ] **Vehículos de asedio y de combate** (2026-10-17, pedido por Mikel), de los colonos y de los asaltantes. **Elegido por Mikel (2026-10-18), con combustible**: nuevo recurso ⛽ (de los barriles del mapa y de una destilería: 10 🪵 → 2 ⛽). **Buggy blindado** (🔩40 🔗10 ⚙️6, 2×2, 1 ⛽ cada hora en marcha): lleva un conductor y un tirador (armadura −40 % de daño), corre el doble que un colono y atropella. Los saqueadores llegan en buggy desde el día 20; si se rompe, queda como chatarra (🔩20). Por partes: primero ⛽ y la destilería, luego el buggy de los colonos, luego el de los saqueadores.
@@ -32,10 +40,16 @@ Lo que Mikel ha pedido dejar para más adelante. No se trabaja en ello salvo par
 
 Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat o con 🐞).
 
-Ahora no hay ninguna esperando respuesta.
+- **#21 ¿Cómo llegan más colonos?** (2026-10-18). Ahora se empieza con 3 colonos; el primer superviviente puede llegar el día 3 y luego uno cada 4-8 días (y se pueden convencer prisioneros o comprar esclavos). Opciones:
+  - **A — Más supervivientes**: el primero el día 2 y luego uno cada 2-4 días (la mitad de espera).
+  - **B — Empezar con más gente** (solo partidas nuevas): Tranquila 5, Normal 4, Dura y Brutal 3.
+  - **C — Radio de llamada** (edificio nuevo, 🔩20 ⚙️4, 100 W): con corriente atrae un superviviente cada 3 días además de los de ahora; sin radio, todo sigue igual.
+  - **D — A y B juntas.**
+  Responde con la letra (o con números tuyos) por el chat o con 🐞.
 
 ## Hecho
 
+- [x] **#19 Aviso «trabaja sin tenerlo reservado»** (2026-10-18, 🐞, bug): al mover un mueble, el colono que lo llevaba y lo montaba no tenía reservado el sitio nuevo, así que saltaba el aviso y otro colono podía ponerse a montar lo mismo. Ahora lo reserva. Los avisos de «encerrado» de esa incidencia eran del 2026-10-17 (otra partida) y ya estaban arreglados.
 - [x] **Torretas eléctricas** (2026-10-18, pedido por Mikel en el chat; números del bloque 5 del catálogo): en ⚒ Construir → Defensa, **torreta ligera** (🔩25 ⚙️4, 1×1, 120 W: dispara como una pistola, ×2,2, a 9 casillas) y **torreta pesada** (🔗30 ⚙️6, 2×2, 300 W: como un rifle, ×3,0 y más lenta, a 14 casillas). Con corriente disparan solas al saqueador más cercano que no esté detrás de un muro, sin gastar munición; sin corriente, apagadas. Apuntan como un colono con Combate 8 y sus fallos no dan a los colonos. El mortero (sin corriente, lo maneja un colono) queda para más adelante.
 - [x] **Mover muebles** (2026-10-18, escrito por Mikel; elegida la B): al tocar una cama, armario, estantería, armero o lámpara sale «✋ Mover»; en los talleres sin electrificar (banco, cocina, horno), el botón está en su panel. Se coloca el fantasma (↻ para girarlo) y un colono lo desmonta, lo lleva y lo monta, sin gastar nada. Si el sitio nuevo se ocupa mientras lo lleva, vuelve a donde estaba.
 - [x] **#14 Despejar las zonas al marcarlas** (2026-10-18, 🐞): al marcar o ampliar un almacén o un huerto, lo que haya dentro que se tale, pique o saquee queda marcado; cuando queda libre, la casilla entra en la zona. Si se quita la orden o la zona, se olvida.

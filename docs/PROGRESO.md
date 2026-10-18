@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (noche, 2) — Arreglado: aviso «trabaja sin tenerlo reservado» al mover muebles (#19)
+
+- Seis incidencias nuevas en 🐞 (#17 a #22), pasadas a «Pendiente» de `FEEDBACK.md` y cerradas. Esta sesión, el bug **#19**.
+- Al mover un mueble, el colono que lo llevaba al sitio nuevo y lo montaba no tenía reservado ese sitio: saltaba el aviso en 🐞 y otro colono podía ponerse a montar lo mismo. Ahora lo reserva (y si ya lo tiene otro, lo suelta y el mueble vuelve a su sitio con la orden en pie). Los avisos de «encerrado» que venían en la incidencia eran de otra partida del 2026-10-17, ya arreglados.
+- Qué probar: mover una cama o el banco de trabajo con ✋ Mover y ver que no sale ningún aviso nuevo en 🐞.
+- Sin npm en el entorno: tests con Bun (285, 1 nuevo); la prueba completa, en GitHub Actions.
+- Espera la respuesta de Mikel: cómo conseguir más colonos (#21), con cuatro opciones en «Propuestas para Mikel».
+- Siguiente: #17 y #18, avisos en pantalla de raids, combates y visitas.
+
 ## 2026-10-18 (noche) — Sesión larga: clics, selección múltiple, zonas, mover muebles y torretas
 
 - Sesión larga pedida por Mikel en el chat. Él eligió hacer los cinco puntos de «Pendiente» que venían ahora, el sueño con la opción A y además las torretas eléctricas.

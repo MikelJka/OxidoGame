@@ -1459,7 +1459,11 @@ export class World implements JobContext {
       j.progress = 0;
       c.path = route.path;
       c.activity = 'toJob';
+      // Suelta el sitio de antes y reserva el nuevo (si no, otro colono podría coger el mismo
+      // trabajo y el aviso «trabaja sin tenerlo reservado» saltaba mientras lo montaba, #19).
       this.reservations.releaseAll(c.id);
+      // Si ya lo tiene otro, lo deja: el mueble vuelve a su sitio y la orden sigue.
+      if (!this.reservations.reserve(j.x, j.y, c.id, 'work')) this.dropJob(c);
       return;
     }
     // Montar en el destino.

@@ -3,6 +3,7 @@ import { flatWorld } from './helpers';
 import { loadWorld, serializeWorld } from '../src/sim/save';
 import { TICKS_PER_HOUR } from '../src/sim/world';
 import { buildingDef } from '../src/data/buildings';
+import { checkWorld } from '../src/sim/diagnostics';
 
 function buildNow(world: ReturnType<typeof flatWorld>, x: number, y: number, id: string, rot: 0 | 1 = 0) {
   expect(world.structures.place(x, y, id, rot)).toBe(true);
@@ -90,5 +91,25 @@ describe('mover muebles', () => {
     const back = b.structures.at(10, 10)!;
     expect(back.def.id).toBe('cama');
     expect(back.moveTo).toEqual({ x: 20, y: 20, rot: 0 });
+  });
+  it('mientras lo lleva y lo monta, tiene reservado el sitio nuevo (#19)', () => {
+    const world = flatWorld(2);
+    const bed = buildNow(world, 10, 10, 'cama');
+    world.orderMoveStructure(bed.id, 20, 15, 0);
+    let checkedLifted = false;
+    for (let t = 0; t < TICKS_PER_HOUR * 6 && bed.moveTo; t++) {
+      world.step();
+      const keys = checkWorld(world).map((p) => p.key);
+      expect(keys.filter((k) => k.startsWith('job-unreserved') || k.startsWith('reservation-orphan'))).toEqual([]);
+      if (bed.lifted) {
+        const mover = world.colonists.find((c) => c.job?.move === 'montar');
+        if (mover) {
+          expect(world.reservations.holder(20, 15)).toBe(mover.id);
+          checkedLifted = true;
+        }
+      }
+    }
+    expect(checkedLifted).toBe(true);
+    expect(world.structures.at(20, 15)).toBe(bed);
   });
 });
