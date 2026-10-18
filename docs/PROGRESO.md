@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (tarde, 6) — Combate: posturas del reclutado
+
+- Sin incidencias nuevas en 🐞. Último punto aprobado de las reglas de combate: las posturas, tal como las decidió Mikel.
+- Con un colono (o un grupo) reclutado, bajo «🏳 Liberar» salen tres botones, también con la ficha recogida: **🛡 Mantener** (no se mueve solo ni busca cobertura; dispara o pega a lo que tenga a tiro; si se le manda a un sitio, va y sigue manteniendo allí), **🎯 Atacar a…** (después se toca a un saqueador: va solo a por él, sin hacer caso a los demás; cuando cae o huye, espera órdenes) y **🏃 Retirarse** (va a la cama o habitación más cercana y no pelea aunque le peguen). Tocar la postura activa la quita; Esc o volver a tocar «Atacar a…» cancela la elección del enemigo.
+- Mandarlo a un sitio quita «Atacar» y «Retirarse»; liberarlo quita cualquier postura. Funciona también en la vista 3D.
+- La postura se guarda con la partida; las partidas antiguas cargan sin postura (como hasta ahora).
+- Qué probar: con 🪄, lanzar un ⚔️ Raid, reclutar a dos colonos, poner a uno en «Mantener» y al otro «Atacar a…» tocando a un saqueador lejano; probar «Retirarse» con una cama construida.
+- Con esto quedan terminadas las reglas de combate. Sin npm en el entorno: tests con Bun (261, 7 nuevos) y tipos de `src/sim` con `tsc`; la prueba completa, en GitHub Actions.
+- Siguiente: combustible ⛽ y la destilería (primera parte de los vehículos) y los bloques de `docs/CATALOGO.md` que Mikel apruebe.
+
 ## 2026-10-18 (tarde, 5) — Partida en la nube: la misma partida en varios dispositivos
 
 - Pedido por Mikel en el chat: un login para seguir la misma partida desde varios dispositivos. Elegido por él: **GitHub** por ahora (sencillo; quizá Firebase si escala) y **sincronización automática**.

@@ -148,7 +148,19 @@ export interface Colonist {
   gearTask?: { x: number; y: number; resource: ResourceId };
   /** En pánico hasta ese tick: corre a refugiarse y no obedece ni trabaja. */
   panic?: { until: number };
+  /** Postura de combate del reclutado (sin ella, va a por los enemigos cercanos). */
+  stance?: Stance;
+  /** Con la postura «atacar»: id del saqueador al que va. */
+  attackTarget?: number;
 }
+
+/**
+ * Posturas del reclutado (aprobadas por Mikel el 2026-10-17): «mantener» no se mueve solo y
+ * dispara a lo que tenga a tiro; «atacar» va solo a por un enemigo; «retirarse» vuelve a la cama
+ * o habitación más cercana sin pelear.
+ */
+export type Stance = 'mantener' | 'atacar' | 'retirarse';
+export const STANCES: readonly Stance[] = ['mantener', 'atacar', 'retirarse'];
 
 export interface RaiderInfo {
   fleeing: boolean;
@@ -247,7 +259,12 @@ export function activityLabel(c: Colonist): string {
     if (c.activity === 'sleeping') return c.need.bed ? 'Durmiendo en la cama' : 'Durmiendo en el suelo';
     return c.need.type === 'comer' ? 'Yendo a comer' : c.need.type === 'beber' ? 'Yendo a beber' : 'Yendo a dormir';
   }
-  if (c.drafted && !c.job) return c.path.length > 0 ? 'Reclutado · yendo' : 'Reclutado · esperando órdenes';
+  if (c.drafted && !c.job) {
+    if (c.stance === 'mantener') return c.path.length > 0 ? 'Reclutado · yendo a su puesto' : 'Reclutado · manteniendo la posición';
+    if (c.stance === 'atacar') return 'Reclutado · atacando a un enemigo';
+    if (c.stance === 'retirarse') return c.path.length > 0 ? 'Reclutado · retirándose' : 'Reclutado · retirado, sin pelear';
+    return c.path.length > 0 ? 'Reclutado · yendo' : 'Reclutado · esperando órdenes';
+  }
   switch (c.activity) {
     case 'moving': return 'Yendo a una orden';
     case 'toJob':

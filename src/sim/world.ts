@@ -1,4 +1,4 @@
-import { Colonist, createColonist, RaidGroup, walkSpeedMultiplier } from './colonist';
+import { Colonist, createColonist, RaidGroup, Stance, walkSpeedMultiplier } from './colonist';
 import { countReachable, GameMap, generateMap, inBounds, isPassable, isWater, Prop, PROP_INFO, Terrain, TERRAIN_INFO, tileMoveCost } from './map';
 import { findPath, isWalkable, Point } from './pathfinding';
 import { Rng } from './rng';
@@ -12,8 +12,8 @@ import { regrowNature } from './nature';
 import { Rooms } from './rooms';
 import { tickHealth, treatWounds } from './health';
 import { Difficulty, initialSchedule, makeDifficulty, scaledSupplies, StorySchedule } from './storyteller';
-import { updatePanic } from './panic';
-import { canTalk, colonistFight, dropGear, makePrisoner, runStoryteller, talkToPrisoner, updateOthers } from './people';
+import { findRefuge, updatePanic } from './panic';
+import { canTalk, colonistFight, dropGear, makePrisoner, runStoryteller, talkToPrisoner, updateOthers, validAttackTarget } from './people';
 import { AMMO_CARRY, AMMO_LOW, isGear, isWeapon, WEAPON_IDS, WEAPONS, weaponScore } from '../data/weapons';
 import { ARMOR_IDS, ARMORS, isArmor } from '../data/armor';
 import { TRAPPED_TILES } from './diagnostics';
@@ -394,6 +394,11 @@ export class World implements JobContext {
     this.dropJob(c); // la orden directa manda sobre el trabajo
     c.gearTask = undefined;
     if (c.need) this.endNeed(c); // y sobre comer o dormir
+    // Mandarlo a un sitio quita «atacar» y «retirarse»; «mantener» sigue (se queda donde llegue).
+    if (c.stance === 'atacar' || c.stance === 'retirarse') {
+      c.stance = undefined;
+      c.attackTarget = undefined;
+    }
     c.path = path;
     c.activity = 'moving';
     c.waitTicks = 0;
@@ -1310,6 +1315,9 @@ export class World implements JobContext {
     const c = this.colonists.find((k) => k.id === colonistId);
     if (!c || c.drafted === drafted) return;
     c.drafted = drafted;
+    // Al liberarlo pierde la postura; reclutado de nuevo empieza sin ella.
+    c.stance = undefined;
+    c.attackTarget = undefined;
     if (c.panic) return; // en pánico sigue huyendo; al calmarse, obedece
     c.gearTask = undefined;
     this.dropJob(c);
@@ -1317,6 +1325,31 @@ export class World implements JobContext {
     c.path = [];
     c.activity = 'idle';
     c.waitTicks = drafted ? 0 : 30;
+  }
+
+  /**
+   * Postura de combate (null = la normal: va a por los enemigos cercanos). Si no estaba reclutado,
+   * se recluta. «atacar» necesita el id de un saqueador en pie; «retirarse» sale ya hacia la cama
+   * o habitación más cercana. Devuelve false si no se puede (en pánico, objetivo no válido…).
+   */
+  setStance(colonistId: number, stance: Stance | null, targetId?: number): boolean {
+    const c = this.colonists.find((k) => k.id === colonistId);
+    if (!c || c.panic || c.downed) return false;
+    if (stance === 'atacar' && !validAttackTarget(this, targetId)) return false;
+    if (!c.drafted) this.setDrafted(c.id, true);
+    c.stance = stance ?? undefined;
+    c.attackTarget = stance === 'atacar' ? targetId : undefined;
+    this.coverMoves.delete(c.id);
+    if (stance === 'mantener' || stance === 'atacar' || stance === null) {
+      // Mantener: se queda donde está (o termina de llegar adonde se le mandó).
+      if (stance === 'atacar') c.path = [];
+      return true;
+    }
+    const refuge = findRefuge(this, c);
+    c.path = refuge?.path ?? [];
+    c.activity = c.path.length ? 'moving' : 'idle';
+    this.addLog(`🏃 ${c.name} se retira ${refuge ? (refuge.bed ? 'a una cama' : 'a resguardo') : 'pero no encuentra dónde: se queda quieto'}, sin pelear.`, 'info');
+    return true;
   }
 
   /**

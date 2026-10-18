@@ -337,6 +337,9 @@ export function seekCover(w: World, c: Colonist, enemy: Colonist): boolean {
 export function colonistFight(w: World, c: Colonist): boolean {
   if (c.downed) return false;
   if (c.attackCooldown && c.attackCooldown > 0) c.attackCooldown--;
+  // Posturas del reclutado: retirarse no pelea; atacar solo va a por su objetivo.
+  if (c.drafted && c.stance === 'retirarse') return false;
+  if (c.drafted && c.stance === 'atacar') return attackTargetFight(w, c);
   const enemies = w.others.filter(hostile);
   if (enemies.length === 0) return false;
   // El enemigo más cercano a su alcance (pegado, o más lejos con lanza o arco) y sin un muro delante.
@@ -349,14 +352,16 @@ export function colonistFight(w: World, c: Colonist): boolean {
       return true;
     }
     w.coverMoves.delete(c.id);
-    if (c.drafted && (w.tick + c.id) % COVER_CHECK_TICKS === 0 && seekCover(w, c, near)) return true;
+    // Manteniendo la posición no se mueve, ni para buscar cobertura.
+    const holding = c.drafted && c.stance === 'mantener';
+    if (c.drafted && !holding && (w.tick + c.id) % COVER_CHECK_TICKS === 0 && seekCover(w, c, near)) return true;
     if (c.drafted || c.job === null) {
       c.path = [];
       return true;
     }
     return false;
   }
-  if (!c.drafted || c.path.length > 0) return false;
+  if (!c.drafted || c.path.length > 0 || c.stance === 'mantener') return false;
   // Reclutado y quieto: va a por el más cercano a su alcance.
   const target = enemies
     .map((e) => ({ e, d: Math.abs(e.tile.x - c.tile.x) + Math.abs(e.tile.y - c.tile.y) }))
@@ -366,6 +371,47 @@ export function colonistFight(w: World, c: Colonist): boolean {
   const path = findPath(w.map, c.tile, target.e.tile, 4000);
   if (path) c.path = path.slice(0, -1).length ? path.slice(0, -1) : path;
   return false;
+}
+
+/** Cada cuánto recalcula el camino hacia su objetivo quien lo persigue (el objetivo se mueve). */
+const CHASE_REPATH_TICKS = 20;
+
+/** ¿Sigue siendo un objetivo válido? (un saqueador en pie que no ha huido ni se ha ido) */
+export function validAttackTarget(w: World, id: number | undefined): Colonist | undefined {
+  if (id === undefined) return undefined;
+  const e = w.others.find((o) => o.id === id);
+  return e && hostile(e) ? e : undefined;
+}
+
+/**
+ * Postura «atacar a…»: va a por su objetivo y solo le pega a él. Cuando cae, huye o se va,
+ * vuelve a la postura normal. Siempre devuelve true (no hace otra cosa mientras ataca).
+ */
+function attackTargetFight(w: World, c: Colonist): boolean {
+  const target = validAttackTarget(w, c.attackTarget);
+  if (!target) {
+    const e = c.attackTarget !== undefined ? w.others.find((o) => o.id === c.attackTarget) : undefined;
+    c.stance = undefined;
+    c.attackTarget = undefined;
+    c.path = [];
+    c.activity = 'idle';
+    const why = e?.downed ? `ha abatido a ${e.name}` : e?.raider?.fleeing ? `${e.name} huye` : 'pierde a su objetivo';
+    w.addLog(`🎯 ${c.name}: ${why}; espera órdenes.`, 'info');
+    return true;
+  }
+  if (canHit(w, c, target)) {
+    if (!c.attackCooldown) attack(w, c, target);
+    c.path = [];
+    c.activity = 'idle';
+    return true;
+  }
+  if (c.path.length === 0 || (w.tick + c.id) % CHASE_REPATH_TICKS === 0) {
+    const path = findPath(w.map, c.tile, target.tile, 4000);
+    c.path = path ? (path.length > 1 ? path.slice(0, -1) : path) : [];
+  }
+  if (c.path.length > 0) w.moveAlongPath(c);
+  else c.activity = 'idle';
+  return true;
 }
 
 // --- Gente que no es de la colonia ----------------------------------------------------

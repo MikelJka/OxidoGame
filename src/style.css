@@ -202,6 +202,12 @@ button.active { border-color: var(--accent); color: var(--accent); }
 #cp-activity { color: var(--text); }
 #cp-draft { flex: none; min-height: 44px; padding: 4px 12px; font-size: 13px; }
 #cp-draft.active { border-color: var(--accent); color: var(--accent); }
+/* Posturas del reclutado: siempre a la vista, también con la ficha recogida. */
+.cp-stances { display: flex; gap: 6px; padding: 0 12px 8px; flex: none; }
+.cp-stances[hidden] { display: none; }
+.cp-stances button { flex: 1; min-width: 0; min-height: 40px; padding: 4px 6px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cp-stances button.active { border-color: var(--accent); color: var(--accent); }
+.cp-stances button.picking { border-color: var(--accent); background: rgba(240, 160, 80, 0.18); }
 #colonist-panel .pp-tabs { padding-top: 0; }
 #colonist-panel.folded .pp-tabs, #colonist-panel.folded .sheet-body { display: none; }
 #colonist-panel.folded .cp-title { cursor: pointer; }

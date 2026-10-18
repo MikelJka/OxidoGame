@@ -3,7 +3,7 @@ import { WorldScene } from './render/WorldScene';
 import { northLabel, Rotation } from './render/rotation';
 import { DEFAULT_TILT, TILTS } from './render/projection';
 import { seedFromString } from './sim/rng';
-import { Colonist, activityLabel, WorkPriority } from './sim/colonist';
+import { Colonist, activityLabel, Stance, WorkPriority } from './sim/colonist';
 import { isFood, moodOf, STARVING } from './sim/needs';
 import { WORK_NAMES, WORK_TYPES } from './data/work';
 import { SKILLS, SKILL_NAMES } from './data/colonists';
@@ -1154,6 +1154,21 @@ function renderRoster(): void {
 }
 $('cp-draft').addEventListener('click', () => scene().toggleDraftSelected());
 
+// Posturas del reclutado: tocar la activa la quita (vuelve a la normal).
+for (const b of $('cp-stances').querySelectorAll<HTMLButtonElement>('button[data-stance]')) {
+  b.addEventListener('click', () => {
+    const sc = scene();
+    const stance = b.dataset.stance as Stance;
+    const sel = sc.world.colonists.filter((k) => sc.selectedIds().includes(k.id));
+    if (stance === 'atacar' && sc.attackPick) {
+      sc.cancelAttackPick();
+      return;
+    }
+    const allHave = sel.length > 0 && sel.every((k) => k.stance === stance);
+    sc.setStanceSelected(allHave ? null : stance);
+  });
+}
+
 // Arma del colono: la mejor libre (sola), una concreta o ninguna.
 const weaponSelect = $<HTMLSelectElement>('cp-weapon');
 weaponSelect.append(
@@ -1343,6 +1358,15 @@ game.events.on('selection', (c: Colonist | null, group: Colonist[] = c ? [c] : [
   const allDrafted = group.every((k) => k.drafted);
   draftBtn.textContent = allDrafted ? '🏳 Liberar (G)' : '🎖 Reclutar (G)';
   draftBtn.classList.toggle('active', allDrafted);
+  const stances = $('cp-stances');
+  stances.hidden = !allDrafted;
+  for (const b of stances.querySelectorAll<HTMLButtonElement>('button[data-stance]')) {
+    const st = b.dataset.stance as Stance;
+    const picking = st === 'atacar' && scene().attackPick;
+    b.classList.toggle('active', group.every((k) => k.stance === st));
+    b.classList.toggle('picking', picking);
+    if (st === 'atacar') b.textContent = picking ? '🎯 Toca un enemigo' : '🎯 Atacar a…';
+  }
   const groupKey = group.map((k) => k.id).join(',');
   if (group.length > 1) {
     // Grupo: nombre de todos y qué hacen; sin habilidades.

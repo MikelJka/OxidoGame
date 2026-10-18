@@ -8,7 +8,7 @@ import { recipeDef } from '../data/recipes';
 import { TERRAIN_JOBS, TerrainJob } from './terrain';
 import { RESOURCES, ResourceId } from '../data/resources';
 import { WORK_TYPES, WorkType } from '../data/work';
-import { Colonist, DEFAULT_PRIORITY, WorkPriority } from './colonist';
+import { Colonist, DEFAULT_PRIORITY, STANCES, WorkPriority } from './colonist';
 import { GameMap, isPassable } from './map';
 import type { StoragePriority } from './zones';
 import { GameSpeed, TICKS_PER_DAY, World } from './world';
@@ -98,6 +98,17 @@ interface SavedColonist {
   helmet?: string | null;
   armorChoice?: string;
   panic?: { until: number };
+  /** Postura del reclutado (desde las posturas). */
+  stance?: string;
+  attackTarget?: number;
+}
+
+/** Postura del reclutado; las partidas antiguas no la tienen. */
+function loadStance(s: SavedColonist): Pick<Colonist, 'stance' | 'attackTarget'> {
+  const stance = STANCES.find((k) => k === s.stance);
+  if (!stance || !s.drafted) return {};
+  if (stance === 'atacar') return typeof s.attackTarget === 'number' ? { stance, attackTarget: s.attackTarget } : {};
+  return { stance };
 }
 
 function savePawn(c: Colonist): SavedColonist {
@@ -133,6 +144,8 @@ function savePawn(c: Colonist): SavedColonist {
     helmet: c.helmet,
     armorChoice: c.armorChoice,
     panic: c.panic ? { ...c.panic } : undefined,
+    stance: c.stance,
+    attackTarget: c.attackTarget,
   };
 }
 
@@ -349,6 +362,7 @@ function restoreColonist(s: SavedColonist): Colonist {
     armorChoice: s.armorChoice === 'ninguna' ? 'ninguna' : 'auto',
     // Partidas de antes del pánico: nadie en pánico (al cargar, sin camino: se queda quieto hasta que se le pasa).
     ...(s.panic && typeof s.panic === 'object' ? { panic: { until: num(s.panic.until, 0) } } : {}),
+    ...loadStance(s),
   };
 }
 

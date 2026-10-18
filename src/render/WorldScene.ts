@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GameMap, describeTile, inBounds } from '../sim/map';
-import { activityLabel, Colonist } from '../sim/colonist';
+import { activityLabel, Colonist, type Stance } from '../sim/colonist';
 import { isWalkable } from '../sim/pathfinding';
 import { GameSpeed, World } from '../sim/world';
 import { loadWorld } from '../sim/save';
@@ -520,7 +520,7 @@ export class WorldScene extends Phaser.Scene {
       kb.on('keydown-ONE', hotkey(() => this.setSpeed(1)));
       kb.on('keydown-TWO', hotkey(() => this.setSpeed(2)));
       kb.on('keydown-THREE', hotkey(() => this.setSpeed(3)));
-      kb.on('keydown-ESC', hotkey(() => (this.designMode ? this.setDesignMode(null) : this.select(null))));
+      kb.on('keydown-ESC', hotkey(() => (this.attackPick ? this.cancelAttackPick() : this.designMode ? this.setDesignMode(null) : this.select(null))));
       kb.on('keydown-G', hotkey(() => this.toggleDraftSelected()));
       // Con la vista 3D, las teclas de cámara las lleva ella.
       const cam2d = (fn: () => void) => hotkey(() => this.cameraKeysEnabled && fn());
@@ -626,6 +626,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   select(id: number | null): void {
+    this.attackPick = false; // cambiar de elegido cancela «atacar a…»
     if (id !== null && this.designMode) this.setDesignMode(null); // elegir un colono sale del modo de órdenes
     if (id !== null) {
       this.selectZone(null);
@@ -667,6 +668,37 @@ export class WorldScene extends Phaser.Scene {
   /** Ids de los colonos elegidos (el principal primero). */
   selectedIds(): number[] {
     return this.selectedId === null ? [] : [this.selectedId, ...this.extraIds];
+  }
+
+  /** Esperando a que se toque un enemigo para «atacar a…». */
+  attackPick = false;
+
+  /**
+   * Postura de los elegidos (null = la normal). «atacar» no se aplica aquí: deja el juego esperando
+   * a que se toque un saqueador (`tapAt`).
+   */
+  setStanceSelected(stance: Stance | null): void {
+    const ids = this.selectedIds();
+    if (ids.length === 0) return;
+    if (stance === 'atacar') {
+      this.attackPick = true;
+      this.game.events.emit('toast', '🎯 Toca al enemigo que quieres atacar');
+      this.emitSelection();
+      return;
+    }
+    this.attackPick = false;
+    for (const id of ids) this.world.setStance(id, stance);
+    const label = stance === 'mantener' ? '🛡 Mantienen la posición' : stance === 'retirarse' ? '🏃 Se retiran sin pelear' : '⚔ Sin postura: van a por los enemigos cercanos';
+    this.game.events.emit('toast', label);
+    this.emitSelection();
+  }
+
+  /** Deja de esperar el toque de «atacar a…». */
+  cancelAttackPick(): void {
+    if (!this.attackPick) return;
+    this.attackPick = false;
+    this.game.events.emit('toast', 'Ataque cancelado');
+    this.emitSelection();
   }
 
   /** Recluta o libera a los elegidos (si alguno no está reclutado, se recluta a todos). */
@@ -736,6 +768,15 @@ export class WorldScene extends Phaser.Scene {
   tapAt(hit: Colonist | undefined, t: { x: number; y: number } | null, opts: { right: boolean; additive: boolean }): void {
     // Modo Dios con una herramienta elegida: el toque es para ella.
     if (this.godTap && t && this.godTap(t, hit)) return;
+    if (this.attackPick) {
+      // «Atacar a…»: el toque elige al enemigo; tocar otra cosa lo cancela.
+      this.attackPick = false;
+      const ids = this.selectedIds();
+      const ok = hit && hit.role === 'saqueador' ? ids.filter((id) => this.world.setStance(id, 'atacar', hit.id)).length : 0;
+      this.game.events.emit('toast', ok > 0 ? `🎯 A por ${hit!.name}` : hit && hit.role === 'saqueador' ? 'Ese enemigo ya no puede pelear' : 'Ataque cancelado: no has tocado a un enemigo');
+      this.emitSelection();
+      return;
+    }
     if (hit && hit.role !== 'colono' && !opts.right) {
       // Saqueador, prisionero o comerciante: su panel.
       this.game.events.emit('pawn-tap', hit);
