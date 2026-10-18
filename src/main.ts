@@ -227,7 +227,10 @@ const menu = $('menu');
 const menuBtn = $('menu-btn');
 $('menu-btn').addEventListener('click', () => {
   menu.hidden = !menu.hidden;
-  if (!menu.hidden) report.hidden = true;
+  if (!menu.hidden) {
+    report.hidden = true;
+    $('people-panel').hidden = true;
+  }
 });
 $('menu-close').addEventListener('click', () => (menu.hidden = true));
 // El botón ☰ se ve encendido mientras el menú está abierto (lo cierre quien lo cierre).

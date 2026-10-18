@@ -291,12 +291,15 @@
       </div>
     </section>
 
-    <section id="people-panel" class="panel" hidden>
-      <div class="cp-head">
-        <div id="pp-tabs" class="zp-row"></div>
-        <button id="pp-close" type="button" title="Cerrar">✕</button>
+    <section id="people-panel" class="panel sheet" hidden role="dialog" aria-label="Colonia">
+      <div class="sheet-head">
+        <strong>📜 Colonia</strong>
+        <span id="pp-sub" class="muted"></span>
+        <button id="pp-close" type="button" title="Cerrar (Esc)" aria-label="Cerrar">✕</button>
       </div>
-      <div id="pp-body"></div>
+      <div id="pp-tabs" class="ts-tabs pp-tabs" role="tablist" aria-label="Apartado"></div>
+      <div id="pp-body" class="sheet-body"></div>
+      <div id="pp-foot" class="pp-foot" hidden></div>
     </section>
     <section id="offer-panel" class="panel" hidden></section>
     <section id="gameover" class="panel" hidden></section>

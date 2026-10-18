@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (madrugada, 2) — Menú 📜 Colonia rehecho
+
+- Siguiente parte de «Menús de la partida más accesibles» (aprobado por Mikel). El 📜 pasa a ser una hoja como la de ☰: en el móvil en vertical sale desde abajo, en horizontal es una columna a la derecha, y en PC queda a la derecha. ✕ grande para cerrar (también Esc) y el botón 📜 se ve encendido mientras está abierta; al abrirla se cierra ☰ y al revés.
+- Pestañas grandes (Diario, Prisioneros, Comercio) con un globo: cuántos prisioneros hay y «!» si hay caravana.
+- **Diario**: agrupado por días («Hoy · día N»), con la hora de cada suceso y un filtro «❗ Solo lo importante» (lo bueno y lo malo). El cementerio va plegado al final.
+- **Prisioneros**: botones grandes Retener, Convencer y Liberar con su explicación debajo.
+- **Comercio**: una tarjeta por recurso con «Comprar» y «Vender» y botones − y + de 40 px; el saldo, ↺ (vaciar el trato) y 🤝 Cerrar trato quedan fijos abajo, siempre a la vista.
+- No cambia ninguna regla del juego.
+- Qué probar: en el móvil en vertical, abrir 📜 con una caravana y un prisionero (modo Dios 🪄); comprar y vender con − y +, y ver que el saldo y el botón no se van al bajar la lista. En el diario, probar el filtro.
+- Siguiente: la ficha del colono (siguiente parte de los menús). Siguen esperando respuesta de Mikel: horno, cocina y banco eléctricos; puerta automática y ánimo de la luz; fuego amigo y posturas.
+
 ## 2026-10-18 (noche) — Pánico de los colonos
 
 - Segunda parte de la moral y huida, con los números aprobados por Mikel.

@@ -8,6 +8,7 @@ import { RESOURCES, RESOURCE_ICONS, RESOURCE_NAMES } from '../data/resources';
 import { RESOURCE_VALUES } from '../data/values';
 import { SKILLS, SKILL_NAMES } from '../data/colonists';
 import { TICKS_PER_DAY, TICKS_PER_HOUR } from '../sim/time';
+import { START_HOUR } from '../sim/world';
 
 export interface PeopleUI {
   /** Abre la pestaña de una persona tocada en el mapa (prisionero o comerciante). */
@@ -55,9 +56,13 @@ export function mountPeople(opts: Options): PeopleUI {
   const panel = document.getElementById('people-panel')!;
   const tabs = document.getElementById('pp-tabs')!;
   const body = document.getElementById('pp-body')!;
+  const foot = document.getElementById('pp-foot')!;
+  const sub = document.getElementById('pp-sub')!;
   const offer = document.getElementById('offer-panel')!;
   const over = document.getElementById('gameover')!;
   let tab: Tab = 'diario';
+  /** Diario: todo, o solo lo bueno y lo malo. */
+  let logFilter: 'todo' | 'importante' = 'todo';
   let lastKey = '';
   let deal: TradeDeal = { buy: {}, sell: {}, slaves: [], sellPrisoners: [] };
   let dealTrader = -1;
@@ -66,32 +71,80 @@ export function mountPeople(opts: Options): PeopleUI {
   let offerKey = '';
   let overShown = false;
 
-  btn.addEventListener('click', () => {
-    panel.hidden = !panel.hidden;
+  function setOpen(open: boolean): void {
+    panel.hidden = !open;
+    if (open) {
+      // Una sola hoja a la vez: se cierran el menú ☰ y el aviso de 🐞.
+      for (const id of ['menu', 'report']) {
+        const other = document.getElementById(id);
+        if (other) other.hidden = true;
+      }
+    }
     lastKey = '';
     render();
+  }
+  btn.addEventListener('click', () => setOpen(Boolean(panel.hidden)));
+  document.getElementById('pp-close')!.addEventListener('click', () => setOpen(false));
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !panel.hidden) setOpen(false);
   });
-  document.getElementById('pp-close')!.addEventListener('click', () => (panel.hidden = true));
+  // El botón 📜 se ve encendido mientras la hoja está abierta (la cierre quien la cierre).
+  new MutationObserver(() => btn.classList.toggle('active', !panel.hidden)).observe(panel, { attributes: true, attributeFilter: ['hidden'] });
 
   function setTab(t: Tab): void {
     tab = t;
     lastKey = '';
+    body.scrollTop = 0;
     render();
   }
+  const rerender = () => {
+    lastKey = '';
+    render();
+  };
+  const empty = (icon: string, text: string): HTMLElement => {
+    const e = el('div', 'pp-empty');
+    e.append(el('span', 'mi', icon), document.createTextNode(text));
+    return e;
+  };
 
   // --- Diario ----------------------------------------------------------------------
   function renderLog(w: World): HTMLElement[] {
-    if (w.log.length === 0) return [el('p', 'muted', 'Aún no ha pasado nada digno de contar.')];
     const out: HTMLElement[] = [];
-    for (const l of [...w.log].reverse().slice(0, 80)) {
+    const filter = el('div', 'pp-filter');
+    const FILTERS: [typeof logFilter, string][] = [['todo', 'Todo'], ['importante', '❗ Solo lo importante']];
+    for (const [f, label] of FILTERS) {
+      const b = button(label, () => {
+        logFilter = f;
+        rerender();
+      });
+      if (f === logFilter) b.classList.add('active');
+      filter.append(b);
+    }
+    out.push(filter);
+    const entries = [...w.log].reverse().filter((l) => logFilter === 'todo' || l.kind !== 'info').slice(0, 120);
+    if (entries.length === 0) {
+      out.push(empty('📜', logFilter === 'todo' ? 'Aún no ha pasado nada digno de contar.' : 'Nada importante por ahora: aquí salen los raids, las heridas, las muertes y las buenas noticias.'));
+    }
+    let day = -1;
+    for (const l of entries) {
+      const t = l.tick + START_HOUR * TICKS_PER_HOUR;
+      const d = Math.floor(t / TICKS_PER_DAY) + 1;
+      if (d !== day) {
+        day = d;
+        out.push(el('div', 'pp-day', d === w.day ? `Hoy · día ${d}` : `Día ${d}`));
+      }
+      const mins = Math.floor(((t % TICKS_PER_DAY) / TICKS_PER_HOUR) * 60);
+      const hh = String(Math.floor(mins / 60)).padStart(2, '0');
+      const mm = String(mins % 60).padStart(2, '0');
       const row = el('div', `log-row log-${l.kind}`);
-      const day = Math.floor(l.tick / TICKS_PER_DAY) + 1;
-      row.append(el('span', 'muted', `D${day} `), document.createTextNode(l.text));
+      row.append(el('span', 'log-time', `${hh}:${mm}`), el('span', undefined, l.text));
       out.push(row);
     }
     if (w.graveyard.length) {
-      out.push(el('div', 'zp-label', '🪦 Cementerio'));
-      for (const g of w.graveyard) out.push(el('div', 'log-row', `${g.name} · día ${g.day} · ${g.cause}`));
+      const grave = el('details', 'pp-grave');
+      grave.append(el('summary', undefined, `🪦 Cementerio (${w.graveyard.length})`));
+      for (const g of w.graveyard) grave.append(el('div', 'log-row', `${g.name} · día ${g.day} · ${g.cause}`));
+      out.push(grave);
     }
     return out;
   }
@@ -102,12 +155,12 @@ export function mountPeople(opts: Options): PeopleUI {
     const out: HTMLElement[] = [];
     const wardens = w.colonists.filter((c) => c.priorities.carcelero > 0);
     if (list.length === 0) {
-      out.push(el('p', 'muted', 'No hay prisioneros. Los saqueadores que caen heridos se pueden capturar (lo hace quien tenga la tarea Carcelero); también se compran esclavos a las caravanas.'));
+      out.push(empty('⛓', 'No hay prisioneros. Los saqueadores que caen heridos se capturan (lo hace quien tenga la tarea Carcelero); también se compran esclavos a las caravanas.'));
       return out;
     }
     if (wardens.length === 0) out.push(el('p', 'warn', '⚠️ Nadie tiene la tarea Carcelero: nadie les dará de comer ni hablará con ellos.'));
     if (!w.structures.all().some((s) => s.built && s.def.id === 'cama_prision')) {
-      out.push(el('p', 'muted', 'Consejo: construye una cama de prisionero (🏗 → Muebles); los capturados se llevan allí.'));
+      out.push(el('p', 'pp-hint', '💡 Construye una cama de prisionero (🏗 → Muebles): los capturados se llevan allí.'));
     }
     for (const p of list) {
       const info = p.prisoner!;
@@ -127,25 +180,27 @@ export function mountPeople(opts: Options): PeopleUI {
         r.append(el('span', undefined, name), bar(v, color), el('span', 'num', String(Math.round(v * 100))));
         card.append(r);
       }
-      const modes = el('div', 'zp-row');
-      const MODES: [typeof info.mode, string, string][] = [
-        ['retener', '🔒 Retener', 'Se queda preso; el carcelero le da de comer'],
-        ['convencer', '🗣 Convencer', 'El carcelero habla con él cada pocas horas para que se una (mejor con Trato alto y bien alimentado)'],
-        ['liberar', '🕊 Liberar', 'Lo soltáis y se marcha'],
+      const modes = el('div', 'pp-modes');
+      const MODES: [typeof info.mode, string, string, string][] = [
+        ['retener', '🔒', 'Retener', 'Se queda preso; el carcelero le da de comer'],
+        ['convencer', '🗣', 'Convencer', 'El carcelero habla con él cada pocas horas para que se una (mejor con Trato alto y bien alimentado)'],
+        ['liberar', '🕊', 'Liberar', 'Lo soltáis y se marcha'],
       ];
-      for (const [m, label, title] of MODES) {
-        const b = button(label, () => {
+      for (const [m, icon, label, title] of MODES) {
+        const b = button('', () => {
           info.mode = m;
-          lastKey = '';
-          render();
+          rerender();
         }, title);
+        b.append(el('span', 'mi', icon), el('span', undefined, label));
         if (info.mode === m) b.classList.add('active');
         modes.append(b);
       }
       card.append(modes);
+      const what = MODES.find(([m]) => m === info.mode);
+      if (what) card.append(el('div', 'pp-hint', what[3]));
       if (info.mode === 'convencer') {
         const next = info.lastTalk + 6 * TICKS_PER_HOUR - w.tick;
-        card.append(el('div', 'muted', next > 0 ? `Próxima charla en ${Math.ceil(next / TICKS_PER_HOUR)} h` : 'Esperando a que el carcelero hable con él'));
+        card.append(el('div', 'pp-hint', next > 0 ? `Próxima charla en ${Math.ceil(next / TICKS_PER_HOUR)} h` : 'Esperando a que el carcelero hable con él'));
       }
       out.push(card);
     }
@@ -153,9 +208,10 @@ export function mountPeople(opts: Options): PeopleUI {
   }
 
   // --- Comercio --------------------------------------------------------------------
+  /** Pinta el comercio en el cuerpo y deja en el pie el saldo y «Cerrar trato». */
   function renderTrade(w: World): HTMLElement[] {
     const trader = w.others.find((o) => o.role === 'comerciante' && o.trader && !o.trader.leaving);
-    if (!trader) return [el('p', 'muted', 'No hay ninguna caravana. Pasan de vez en cuando; cuando llegue una, tócala en el mapa o vuelve aquí.')];
+    if (!trader) return [empty('🐫', 'No hay ninguna caravana. Pasan de vez en cuando; cuando llegue una, tócala en el mapa o vuelve aquí.')];
     if (dealTrader !== trader.id) {
       dealTrader = trader.id;
       deal = { buy: {}, sell: {}, slaves: [], sellPrisoners: [] };
@@ -164,13 +220,14 @@ export function mountPeople(opts: Options): PeopleUI {
     const inv = w.inventory();
     const out: HTMLElement[] = [];
     const hours = Math.max(0, Math.ceil((t.leaveAt - w.tick) / TICKS_PER_HOUR));
-    out.push(el('div', 'muted', `Caravana de ${trader.name} · se va en ${hours} h · cobra un ${Math.round((TRADER_MARGIN - 1) * 100)} % más de lo que paga`));
+    out.push(el('p', 'pp-hint', `Caravana de ${trader.name} · se va en ${hours} h. Cobra un ${Math.round((TRADER_MARGIN - 1) * 100)} % más de lo que paga. Elige con − y + qué compras y qué vendes; el saldo sale abajo.`));
     const table = el('div', 'trade-table');
     for (const r of RESOURCES) {
       const has = t.stock[r] ?? 0;
       if (has <= 0 && inv[r] <= 0) continue;
       const step = RESOURCE_VALUES[r] >= 4 ? 1 : 5;
       const row = el('div', 'trade-row');
+      if (deal.buy[r] || deal.sell[r]) row.classList.add('on');
       row.append(el('span', 'trade-name', `${RESOURCE_ICONS[r]} ${RESOURCE_NAMES[r]}`));
       const qty = (side: 'buy' | 'sell', max: number) => {
         const box = el('span', 'trade-qty');
@@ -178,52 +235,64 @@ export function mountPeople(opts: Options): PeopleUI {
         const set = (v: number) => {
           deal[side][r] = Math.max(0, Math.min(max, v));
           if (!deal[side][r]) delete deal[side][r];
-          lastKey = '';
-          render();
+          rerender();
         };
-        box.append(button('−', () => set(n - step)), el('span', 'num', String(n)), button('+', () => set(n + step)));
+        const minus = button('−', () => set(n - step), `Quitar ${step}`);
+        const plus = button('+', () => set(n + step), `Añadir ${step}`);
+        minus.disabled = n <= 0;
+        plus.disabled = n >= max;
+        box.append(minus, el('span', 'num', String(n)), plus);
         return box;
       };
+      const sides = el('div', 'trade-sides');
       const buyCell = el('span', 'trade-side');
-      buyCell.append(el('span', 'muted', `él ${has} · ${(RESOURCE_VALUES[r] * TRADER_MARGIN).toFixed(1)}`), qty('buy', has));
+      const price = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ','));
+      buyCell.append(el('strong', undefined, 'Comprar'), el('span', 'muted', `él tiene ${has} · ${price(RESOURCE_VALUES[r] * TRADER_MARGIN)} c/u`), qty('buy', has));
       const sellCell = el('span', 'trade-side');
-      sellCell.append(el('span', 'muted', `tenéis ${inv[r]} · ${RESOURCE_VALUES[r]}`), qty('sell', inv[r]));
-      row.append(buyCell, sellCell);
+      sellCell.append(el('strong', undefined, 'Vender'), el('span', 'muted', `tenéis ${inv[r]} · ${price(RESOURCE_VALUES[r])} c/u`), qty('sell', inv[r]));
+      sides.append(buyCell, sellCell);
+      row.append(sides);
       table.append(row);
     }
-    const legend = el('div', 'trade-row trade-legend');
-    legend.append(el('span'), el('span', 'muted', 'Comprar (precio)'), el('span', 'muted', 'Vender (precio)'));
-    out.push(legend, table);
+    out.push(table);
     if (t.slaves.length) {
-      out.push(el('div', 'zp-label', '⛓ Esclavos en venta (pasan a ser prisioneros para convencer)'));
+      out.push(el('div', 'menu-sec', '⛓ Esclavos en venta'));
+      out.push(el('p', 'pp-hint', 'Pasan a ser prisioneros; luego hay que convencerlos para que se unan.'));
       for (const s of t.slaves) {
         const on = deal.slaves.includes(s.id);
         const b = button(`${on ? '☑' : '☐'} ${s.name}, ${s.age} años · ${topSkills(s)} · ${Math.round(slaveValue(s) * TRADER_MARGIN)}`, () => {
           deal.slaves = on ? deal.slaves.filter((i) => i !== s.id) : [...deal.slaves, s.id];
-          lastKey = '';
-          render();
+          rerender();
         });
-        b.className = 'trade-person';
+        b.classList.add('trade-person');
+        if (on) b.classList.add('active');
         out.push(b);
       }
     }
     const prisoners = w.others.filter((o) => o.role === 'prisionero');
     if (prisoners.length) {
-      out.push(el('div', 'zp-label', 'Vender prisioneros'));
+      out.push(el('div', 'menu-sec', 'Vender prisioneros'));
       for (const p of prisoners) {
         const on = deal.sellPrisoners.includes(p.id);
         const b = button(`${on ? '☑' : '☐'} ${p.name} · ${Math.round(slaveValue(p) * 0.6)}`, () => {
           deal.sellPrisoners = on ? deal.sellPrisoners.filter((i) => i !== p.id) : [...deal.sellPrisoners, p.id];
-          lastKey = '';
-          render();
+          rerender();
         });
-        b.className = 'trade-person';
+        b.classList.add('trade-person');
+        if (on) b.classList.add('active');
         out.push(b);
       }
     }
+    // Pie fijo: el saldo y el botón siempre a la vista, aunque la lista sea larga.
     const balance = dealBalance(w, trader, deal);
-    const empty = !Object.keys(deal.buy).length && !Object.keys(deal.sell).length && !deal.slaves.length && !deal.sellPrisoners.length;
-    out.push(el('div', balance >= 0 ? 'trade-balance ok' : 'trade-balance bad', `Saldo: ${balance >= 0 ? '+' : ''}${Math.round(balance)} ${balance >= 0 ? '(acepta)' : '(no le compensa)'}`));
+    const none = !Object.keys(deal.buy).length && !Object.keys(deal.sell).length && !deal.slaves.length && !deal.sellPrisoners.length;
+    const info = el('div', none ? 'trade-balance' : balance >= 0 ? 'trade-balance ok' : 'trade-balance bad',
+      none ? 'Elige qué comprar o vender' : `Saldo ${balance >= 0 ? '+' : ''}${Math.round(balance)} · ${balance >= 0 ? 'acepta' : 'no le compensa'}`);
+    const clear = button('↺', () => {
+      deal = { buy: {}, sell: {}, slaves: [], sellPrisoners: [] };
+      rerender();
+    }, 'Vaciar el trato');
+    clear.disabled = none;
     const go = button('🤝 Cerrar trato', () => {
       const why = makeDeal(w, trader, deal);
       if (why) {
@@ -232,11 +301,11 @@ export function mountPeople(opts: Options): PeopleUI {
       }
       opts.toast('🤝 Trato hecho: lo comprado está en el suelo junto a la caravana', 3000);
       deal = { buy: {}, sell: {}, slaves: [], sellPrisoners: [] };
-      lastKey = '';
-      render();
+      rerender();
     });
-    go.disabled = empty || balance < 0;
-    out.push(go);
+    go.disabled = none || balance < 0;
+    foot.replaceChildren(info, clear, go);
+    foot.hidden = false;
     return out;
   }
 
@@ -248,22 +317,28 @@ export function mountPeople(opts: Options): PeopleUI {
     const trader = w.others.some((o) => o.role === 'comerciante' && !o.trader?.leaving);
     // Se repinta solo si cambia algo que se ve (para no perder toques a medias).
     const key = [
-      tab, w.log.length, w.log[w.log.length - 1]?.tick, trader,
+      tab, logFilter, w.log.length, w.log[w.log.length - 1]?.tick, trader, w.colonists.length, w.day,
       prisoners.map((p) => `${p.id}:${p.prisoner!.mode}:${Math.round(p.prisoner!.resistance * 100)}:${Math.round(p.needs.food * 20)}:${Math.round(p.needs.water * 20)}:${Math.round(p.health * 20)}`).join(','),
       tab === 'comercio' ? `${JSON.stringify(w.inventory())}:${Math.floor(w.tick / TICKS_PER_HOUR)}` : '',
     ].join('|');
     if (key === lastKey) return;
     lastKey = key;
-    const TABS: [Tab, string][] = [
-      ['diario', '📜 Diario'],
-      ['prisioneros', `⛓ Prisioneros${prisoners.length ? ` (${prisoners.length})` : ''}`],
-      ['comercio', `🐫 Comercio${trader ? ' •' : ''}`],
+    sub.textContent = `Día ${w.day} · ${w.colonists.length} ${w.colonists.length === 1 ? 'colono' : 'colonos'}`;
+    const TABS: [Tab, string, string, number | string][] = [
+      ['diario', '📜', 'Diario', ''],
+      ['prisioneros', '⛓', 'Prisioneros', prisoners.length || ''],
+      ['comercio', '🐫', 'Comercio', trader ? '!' : ''],
     ];
-    tabs.replaceChildren(...TABS.map(([t, label]) => {
-      const b = button(label, () => setTab(t));
+    tabs.replaceChildren(...TABS.map(([t, icon, label, badge]) => {
+      const b = button('', () => setTab(t), label);
+      b.append(el('span', 'tab-icon', icon), el('span', 'tab-label', label));
+      b.setAttribute('role', 'tab');
+      b.setAttribute('aria-selected', String(t === tab));
+      if (badge !== '') b.append(el('span', 'badge', String(badge)));
       if (t === tab) b.classList.add('active');
       return b;
     }));
+    foot.hidden = true;
     body.replaceChildren(...(tab === 'diario' ? renderLog(w) : tab === 'prisioneros' ? renderPrisoners(w) : renderTrade(w)));
   }
 
@@ -349,8 +424,9 @@ export function mountPeople(opts: Options): PeopleUI {
         opts.toast(`⚔️ ${c.name} (saqueador${c.raider?.leader ? ', líder del raid ★' : ''}) · ${healthLabel(c).toLowerCase()} · combate ${c.skills.combate}${c.downed ? ' · un carcelero lo capturará' : ''}`, 2500);
         return;
       }
-      panel.hidden = false;
-      setTab(c.role === 'comerciante' ? 'comercio' : c.role === 'prisionero' ? 'prisioneros' : 'diario');
+      tab = c.role === 'comerciante' ? 'comercio' : c.role === 'prisionero' ? 'prisioneros' : 'diario';
+      body.scrollTop = 0;
+      setOpen(true);
     },
   };
 }

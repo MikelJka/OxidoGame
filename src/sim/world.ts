@@ -32,7 +32,7 @@ export { TICKS_PER_DAY, TICKS_PER_HOUR, TICKS_PER_SECOND };
 /** Casillas por segundo (a x1) de un colono normal en terreno de coste 1. */
 const BASE_WALK_SPEED = 3;
 /** La partida empieza a las 7:00 del día 1. */
-const START_HOUR = 7;
+export const START_HOUR = 7;
 /** Máximo de ticks a simular por fotograma para no bloquear el navegador. */
 const MAX_TICKS_PER_UPDATE = 60;
 /** Casillas que mira un colono, como mucho, buscando dónde beber. */
