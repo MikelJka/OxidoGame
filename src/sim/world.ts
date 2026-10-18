@@ -23,7 +23,7 @@ import {
 } from './needs';
 import { applyTerrainJob, LOWER_STONE, terrainBlocker, TerrainJob, TerrainOrders } from './terrain';
 import { Structure, Structures } from './structures';
-import { lacksPower, litTiles, PowerNet, updatePower, windStrength } from './power';
+import { lacksPower, litTiles, PowerNet, stationSpeed, updatePower, windStrength } from './power';
 import type { TileRect } from './designations';
 import { RESOURCES, ResourceId, STARTING_SUPPLIES } from '../data/resources';
 
@@ -912,7 +912,9 @@ export class World implements JobContext {
     if (j.kind === 'construir') {
       const s = this.jobStructure(j);
       if (j.demolish) return !!s && s.built && !!s.demolish;
-      if (!s || s.built) return false;
+      if (j.upgrade) {
+        if (!s || !s.built || !s.upgrade || s.demolish) return false;
+      } else if (!s || s.built) return false;
       if (h && !h.picked) {
         const st = this.items.at(h.from.x, h.from.y);
         if (!st || st.resource !== h.resource || (this.structures.needs(s)[h.resource] ?? 0) <= 0) return false;
@@ -992,7 +994,9 @@ export class World implements JobContext {
     c.activity = 'working';
     const dx = j.x + 0.5 - c.pos.x;
     if (Math.abs(dx) > 0.01) c.facing = dx > 0 ? 1 : -1;
-    j.progress += workSpeed(c, j.kind) * this.lightFactor(c.tile);
+    // Un taller electrificado con corriente va el doble de rápido.
+    const boost = (j.kind === 'fabricar' || j.kind === 'cocinar') && target ? stationSpeed(target) : 1;
+    j.progress += workSpeed(c, j.kind) * this.lightFactor(c.tile) * boost;
     if (building && j.demolish) {
       if (j.progress >= j.work) {
         this.demolishStructure(this.jobStructure(j)!);
@@ -1010,6 +1014,16 @@ export class World implements JobContext {
       if (j.progress >= j.work) {
         const s = this.jobStructure(j)!;
         if (this.structures.consumeInputs(s)) this.dropBeside(s, s.bill!.recipe.outputs);
+        this.dropJob(c);
+      }
+      return;
+    }
+    if (building && j.upgrade) {
+      const s = this.jobStructure(j)!;
+      if (s.upgrade) s.upgrade.progress = j.progress;
+      if (j.progress >= j.work) {
+        this.structures.finishElectrify(s);
+        this.addLog(`⚡ Taller electrificado: ${s.def.name}. Con corriente trabaja el doble de rápido.`, 'bueno');
         this.dropJob(c);
       }
       return;
@@ -1246,6 +1260,12 @@ export class World implements JobContext {
   }
 
   /** Suelta recursos junto a una construcción (desde una casilla de al lado, por si ocupa varias). */
+  /** Cancela la electrificación de un taller: el material ya traído se deja a su lado. */
+  cancelElectrify(s: Structure): void {
+    const back = this.structures.cancelElectrify(s);
+    if (Object.keys(back).length) this.dropBeside(s, back);
+  }
+
   private dropBeside(s: Structure, gains: Partial<Stockpile>): void {
     const side = this.structures.sidesOf(s)[0] ?? { x: s.x, y: s.y };
     this.items.dropAll(side.x, side.y, gains);

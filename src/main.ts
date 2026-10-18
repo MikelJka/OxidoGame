@@ -630,10 +630,52 @@ function renderStationStatus(s: Structure): void {
     return;
   }
   const out = (Object.keys(b.recipe.outputs) as ResourceId[]).map((r) => `${RESOURCE_ICONS[r]} ${inv[r]}/${b.target}`).join(' ');
-  const state = b.paused ? '⏸ En pausa' : (Object.keys(b.recipe.outputs) as ResourceId[]).every((r) => inv[r] >= b.target) ? '✔ Objetivo cumplido' : '⚙ Fabricando';
+  const state = s.upgrade ? '⚡ Electrificando' : b.paused ? '⏸ En pausa' : (Object.keys(b.recipe.outputs) as ResourceId[]).every((r) => inv[r] >= b.target) ? '✔ Objetivo cumplido' : '⚙ Fabricando';
   $('sp-status').textContent = `${state} · ${b.recipe.name}: tienes ${out}${inside ? ` · dentro: ${inside}` : ''}`;
 }
-game.events.on('station-tick', (s: Structure) => renderStationStatus(s));
+/** Electrificar: botón y estado (con corriente, el doble de rápido; sin ella, normal). */
+function renderStationPower(s: Structure): void {
+  const e = s.def.electrify;
+  const box = $('sp-power');
+  box.hidden = !e;
+  if (!e) return;
+  const w = scene().world;
+  const text = $('sp-power-text');
+  const go = $<HTMLButtonElement>('sp-electrify');
+  const cancel = $<HTMLButtonElement>('sp-electrify-cancel');
+  box.classList.toggle('on', !!s.electric);
+  go.hidden = !w.structures.canElectrify(s);
+  cancel.hidden = !s.upgrade;
+  if (s.electric) {
+    const net = w.powerNetOf(s);
+    text.textContent = !net
+      ? `⚡ Eléctrico (${e.power} W) · sin cable: va a velocidad normal. Conéctalo con un cable a un generador.`
+      : s.powered
+        ? `⚡ Eléctrico (${e.power} W) · con corriente: trabaja el doble de rápido`
+        : `⚡ Eléctrico (${e.power} W) · la red no da para él: va a velocidad normal`;
+  } else if (s.upgrade) {
+    const got = (Object.keys(e.cost) as ResourceId[]).map((r) => `${RESOURCE_ICONS[r]}${s.upgrade!.delivered[r] ?? 0}/${e.cost[r]}`).join(' ');
+    text.textContent = `⚡ Electrificando (trabajo «construir»): ${got} · obra ${Math.min(100, Math.floor((s.upgrade.progress / e.work) * 100))} %. Mientras, no fabrica.`;
+  } else {
+    go.textContent = `⚡ Electrificar · ${fmtRes(e.cost)}`;
+    text.textContent = `Mejora: con corriente (${e.power} W) trabaja el doble de rápido; sin ella, a velocidad normal (nunca se para).`;
+  }
+}
+$('sp-electrify').addEventListener('click', () => {
+  const sc = scene();
+  const s = sc.selectedStation;
+  if (s && sc.world.structures.orderElectrify(s)) sc.refreshStation();
+});
+$('sp-electrify-cancel').addEventListener('click', () => {
+  const sc = scene();
+  const s = sc.selectedStation;
+  if (s?.upgrade) sc.world.cancelElectrify(s);
+  sc.refreshStation();
+});
+game.events.on('station-tick', (s: Structure) => {
+  renderStationStatus(s);
+  renderStationPower(s);
+});
 let lastStation: Structure | null = null;
 game.events.on('station-select', (s: Structure | null) => {
   stationPanel.hidden = !s;
@@ -643,8 +685,9 @@ game.events.on('station-select', (s: Structure | null) => {
   }
   if (s !== lastStation) unfold(stationPanel);
   lastStation = s;
-  $('sp-name').textContent = `🛠 ${s.def.name}`;
+  $('sp-name').textContent = `🛠 ${s.def.name}${s.electric ? ' ⚡' : ''}`;
   renderStationStatus(s);
+  renderStationPower(s);
   const inv = scene().world.inventory();
   $('sp-recipes').replaceChildren(
     ...recipesFor(s.def.id).map((r) => {

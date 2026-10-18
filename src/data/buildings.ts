@@ -51,6 +51,11 @@ export interface BuildingDef {
   battery?: number;
   /** Combustible que gasta para producir: qué, cuántas horas dura cada unidad y cuántas caben. */
   fuel?: { resource: ResourceId; hoursPerUnit: number; capacity: number };
+  /**
+   * Taller que se puede electrificar (mejora): lo que cuesta, los vatios que gasta y el trabajo que
+   * lleva. Electrificado y con corriente trabaja el doble de rápido; sin ella, a velocidad normal.
+   */
+  electrify?: { cost: Partial<Record<ResourceId, number>>; power: number; work: number };
   /** Lámpara: casillas que ilumina alrededor. */
   light?: number;
   /** Casillas de vista desde lo alto (torres; servirá para ver venir a los enemigos). */
@@ -81,6 +86,12 @@ export function validateBuilding(d: unknown): BuildingDef {
   if (b.moveCost !== undefined && !(b.moveCost >= 0.5 && b.moveCost <= 5)) fail('coste de paso no válido');
   if (b.category === 'torre' && b.blocks) fail('una torre se tiene que poder subir (no bloquea)');
   if (b.source !== undefined && (!['solar', 'wind'].includes(b.source) || !((b.power ?? 0) > 0))) fail('fuente de energía no válida');
+  if (b.electrify !== undefined) {
+    const e = b.electrify;
+    if (b.category !== 'taller' || b.power !== undefined) fail('solo se electrifica un taller sin corriente propia');
+    if (!e.cost || Object.keys(e.cost).length === 0 || Object.entries(e.cost).some(([r, n]) => !RESOURCES.includes(r as ResourceId) || !Number.isInteger(n) || (n as number) <= 0)) fail('coste de electrificar no válido');
+    if (!(e.power > 0) || !(e.work > 0)) fail('electrificar: vatios o trabajo no válidos');
+  }
   if (!b.colors?.top || !b.colors.face || !b.colors.dark) fail('faltan colores');
   return b;
 }

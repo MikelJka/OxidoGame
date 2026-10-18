@@ -74,9 +74,23 @@ function naturalOutput(st: Structures, s: Structure, env: PowerEnv): number {
   return p;
 }
 
+/** Vatios de una construcción: positivo si produce, negativo si consume (un taller electrificado, su mejora). */
+export function powerOf(s: Structure): number {
+  if (s.def.power) return s.def.power;
+  return s.electric && s.def.electrify ? -s.def.electrify.power : 0;
+}
+
 /** Usa electricidad (produce, consume o guarda). */
 export function isElectric(s: Structure): boolean {
-  return !!s.def.power || !!s.def.battery;
+  return powerOf(s) !== 0 || !!s.def.battery;
+}
+
+/**
+ * Multiplicador de velocidad de un taller por la corriente: electrificado y con corriente, el doble;
+ * si no, normal (un taller electrificado nunca se para por falta de corriente).
+ */
+export function stationSpeed(s: Structure): number {
+  return s.electric && s.powered ? 2 : 1;
 }
 
 /** Necesita corriente para funcionar (recicladora, depuradora, lámpara…) y ahora no le llega. */
@@ -164,7 +178,7 @@ export function updatePower(st: Structures, hours: number, env: PowerEnv = { hou
       if (net) net.batteries.push(s);
       continue;
     }
-    const p = s.def.power ?? 0;
+    const p = powerOf(s);
     if (p > 0) {
       // Un generador de combustible solo produce si le queda; lo gasta aunque nadie use la corriente.
       // La placa solar de noche o el molino sin viento no producen.
@@ -195,7 +209,7 @@ export function updatePower(st: Structures, hours: number, env: PowerEnv = { hou
     const fromBatteries = hours > 0 ? net.stored / hours : 0;
     let budget = net.production + fromBatteries;
     for (const c of net.consumers) {
-      const need = -(c.def.power ?? 0);
+      const need = -powerOf(c);
       if (need <= budget) {
         c.powered = true;
         budget -= need;

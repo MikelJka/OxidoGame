@@ -742,6 +742,10 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 .ps-foot { flex: none; border-top: 1px solid var(--border); padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 8px; }
 .ps-foot[hidden] { display: none; }
 .ps-foot button { min-height: 44px; padding: 4px 12px; }
+.sp-power { display: flex; flex-direction: column; gap: 6px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; }
+.sp-power.on { border-color: #e0c040; }
+.sp-power[hidden] { display: none; }
+#sp-electrify { font-size: 14px; border-color: #e0c040; }
 #sp-target { flex: 1; text-align: center; font-size: 13px; }
 .ps-delete { flex: none; min-height: 44px; margin-top: 6px; border-color: #5a3a30; }
 .ps-delete.confirm { border-color: #d9534f; color: #e8826a; background: #3a1a16; font-weight: bold; }

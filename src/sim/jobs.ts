@@ -104,7 +104,8 @@ export interface JobContext {
 /** Un taller tiene que seguir: orden activa y la colonia aún no tiene lo que pide. */
 export function stationWantsWork(ctx: JobContext, s: Structure): boolean {
   const b = s.bill;
-  if (!s.built || !b || b.paused || s.demolish) return false;
+  // Mientras se electrifica, no se fabrica.
+  if (!s.built || !b || b.paused || s.demolish || s.upgrade) return false;
   // La recicladora sin corriente está parada.
   if (lacksPower(s)) return false;
   const inv = ctx.inventory();
@@ -393,6 +394,35 @@ function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
         const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, ctx.structures.sidesOf(s));
         if (!route) return null;
         return { job: { kind: 'construir', sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: 0, work: Math.ceil(s.def.work / 2), demolish: true }, path: route.path };
+      },
+    });
+  }
+  // Electrificar talleres: traer el material de la mejora y hacer la obra, como un plano.
+  for (const s of ctx.structures.upgrades()) {
+    const holder = ctx.reservations.holder(s.x, s.y);
+    if (holder !== undefined && holder !== c.id) continue;
+    out.push({
+      kind: 'construir', x: s.x, y: s.y, dist: manhattan(c.tile, s.x, s.y),
+      make: () => {
+        const sides = ctx.structures.sidesOf(s);
+        if (ctx.structures.needsAny(s)) {
+          const mat = nearestMaterial(ctx, s, c.tile);
+          if (!mat) return null;
+          const route = pathToNearest(ctx.map, c.tile, [{ x: mat.x, y: mat.y }]);
+          if (!route || !pathToNearest(ctx.map, { x: mat.x, y: mat.y }, sides)) return null;
+          return {
+            job: {
+              kind: 'construir', sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: 0, work: 0, upgrade: true,
+              haul: { resource: mat.resource, amount: mat.amount, from: { x: mat.x, y: mat.y }, to: { x: s.x, y: s.y }, toBlueprint: true, picked: false },
+            },
+            path: route.path,
+          };
+        }
+        const here = ctx.structures.isBesideStructure(c.tile, s);
+        const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, sides);
+        if (!route) return null;
+        const work = s.def.electrify?.work ?? 1;
+        return { job: { kind: 'construir', sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: s.upgrade?.progress ?? 0, work, upgrade: true }, path: route.path };
       },
     });
   }

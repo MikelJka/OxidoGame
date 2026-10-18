@@ -1538,8 +1538,10 @@ function powerLabel(w: World, s: Structure): string {
   else if (s.def.battery) parts.push(`${Math.round(s.stored ?? 0)}/${s.def.battery} Wh`);
   else if (s.def.source === 'solar') parts.push(s.powered ? `${s.output ?? 0} W` : 'de noche no produce');
   else if (s.def.source === 'wind') parts.push(s.sheltered ? 'tapado: necesita las casillas de alrededor libres' : `${s.output ?? 0} W, viento ${Math.round(w.wind * 100)} %`);
+  else if (s.electric) parts.push(s.powered ? 'eléctrico: el doble de rápido' : 'eléctrico, sin corriente: velocidad normal');
+  else if (s.upgrade) parts.push('electrificando');
   else if ((s.def.power ?? 0) < 0) parts.push(s.powered ? (s.def.light ? 'encendida' : 'en marcha') : s.def.light ? 'sin corriente' : 'sin corriente: parada');
-  if (s.def.power || s.def.battery || s.def.conduit) {
+  if (s.def.power || s.electric || s.def.battery || s.def.conduit) {
     const net = w.powerNetOf(s);
     if (net) parts.push(`red: produce ${net.production} W, gasta ${net.supplied} de ${net.demand} W, baterías ${Math.round(net.stored)}/${net.capacity} Wh`);
     else if (!s.def.conduit) parts.push('sin cable: no está conectado');

@@ -51,6 +51,8 @@ export interface ColonistJob {
   terrain?: TerrainJob;
   /** Demoler la construcción de la casilla. */
   demolish?: boolean;
+  /** Electrificar el taller (mejora). */
+  upgrade?: boolean;
   /** Construcción a la que va el trabajo (construir, demoler, fabricar). */
   sid?: number;
   /** Persona a la que va el trabajo (curar, capturar, alimentar, convencer). */

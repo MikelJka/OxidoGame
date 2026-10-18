@@ -37,6 +37,10 @@ export interface Structure {
   stored?: number;
   /** Generador: unidades de combustible dentro (se gastan poco a poco). */
   fuel?: number;
+  /** Taller electrificado: gasta corriente y, si le llega, trabaja el doble de rápido. */
+  electric?: boolean;
+  /** Electrificación pedida y aún sin terminar: material ya traído y trabajo hecho. */
+  upgrade?: { delivered: Partial<Stockpile>; progress: number };
 }
 
 /** Orden de fabricación de un taller: hacer la receta hasta que la colonia tenga `target` del producto. */
@@ -188,6 +192,41 @@ export class Structures {
     return this.all().filter((s) => !s.built);
   }
 
+  /** Talleres terminados con la electrificación pedida (los colonos la hacen como una obra). */
+  upgrades(): Structure[] {
+    return this.all().filter((s) => s.built && !!s.upgrade && !s.demolish);
+  }
+
+  /** Se puede pedir electrificar este taller. */
+  canElectrify(s: Structure): boolean {
+    return s.built && !!s.def.electrify && !s.electric && !s.upgrade && !s.demolish;
+  }
+
+  /** Pide electrificar un taller: los colonos traerán el material y harán la obra. */
+  orderElectrify(s: Structure): boolean {
+    if (!this.canElectrify(s)) return false;
+    s.upgrade = { delivered: {}, progress: 0 };
+    this.version++;
+    return true;
+  }
+
+  /** Cancela la electrificación pedida. Devuelve el material que ya se había traído. */
+  cancelElectrify(s: Structure): Partial<Stockpile> {
+    if (!s.upgrade) return {};
+    const back = { ...s.upgrade.delivered };
+    s.upgrade = undefined;
+    this.version++;
+    return back;
+  }
+
+  /** Termina la electrificación: desde ahora el taller gasta corriente. */
+  finishElectrify(s: Structure): void {
+    if (!s.def.electrify || s.electric) return;
+    s.upgrade = undefined;
+    s.electric = true;
+    this.version++;
+  }
+
   /** Construcciones terminadas marcadas para demoler. */
   toDemolish(): Structure[] {
     return this.all().filter((s) => s.built && s.demolish);
@@ -215,7 +254,9 @@ export class Structures {
     const back: Partial<Stockpile> = {};
     for (const r of RESOURCES) {
       // La mitad del material y, en un taller, todo lo que tenía dentro.
-      const n = Math.floor((s.def.cost[r] ?? 0) * DEMOLISH_REFUND) + (s.delivered[r] ?? 0);
+      // Electrificado, también la mitad de la mejora; a medio electrificar, lo que se había traído.
+      const extra = s.electric ? (s.def.electrify?.cost[r] ?? 0) : 0;
+      const n = Math.floor(((s.def.cost[r] ?? 0) + extra) * DEMOLISH_REFUND) + (s.delivered[r] ?? 0) + (s.upgrade?.delivered[r] ?? 0);
       if (n > 0) back[r] = n;
     }
     return back;
@@ -316,6 +357,14 @@ export class Structures {
       if (want > 0) out[f.resource] = want;
       return out;
     }
+    // Taller a medio electrificar: el material de la mejora (mientras, no se fabrica).
+    if (s.built && s.upgrade && s.def.electrify) {
+      for (const r of RESOURCES) {
+        const want = (s.def.electrify.cost[r] ?? 0) - (s.upgrade.delivered[r] ?? 0);
+        if (want > 0) out[r] = want;
+      }
+      return out;
+    }
     const wanted = s.built ? (s.bill && !s.bill.paused ? s.bill.recipe.inputs : {}) : s.def.cost;
     for (const r of RESOURCES) {
       const want = (wanted[r] ?? 0) - (s.delivered[r] ?? 0);
@@ -355,7 +404,8 @@ export class Structures {
     const want = this.needs(s)[resource] ?? 0;
     const put = Math.max(0, Math.min(want, Math.floor(amount)));
     if (put > 0) {
-      s.delivered[resource] = (s.delivered[resource] ?? 0) + put;
+      const store = s.built && s.upgrade ? s.upgrade.delivered : s.delivered;
+      store[resource] = (store[resource] ?? 0) + put;
       this.version++;
     }
     return put;

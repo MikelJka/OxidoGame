@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (mediodía) — Electricidad: horno, cocina y banco con «⚡ Electrificar»
+
+- Sin incidencias nuevas en 🐞. Siguiente parte aprobada de la electricidad, como la eligió Mikel: las máquinas eléctricas son una **mejora** de las que ya hay.
+- Al tocar un horno de fundición, una cocina o un banco de trabajo sale **⚡ Electrificar · 🔩10 ⚙️3**. Los colonos (trabajo «construir») traen el material y hacen la obra; mientras, el taller no fabrica. Se puede cancelar y el material traído se deja al lado.
+- Electrificado (⚡ junto al nombre), gasta **300 W** de su red: con corriente trabaja **el doble de rápido**; sin cable o si la red no da para él, a velocidad normal (nunca se para). El panel dice en cuál de los dos casos está.
+- Al demolerlo se recupera también la mitad de la mejora. Se guarda con la partida; las partidas antiguas no cambian.
+- Qué probar: con 🪄 dar chatarra y componentes, tocar un horno y «⚡ Electrificar»; cuando acabe, conectarlo con un cable a un generador de leña y ver en el panel «con corriente: trabaja el doble de rápido» mientras funde chatarra.
+- Sin npm en el entorno: tests con Bun (240) y tipos con `tsc`; la prueba completa, en GitHub Actions.
+- Siguiente, en el orden de «Pendiente»: puerta automática y ánimo de la luz; luego fuego amigo y posturas, combustible y buggy, y el rendimiento de la 3D en móviles antiguos.
+
 ## 2026-10-18 (mañana, 6) — Vista 3D: muros que se unen
 
 - Sin incidencias nuevas en 🐞. Siguiente parte aprobada: pulir la vista 3D (pedida por Mikel).

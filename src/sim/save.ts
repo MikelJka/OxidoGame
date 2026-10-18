@@ -46,7 +46,7 @@ export interface SaveData {
   items: { x: number; y: number; resource: string; amount: number }[];
   designations: { x: number; y: number; job: string }[];
   zones: { id: number; name: string; priority: number; accepts: Record<string, boolean>; tiles: number[] }[];
-  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number; demolish?: boolean; bill?: { recipe: string; target: number; paused: boolean }; rot?: number; stored?: number; fuel?: number }[];
+  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number; demolish?: boolean; bill?: { recipe: string; target: number; paused: boolean }; rot?: number; stored?: number; fuel?: number; electric?: boolean; upgrade?: { delivered: Record<string, number>; progress: number } }[];
   /** Obras de terreno pendientes (desde que existen). */
   terrain?: { x: number; y: number; job: string }[];
   /** Huertos (desde que existe el cultivo; las partidas anteriores no los tienen). */
@@ -193,6 +193,8 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
       bill: s.bill ? { recipe: s.bill.recipe.id, target: s.bill.target, paused: s.bill.paused } : undefined,
       stored: s.stored || undefined,
       fuel: s.fuel || undefined,
+      electric: s.electric || undefined,
+      upgrade: s.upgrade ? { delivered: { ...s.upgrade.delivered } as Record<string, number>, progress: s.upgrade.progress } : undefined,
     })),
     terrain: world.terrain.list().map((o) => ({ ...o })),
   };
@@ -377,6 +379,15 @@ export function loadWorld(input: string | unknown): World {
     // Electricidad (desde que existe): carga de las baterías y combustible de los generadores.
     if (def.battery) restored.stored = Math.max(0, Math.min(def.battery, num(s.stored, 0)));
     if (def.fuel) restored.fuel = Math.max(0, Math.min(def.fuel.capacity, num(s.fuel, 0)));
+    // Talleres electrificados o a medio electrificar (desde 2026-10-18; antes, ninguno).
+    if (def.electrify && s.built) {
+      if (s.electric) restored.electric = true;
+      else if (s.upgrade) {
+        const got: Partial<Record<ResourceId, number>> = {};
+        for (const [r, n] of Object.entries(s.upgrade.delivered ?? {})) if (isResource(r) && num(n, 0) > 0) got[r] = Math.floor(num(n, 0));
+        restored.upgrade = { delivered: got, progress: Math.max(0, num(s.upgrade.progress, 0)) };
+      }
+    }
     const recipe = s.bill ? recipeDef(String(s.bill.recipe)) : undefined;
     if (restored && recipe && recipe.station === def.id) {
       world.structures.setBill(restored, { recipe, target: Math.max(0, Math.floor(num(s.bill!.target, 10))), paused: !!s.bill!.paused });

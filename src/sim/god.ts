@@ -54,6 +54,10 @@ export function godFinishWork(w: World): number {
     w.completeStructure(s);
     n++;
   }
+  for (const s of w.structures.upgrades()) {
+    w.structures.finishElectrify(s);
+    n++;
+  }
   for (const o of w.terrain.list()) {
     w.finishTerrainWork(o.x, o.y, o.job);
     n++;

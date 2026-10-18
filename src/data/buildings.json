@@ -693,7 +693,15 @@
     "size": [
       2,
       1
-    ]
+    ],
+    "electrify": {
+      "cost": {
+        "chatarra": 10,
+        "componentes": 3
+      },
+      "power": 300,
+      "work": 300
+    }
   },
   {
     "id": "horno",
@@ -715,7 +723,15 @@
     "size": [
       2,
       2
-    ]
+    ],
+    "electrify": {
+      "cost": {
+        "chatarra": 10,
+        "componentes": 3
+      },
+      "power": 300,
+      "work": 300
+    }
   },
   {
     "id": "banco_trabajo",
@@ -737,7 +753,15 @@
     "size": [
       2,
       1
-    ]
+    ],
+    "electrify": {
+      "cost": {
+        "chatarra": 10,
+        "componentes": 3
+      },
+      "power": 300,
+      "work": 300
+    }
   },
   {
     "id": "cantera",
