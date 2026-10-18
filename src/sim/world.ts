@@ -12,6 +12,7 @@ import { regrowNature } from './nature';
 import { Rooms } from './rooms';
 import { tickHealth, treatWounds } from './health';
 import { Difficulty, initialSchedule, makeDifficulty, scaledSupplies, StorySchedule } from './storyteller';
+import { updatePanic } from './panic';
 import { canTalk, colonistFight, dropGear, makePrisoner, runStoryteller, talkToPrisoner, updateOthers } from './people';
 import { AMMO_CARRY, AMMO_LOW, isGear, isWeapon, WEAPON_IDS, WEAPONS, weaponScore } from '../data/weapons';
 import { ARMOR_IDS, ARMORS, isArmor } from '../data/armor';
@@ -372,7 +373,7 @@ export class World implements JobContext {
   /** Orden directa: el colono va a la casilla indicada. Devuelve false si no hay camino. */
   orderMove(colonistId: number, target: Point): boolean {
     const c = this.colonists.find((k) => k.id === colonistId);
-    if (!c) return false;
+    if (!c || c.panic) return false; // en pánico no obedece
     const path = findPath(this.map, c.tile, target);
     if (!path) return false;
     this.dropJob(c); // la orden directa manda sobre el trabajo
@@ -453,6 +454,13 @@ export class World implements JobContext {
       if (c.need) this.endNeed(c);
       c.path = [];
       c.activity = 'idle';
+      c.panic = undefined;
+      return;
+    }
+    // En pánico: solo corre a refugiarse (y sigue con hambre y sueño, pero no va a por ellos).
+    if (c.panic) {
+      if (this.needsEnabled) this.decayNeeds(c);
+      updatePanic(this, c);
       return;
     }
     // Si hay un saqueador al lado, se defiende (y si está reclutado, va a por los cercanos).
@@ -1267,6 +1275,7 @@ export class World implements JobContext {
     const c = this.colonists.find((k) => k.id === colonistId);
     if (!c || c.drafted === drafted) return;
     c.drafted = drafted;
+    if (c.panic) return; // en pánico sigue huyendo; al calmarse, obedece
     c.gearTask = undefined;
     this.dropJob(c);
     if (c.need) this.endNeed(c);
@@ -1282,7 +1291,7 @@ export class World implements JobContext {
    */
   forceJob(colonistId: number, x: number, y: number): boolean {
     const c = this.colonists.find((k) => k.id === colonistId);
-    if (!c) return false;
+    if (!c || c.panic) return false;
     const h = harvestAt(this.map, x, y);
     const addedMark = !!h && !this.designations.at(x, y) && this.designations.add(x, y, h.job);
     const other = this.colonists.find((k) => k !== c && k.job && k.job.x === x && k.job.y === y);

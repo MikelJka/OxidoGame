@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (noche) — Pánico de los colonos
+
+- Segunda parte de la moral y huida, con los números aprobados por Mikel.
+- Un colono puede **entrar en pánico** (20 %) si le hieren con el ánimo por debajo del 15 %, o si ve caer a un compañero a 5 casillas o menos. Los reclutados, solo con el ánimo por debajo del 5 %; los «duros», nunca; los «pesimistas», el doble (40 %).
+- En pánico suelta lo que hace y corre a la cama más cercana (o, si no llega a ninguna, a la habitación más cercana); si no hay, se queda encogido donde está. Dura 1 h: mientras, no trabaja, no pelea y no obedece órdenes. En el diario: «😱 … entra en pánico» y «… se calma»; en su ficha, «😱 En pánico».
+- Se guarda con la partida (las antiguas cargan sin nadie en pánico). Tests en `tests/panic.test.ts`.
+- Qué probar: en el modo Dios 🪄 → ⚔️ Raid con dos o tres colonos juntos; cuando caiga uno, mirar el diario y ver si otro sale corriendo a una cama. Probar también con un colono hambriento y sediento que reciba golpes.
+- Siguiente: fuego amigo y posturas (última regla de combate; hay que proponerle a Mikel cómo funcionan). Siguen esperando respuesta: horno, cocina y banco eléctricos, y la puerta automática y el ánimo de la luz.
+
 ## 2026-10-18 (tarde) — Moral de los raids: líder ★ y huida en grupo
 
 - Tercera regla de combate (moral y huida), primera parte, con los números aprobados por Mikel.

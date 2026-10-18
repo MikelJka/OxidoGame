@@ -97,6 +97,7 @@ interface SavedColonist {
   vest?: string | null;
   helmet?: string | null;
   armorChoice?: string;
+  panic?: { until: number };
 }
 
 function savePawn(c: Colonist): SavedColonist {
@@ -131,6 +132,7 @@ function savePawn(c: Colonist): SavedColonist {
     vest: c.vest,
     helmet: c.helmet,
     armorChoice: c.armorChoice,
+    panic: c.panic ? { ...c.panic } : undefined,
   };
 }
 
@@ -341,6 +343,8 @@ function restoreColonist(s: SavedColonist): Colonist {
     vest: typeof s.vest === 'string' && isArmor(s.vest) && ARMORS[s.vest].slot === 'chaleco' ? s.vest : null,
     helmet: typeof s.helmet === 'string' && isArmor(s.helmet) && ARMORS[s.helmet].slot === 'casco' ? s.helmet : null,
     armorChoice: s.armorChoice === 'ninguna' ? 'ninguna' : 'auto',
+    // Partidas de antes del pánico: nadie en pánico (al cargar, sin camino: se queda quieto hasta que se le pasa).
+    ...(s.panic && typeof s.panic === 'object' ? { panic: { until: num(s.panic.until, 0) } } : {}),
   };
 }
 

@@ -144,6 +144,8 @@ export interface Colonist {
   armorChoice: 'auto' | 'ninguna';
   /** Va a recoger un arma, munición o armadura del suelo o del almacén. */
   gearTask?: { x: number; y: number; resource: ResourceId };
+  /** En pánico hasta ese tick: corre a refugiarse y no obedece ni trabaja. */
+  panic?: { until: number };
 }
 
 export interface RaiderInfo {
@@ -237,6 +239,7 @@ export function walkSpeedMultiplier(c: Colonist): number {
 
 export function activityLabel(c: Colonist): string {
   if (c.downed) return 'En el suelo, malherido';
+  if (c.panic) return c.path.length > 0 ? '😱 En pánico, huyendo a refugiarse' : '😱 En pánico, escondido';
   if (c.need) {
     if (c.activity === 'eating') return c.need.type === 'beber' ? 'Bebiendo' : 'Comiendo';
     if (c.activity === 'sleeping') return c.need.bed ? 'Durmiendo en la cama' : 'Durmiendo en el suelo';

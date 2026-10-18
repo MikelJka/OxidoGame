@@ -11,6 +11,7 @@ import { findPath, Point } from './pathfinding';
 import { inBounds, isPassable, Prop, Terrain } from './map';
 import { DIFFICULTIES, raidGap, raidSize, TRADER_GAP, WANDERER_GAP } from './storyteller';
 import type { World } from './world';
+import { maybePanic, witnessFall } from './panic';
 import { TICKS_PER_DAY } from './time';
 export { canTalk, TALK_HOURS } from './jobs';
 
@@ -246,6 +247,11 @@ export function attack(w: World, a: Colonist, b: Colonist): boolean {
   hurt(b, dmg, part);
   if (!wasDown && b.downed) {
     w.addLog(b.role === 'colono' ? `🩸 ${b.name} cae herido (${part}).` : `${b.name} (saqueador) cae al suelo.`, b.role === 'colono' ? 'malo' : 'bueno');
+    // Quienes lo ven caer pueden entrar en pánico.
+    if (b.role === 'colono') witnessFall(w, b);
+  } else if (b.role === 'colono' && !b.downed) {
+    // Herido y con el ánimo por los suelos: puede entrar en pánico.
+    maybePanic(w, b, 'herido');
   }
   return true;
 }
