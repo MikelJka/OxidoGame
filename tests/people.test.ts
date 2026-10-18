@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { flatWorld } from './helpers';
-import { attack, dealBalance, makeDeal, makePrisoner, startRaid, startTrader, talkToPrisoner } from '../src/sim/people';
+import { attack, checkRaidMorale, dealBalance, makeDeal, makePrisoner, startRaid, startTrader, talkToPrisoner } from '../src/sim/people';
 import { hurt, tickHealth } from '../src/sim/health';
+import { loadWorld, serializeWorld } from '../src/sim/save';
 import { TICKS_PER_DAY, TICKS_PER_HOUR } from '../src/sim/world';
 import type { Colonist } from '../src/sim/colonist';
 
@@ -73,6 +74,79 @@ describe('raids', () => {
     for (let i = 0; i < 60 && !b.downed; i++) attack(w, a, b);
     expect(b.downed).toBe(true);
     expect(b.wounds.length).toBeGreaterThan(0);
+  });
+});
+
+describe('moral de los raids', () => {
+  it('el de más Combate es el líder ★', () => {
+    const w = flatWorld(1);
+    const raid = startRaid(w, 4);
+    const best = Math.max(...raid.map((r) => r.skills.combate));
+    const leaders = raid.filter((r) => r.raider?.leader);
+    expect(leaders.length).toBe(1);
+    expect(leaders[0].skills.combate).toBe(best);
+    expect(w.raidGroups.length).toBe(1);
+    expect(w.raidGroups[0].leaderId).toBe(leaders[0].id);
+    expect(w.log.some((l) => l.text.includes('★'))).toBe(true);
+  });
+
+  it('si cae el líder, huyen todos', () => {
+    const w = flatWorld(1);
+    const raid = startRaid(w, 4);
+    const leader = raid.find((r) => r.raider?.leader)!;
+    checkRaidMorale(w);
+    expect(raid.some((r) => r.raider!.fleeing)).toBe(false);
+    hurt(leader, 0.95, 'el pecho');
+    expect(leader.downed).toBe(true);
+    checkRaidMorale(w);
+    for (const r of raid) if (r !== leader) expect(r.raider!.fleeing).toBe(true);
+    expect(w.log.some((l) => l.text.includes('líder del raid'))).toBe(true);
+  });
+
+  it('si cae la mitad del grupo, huyen todos; con menos, siguen', () => {
+    const w = flatWorld(1);
+    const raid = startRaid(w, 4);
+    const rest = raid.filter((r) => !r.raider?.leader);
+    hurt(rest[0], 0.95, 'el pecho');
+    checkRaidMorale(w);
+    expect(raid.some((r) => r.raider!.fleeing)).toBe(false);
+    // El segundo caído es capturado (también cuenta como caído).
+    makePrisoner(rest[1], 0.5);
+    checkRaidMorale(w);
+    expect(rest[2].raider!.fleeing).toBe(true);
+    expect(raid.find((r) => r.raider?.leader)!.raider!.fleeing).toBe(true);
+  });
+
+  it('los que se escapan no cuentan como caídos', () => {
+    const w = flatWorld(1);
+    const raid = startRaid(w, 4);
+    const rest = raid.filter((r) => !r.raider?.leader);
+    // Dos se han ido del mapa por su cuenta.
+    for (const r of rest.slice(0, 2)) {
+      w.others.splice(w.others.indexOf(r), 1);
+      w.raidGroups[0].escaped.push(r.id);
+    }
+    checkRaidMorale(w);
+    expect(rest[2].raider!.fleeing).toBe(false);
+  });
+
+  it('el raid y su líder se guardan con la partida', () => {
+    const w = flatWorld(1);
+    const raid = startRaid(w, 3);
+    const leader = raid.find((r) => r.raider?.leader)!;
+    const w2 = loadWorld(serializeWorld(w));
+    expect(w2.raidGroups).toEqual(w.raidGroups);
+    const l2 = w2.others.find((o) => o.id === leader.id)!;
+    expect(l2.raider?.leader).toBe(true);
+    expect(l2.raider?.group).toBe(w.raidGroups[0].id);
+  });
+
+  it('cuando ya no queda nadie del raid, se olvida', () => {
+    const w = flatWorld(1);
+    const raid = startRaid(w, 2);
+    for (const r of raid) makePrisoner(r, 0.5);
+    checkRaidMorale(w);
+    expect(w.raidGroups.length).toBe(0);
   });
 });
 

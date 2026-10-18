@@ -123,8 +123,8 @@ export interface Colonist {
   role: PawnRole;
   /** Prisionero: resistencia a unirse y qué hacer con él. */
   prisoner?: PrisonerInfo;
-  /** Saqueador: si huye. */
-  raider?: { fleeing: boolean; leaveAt: number };
+  /** Saqueador: si huye, cuándo se va y de qué raid es (y si es su líder ★). */
+  raider?: RaiderInfo;
   /** Comerciante: lo que vende, a quién vende y cuándo se va. */
   trader?: TraderInfo;
   /** Ticks hasta poder volver a golpear. */
@@ -144,6 +144,26 @@ export interface Colonist {
   armorChoice: 'auto' | 'ninguna';
   /** Va a recoger un arma, munición o armadura del suelo o del almacén. */
   gearTask?: { x: number; y: number; resource: ResourceId };
+}
+
+export interface RaiderInfo {
+  fleeing: boolean;
+  leaveAt: number;
+  /** Id del grupo del raid (el de `World.raidGroups`); sin él, va por libre. */
+  group?: number;
+  /** Líder del raid (el de más Combate), marcado con ★. */
+  leader?: boolean;
+}
+
+/** Un raid en marcha: cuántos llegaron, quién lo dirige y quién se ha escapado ya. */
+export interface RaidGroup {
+  id: number;
+  size: number;
+  leaderId: number;
+  /** Ids de los que se han ido del mapa (huidos: no cuentan como caídos). */
+  escaped: number[];
+  /** Ya ha cundido el pánico y huyen todos. */
+  routed: boolean;
 }
 
 export type WeaponChoice = 'auto' | 'ninguna' | WeaponId;

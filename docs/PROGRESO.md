@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (tarde) — Moral de los raids: líder ★ y huida en grupo
+
+- Tercera regla de combate (moral y huida), primera parte, con los números aprobados por Mikel.
+- Cada raid tiene un **líder**: el saqueador de más Combate, con una estrella dorada sobre la cabeza (2D y 3D). El diario lo dice al llegar («con X ★ al frente») y al tocarlo sale «líder del raid ★».
+- **Huyen todos** los que quedan en pie si cae el líder o la mitad del grupo (en el suelo, muertos o capturados; los que ya se han escapado no cuentan): «🏳 … los saqueadores huyen». Uno solo sigue huyendo por debajo del 45 % de salud, como antes.
+- Se guarda con la partida (los raids de partidas antiguas siguen sin líder). Tests en `tests/people.test.ts`.
+- Qué probar: en el modo Dios 🪄 → ⚔️ Raid; buscar al de la estrella, tumbarlo con los reclutados y ver que el resto sale corriendo. En otro raid, tumbar a la mitad sin tocar al líder.
+- Siguiente: pánico de los colonos (segunda parte de la moral). Esperan respuesta de Mikel: horno, cocina y banco eléctricos, y el coste de la puerta automática y el ánimo de la luz (propuestas en `FEEDBACK.md`).
+
 ## 2026-10-18 (mañana) — Electricidad: la recicladora y la depuradora piden corriente
 
 - Como aprobó Mikel, la **recicladora** gasta 250 W y la **depuradora** 150 W, también en las partidas guardadas.

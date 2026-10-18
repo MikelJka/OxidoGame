@@ -49,6 +49,11 @@ export function paintColonist(ctx: CanvasRenderingContext2D, c: Colonist): void 
     px(5, 3, 6, 1, '#b02a1a'); // pañuelo rojo
     px(4, 3, 1, 2, '#b02a1a');
     px(5, 6, 6, 1, '#5a1a12');
+    if (c.raider?.leader) {
+      // Líder del raid: estrella dorada sobre la cabeza.
+      px(13, 0, 1, 3, '#f0c030');
+      px(12, 1, 3, 1, '#f0c030');
+    }
   } else if (c.role === 'prisionero') {
     px(5, 6, 6, 5, '#d9822b'); // mono naranja
     px(5, 8, 6, 1, '#8a4a1a');
@@ -61,7 +66,7 @@ export function paintColonist(ctx: CanvasRenderingContext2D, c: Colonist): void 
 
 /** Clave de textura: cambia si cambia su papel (un prisionero que se une ya no lleva mono). */
 export function colonistLookKey(c: Colonist): string {
-  return `${c.id}-${c.role}-${c.look.shirt}-${c.look.hair}`;
+  return `${c.id}-${c.role}-${c.look.shirt}-${c.look.hair}${c.raider?.leader ? '-lider' : ''}`;
 }
 
 /** Dibuja un montón pixel art de 12×10 para un recurso. */

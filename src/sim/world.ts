@@ -1,4 +1,4 @@
-import { Colonist, createColonist, walkSpeedMultiplier } from './colonist';
+import { Colonist, createColonist, RaidGroup, walkSpeedMultiplier } from './colonist';
 import { countReachable, GameMap, generateMap, inBounds, isPassable, isWater, Prop, PROP_INFO, Terrain, TERRAIN_INFO, tileMoveCost } from './map';
 import { findPath, isWalkable, Point } from './pathfinding';
 import { Rng } from './rng';
@@ -89,6 +89,8 @@ export class World implements JobContext {
   readonly colonists: Colonist[] = [];
   /** Personas que no son de la colonia: saqueadores, prisioneros, comerciantes. */
   readonly others: Colonist[] = [];
+  /** Raids en marcha (para la moral: huyen todos al caer su líder o la mitad). */
+  readonly raidGroups: RaidGroup[] = [];
   /** Diario: lo que ha pasado (el más reciente al final). */
   readonly log: LogEntry[] = [];
   /** Colonos muertos: nombre, causa y día. */

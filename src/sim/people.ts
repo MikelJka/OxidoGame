@@ -87,7 +87,13 @@ export function startRaid(w: World, n: number): Colonist[] {
     if (vests.some((v) => v)) r.vest = vests[w.rng.int(0, vests.length - 1)];
     w.others.push(r);
   }
-  w.addLog(`⚔️ ¡Raid! ${n} ${n === 1 ? 'saqueador llega' : 'saqueadores llegan'}. Recluta a los colonos (🎖) para defenderos.`, 'malo');
+  // El de más Combate dirige el raid (★). Si cae él o la mitad del grupo, huyen todos.
+  const leader = out.reduce((a, b) => (b.skills.combate > a.skills.combate ? b : a));
+  leader.raider!.leader = true;
+  for (const r of out) r.raider!.group = first.id;
+  w.raidGroups.push({ id: first.id, size: out.length, leaderId: leader.id, escaped: [], routed: false });
+  const lead = out.length > 1 ? `, con ${leader.name} ★ al frente` : '';
+  w.addLog(`⚔️ ¡Raid! ${n} ${n === 1 ? 'saqueador llega' : 'saqueadores llegan'}${lead}. Recluta a los colonos (🎖) para defenderos.`, 'malo');
   return out;
 }
 
@@ -319,7 +325,38 @@ export function colonistFight(w: World, c: Colonist): boolean {
 
 // --- Gente que no es de la colonia ----------------------------------------------------
 
+/**
+ * Moral de los raids: si cae el líder ★ o la mitad del grupo (en el suelo, muertos o capturados;
+ * los que ya se han escapado no cuentan), huyen todos los que quedan en pie.
+ */
+export function checkRaidMorale(w: World): void {
+  for (let i = w.raidGroups.length - 1; i >= 0; i--) {
+    const g = w.raidGroups[i];
+    const members = w.others.filter((o) => o.role === 'saqueador' && o.raider?.group === g.id);
+    if (members.length === 0) {
+      w.raidGroups.splice(i, 1);
+      continue;
+    }
+    if (g.routed) continue;
+    const standing = members.filter((o) => !o.downed);
+    const fallen = g.size - g.escaped.length - standing.length;
+    const leader = members.find((o) => o.id === g.leaderId);
+    const leaderDown = !g.escaped.includes(g.leaderId) && (!leader || leader.downed);
+    if (!leaderDown && fallen * 2 < g.size) continue;
+    g.routed = true;
+    if (standing.length === 0) continue;
+    for (const o of standing) {
+      if (o.raider!.fleeing) continue;
+      o.raider!.fleeing = true;
+      o.path = [];
+    }
+    const name = leader?.name ?? 'su líder';
+    w.addLog(leaderDown ? `🏳 Ha caído ${name} ★, el líder del raid: los saqueadores huyen.` : '🏳 Ha caído la mitad del raid: los saqueadores huyen.', 'bueno');
+  }
+}
+
 export function updateOthers(w: World): void {
+  checkRaidMorale(w);
   for (const o of [...w.others]) {
     if (o.attackCooldown && o.attackCooldown > 0) o.attackCooldown--;
     if (o.carriedBy !== undefined) {
@@ -358,6 +395,9 @@ export function dropGear(w: World, c: Colonist): void {
 function leaveMap(w: World, o: Colonist, why: string): void {
   const i = w.others.indexOf(o);
   if (i >= 0) w.others.splice(i, 1);
+  // Un saqueador que se escapa no cuenta como caído para la moral de su raid.
+  const g = o.raider?.group !== undefined ? w.raidGroups.find((k) => k.id === o.raider!.group) : undefined;
+  if (g && !g.escaped.includes(o.id)) g.escaped.push(o.id);
   w.reservations.releaseAll(o.id);
   if (why) w.addLog(why, 'info');
 }

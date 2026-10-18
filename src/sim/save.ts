@@ -54,6 +54,8 @@ export interface SaveData {
   plants?: { i: number; crop: string; growth: number }[];
   /** Saqueadores, prisioneros y comerciantes (desde que existen). */
   others?: SavedColonist[];
+  /** Raids en marcha, para su moral (desde que existe; las anteriores, ninguno). */
+  raidGroups?: { id: number; size: number; leaderId: number; escaped: number[]; routed: boolean }[];
   log?: { tick: number; text: string; kind: string }[];
   graveyard?: { name: string; cause: string; day: number }[];
   gameOver?: { day: number; cause: string } | null;
@@ -86,7 +88,7 @@ interface SavedColonist {
   downed?: boolean;
   role?: string;
   prisoner?: { resistance: number; mode: string; lastTalk: number };
-  raider?: { fleeing: boolean; leaveAt: number };
+  raider?: { fleeing: boolean; leaveAt: number; group?: number; leader?: boolean };
   trader?: { stock: Record<string, number>; slaves: SavedColonist[]; leaveAt: number; leaving: boolean };
   /** Arma, la que prefiere y munición (desde que hay armas). */
   weapon?: string | null;
@@ -168,6 +170,7 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     map: { width: m.width, height: m.height, start: { ...m.start }, u8, f32 },
     colonists: world.colonists.map(savePawn),
     others: world.others.map(savePawn),
+    raidGroups: world.raidGroups.map((g) => ({ ...g, escaped: [...g.escaped] })),
     log: world.log.map((l) => ({ ...l })),
     graveyard: world.graveyard.map((g) => ({ ...g })),
     gameOver: world.gameOver ? { ...world.gameOver } : null,
@@ -305,7 +308,14 @@ function restoreColonist(s: SavedColonist): Colonist {
           lastTalk: num(s.prisoner.lastTalk, -1e9),
         }
       : undefined,
-    raider: s.raider ? { fleeing: !!s.raider.fleeing, leaveAt: num(s.raider.leaveAt, 0) } : undefined,
+    raider: s.raider
+      ? {
+          fleeing: !!s.raider.fleeing,
+          leaveAt: num(s.raider.leaveAt, 0),
+          ...(s.raider.group !== undefined ? { group: num(s.raider.group, 0) } : {}),
+          ...(s.raider.leader ? { leader: true } : {}),
+        }
+      : undefined,
     trader: s.trader
       ? {
           stock: Object.fromEntries(Object.entries(s.trader.stock ?? {}).filter(([r]) => isResource(r)).map(([r, n]) => [r, Math.max(0, num(n, 0))])),
@@ -383,6 +393,15 @@ export function loadWorld(input: string | unknown): World {
   for (const g of d.graveyard ?? []) world.graveyard.push({ name: String(g.name ?? ''), cause: String(g.cause ?? ''), day: num(g.day, 1) });
   world.gameOver = d.gameOver ? { day: num(d.gameOver.day, 1), cause: String(d.gameOver.cause ?? '') } : null;
   if (d.offer?.pawn) world.offer = { kind: 'superviviente', pawn: { ...restoreColonist(d.offer.pawn), role: 'colono' }, until: num(d.offer.until, world.tick) };
+  for (const g of d.raidGroups ?? []) {
+    world.raidGroups.push({
+      id: num(g.id, 0),
+      size: Math.max(1, num(g.size, 1)),
+      leaderId: num(g.leaderId, 0),
+      escaped: Array.isArray(g.escaped) ? g.escaped.map((e) => num(e, 0)) : [],
+      routed: !!g.routed,
+    });
+  }
   // Partidas de antes del narrador: los sucesos empiezan a contar desde ahora.
   world.schedule = d.schedule
     ? { nextWanderer: num(d.schedule.nextWanderer, 0), nextRaid: num(d.schedule.nextRaid, 0), nextTrader: num(d.schedule.nextTrader, 0) }
