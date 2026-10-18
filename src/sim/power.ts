@@ -1,6 +1,6 @@
 // Electricidad: los cables terminados forman redes; en cada red, los generadores producen, los
 // consumidores gastan y las baterías guardan lo que sobra. Números aprobados por Mikel (2026-10-17).
-import { inBounds, index } from './map';
+import { inBounds, index, propAt, Prop } from './map';
 import type { Structure, Structures } from './structures';
 
 /** Una red eléctrica: lo que produce, lo que pide y lo que tiene guardado ahora. */
@@ -23,6 +23,56 @@ export interface PowerNet {
 }
 
 const SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
+
+/** Lo que cambia con el tiempo: la hora (para las placas solares) y el viento de 0 a 1 (para los molinos). */
+export interface PowerEnv {
+  hour: number;
+  wind: number;
+}
+
+/** Las placas solares producen de 6:00 a 20:00 (las mismas horas en que no hace falta luz). */
+export function isDaylight(hour: number): boolean {
+  return hour >= 6 && hour < 20;
+}
+
+/**
+ * Fuerza del viento de 0 a 1 tras `hours` horas de partida: sube y baja despacio a lo largo de
+ * los días con rachas de unas horas. Sale de la semilla, sin azar, así que no hace falta guardarla.
+ */
+export function windStrength(hours: number, seed: number): number {
+  const a = ((seed >>> 0) % 1000) / 1000 * Math.PI * 2;
+  const b = ((seed >>> 10) % 1000) / 1000 * Math.PI * 2;
+  const c = ((seed >>> 20) % 1000) / 1000 * Math.PI * 2;
+  const tau = Math.PI * 2;
+  const v = 0.5 + 0.28 * Math.sin((tau * hours) / 31 + a) + 0.17 * Math.sin((tau * hours) / 7.3 + b) + 0.08 * Math.sin((tau * hours) / 2.1 + c);
+  return Math.max(0, Math.min(1, v));
+}
+
+/** Un molino necesita las 8 casillas de alrededor libres: sin construcciones (cables y suelos sí) ni objetos. */
+export function isSheltered(st: Structures, s: Structure): boolean {
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if (!dx && !dy) continue;
+      const x = s.x + dx;
+      const y = s.y + dy;
+      if (!inBounds(st.map, x, y)) continue;
+      if (st.mainAt(x, y)) return true;
+      if (propAt(st.map, x, y) !== Prop.None) return true;
+    }
+  }
+  return false;
+}
+
+/** Vatios que da ahora un generador sin combustible según la hora y el viento. */
+function naturalOutput(st: Structures, s: Structure, env: PowerEnv): number {
+  const p = s.def.power ?? 0;
+  if (s.def.source === 'solar') return isDaylight(env.hour) ? p : 0;
+  if (s.def.source === 'wind') {
+    s.sheltered = isSheltered(st, s);
+    return s.sheltered ? 0 : Math.round(p * Math.max(0, Math.min(1, env.wind)));
+  }
+  return p;
+}
 
 /** Usa electricidad (produce, consume o guarda). */
 export function isElectric(s: Structure): boolean {
@@ -85,7 +135,7 @@ function netOfStructure(st: Structures, s: Structure, netOf: Map<number, number>
  * corriente, carga o descarga baterías y enciende o apaga a cada consumidor. Si no llega para
  * todos, se apaga primero lo último que se conectó (el de id más alto). Devuelve las redes.
  */
-export function updatePower(st: Structures, hours: number): PowerNet[] {
+export function updatePower(st: Structures, hours: number, env: PowerEnv = { hour: 12, wind: 0.5 }): PowerNet[] {
   const { netOf, tiles } = cableNets(st);
   const nets = new Map<number, PowerNet>();
   for (const [id, list] of tiles) {
@@ -94,6 +144,7 @@ export function updatePower(st: Structures, hours: number): PowerNet[] {
   for (const s of st.all()) {
     if (!isElectric(s)) continue;
     s.powered = false;
+    s.output = 0;
     if (!s.built) continue;
     // El combustible que han traído pasa dentro del generador.
     const f = s.def.fuel;
@@ -111,14 +162,18 @@ export function updatePower(st: Structures, hours: number): PowerNet[] {
     const p = s.def.power ?? 0;
     if (p > 0) {
       // Un generador de combustible solo produce si le queda; lo gasta aunque nadie use la corriente.
+      // La placa solar de noche o el molino sin viento no producen.
       if (f) {
         if ((s.fuel ?? 0) <= 0) continue;
         s.fuel = Math.max(0, (s.fuel ?? 0) - hours / f.hoursPerUnit);
       }
+      const out = f ? p : naturalOutput(st, s, env);
+      if (out <= 0) continue;
       s.powered = true;
+      s.output = out;
       if (net) {
         net.producers.push(s);
-        net.production += p;
+        net.production += out;
       }
     } else if (p < 0 && net) {
       net.consumers.push(s);

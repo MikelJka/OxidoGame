@@ -22,7 +22,7 @@ import {
 } from './needs';
 import { applyTerrainJob, LOWER_STONE, terrainBlocker, TerrainJob, TerrainOrders } from './terrain';
 import { Structure, Structures } from './structures';
-import { litTiles, PowerNet, updatePower } from './power';
+import { litTiles, PowerNet, updatePower, windStrength } from './power';
 import type { TileRect } from './designations';
 import { RESOURCES, ResourceId, STARTING_SUPPLIES } from '../data/resources';
 
@@ -264,7 +264,7 @@ export class World implements JobContext {
     if (this.tick % RESCUE_TICKS === 0) this.rescueTrapped();
     // Electricidad: cada segundo se reparte la corriente y se encienden o apagan las lámparas.
     if (this.tick % TICKS_PER_SECOND === 0) {
-      this.powerNets = updatePower(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR);
+      this.powerNets = updatePower(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR, { hour: this.hour, wind: this.wind });
       this.lit = litTiles(this.structures);
     }
     for (const c of this.colonists) this.updateColonist(c);
@@ -402,6 +402,11 @@ export class World implements JobContext {
   /** Hora del día en horas decimales (0–24). */
   get hour(): number {
     return (((this.tick + START_HOUR * TICKS_PER_HOUR) % TICKS_PER_DAY) / TICKS_PER_HOUR);
+  }
+
+  /** Viento ahora, de 0 a 1 (mueve los molinos). */
+  get wind(): number {
+    return windStrength(this.tick / TICKS_PER_HOUR, this.map.seed);
   }
 
   clockLabel(): string {

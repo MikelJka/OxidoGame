@@ -45,6 +45,8 @@ export interface BuildingDef {
   conduit?: boolean;
   /** Vatios: positivo si produce, negativo si consume. */
   power?: number;
+  /** Fuente natural: «solar» solo produce de día; «wind» según el viento y si no tiene nada alrededor. */
+  source?: 'solar' | 'wind';
   /** Batería: vatios-hora que guarda. */
   battery?: number;
   /** Combustible que gasta para producir: qué, cuántas horas dura cada unidad y cuántas caben. */
@@ -78,6 +80,7 @@ export function validateBuilding(d: unknown): BuildingDef {
   if (b.size !== undefined && (!Array.isArray(b.size) || b.size.length !== 2 || !b.size.every((n) => Number.isInteger(n) && n >= 1 && n <= 4))) fail('tamaño no válido');
   if (b.moveCost !== undefined && !(b.moveCost >= 0.5 && b.moveCost <= 5)) fail('coste de paso no válido');
   if (b.category === 'torre' && b.blocks) fail('una torre se tiene que poder subir (no bloquea)');
+  if (b.source !== undefined && (!['solar', 'wind'].includes(b.source) || !((b.power ?? 0) > 0))) fail('fuente de energía no válida');
   if (!b.colors?.top || !b.colors.face || !b.colors.dark) fail('faltan colores');
   return b;
 }

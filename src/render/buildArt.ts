@@ -372,7 +372,7 @@ function lighten(hex: string): string {
   return `rgb(${c((n >> 16) & 255)},${c((n >> 8) & 255)},${c(n & 255)})`;
 }
 
-/** Electricidad: cable a ras de suelo, generador, batería y lámpara. */
+/** Electricidad: cable a ras de suelo, generador, placa solar, molino, batería y lámpara. */
 function drawElectric(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, wallH: number): void {
   const { top, face, dark } = def.colors;
   const px = painter(ctx);
@@ -396,6 +396,27 @@ function drawElectric(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: num
     px(cx - 1, 2, 2, h - 4, face);
     px(cx - 3, 0, 6, 4, '#1a1410');
     px(cx - 2, 1, 4, 2, top);
+    return;
+  }
+  if (def.source === 'solar') {
+    // Placa solar: marco bajo con celdas azules en cuadrícula.
+    const y0 = Math.max(0, h - tileH - 3);
+    px(1, y0, tile - 2, tileH + 2, '#1a1410');
+    px(2, y0 + 1, tile - 4, tileH, top);
+    for (let x = 2 + 4; x < tile - 2; x += 5) px(x, y0 + 1, 1, tileH, face);
+    for (let y = y0 + 4; y < y0 + 1 + tileH; y += 4) px(2, y, tile - 4, 1, face);
+    px(3, y0 + 2, 2, 1, '#8fb4e0'); // brillo
+    return;
+  }
+  if (def.source === 'wind') {
+    // Molino: poste alto y aspas en cruz arriba.
+    const cx = Math.floor(tile / 2);
+    px(cx - 3, h - 3, 6, 2, '#1a1410');
+    px(cx - 1, 6, 2, h - 8, face);
+    const r = Math.min(7, Math.floor(tile / 2) - 1);
+    px(cx - r, 5, r * 2, 1, top);
+    px(cx, 5 - Math.min(5, r), 1, Math.min(5, r) * 2 + 1, top);
+    px(cx - 1, 4, 3, 3, dark);
     return;
   }
   // Máquinas: caja con rejilla; el generador, con su chimenea; la batería, con sus bornes.

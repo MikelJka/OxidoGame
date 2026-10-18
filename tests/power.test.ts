@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { flatWorld } from './helpers';
-import { updatePower } from '../src/sim/power';
+import { updatePower, windStrength } from '../src/sim/power';
+import { Prop } from '../src/sim/map';
 import { loadWorld, serializeWorld } from '../src/sim/save';
 import { TICKS_PER_HOUR } from '../src/sim/world';
 
@@ -87,5 +88,43 @@ describe('electricidad', () => {
     expect(l.structures.mainAt(10, 10)?.fuel).toBeCloseTo(4.5);
     expect(l.structures.mainAt(13, 10)?.stored).toBeCloseTo(1234);
     expect(l.structures.cableAt(12, 10)?.built).toBe(true);
+  });
+
+  it('la placa solar da 600 W de día y nada de noche', () => {
+    const w = flatWorld(1);
+    const sol = build(w, 10, 10, 'placa_solar');
+    build(w, 12, 10, 'cable');
+    const lamp = build(w, 13, 10, 'lampara');
+    let [net] = updatePower(w.structures, 1, { hour: 13, wind: 0 });
+    expect(net.production).toBe(600);
+    expect(sol.output).toBe(600);
+    expect(lamp.powered).toBe(true);
+    [net] = updatePower(w.structures, 1, { hour: 22, wind: 1 });
+    expect(net.production).toBe(0);
+    expect(sol.powered).toBe(false);
+    expect(lamp.powered).toBe(false);
+  });
+
+  it('el molino da de 0 a 900 W según el viento y nada si tiene algo alrededor', () => {
+    const w = flatWorld(1);
+    const mill = build(w, 10, 10, 'molino_viento');
+    build(w, 10, 11, 'cable'); // un cable pegado no le quita viento
+    let [net] = updatePower(w.structures, 1, { hour: 3, wind: 1 });
+    expect(net.production).toBe(900);
+    [net] = updatePower(w.structures, 1, { hour: 3, wind: 0.5 });
+    expect(mill.output).toBe(450);
+    [net] = updatePower(w.structures, 1, { hour: 3, wind: 0 });
+    expect(net.production).toBe(0);
+    w.map.props[9 * w.map.width + 11] = Prop.DeadTree;
+    [net] = updatePower(w.structures, 1, { hour: 3, wind: 1 });
+    expect(mill.sheltered).toBe(true);
+    expect(net.production).toBe(0);
+  });
+
+  it('el viento sube y baja entre 0 y 1 y es el mismo con la misma semilla', () => {
+    const vals = Array.from({ length: 24 * 10 }, (_, h) => windStrength(h, 7));
+    expect(vals.every((v) => v >= 0 && v <= 1)).toBe(true);
+    expect(Math.max(...vals) - Math.min(...vals)).toBeGreaterThan(0.4);
+    expect(windStrength(37.5, 7)).toBe(windStrength(37.5, 7));
   });
 });

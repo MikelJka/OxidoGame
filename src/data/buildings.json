@@ -867,6 +867,51 @@
     }
   },
   {
+    "id": "placa_solar",
+    "name": "Placa solar",
+    "category": "electricidad",
+    "cost": {
+      "chatarra": 15,
+      "componentes": 3
+    },
+    "work": 450,
+    "hp": 100,
+    "blocks": true,
+    "height": 1,
+    "size": [
+      2,
+      2
+    ],
+    "power": 600,
+    "source": "solar",
+    "colors": {
+      "top": "#2c3e66",
+      "face": "#4a4c50",
+      "dark": "#1a1c22"
+    }
+  },
+  {
+    "id": "molino_viento",
+    "name": "Molino de viento",
+    "category": "electricidad",
+    "cost": {
+      "madera": 20,
+      "chatarra": 10,
+      "componentes": 2
+    },
+    "work": 500,
+    "hp": 120,
+    "blocks": true,
+    "height": 2,
+    "power": 900,
+    "source": "wind",
+    "colors": {
+      "top": "#b8b2a4",
+      "face": "#6e5a40",
+      "dark": "#2a2218"
+    }
+  },
+  {
     "id": "bateria",
     "name": "Batería",
     "category": "electricidad",

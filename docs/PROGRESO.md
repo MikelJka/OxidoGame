@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-18 (madrugada) — Electricidad: placas solares y molinos de viento
+
+- Segunda parte de la electricidad, con los números aprobados por Mikel. En 🏗 → **Electricidad**:
+  - **Placa solar** (🔩15 ⚙️3, 2×2): 600 W de 6:00 a 20:00; de noche, nada.
+  - **Molino de viento** (🪵20 🔩10 ⚙️2, 1×1): de 0 a 900 W según el viento. Necesita libres las 8 casillas de alrededor (sin construcciones ni árboles, rocas u otros objetos; los cables y los suelos no molestan): si no, no gira.
+- El viento sube y baja despacio a lo largo de los días, con rachas de unas horas; sale de la semilla del mapa, así que no cambia nada en las partidas guardadas.
+- Al tocar una placa se ve lo que produce o «de noche no produce»; al tocar un molino, sus vatios y el viento en %, o «tapado» si tiene algo alrededor.
+- Tests en `tests/power.test.ts`.
+- Qué probar: una placa solar y un molino en campo abierto conectados por cable a una batería y unas lámparas; ver que la batería se carga de día y que el molino cambia de vatios con el viento.
+- Siguiente: máquinas eléctricas (horno, cocina y banco el doble de rápidos) y que la recicladora y la depuradora pasen a pedir corriente.
+
 ## 2026-10-17 (noche, 17) — Arreglo: la 3D no abría tras publicar una versión nueva (#10)
 
 - Bug del botón 🐞 (#10): «Failed to fetch dynamically imported module …/View3D-….js». La vista 3D se descarga aparte al abrirla; si se publica una versión nueva con la página abierta, el archivo viejo desaparece y falla.

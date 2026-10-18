@@ -408,7 +408,9 @@ export class View3D {
         else if (s.def.light) {
           inset = 0.38;
           height = 0.9;
-        } else height = 0.7;
+        } else if (s.def.source === 'solar') height = 0.25;
+        else if (s.def.source === 'wind') inset = 0.35;
+        else height = 0.7;
       }
       const ghost = look === 'fantasma' || look === 'no-cabe';
       const ghostColor = look === 'no-cabe' ? 0xff6a5a : 0xffffff;

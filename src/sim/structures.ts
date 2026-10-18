@@ -29,6 +29,10 @@ export interface Structure {
   bill?: Bill;
   /** Electricidad: le llega corriente (consumidores) o está produciendo (generadores). No se guarda. */
   powered?: boolean;
+  /** Generador: vatios que produce ahora (la placa solar de noche o el molino sin viento, 0). No se guarda. */
+  output?: number;
+  /** Molino: tiene algo alrededor que le quita el viento. No se guarda. */
+  sheltered?: boolean;
   /** Batería: vatios-hora guardados. */
   stored?: number;
   /** Generador: unidades de combustible dentro (se gastan poco a poco). */
