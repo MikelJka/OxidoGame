@@ -15,7 +15,7 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 - [ ] **Catálogo de contenido aprobado entero** (2026-10-18, Mikel marcó ✅ los 12 bloques de `docs/CATALOGO.md`). Va por fases y en este orden; cada punto, por partes:
   - [ ] Fase 4: **infecciones y medicinas** (bloque 1: infección, 💊, mesa de boticario y hierba curativa).
   - [ ] Fase 4: **mutantes** (bloque 2: perros mutantes, bruto mutante y cadáveres).
-  - [ ] Fase 5: **banco de investigación y árbol** (bloque 3), y con él las **armas de fuego y balas** (bloque 4) y las **defensas** (bloque 5: torretas, mortero, hidropónica y blindaje táctico; los puentes van con la update del agua).
+  - [ ] Fase 5: **banco de investigación y árbol** (bloque 3; **decidido por Mikel el 2026-10-18**: las dos torretas, ya construibles, pasarán a pedir su investigación, la ligera «Torretas» y la pesada «Artillería»; en las partidas empezadas, las construidas se quedan. Siguen **sin munición**: solo gastan corriente), y con él las **armas de fuego y balas** (bloque 4) y las **defensas** (bloque 5: torretas, mortero, hidropónica y blindaje táctico; los puentes van con la update del agua).
   - [ ] Fase 5: **máquinas y drones** (bloque 6).
   - [ ] Fase 6: **facciones** (bloque 7), **mercado** (bloque 8) y **sucesos** (bloque 9).
   - [ ] Opcionales aprobados: **caza** (bloque 10), **estaciones y ropa** (bloque 11) y **ocio y habitaciones** (bloque 12).
@@ -32,10 +32,7 @@ Lo que Mikel ha pedido dejar para más adelante. No se trabaja en ello salvo par
 
 Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat o con 🐞).
 
-- **Torretas e investigación** (2026-10-18). El catálogo decía que las torretas se desbloquean con la investigación «Torretas» (y la pesada con «Artillería»). Mikel las ha pedido ya, así que ahora se construyen sin investigar. Cuando llegue el banco de investigación:
-  - **A** Se quedan libres desde el principio (la investigación «Torretas» desbloquea otra cosa o desaparece).
-  - **B** La ligera queda libre y la pesada pide «Artillería».
-  - **C** Las dos pasan a pedir su investigación, como decía el catálogo (en las partidas ya empezadas, las que estén construidas se quedan).
+Ahora no hay ninguna esperando respuesta.
 
 ## Hecho
 
