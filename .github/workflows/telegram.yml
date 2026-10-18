@@ -2,8 +2,9 @@ name: Resumen a Telegram
 
 # Tras cada subida a main, manda a Telegram la última entrada de docs/PROGRESO.md
 # (lo que ha hecho la sesión, qué probar y qué sigue). Necesita dos secretos del repositorio:
-# TELEGRAM_BOT_TOKEN (el token que da @BotFather) y TELEGRAM_CHAT_ID (tu id de chat).
-# Sin ellos, no hace nada.
+# TELEGRAM_BOT_TOKEN (el token que da @BotFather) y, opcional, TELEGRAM_CHAT_ID (tu id de chat).
+# Sin TELEGRAM_CHAT_ID, usa el chat del último mensaje que hayas escrito al bot.
+# Sin el token, no hace nada.
 on:
   push:
     branches: [main]
@@ -23,10 +24,20 @@ jobs:
           TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          if [ -z "$TOKEN" ] || [ -z "$CHAT" ]; then
-            echo "Faltan los secretos TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID: no se envía nada."
+          if [ -z "$TOKEN" ]; then
+            echo "Falta el secreto TELEGRAM_BOT_TOKEN: no se envía nada."
             exit 0
           fi
+          if [ -z "$CHAT" ]; then
+            CHAT=$(curl -sS "https://api.telegram.org/bot${TOKEN}/getUpdates" \
+              | python3 -c "import sys,json; r=json.load(sys.stdin).get('result',[]); ids=[u[k]['chat']['id'] for u in r for k in ('message','my_chat_member') if k in u]; print(ids[-1] if ids else '')")
+          fi
+          if [ -z "$CHAT" ]; then
+            echo "No sé a qué chat mandarlo: escribe algo al bot en Telegram o crea el secreto TELEGRAM_CHAT_ID."
+            exit 1
+          fi
+          echo "Chat: ${CHAT} (guárdalo como secreto TELEGRAM_CHAT_ID: Telegram solo recuerda los mensajes de las últimas 24 h)."
+
           # Primera entrada «## …» del diario (sin la cabecera del archivo).
           awk 'NR>3 && /^## /{n++} n==1' docs/PROGRESO.md | sed 's/\*\*//g; s/`//g' > resumen.txt
           {
