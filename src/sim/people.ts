@@ -105,8 +105,8 @@ export function startTrader(w: World): Colonist | null {
   const t = w.makePawn('comerciante');
   if (!w.placeAtEdge(t)) return null;
   const stock: Partial<Record<ResourceId, number>> = {};
-  // Las caravanas todavía no venden armas.
-  for (const r of RESOURCES) if (!isGear(r) && !isArmor(r) && w.rng.chance(0.5)) stock[r] = w.rng.int(10, 60);
+  // Las caravanas todavía no venden armas, y el ⛽ solo sale de la destilería (decidido por Mikel).
+  for (const r of RESOURCES) if (r !== 'combustible' && !isGear(r) && !isArmor(r) && w.rng.chance(0.5)) stock[r] = w.rng.int(10, 60);
   stock.componentes = w.rng.int(2, 10);
   // La medicina, en poca cantidad (si la trae).
   if (stock.medicina !== undefined) stock.medicina = w.rng.int(MEDICINE_STOCK[0], MEDICINE_STOCK[1]);

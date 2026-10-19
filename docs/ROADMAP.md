@@ -78,7 +78,7 @@ Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed 
 ## Fase 5 — Investigación y máquinas
 
 - [ ] Banco de investigación y árbol tecnológico en JSON
-- [ ] Puentes, torretas, cañones, filtros de agua, pozos, generadores de combustible (hechas las torretas eléctricas ligera y pesada, pedidas por Mikel antes de la investigación)
+- [ ] Puentes, torretas, cañones, filtros de agua, pozos, generadores de combustible (hechas las torretas eléctricas ligera y pesada, pedidas por Mikel antes de la investigación, y la destilería de ⛽ combustible)
 - [ ] Enemigos máquina y drones
 
 ## Fase 6 — Facciones y economía

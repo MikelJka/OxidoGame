@@ -286,5 +286,18 @@
     },
     "work": 300,
     "description": "Quita un 15 % del daño."
+  },
+  {
+    "id": "destilar_combustible",
+    "name": "Destilar combustible",
+    "station": "destileria",
+    "inputs": {
+      "madera": 10
+    },
+    "outputs": {
+      "combustible": 2
+    },
+    "work": 500,
+    "description": "10 de madera dan 2 de combustible para los vehículos."
   }
 ]

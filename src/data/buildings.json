@@ -891,6 +891,29 @@
     ]
   },
   {
+    "id": "destileria",
+    "movable": true,
+    "name": "Destilería",
+    "category": "taller",
+    "cost": {
+      "chatarra": 20,
+      "componentes": 2
+    },
+    "work": 700,
+    "hp": 300,
+    "blocks": true,
+    "height": 1,
+    "colors": {
+      "top": "#b0703a",
+      "face": "#7a5a3a",
+      "dark": "#3a2a1e"
+    },
+    "size": [
+      2,
+      2
+    ]
+  },
+  {
     "id": "pozo",
     "name": "Pozo",
     "category": "agua",
