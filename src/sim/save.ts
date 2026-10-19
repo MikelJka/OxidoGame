@@ -12,7 +12,7 @@ import { Colonist, DEFAULT_PRIORITY, STANCES, WorkPriority } from './colonist';
 import { GameMap, isPassable } from './map';
 import type { StoragePriority } from './zones';
 import { ALERT_KINDS, GameSpeed, LogEntry, TICKS_PER_DAY, World } from './world';
-import { initialSchedule, makeDifficulty } from './storyteller';
+import { initialSchedule, makeDifficulty, WANDERER_GAP } from './storyteller';
 import { isWeapon } from '../data/weapons';
 import { ARMORS, isArmor } from '../data/armor';
 
@@ -468,6 +468,9 @@ export function loadWorld(input: string | unknown): World {
   world.schedule = d.schedule
     ? { nextWanderer: num(d.schedule.nextWanderer, 0), nextRaid: num(d.schedule.nextRaid, 0), nextTrader: num(d.schedule.nextTrader, 0) }
     : initialSchedule(TICKS_PER_DAY, world.tick);
+  // #21 A: en partidas guardadas con la espera antigua (4-8 días), el próximo superviviente
+  // no tarda más que la espera nueva más larga.
+  world.schedule.nextWanderer = Math.min(world.schedule.nextWanderer, world.tick + Math.round(WANDERER_GAP[1] * TICKS_PER_DAY));
   const ids = [...world.colonists, ...world.others, ...world.others.flatMap((o) => o.trader?.slaves ?? []), ...(world.offer ? [world.offer.pawn] : [])].map((c) => c.id);
   world.eventsEnabled = d.events !== false;
   world.bringHomeStranded(); // #12: supervivientes que se quedaron en la esquina (0, 0)

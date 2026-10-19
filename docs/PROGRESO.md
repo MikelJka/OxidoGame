@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 (8) — Más supervivientes: el primero el día 2 y luego cada 2-4 días (#21, primera parte)
+
+- Sin incidencias nuevas en 🐞. Lo que queda de la prioridad médica espera la respuesta de Mikel, así que esta sesión, la primera parte de **#21** (opción A).
+- El primer superviviente que pide unirse puede llegar **el día 2** (antes, el 3) y luego **uno cada 2-4 días** (antes, 4-8). Si hay una oferta abierta sin responder, ese turno se salta, como antes.
+- Los números están ahora en `src/data/storyteller.json`.
+- En partidas guardadas, si el próximo superviviente estaba programado a más de 4 días, se adelanta a 4 días desde ahora.
+- Qué probar: empezar una partida nueva y ver que el día 2 llega un superviviente; seguir jugando y ver que llegan más a menudo. Cargar una partida vieja y ver que llega uno en 4 días como mucho.
+- Sin npm en el entorno: tests con Bun (330, 3 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Siguen esperando la respuesta de Mikel: cuánto peor es curarse uno mismo y cuándo se acuesta el herido que sigue en pie («Propuestas para Mikel»).
+- Siguiente: la radio de llamada (#21 C).
+
 ## 2026-10-19 (7) — Al herido en el suelo se le lleva a una cama
 
 - Sin incidencias nuevas en 🐞. Esta sesión, la segunda parte de la prioridad médica tras los combates.

@@ -1,0 +1,10 @@
+{
+  "wanderers": {
+    "_": "#21 A (elegido por Mikel el 2026-10-19): el primer superviviente puede llegar el día 2 y luego uno cada 2-4 días",
+    "firstDay": 2,
+    "gapDays": [
+      2,
+      4
+    ]
+  }
+}

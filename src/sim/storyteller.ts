@@ -1,8 +1,9 @@
 // Narrador: decide cuándo pasan cosas (llega un superviviente, un raid, una caravana).
 // Determinista con el `Rng` de la partida. Lo que pasa lo aplican las funciones de cada sistema.
+import storyData from '../data/storyteller.json';
 
 /** Día en que puede llegar el primer superviviente, el primer raid y la primera caravana. */
-export const FIRST_WANDERER_DAY = 3;
+export const FIRST_WANDERER_DAY: number = storyData.wanderers.firstDay;
 export const FIRST_RAID_DAY = 5;
 export const FIRST_TRADER_DAY = 4;
 
@@ -24,7 +25,8 @@ export function initialSchedule(ticksPerDay: number, startTick: number, graceDay
 }
 
 /** Días entre sucesos (mínimo y máximo). */
-export const WANDERER_GAP: [number, number] = [4, 8];
+/** Días entre supervivientes (en `src/data/storyteller.json`). */
+export const WANDERER_GAP: [number, number] = [storyData.wanderers.gapDays[0], storyData.wanderers.gapDays[1]];
 export const RAID_GAP: [number, number] = [3, 6];
 export const TRADER_GAP: [number, number] = [4, 7];
 
