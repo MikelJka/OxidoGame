@@ -2,6 +2,14 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 (11) — Muros en los acantilados y las pendientes
+
+- Pedido por Mikel en el chat: al levantar un muro junto a un acantilado no dejaba seguir, y por los huecos de pendiente que tienen los acantilados entraban los enemigos.
+- Ahora los **muros (también los altos), puertas, portones y defensas** (barricadas, pinchos y torretas) se pueden poner en las **pendientes**, y los **muros y las defensas**, en el **borde del acantilado**. Una línea de muro pegada al acantilado sigue por él sin huecos. Las puertas en el acantilado no, porque ahí no llevarían a ninguna parte; los muebles y talleres siguen necesitando suelo llano.
+- Qué probar: trazar un muro a lo largo de un acantilado que tenga una pendiente y ver que se puede cerrar; poner una puerta en la pendiente y ver que los colonos suben por ella. En el móvil, arrastrar el muro con el dedo.
+- Sin npm en el entorno: tests con Bun (377, 5 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Siguiente: el bruto mutante o el buggy de los saqueadores, por el orden de «Pendiente».
+
 ## 2026-10-19 (10) — Perros mutantes en manada (mutantes, primera parte)
 
 - Sin incidencias nuevas en 🐞. Esta sesión, la siguiente tarea aprobada de la fase 4: los **mutantes** (bloque 2 del catálogo), primera parte.

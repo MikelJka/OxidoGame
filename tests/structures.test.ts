@@ -49,7 +49,8 @@ describe('planos', () => {
     world.map.props[index(world.map, 11, 10)] = Prop.Boulder;
     world.map.slope[index(world.map, 12, 10)] = 1;
     world.map.terrain[index(world.map, 13, 10)] = Terrain.Water;
-    expect(st.placeArea({ x0: 10, y0: 10, x1: 14, y1: 10 }, 'muro_madera', 'contorno')).toBe(2);
+    // Los muros sí van en las pendientes (para cerrar los huecos de los acantilados).
+    expect(st.placeArea({ x0: 10, y0: 10, x1: 14, y1: 10 }, 'muro_madera', 'contorno')).toBe(3);
     expect(st.place(10, 10, 'muro_piedra')).toBe(false); // ya hay un plano
     expect(isPassable(world.map, 10, 10)).toBe(true); // un plano no bloquea
   });

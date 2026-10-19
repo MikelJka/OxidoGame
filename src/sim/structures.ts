@@ -101,6 +101,19 @@ export function buildBlocker(map: GameMap, x: number, y: number): string | null 
   return null;
 }
 
+/**
+ * Lo que se puede poner en una pendiente o en un acantilado (pedido por Mikel el 2026-10-19: que
+ * no queden huecos sin cerrar junto a los acantilados). En las pendientes van los cables, los muros,
+ * las puertas, los portones y las defensas; en el borde del acantilado, los muros y las defensas
+ * (una puerta ahí no llevaría a ninguna parte).
+ */
+export function slopeOrCliffOk(def: BuildingDef, blocker: string): boolean {
+  const cat = def.category;
+  if (blocker === 'pendiente') return isCable(def) || cat === 'muro' || cat === 'puerta' || cat === 'porton' || cat === 'defensa';
+  if (blocker === 'acantilado') return cat === 'muro' || cat === 'defensa';
+  return false;
+}
+
 /** Ancho y alto (en casillas) de una construcción con su giro. */
 export function footprint(def: BuildingDef, rot: 0 | 1): { w: number; h: number } {
   const [w, h] = def.size ?? [1, 1];
@@ -387,8 +400,7 @@ export class Structures {
    */
   canPlace(x: number, y: number, def?: BuildingDef, ignore?: Structure): boolean {
     const blocker = buildBlocker(this.map, x, y);
-    // Los cables también van por las pendientes.
-    if (blocker !== null && !(blocker === 'pendiente' && def && isCable(def))) return false;
+    if (blocker !== null && !(def && slopeOrCliffOk(def, blocker))) return false;
     if (!def) return !this.at(x, y);
     if (isCable(def)) return !this.cableAt(x, y);
     if (isFloor(def)) return !this.floorAt(x, y);

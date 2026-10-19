@@ -36,6 +36,8 @@ Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat 
 
 ## Hecho
 
+- [x] **Construir en los acantilados** (2026-10-19, pedido por Mikel en el chat): un muro no se podía seguir junto al acantilado y por los huecos de pendiente entraba cualquiera. **Hecho** (2026-10-19): muros, puertas, portones y defensas se pueden poner en las pendientes, y muros y defensas en el borde del acantilado.
+
 - [x] **#21 Más colonos o formas de ampliar la colonia** (2026-10-18, 🐞): el progreso es lento con tan pocos colonos. **Elegido por Mikel (2026-10-19): A y C.** **A**: el primer superviviente llega el día 2 y luego uno cada 2-4 días (la mitad de espera que ahora). **C**: **radio de llamada** (edificio nuevo en 🏗, 🔩20 ⚙️4, 100 W): con corriente atrae un superviviente más cada 3 días; sin radio, todo sigue igual. Por partes: primero A, luego la radio. **Hecha la primera parte, A** (2026-10-19): el primer superviviente puede llegar el día 2 y luego uno cada 2-4 días. **Hecha la segunda parte, C** (2026-10-19): la 📻 Radio de llamada (🏗 → Electricidad, 🔩20 ⚙️4, 100 W); con corriente, un superviviente más cada 3 días.
 
 - [x] **Prioridad médica tras los combates** (2026-10-19, pedido por Mikel en el chat): cuando todos los saqueadores estén en el suelo o huyendo, los colonos **no reclutados** ponen siempre por delante lo médico:
