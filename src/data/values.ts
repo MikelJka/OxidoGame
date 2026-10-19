@@ -23,6 +23,8 @@ export const RESOURCE_VALUES: Record<ResourceId, number> = {
   pistola: 32,
   escopeta: 42,
   rifle: 50,
+  subfusil: 46,
+  francotirador: 64,
   balas: 1.2,
   chaleco_cuero: 14,
   chaleco_chapa: 26,

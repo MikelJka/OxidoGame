@@ -325,6 +325,28 @@ export function paintItem(ctx: CanvasRenderingContext2D, r: ResourceId): void {
       px(5, 6, 1, 1, '#1a1410'); // gatillo
       px(7, 5, 1, 2, '#8a4a26'); // cargador
       break;
+    case 'subfusil':
+      // Subfusil: cuerpo corto de chapa, cargador largo hacia abajo y culata de alambre.
+      px(3, 3, 6, 2, '#5c5a56'); // cuerpo
+      px(9, 3, 2, 1, '#47453f'); // cañón corto
+      px(10, 3, 1, 1, '#1a1410'); // boca
+      px(6, 5, 1, 4, '#2e2c28'); // cargador
+      px(4, 5, 1, 2, '#3a2a1a'); // empuñadura
+      px(0, 3, 3, 1, '#8a8780'); // culata de alambre
+      px(0, 4, 1, 1, '#8a8780');
+      px(5, 3, 1, 1, '#8a4a26'); // óxido
+      break;
+    case 'francotirador':
+      // Rifle de francotirador: cañón muy largo, mira grande y culata de madera.
+      px(3, 5, 9, 1, '#5c5a56'); // cañón
+      px(11, 5, 1, 1, '#1a1410'); // boca
+      px(4, 3, 4, 1, '#2e2c28'); // mira telescópica
+      px(4, 2, 1, 1, '#6fa0b4'); // lente
+      px(5, 4, 1, 1, '#2e2c28'); // soporte de la mira
+      px(1, 6, 6, 1, '#7a5634'); // caja de madera
+      px(0, 6, 2, 2, '#6a4628'); // culata
+      px(5, 7, 1, 1, '#1a1410'); // gatillo
+      break;
     case 'balas':
       // Cartuchos de latón en fila.
       for (const x of [2, 5, 8]) {

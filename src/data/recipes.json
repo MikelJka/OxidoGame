@@ -268,6 +268,37 @@
     "description": "Dispara a 14 casillas (×3,0, lento); gasta balas."
   },
   {
+    "id": "fabricar_subfusil",
+    "name": "Subfusil",
+    "station": "banco_trabajo",
+    "research": "armas_automaticas",
+    "inputs": {
+      "metal": 6,
+      "componentes": 3
+    },
+    "outputs": {
+      "subfusil": 1
+    },
+    "work": 600,
+    "description": "Dispara a 7 casillas (×1,3, muy rápido); gasta balas."
+  },
+  {
+    "id": "fabricar_francotirador",
+    "name": "Rifle de francotirador",
+    "station": "banco_trabajo",
+    "research": "armas_automaticas",
+    "inputs": {
+      "metal": 10,
+      "componentes": 4,
+      "madera": 4
+    },
+    "outputs": {
+      "francotirador": 1
+    },
+    "work": 700,
+    "description": "Dispara a 18 casillas (×4,5, muy lento); gasta balas."
+  },
+  {
     "id": "fabricar_balas",
     "name": "Balas (15)",
     "station": "banco_trabajo",

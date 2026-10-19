@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 (19) — Subfusil y rifle de francotirador con «Armas automáticas»
+
+- Sin incidencias nuevas en 🐞. Siguiente tarea aprobada: el subfusil y el francotirador (bloque 13 del catálogo, primera del orden que queda del árbol).
+- **Subfusil** (banco de trabajo, 🔗6 ⚙️3): ×1,3 de daño, muy rápido (dispara el doble de seguido que una pistola), alcance 7. **Rifle de francotirador** (🔗10 ⚙️4 🪵4): ×4,5, muy lento (espera casi el doble que una pistola entre disparos), alcance 18. Los dos gastan ⁍ balas y piden investigar **«Armas automáticas»** (que pide «Armas largas»); hasta entonces salen con 🔒 en el banco.
+- Al elegir arma solos, con balas, los colonos prefieren el francotirador y el subfusil al rifle. En la ficha se puede fijar el que se quiera.
+- Los saqueadores **no** los traen (el catálogo no lo dice): propuesta para Mikel en FEEDBACK.md.
+- Por dentro: dos ritmos nuevos en `weapons.json`, «muy rápido» (×0,5 el tiempo entre disparos) y «muy lento» (×1,8).
+- Qué probar: investigar Pólvora, Armas largas y Armas automáticas en 📜 → 🔬 Investigación (🪄 acelera), ver en el diario «Ya se puede fabricar: Subfusil, Rifle de francotirador», fabricarlos y ver que un colono coge el francotirador. En la ficha, «🔫 Rifle de francotirador (×4,5, muy lento, alcance 18)». En el móvil, que esa línea quepa.
+- Sin npm en el entorno: tests con Bun (438, 6 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Siguen esperando la respuesta de Mikel: la hoguera (A-D), «Medicina de campo» (A-C) y los saqueadores con las armas nuevas (A-C).
+- Siguiente: las granadas caseras con «Explosivos».
+
 ## 2026-10-19 (18) — Escopeta y rifle con «Armas largas» (armas de fuego, segunda parte)
 
 - Sin incidencias nuevas en 🐞. Siguiente tarea aprobada: la escopeta y el rifle (bloque 4 del catálogo, primera del orden del árbol completo).

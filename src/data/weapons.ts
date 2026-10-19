@@ -1,7 +1,9 @@
 /**
  * Armas. Son también recursos (se fabrican, se guardan en el almacén y se apilan); aquí, lo que
  * hacen en el combate. Los números están en `weapons.json` (aprobados por Mikel el 2026-10-17;
- * la pistola casera, la escopeta, el rifle y las balas, en el bloque 4 del catálogo, el 2026-10-18).
+ * la pistola casera, la escopeta, el rifle y las balas, en el bloque 4 del catálogo, el 2026-10-18;
+ * el subfusil y el rifle de francotirador, en el bloque 13, el 2026-10-19). Ritmos: muy rápido 0,5,
+ * rápido 0,75, normal 1, lento 1,35 y muy lento 1,8.
  * - weapons: daño (× los puños), ritmo (× el tiempo entre golpes), alcance en casillas,
  *   munición que gasta cada disparo y si es de fuego. La escopeta pega su daño a `closeRange`
  *   casillas o menos y `farDamage` más lejos.
@@ -12,7 +14,7 @@
 import data from './weapons.json';
 import type { ResourceId } from './resources';
 
-export type WeaponId = 'palo' | 'cuchillo' | 'tuberia' | 'lanza' | 'machete' | 'arco' | 'pistola' | 'escopeta' | 'rifle';
+export type WeaponId = 'palo' | 'cuchillo' | 'tuberia' | 'lanza' | 'machete' | 'arco' | 'pistola' | 'escopeta' | 'rifle' | 'subfusil' | 'francotirador';
 export type AmmoId = 'flechas' | 'balas';
 export const AMMO_IDS: readonly AmmoId[] = ['flechas', 'balas'];
 
@@ -33,10 +35,10 @@ export interface WeaponDef {
   /** Arma de fuego (pistola, escopeta, rifle). */
   firearm?: boolean;
   /** Rápido, normal o lento (para la interfaz). */
-  speedLabel: 'rápido' | 'normal' | 'lento';
+  speedLabel: 'muy rápido' | 'rápido' | 'normal' | 'lento' | 'muy lento';
 }
 
-const IDS: readonly WeaponId[] = ['palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'pistola', 'escopeta', 'rifle'];
+const IDS: readonly WeaponId[] = ['palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'pistola', 'escopeta', 'rifle', 'subfusil', 'francotirador'];
 
 function validate(): Record<WeaponId, WeaponDef> {
   const fail = (m: string): never => {
@@ -50,7 +52,7 @@ function validate(): Record<WeaponId, WeaponDef> {
     if (d.firearm && !d.ammo) fail(`${d.id}: un arma de fuego gasta munición`);
     if ((d.closeRange === undefined) !== (d.farDamage === undefined)) fail(`${d.id}: closeRange y farDamage van juntos`);
     if (d.closeRange !== undefined && !(Number.isInteger(d.closeRange) && d.closeRange >= 1 && d.closeRange < d.reach && d.farDamage! > 0)) fail(`${d.id}: daño por distancia no válido`);
-    if (!['rápido', 'normal', 'lento'].includes(d.speedLabel)) fail(`${d.id}: ritmo no válido`);
+    if (!['muy rápido', 'rápido', 'normal', 'lento', 'muy lento'].includes(d.speedLabel)) fail(`${d.id}: ritmo no válido`);
     out[d.id] = d;
   }
   for (const id of IDS) if (!out[id]) fail(`falta el arma ${id}`);
