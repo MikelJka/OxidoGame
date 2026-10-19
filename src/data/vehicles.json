@@ -11,6 +11,25 @@
     "runOverDamage": 0.35,
     "wreck": {
       "chatarra": 20
+    },
+    "damageScale": 1000
+  },
+  {
+    "id": "buggy_saqueador",
+    "name": "Buggy saqueador",
+    "_": "Vehículos, tercera parte (aprobado por Mikel el 2026-10-18: los saqueadores llegan en buggy desde el día 20 y, si se rompe, queda como chatarra 🔩20). Más flojo y algo más lento que el de los colonos; no gasta ⛽ (lo traen lleno). Los números los ha puesto la sesión del 2026-10-19.",
+    "hostile": true,
+    "fromDay": 20,
+    "raidChance": 1,
+    "speed": 1.8,
+    "fuelPerHour": 0,
+    "fuelCapacity": 10,
+    "armor": 0.3,
+    "hp": 400,
+    "damageScale": 1000,
+    "runOverDamage": 0.3,
+    "wreck": {
+      "chatarra": 20
     }
   }
 ]

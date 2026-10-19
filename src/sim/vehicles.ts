@@ -1,13 +1,18 @@
-// Vehículos de la colonia (vehículos, segunda parte: el buggy de los colonos).
+// Vehículos: el buggy de los colonos (segunda parte) y el de los saqueadores (tercera parte).
 // Un vehículo ocupa 2×2 casillas; su casilla de referencia (`x`, `y`) es la de arriba a la
 // izquierda. Lo llevan colonos sentados en él: el conductor lo mueve y el tirador dispara desde
 // dentro. En marcha gasta ⛽ y atropella a los saqueadores que pilla (los derriba, no los mata).
+// El de los saqueadores lo llevan ellos solos: va a por el colono más cercano para atropellarlo,
+// su tirador dispara a los colonos, y al huir se va por el borde. El blindaje se lleva parte de los
+// golpes a los de dentro; si se queda sin vida (o sin nadie dentro, el de los saqueadores), queda
+// como chatarra.
 // Puro y determinista: sin Phaser ni DOM.
 import type { Colonist } from './colonist';
 import type { World } from './world';
 import { isPassable } from './map';
 import { Point } from './pathfinding';
-import { attack, canHit, foeLabel, hurtFoe } from './people';
+import { attack, canHit, foeLabel, hurtFoe, leaveMap } from './people';
+import { hurt } from './health';
 import { VehicleDef, vehicleDef } from '../data/vehicles';
 
 /** Lado del vehículo en casillas (todos son de 2×2 por ahora). */
@@ -70,9 +75,19 @@ export function covers(v: Vehicle, x: number, y: number): boolean {
   return x >= v.x && x < v.x + VEHICLE_SIZE && y >= v.y && y < v.y + VEHICLE_SIZE;
 }
 
-/** Quién va (o va hacia) cada asiento. */
+/** Quién va (o va hacia) cada asiento (colonos o, en el de los saqueadores, saqueadores). */
 export function occupant(w: World, v: Vehicle, seat: VehicleSeat): Colonist | undefined {
-  return w.colonists.find((c) => c.vehicle?.id === v.id && c.vehicle.seat === seat);
+  return w.pawns().find((c) => c.vehicle?.id === v.id && c.vehicle.seat === seat);
+}
+
+/** Todos los que van dentro (ya sentados). */
+export function riders(w: World, v: Vehicle): Colonist[] {
+  return w.pawns().filter((c) => c.vehicle?.id === v.id && c.vehicle.boarded);
+}
+
+/** Es de los saqueadores. */
+export function isHostileVehicle(v: Vehicle): boolean {
+  return !!defOf(v).hostile;
 }
 
 /** Quién va sentado (ya dentro) en un asiento. */
@@ -188,6 +203,7 @@ export function nextTo(v: Vehicle, t: Point): boolean {
  */
 export function updateVehicle(w: World, v: Vehicle, ticksPerSecond: number, ticksPerHour: number, baseWalk: number): void {
   const def = defOf(v);
+  if (def.hostile && !driveRaider(w, v)) return;
   const driver = seated(w, v, 'conductor');
   if (v.path.length > 0 && driver && v.fuel > 0) {
     const next = v.path[0];
@@ -229,31 +245,50 @@ export function updateVehicle(w: World, v: Vehicle, ticksPerSecond: number, tick
   }
   if (v.path.length === 0) {
     v.pos = { x: v.x, y: v.y };
-    if (w.tick % ticksPerSecond === 0) refuel(w, v, def);
+    if (!def.hostile && w.tick % ticksPerSecond === 0) refuel(w, v, def);
   }
   // Los que van dentro se mueven con él; el tirador dispara a lo que tenga a tiro.
   const at = vehicleCenter(v);
-  for (const c of w.colonists) {
-    if (c.vehicle?.id !== v.id || !c.vehicle.boarded) continue;
+  for (const c of riders(w, v)) {
     c.pos = { x: at.x, y: at.y };
     c.tile = { x: v.x + 1, y: v.y + 1 };
     c.path = [];
     c.facing = v.facing;
     c.activity = 'idle';
-    if (c.vehicle.seat === 'tirador') gunnerFight(w, c);
+    if (c.vehicle!.seat === 'tirador') gunnerFight(w, c, !!def.hostile);
   }
 }
 
-/** Atropella a los saqueadores de pie que pilla: los deja en el suelo (como un golpe, no mata); a un perro mutante, lo mata. */
+/**
+ * Atropella a los saqueadores de pie que pilla: los deja en el suelo (como un golpe, no mata); a un
+ * perro mutante, lo mata. El de los saqueadores atropella a los colonos.
+ */
 function runOver(w: World, v: Vehicle, def: VehicleDef): void {
+  if (def.hostile) {
+    runOverColonists(w, v, def);
+    return;
+  }
   for (const o of [...w.others]) {
-    if (o.role !== 'saqueador' || o.downed || !covers(v, o.tile.x, o.tile.y)) continue;
+    if (o.role !== 'saqueador' || o.downed || o.vehicle?.boarded || !covers(v, o.tile.x, o.tile.y)) continue;
     const last = w.runOverAt.get(o.id);
     if (last !== undefined && w.tick - last < 60) continue;
     w.runOverAt.set(o.id, w.tick);
     const fell = hurtFoe(w, o, def.runOverDamage, 'las piernas');
     const what = fell ? (o.creature ? ': muere' : ': cae al suelo') : '';
     w.addLog(`🚙 El ${def.name.toLowerCase()} atropella a ${foeLabel(o)}${what}.`, 'bueno');
+  }
+}
+
+/** El buggy de los saqueadores pilla a los colonos que van a pie. */
+function runOverColonists(w: World, v: Vehicle, def: VehicleDef): void {
+  for (const c of [...w.colonists]) {
+    if (c.downed || c.vehicle?.boarded || !covers(v, c.tile.x, c.tile.y)) continue;
+    const last = w.runOverAt.get(c.id);
+    if (last !== undefined && w.tick - last < 60) continue;
+    w.runOverAt.set(c.id, w.tick);
+    hurt(c, def.runOverDamage, 'las piernas');
+    if (c.downed) w.addLog(`🚙 El ${def.name.toLowerCase()} atropella a ${c.name}: cae herido.`, 'malo', 'caido', c.tile);
+    else w.combatAlert(c, 'herido', `🚙 El ${def.name.toLowerCase()} atropella a ${c.name}.`);
   }
 }
 
@@ -273,11 +308,15 @@ function refuel(w: World, v: Vehicle, def: VehicleDef): void {
   }
 }
 
-/** El tirador dispara (o golpea) al saqueador más cercano que tenga a tiro, sin bajarse. */
-function gunnerFight(w: World, c: Colonist): void {
-  if (c.attackCooldown && c.attackCooldown > 0) c.attackCooldown--;
+/** El tirador dispara (o golpea) al enemigo más cercano que tenga a tiro, sin bajarse (el de los saqueadores, a los colonos). */
+function gunnerFight(w: World, c: Colonist, hostile: boolean): void {
+  // Al saqueador se le baja el tiempo de espera en `updateOthers`; al colono, aquí.
+  if (!hostile && c.attackCooldown && c.attackCooldown > 0) c.attackCooldown--;
   if (c.attackCooldown) return;
-  const enemies = w.others.filter((o) => o.role === 'saqueador' && !o.downed && !o.raider?.fleeing && canHit(w, c, o));
+  if (hostile && c.raider?.fleeing) return;
+  const enemies = hostile
+    ? w.colonists.filter((k) => !k.downed && canHit(w, c, k))
+    : w.others.filter((o) => o.role === 'saqueador' && !o.downed && !o.raider?.fleeing && canHit(w, c, o));
   if (enemies.length === 0) return;
   enemies.sort((a, b) => Math.abs(a.tile.x - c.tile.x) + Math.abs(a.tile.y - c.tile.y) - (Math.abs(b.tile.x - c.tile.x) + Math.abs(b.tile.y - c.tile.y)));
   attack(w, c, enemies[0]);
@@ -288,4 +327,117 @@ export function vehicleArmorFor(w: World, c: Colonist): number {
   if (!c.vehicle?.boarded) return 0;
   const v = w.vehicles.find((k) => k.id === c.vehicle!.id);
   return v ? defOf(v).armor : 0;
+}
+
+/**
+ * Golpe a alguien que va dentro de un vehículo: el blindaje se lleva su parte (que le quita vida al
+ * vehículo) y devuelve el daño que le llega a él. A pie, el daño entero.
+ */
+export function absorbHit(w: World, c: Colonist, dmg: number): number {
+  if (!c.vehicle?.boarded) return dmg;
+  const v = w.vehicles.find((k) => k.id === c.vehicle!.id);
+  if (!v) return dmg;
+  const def = defOf(v);
+  const stopped = dmg * def.armor;
+  v.hp -= stopped * def.damageScale;
+  if (v.hp <= 0) wreckVehicle(w, v, `💥 El ${def.name.toLowerCase()} queda destrozado`);
+  return dmg - stopped;
+}
+
+/** El vehículo se rompe: los de dentro se bajan y queda su chatarra en el suelo. */
+export function wreckVehicle(w: World, v: Vehicle, why: string): void {
+  const def = defOf(v);
+  for (const c of riders(w, v)) w.leaveVehicle(c);
+  for (const c of w.pawns()) if (c.vehicle?.id === v.id) delete c.vehicle;
+  const i = w.vehicles.indexOf(v);
+  if (i >= 0) w.vehicles.splice(i, 1);
+  const parts: string[] = [];
+  for (const [r, n] of Object.entries(def.wreck) as [Parameters<World['items']['drop']>[2], number][]) {
+    w.items.drop(v.x, v.y, r, n);
+    parts.push(`${n} de ${r}`);
+  }
+  w.addLog(`${why}: deja ${parts.join(', ') || 'nada'}.`, def.hostile ? 'bueno' : 'malo', undefined, { x: v.x, y: v.y });
+}
+
+/** Cada cuánto recalcula el buggy de los saqueadores su camino hacia el colono más cercano. */
+const RAIDER_REPATH_TICKS = 30;
+
+/** Esquina en el borde del mapa (la más cercana a la que pueda ir) para huir. */
+function edgePath(w: World, v: Vehicle): Point[] | null {
+  const m = w.map;
+  const maxX = m.width - VEHICLE_SIZE;
+  const maxY = m.height - VEHICLE_SIZE;
+  const edges: [number, Point][] = [
+    [v.x, { x: 0, y: v.y }], [maxX - v.x, { x: maxX, y: v.y }], [v.y, { x: v.x, y: 0 }], [maxY - v.y, { x: v.x, y: maxY }],
+  ];
+  edges.sort((a, b) => a[0] - b[0]);
+  for (const [, e] of edges) {
+    const alongX = e.y === 0 || e.y === maxY;
+    for (let k = 0; k < 30; k++) {
+      const off = k % 2 ? (k + 1) / 2 : -k / 2;
+      const p = alongX ? { x: Math.max(0, Math.min(maxX, e.x + off)), y: e.y } : { x: e.x, y: Math.max(0, Math.min(maxY, e.y + off)) };
+      if (!fits(w, p.x, p.y)) continue;
+      const path = vehiclePath(w, { x: v.x, y: v.y }, p);
+      if (path) return path;
+      break; // ese borde no se alcanza: prueba otro
+    }
+  }
+  return null;
+}
+
+/**
+ * El buggy de los saqueadores: si cae el conductor, el tirador coge el volante; sin nadie dentro,
+ * lo abandonan (queda como chatarra). Va a por el colono de pie más cercano para atropellarlo, y al
+ * huir el raid se marcha por el borde. Devuelve false si el vehículo ya no está.
+ */
+function driveRaider(w: World, v: Vehicle): boolean {
+  const def = defOf(v);
+  // Los que han caído dentro se bajan (quedan en el suelo al lado).
+  for (const c of riders(w, v)) if (c.downed) w.leaveVehicle(c);
+  const inside = riders(w, v);
+  if (inside.length === 0) {
+    wreckVehicle(w, v, `🚙 Los saqueadores abandonan el ${def.name.toLowerCase()}`);
+    return false;
+  }
+  let driver = inside.find((c) => c.vehicle!.seat === 'conductor');
+  if (!driver) {
+    driver = inside[0];
+    driver.vehicle!.seat = 'conductor';
+    w.addLog(`🚙 ${foeLabel(driver)} coge el volante del ${def.name.toLowerCase()}.`, 'info');
+  }
+  const r = driver.raider;
+  const fleeing = !r || r.fleeing || w.tick > r.leaveAt || driver.health < 0.45;
+  if (fleeing) {
+    for (const c of inside) if (c.raider && !c.raider.fleeing) c.raider.fleeing = true;
+    const m = w.map;
+    if (v.x <= 0 || v.y <= 0 || v.x >= m.width - VEHICLE_SIZE || v.y >= m.height - VEHICLE_SIZE) {
+      w.vehicles.splice(w.vehicles.indexOf(v), 1);
+      for (const c of inside) {
+        delete c.vehicle;
+        leaveMap(w, c, '');
+      }
+      w.addLog(`🏳 El ${def.name.toLowerCase()} huye del mapa.`, 'bueno');
+      return false;
+    }
+    if (v.path.length === 0) {
+      const path = edgePath(w, v);
+      if (!path) {
+        // No hay salida para el buggy: se bajan y huyen a pie.
+        wreckVehicle(w, v, `🚙 Los saqueadores abandonan el ${def.name.toLowerCase()}`);
+        return false;
+      }
+      v.path = path;
+    }
+    return true;
+  }
+  if (v.path.length === 0 || (w.tick + v.id) % RAIDER_REPATH_TICKS === 0) {
+    const targets = w.colonists.filter((c) => !c.downed);
+    const at = vehicleCenter(v);
+    targets.sort((a, b) => Math.hypot(a.pos.x - at.x, a.pos.y - at.y) - Math.hypot(b.pos.x - at.x, b.pos.y - at.y));
+    const target = targets[0];
+    const anchor = target ? anchorFor(w, target.tile) : null;
+    // Sin camino (muros): espera donde está y su tirador dispara a lo que tenga a tiro.
+    v.path = anchor ? vehiclePath(w, { x: v.x, y: v.y }, anchor) ?? [] : [];
+  }
+  return true;
 }

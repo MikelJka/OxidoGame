@@ -362,6 +362,7 @@ export class World implements JobContext {
 
   /** Una persona muere: deja lo que llevaba y se apunta en el diario. */
   killPawn(c: Colonist, cause: string, quiet = false): void {
+    if (c.vehicle) this.leaveVehicle(c);
     dropGear(this, c);
     if (c.role === 'colono') {
       this.dropJob(c);
@@ -1996,7 +1997,7 @@ export class World implements JobContext {
   boardVehicle(vehicleId: number, colonistId: number, seat: VehicleSeat): boolean {
     const v = this.vehicle(vehicleId);
     const c = this.colonists.find((k) => k.id === colonistId);
-    if (!v || !c || c.downed || c.panic) return false;
+    if (!v || !c || c.downed || c.panic || defOf(v).hostile) return false;
     if (c.vehicle?.id === v.id && c.vehicle.seat === seat) return true;
     const other = occupant(this, v, seat);
     if (other) this.leaveVehicle(other);
@@ -2030,7 +2031,7 @@ export class World implements JobContext {
 
   /** Se bajan todos los del vehículo. */
   emptyVehicle(vehicleId: number): void {
-    for (const c of [...this.colonists]) if (c.vehicle?.id === vehicleId) this.leaveVehicle(c);
+    for (const c of this.pawns()) if (c.vehicle?.id === vehicleId) this.leaveVehicle(c);
   }
 
   /**
@@ -2039,7 +2040,7 @@ export class World implements JobContext {
    */
   orderVehicleMove(vehicleId: number, target: Point): 'ok' | 'sin-conductor' | 'sin-combustible' | 'sin-camino' {
     const v = this.vehicle(vehicleId);
-    if (!v) return 'sin-camino';
+    if (!v || defOf(v).hostile) return 'sin-camino';
     const driver = occupant(this, v, 'conductor');
     if (!driver?.vehicle?.boarded) return 'sin-conductor';
     if (v.fuel <= 0) return 'sin-combustible';

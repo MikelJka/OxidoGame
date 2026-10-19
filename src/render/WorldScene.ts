@@ -18,7 +18,7 @@ import { TERRAIN_JOB_NAMES, terrainBlocker, TerrainJob } from '../sim/terrain';
 import { CropDef } from '../data/crops';
 import { drawBuilding, faceHeight, wallHeight } from './buildArt';
 import { paintVehicle, VEHICLE_H, VEHICLE_W } from './vehicleArt';
-import { defOf, Vehicle } from '../sim/vehicles';
+import { defOf, occupant, Vehicle } from '../sim/vehicles';
 import { colonistLookKey, COLONIST_SIZE, CROP_SIZE, ITEM_H, ITEM_W, paintColonist, paintCrop, paintItem } from './spriteArt';
 import { canvasPropRasterizer, paintGround, PropRasterizer, TILE } from './mapArt';
 import { LIFT, liftOf, occludedFraction, pickTile, rowY, setTilt, TILE_H, tiltIndex, TILTS, TOP_MARGIN } from './projection';
@@ -908,8 +908,11 @@ export class WorldScene extends Phaser.Scene {
       // «Atacar a…»: el toque elige al enemigo; tocar otra cosa lo cancela.
       this.attackPick = false;
       const ids = this.selectedIds();
-      const ok = hit && hit.role === 'saqueador' ? ids.filter((id) => this.world.setStance(id, 'atacar', hit.id)).length : 0;
-      this.game.events.emit('toast', ok > 0 ? `🎯 A por ${hit!.name}` : hit && hit.role === 'saqueador' ? 'Ese enemigo ya no puede pelear' : 'Ataque cancelado: no has tocado a un enemigo');
+      // Tocar el buggy de los saqueadores es ir a por quien lo conduce.
+      const foeVeh = !hit && t ? this.world.vehicleAt(t.x, t.y) : undefined;
+      const foe = foeVeh && defOf(foeVeh).hostile ? occupant(this.world, foeVeh, 'conductor') ?? occupant(this.world, foeVeh, 'tirador') : hit;
+      const ok = foe && foe.role === 'saqueador' ? ids.filter((id) => this.world.setStance(id, 'atacar', foe.id)).length : 0;
+      this.game.events.emit('toast', ok > 0 ? `🎯 A por ${foe!.name}` : foe && foe.role === 'saqueador' ? 'Ese enemigo ya no puede pelear' : 'Ataque cancelado: no has tocado a un enemigo');
       this.emitSelection();
       return;
     }
@@ -925,6 +928,12 @@ export class WorldScene extends Phaser.Scene {
     }
     // Un vehículo: tocarlo abre su panel; con el panel abierto, tocar el suelo lo manda allí.
     const veh = t && !opts.right ? this.world.vehicleAt(t.x, t.y) : undefined;
+    if (veh && defOf(veh).hostile) {
+      // El de los saqueadores no se maneja: solo se ve cuánta vida le queda.
+      const d = defOf(veh);
+      this.game.events.emit('toast', `🚙 ${d.name} · vida ${Math.max(0, Math.ceil(veh.hp))}/${d.hp} · blindaje −${Math.round(d.armor * 100)} %. Recluta a los colonos y ataca a los de dentro.`);
+      return;
+    }
     if (veh) {
       this.selectVehicle(veh.id);
       return;

@@ -117,6 +117,7 @@ export function mountGodMode(opts: Options): GodPanel {
 
   const ACTIONS: [string, string, (w: World) => string | void][] = [
     ['⚔️ Raid', 'Llega un raid de 3 saqueadores', (w) => void startRaid(w, 3)],
+    ['🚙 Raid en buggy', 'Llega un raid de 4 saqueadores, dos en su buggy', (w) => void startRaid(w, 4, true)],
     ['🐕 Manada', 'Llega una manada de 5 perros mutantes', (w) => void startPack(w, 5)],
     ['🐫 Caravana', 'Llega una caravana', (w) => void startTrader(w)],
     ['🚶 Superviviente', 'Alguien pide unirse', (w) => {

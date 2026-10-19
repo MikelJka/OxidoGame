@@ -12,7 +12,8 @@ import type { Structure } from './structures';
 import { BODY_PARTS, healthLabel, hurt } from './health';
 import { findPath, Point } from './pathfinding';
 import { inBounds, isPassable, isWater, Prop, RADIATION_THRESHOLD, Terrain } from './map';
-import { vehicleArmorFor } from './vehicles';
+import { absorbHit, VEHICLE_SIZE } from './vehicles';
+import { RAIDER_VEHICLE, vehicleDef } from '../data/vehicles';
 import { DIFFICULTIES, RADIO_GAP_DAYS, raidGap, raidSize, TRADER_GAP, WANDERER_GAP } from './storyteller';
 import type { World } from './world';
 import { maybePanic, witnessFall } from './panic';
@@ -101,8 +102,38 @@ export function offerWanderer(w: World, byRadio = false): void {
   w.addLog(`🚶 ${c.name} «${c.nickname}», ${c.age} años, ${byRadio ? 'ha oído la 📻 radio y ' : ''}pide unirse a la colonia.`, 'info', 'visita');
 }
 
-/** Llega un raid de `n` saqueadores por un mismo borde. */
-export function startRaid(w: World, n: number): Colonist[] {
+/**
+ * Pone el buggy de los saqueadores junto al primero y sube a dos: el conductor y el tirador (el líder
+ * ★ prefiere ir a pie). false si no cabe.
+ */
+function raiderBuggy(w: World, raid: Colonist[], defId: string): boolean {
+  const t = raid[0].tile;
+  let anchor: Point | null = null;
+  for (let r = 0; r <= 3 && !anchor; r++) {
+    for (let dy = -r; dy <= r && !anchor; dy++) {
+      for (let dx = -r; dx <= r && !anchor; dx++) {
+        const x = Math.max(0, Math.min(w.map.width - VEHICLE_SIZE, t.x + dx));
+        const y = Math.max(0, Math.min(w.map.height - VEHICLE_SIZE, t.y + dy));
+        if ([0, 1].every((ox) => [0, 1].every((oy) => isPassable(w.map, x + ox, y + oy)))) anchor = { x, y };
+      }
+    }
+  }
+  if (!anchor) return false;
+  const v = w.addVehicle(defId, anchor.x, anchor.y);
+  // Lo traen lleno (y no gasta).
+  v.fuel = vehicleDef(defId)!.fuelCapacity;
+  const crew = [...raid.filter((r) => !r.raider?.leader), ...raid.filter((r) => r.raider?.leader)].slice(0, 2);
+  crew.forEach((c, i) => {
+    c.vehicle = { id: v.id, seat: i === 0 ? 'conductor' : 'tirador', boarded: true };
+    c.tile = { x: anchor!.x + 1, y: anchor!.y + 1 };
+    c.pos = { x: anchor!.x + 1, y: anchor!.y + 1 };
+    c.path = [];
+  });
+  return true;
+}
+
+/** Llega un raid de `n` saqueadores por un mismo borde (`withBuggy`: fuerza que traigan o no buggy). */
+export function startRaid(w: World, n: number, withBuggy?: boolean): Colonist[] {
   const out: Colonist[] = [];
   const first = w.makePawn('saqueador');
   if (!w.placeAtEdge(first)) return out;
@@ -133,7 +164,12 @@ export function startRaid(w: World, n: number): Colonist[] {
   for (const r of out) r.raider!.group = first.id;
   w.raidGroups.push({ id: first.id, size: out.length, leaderId: leader.id, escaped: [], routed: false });
   const lead = out.length > 1 ? `, con ${leader.name} ★ al frente` : '';
-  w.addLog(`⚔️ ¡Raid! ${n} ${n === 1 ? 'saqueador llega' : 'saqueadores llegan'}${lead}. Recluta a los colonos (🎖) para defenderos.`, 'malo', 'raid', first.tile);
+  // Desde el día 20, llegan en buggy (vehículos, tercera parte): dos van dentro, conductor y tirador.
+  const def = RAIDER_VEHICLE;
+  const buggy = withBuggy ?? (!!def && out.length >= 2 && w.day >= (def.fromDay ?? 0) && w.rng.chance(def.raidChance ?? 0));
+  const inBuggy = buggy && def ? raiderBuggy(w, out, def.id) : false;
+  const how = inBuggy ? `, dos de ellos en un 🚙 ${def!.name.toLowerCase()}` : '';
+  w.addLog(`⚔️ ¡Raid! ${n} ${n === 1 ? 'saqueador llega' : 'saqueadores llegan'}${lead}${how}. Recluta a los colonos (🎖) para defenderos.`, 'malo', 'raid', first.tile);
   return out;
 }
 
@@ -395,11 +431,12 @@ function applyHit(w: World, a: Colonist, b: Colonist, weapon: WeaponDef | null |
   const tough = b.traits.some((t) => t.id === 'duro') ? 0.75 : 1;
   // La dureza de la partida solo cambia los golpes de los saqueadores.
   const hard = a.role === 'saqueador' ? DIFFICULTIES[w.difficulty.level].enemyDamage : 1;
-  // Dentro de un vehículo blindado se ahorra parte del daño (el buggy, −40 %).
-  const armor = (1 - armorProtection([b.vest, b.helmet])) * (1 - vehicleArmorFor(w, b));
+  const armor = 1 - armorProtection([b.vest, b.helmet]);
   // Una criatura muerde o golpea con su propio daño (el perro mutante, ×1,2).
   const blow = a.creature ? CREATURES[a.creature].damage : (weapon?.damage ?? 1);
-  const dmg = (0.08 + w.rng.next() * 0.1) * (1 + a.skills.combate * 0.03) * tough * hard * blow * armor;
+  // Dentro de un vehículo blindado, el blindaje se lleva parte del golpe (el buggy, −40 %; el de los
+  // saqueadores, −30 %) y pierde esa vida.
+  const dmg = absorbHit(w, b, (0.08 + w.rng.next() * 0.1) * (1 + a.skills.combate * 0.03) * tough * hard * blow * armor);
   const part = BODY_PARTS[w.rng.int(0, BODY_PARTS.length - 1)];
   const wasDown = b.downed;
   const fell = b.role === 'colono' ? (hurt(b, dmg, part), !wasDown && b.downed) : hurtFoe(w, b, dmg, part);
@@ -480,9 +517,9 @@ function turretShot(w: World, s: Structure, b: Colonist, from: Point, dist: numb
   hitChance *= 1 - Math.min(FULL_COVER, coverAt(w, from, b.tile));
   if (!w.rng.chance(hitChance)) return false;
   const tough = b.traits.some((k) => k.id === 'duro') ? 0.75 : 1;
-  // Dentro de un vehículo blindado se ahorra parte del daño (el buggy, −40 %).
-  const armor = (1 - armorProtection([b.vest, b.helmet])) * (1 - vehicleArmorFor(w, b));
-  const dmg = (0.08 + w.rng.next() * 0.1) * (1 + TURRET_AIM_SKILL * 0.03) * tough * t.damage * armor;
+  const armor = 1 - armorProtection([b.vest, b.helmet]);
+  // Dentro de un vehículo blindado, el blindaje se lleva parte del disparo (y pierde esa vida).
+  const dmg = absorbHit(w, b, (0.08 + w.rng.next() * 0.1) * (1 + TURRET_AIM_SKILL * 0.03) * tough * t.damage * armor);
   const part = BODY_PARTS[w.rng.int(0, BODY_PARTS.length - 1)];
   if (hurtFoe(w, b, dmg, part)) w.addLog(b.creature ? `🔫 La ${s.def.name.toLowerCase()} abate a ${b.name}.` : `🔫 La ${s.def.name.toLowerCase()} derriba a ${foeLabel(b)}.`, 'bueno');
   return true;
@@ -658,6 +695,11 @@ export function updateOthers(w: World): void {
         continue;
       }
     }
+    // En el buggy de los saqueadores: si cae, se baja (queda en el suelo al lado); si no, lo lleva el buggy.
+    if (o.vehicle) {
+      if (o.downed || !o.vehicle.boarded) w.leaveVehicle(o);
+      else continue;
+    }
     // Una criatura no se queda en el suelo: muere (por si cae por algo que no sea un golpe).
     if (o.downed && o.creature) {
       w.killPawn(o, 'heridas');
@@ -687,7 +729,7 @@ export function dropGear(w: World, c: Colonist): void {
   c.helmet = null;
 }
 
-function leaveMap(w: World, o: Colonist, why: string): void {
+export function leaveMap(w: World, o: Colonist, why: string): void {
   const i = w.others.indexOf(o);
   if (i >= 0) w.others.splice(i, 1);
   // Un saqueador que se escapa no cuenta como caído para la moral de su raid.

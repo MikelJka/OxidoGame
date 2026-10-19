@@ -512,7 +512,7 @@ export function loadWorld(input: string | unknown): World {
   }
   world.nextVehicleId = Math.max(num(d.nextVehicleId, 1), ...world.vehicles.map((v) => v.id + 1), 1);
   // Asientos de vehículos que ya no existen: fuera.
-  for (const c of world.colonists) if (c.vehicle && !world.vehicle(c.vehicle.id)) delete c.vehicle;
+  for (const c of world.pawns()) if (c.vehicle && !world.vehicle(c.vehicle.id)) delete c.vehicle;
   for (const it of d.items ?? []) {
     if (!isResource(it.resource)) continue;
     // En su casilla; si ya no cabe ahí (p. ej. ahora hay un muro), al lado.

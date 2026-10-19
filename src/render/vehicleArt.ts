@@ -47,6 +47,43 @@ export function paintVehicle(ctx: CanvasRenderingContext2D, id: string, w = VEHI
     // Ametralladora atrás.
     px(4, 5, 4, 4, '#2a2826');
     px(1, 6, 4, 1, '#2a2826');
+  } else if (id === 'buggy_saqueador') {
+    // Buggy de los saqueadores: chatarra oxidada pintada de rojo, ariete de pinchos delante,
+    // calavera en el capó, tubos de escape y bandera rota; rueda trasera grande.
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(2, 21, 28, 4);
+    // Ruedas: la de atrás más grande.
+    px(2, 13, 10, 10, '#1a1410');
+    px(3, 14, 8, 8, '#2e2a26');
+    px(6, 17, 2, 2, '#6e4a2a');
+    px(21, 16, 7, 7, '#1a1410');
+    px(22, 17, 5, 5, '#2e2a26');
+    px(24, 19, 1, 1, '#6e4a2a');
+    // Chasis de chapas desiguales.
+    px(4, 10, 24, 7, '#1a1410');
+    px(5, 11, 22, 5, '#8a2e1c');
+    px(5, 11, 22, 1, '#b04a2a');
+    px(9, 12, 4, 3, '#6e5a40'); // parche de chapa sin pintar
+    px(18, 13, 3, 2, '#5a2214'); // óxido
+    // Calavera en el capó.
+    px(21, 11, 3, 3, '#e8e0c8');
+    px(21, 12, 1, 1, '#1a1410');
+    px(23, 12, 1, 1, '#1a1410');
+    // Ariete de pinchos delante.
+    px(28, 11, 2, 6, '#5c5a56');
+    for (const y of [11, 14]) px(30, y, 2, 1, '#9a9890');
+    // Tubos de escape y humo.
+    px(6, 4, 2, 6, '#3a3836');
+    px(9, 6, 2, 4, '#3a3836');
+    px(6, 2, 2, 2, '#6a6864');
+    // Asiento del tirador con arpón.
+    px(13, 6, 5, 4, '#2a2826');
+    px(16, 5, 7, 1, '#4a4844');
+    px(23, 4, 2, 2, '#9a9890');
+    // Bandera rota.
+    px(3, 0, 1, 10, '#4a3a2a');
+    px(4, 0, 4, 3, '#1a1410');
+    px(4, 1, 3, 1, '#b02a1a');
   } else {
     px(2, 4, VEHICLE_W - 4, VEHICLE_H - 8, '#7a6a4a');
   }

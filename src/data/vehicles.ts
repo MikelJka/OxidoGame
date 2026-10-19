@@ -18,6 +18,17 @@ export interface VehicleDef {
   runOverDamage: number;
   /** Lo que queda si se rompe. */
   wreck: Partial<Record<ResourceId, number>>;
+  /**
+   * Vida que pierde por cada punto de salud que ahorra a los de dentro: el blindaje se lleva su
+   * parte del golpe (con 1000, un golpe que habría quitado un 10 % de salud y del que el blindaje
+   * para un 30 % le quita 30).
+   */
+  damageScale: number;
+  /** Es de los saqueadores (no lo maneja el jugador). */
+  hostile?: boolean;
+  /** De los saqueadores: día desde el que llega con los raids y probabilidad de que traigan uno. */
+  fromDay?: number;
+  raidChance?: number;
 }
 
 export function validateVehicle(d: unknown): VehicleDef {
@@ -28,11 +39,16 @@ export function validateVehicle(d: unknown): VehicleDef {
   if (!v || !v.id || !v.name) fail('falta id o nombre');
   if (!(v.speed > 0) || !(v.fuelPerHour >= 0) || !(v.fuelCapacity > 0) || !(v.hp > 0)) fail('números');
   if (!(v.armor >= 0 && v.armor < 1) || !(v.runOverDamage >= 0)) fail('armadura o atropello');
+  if (!(v.damageScale >= 0)) fail('damageScale');
+  if (v.hostile && !(v.fromDay! >= 0 && v.raidChance! >= 0 && v.raidChance! <= 1)) fail('día o probabilidad del raid');
   for (const r of Object.keys(v.wreck ?? {})) if (!RESOURCES.includes(r as ResourceId)) fail(`recurso desconocido ${r}`);
   return v;
 }
 
 export const VEHICLES: readonly VehicleDef[] = (raw as unknown[]).map(validateVehicle);
+
+/** El buggy con el que llegan los saqueadores (si hay). */
+export const RAIDER_VEHICLE: VehicleDef | undefined = VEHICLES.find((v) => v.hostile);
 
 export function vehicleDef(id: string): VehicleDef | undefined {
   return VEHICLES.find((v) => v.id === id);

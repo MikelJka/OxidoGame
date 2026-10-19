@@ -776,7 +776,7 @@ function renderVehicle(): void {
   const driver = occupant(w, v, 'conductor');
   $('vh-name').textContent = `🚙 ${def.name}`;
   const state = v.path.length > 0 ? 'en marcha' : v.fuel <= 0 ? 'sin combustible' : 'parado';
-  $('vh-status').textContent = `⛽ ${Math.floor(v.fuel)}/${def.fuelCapacity} · ${state} · blindaje −${Math.round(def.armor * 100)} %`;
+  $('vh-status').textContent = `⛽ ${Math.floor(v.fuel)}/${def.fuelCapacity} · ${state} · vida ${Math.max(0, Math.ceil(v.hp))}/${def.hp} · blindaje −${Math.round(def.armor * 100)} %`;
   // Un desplegable por asiento: nadie o un colono (los que pueden).
   const people = w.colonists.filter((c) => !c.downed);
   const key = people.map((c) => `${c.id}:${c.name}`).join('|');

@@ -2,6 +2,19 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 (12) — El buggy de los saqueadores (vehículos, tercera parte)
+
+- Pedido por Mikel en el chat: el buggy de los saqueadores, como el de los colonos pero con otros números y otro dibujo.
+- **🚙 Buggy saqueador**: desde el día 20, cada raid de 2 o más saqueadores trae uno, con dos dentro (conductor y tirador; el líder ★ va a pie). Va a por el colono de pie más cercano para **atropellarlo** (30 % de salud; a los colonos sí los puede dejar en el suelo), y su tirador dispara a los colonos. Si cae el conductor, el tirador coge el volante; cuando el raid huye, se va por el borde con los de dentro.
+- **Números** (en `src/data/vehicles.json`): ×1,8 de velocidad (el de los colonos, ×2), blindaje −30 % (−40 %), 400 de vida (600). No gasta ⛽ porque lo traen lleno.
+- **Romperlo**: el blindaje se lleva su parte de cada golpe a los de dentro y pierde esa vida (1000 de vida por cada punto de salud que para). Al llegar a 0 queda **chatarra 🔩20** y los de dentro se bajan. Si se quedan sin nadie dentro, lo abandonan y también queda chatarra. **Esto vale también para el buggy de los colonos**: ahora su vida (600) se gasta cuando les pegan a los de dentro.
+- Dibujo propio: chapa roja oxidada, ariete de pinchos, calavera en el capó, tubos de escape, bandera y rueda trasera grande. Al tocarlo se ve su vida; con «🎯 Atacar a…», tocarlo es ir a por quien lo conduce.
+- Modo Dios: nuevo atajo **🚙 Raid en buggy** (4 saqueadores, dos en el buggy).
+- Lo que he puesto yo: todos los números de arriba, que traigan buggy en todos los raids desde el día 20, que lo abandonen al quedarse vacío y que el líder ★ vaya a pie.
+- Qué probar: en 🪄 lanzar 🚙 Raid en buggy y ver que el buggy va a por un colono y lo atropella; reclutar colonos y pegarle a los de dentro hasta que el buggy quede destrozado y suelte la chatarra. Con el buggy propio, comprobar que la vida baja en su panel cuando pegan a los de dentro. En el móvil, tocar el buggy saqueador y leer el aviso.
+- Sin npm en el entorno: tests con Bun (390, 13 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Siguiente: el bruto mutante (mutantes, segunda parte).
+
 ## 2026-10-19 (11) — Muros en los acantilados y las pendientes
 
 - Pedido por Mikel en el chat: al levantar un muro junto a un acantilado no dejaba seguir, y por los huecos de pendiente que tienen los acantilados entraban los enemigos.
