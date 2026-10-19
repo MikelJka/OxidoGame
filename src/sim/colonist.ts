@@ -77,6 +77,8 @@ export interface HaulInfo {
   toBlueprint: boolean;
   /** Ya ha recogido la carga. */
   picked: boolean;
+  /** Otros planos cercanos (en orden) a los que lleva el resto de la carga (#20). */
+  extra?: { sid: number; x: number; y: number }[];
 }
 
 /** Lo que lleva encima un colono. */

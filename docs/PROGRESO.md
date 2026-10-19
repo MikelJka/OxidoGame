@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 — Llevar material a varios planos de una vez (#20)
+
+- Sin incidencias nuevas en 🐞. Esta sesión, **#20**.
+- Al ir a llevar material a un plano, el colono coge también lo que piden los otros planos que hay a 8 casillas o menos (hasta lo que puede llevar: 75 de madera, 50 de piedra…, o lo que quede en el montón) y lo reparte yendo cada vez al más cercano. Un muro de 5 tramos se abastece en un solo viaje en vez de cinco.
+- Esos planos quedan apartados para que otro colono no les lleve lo mismo; si alguno ya no lo necesita (o no se llega), pasa al siguiente, y lo que sobre lo deja en el suelo y luego va al almacén. El radio de 8 casillas lo he puesto yo; se cambia en `BLUEPRINT_SHARE_RADIUS` (`src/data/work.ts`). Solo los planos; los talleres y la electrificación siguen como antes.
+- Qué probar: con un solo colono, colocar una fila de muros de madera y ver que coge la madera de una vez y va dejándola tramo a tramo; con dos colonos, que no se pisan.
+- Sin npm en el entorno: tests con Bun (293, 3 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Sigue esperando la respuesta de Mikel: cómo conseguir más colonos (#21).
+- Siguiente: #22, derribar en vez de matar (primera parte).
+
 ## 2026-10-18 (noche, 3) — Avisos en pantalla de raids, peleas y visitas (#17, #18)
 
 - Sin incidencias nuevas en 🐞. Esta sesión, **#17 y #18**: ahora es difícil perderse un raid o una pelea.

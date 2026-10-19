@@ -42,3 +42,9 @@ export const WORK_SKILL: Partial<Record<WorkType, Skill>> = {
   curar: 'medicina',
   carcelero: 'social',
 };
+
+/**
+ * Reparto de material (#20): al llevar material a un plano, el colono coge también lo que piden
+ * los planos cercanos (a esta distancia en casillas, sin diagonales, del primero) y lo reparte.
+ */
+export const BLUEPRINT_SHARE_RADIUS = 8;

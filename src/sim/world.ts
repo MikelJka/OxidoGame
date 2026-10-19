@@ -1390,8 +1390,39 @@ export class World implements JobContext {
         left = this.items.addAt(h.to.x, h.to.y, load.resource, left);
       }
       c.carrying = left > 0 ? { resource: load.resource, amount: left } : null;
+      if (left > 0 && h.toBlueprint && this.nextSharedBlueprint(c)) return;
     }
     this.dropJob(c); // si sobra algo, lo deja en el suelo donde está
+  }
+
+  /**
+   * Reparto de material (#20): con carga de sobra, sigue al siguiente plano de la lista que aún pida
+   * ese recurso y al que se pueda llegar. false si no queda ninguno.
+   */
+  private nextSharedBlueprint(c: Colonist): boolean {
+    const j = c.job!;
+    const h = j.haul!;
+    const load = c.carrying;
+    while (load && h.extra && h.extra.length > 0) {
+      const e = h.extra.shift()!;
+      const s = this.structures.get(e.sid);
+      const ok = !!s && !s.built && s.x === e.x && s.y === e.y && (this.structures.needs(s)[load.resource] ?? 0) > 0;
+      const route = ok ? this.routeTo(c, this.structures.sidesOf(s!)) : null;
+      if (!route) {
+        this.reservations.release(e.x, e.y, c.id, 'work');
+        continue;
+      }
+      this.reservations.release(j.x, j.y, c.id, 'work');
+      j.sid = e.sid;
+      j.x = e.x;
+      j.y = e.y;
+      h.to = { x: e.x, y: e.y };
+      j.stand = route.stand;
+      c.path = route.path;
+      c.activity = 'toJob';
+      return true;
+    }
+    return false;
   }
 
   /** Vuelve a calcular el camino hasta una casilla; si no hay, deja el trabajo. */

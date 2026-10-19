@@ -2,7 +2,7 @@
 // las reserva para un colono y elige la siguiente según sus prioridades y la distancia.
 // Determinista: sin azar.
 import { MAX_STACK, RESOURCES, ResourceId } from '../data/resources';
-import { WORK_SKILL, WORK_TYPES, WorkType } from '../data/work';
+import { BLUEPRINT_SHARE_RADIUS, WORK_SKILL, WORK_TYPES, WorkType } from '../data/work';
 import { Colonist, ColonistJob } from './colonist';
 import { Designations } from './designations';
 import { GroundItems } from './items';
@@ -278,6 +278,36 @@ function nearestMaterial(ctx: JobContext, s: Structure, near: Point): { x: numbe
   return best;
 }
 
+/**
+ * Reparto de material (#20): otros planos cerca de `s` que piden el mismo recurso y no tiene otro
+ * colono, en el orden en que se recorren (siempre el más cercano al anterior). Con ellos, la carga
+ * crece hasta lo que cabe en las manos o lo que queda en el montón.
+ */
+export function shareBlueprints(ctx: JobContext, c: Colonist, s: Structure, resource: ResourceId, first: number, stack: number): { amount: number; extra: { sid: number; x: number; y: number }[] } {
+  const cap = Math.min(stack, MAX_STACK[resource]);
+  let amount = Math.min(first, cap);
+  const extra: { sid: number; x: number; y: number }[] = [];
+  const pool = ctx.structures.blueprints().filter((o) => {
+    if (o.id === s.id || manhattan(s, o.x, o.y) > BLUEPRINT_SHARE_RADIUS) return false;
+    const holder = ctx.reservations.holder(o.x, o.y);
+    if (holder !== undefined && holder !== c.id) return false;
+    return (ctx.structures.needs(o)[resource] ?? 0) > 0;
+  });
+  let at: Point = s;
+  while (amount < cap && pool.length > 0) {
+    let k = 0;
+    for (let i = 1; i < pool.length; i++) {
+      const d = manhattan(at, pool[i].x, pool[i].y) - manhattan(at, pool[k].x, pool[k].y);
+      if (d < 0 || (d === 0 && (pool[i].y < pool[k].y || (pool[i].y === pool[k].y && pool[i].x < pool[k].x)))) k = i;
+    }
+    const o = pool.splice(k, 1)[0];
+    amount = Math.min(cap, amount + (ctx.structures.needs(o)[resource] ?? 0));
+    extra.push({ sid: o.id, x: o.x, y: o.y });
+    at = o;
+  }
+  return { amount, extra };
+}
+
 /** Tipo de trabajo de un taller: en la cocina se cocina (habilidad Cocina); en los demás, se fabrica. */
 export function stationWork(s: Structure): 'fabricar' | 'cocinar' {
   return s.def.id === 'cocina' ? 'cocinar' : 'fabricar';
@@ -458,10 +488,14 @@ function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
           const route = pathToNearest(ctx.map, c.tile, [{ x: mat.x, y: mat.y }]);
           if (!route) return null;
           if (!pathToNearest(ctx.map, { x: mat.x, y: mat.y }, sides)) return null;
+          // Coge también lo que piden los planos de alrededor y lo reparte (#20).
+          const first = ctx.structures.needs(s)[mat.resource] ?? 0;
+          const share = shareBlueprints(ctx, c, s, mat.resource, first, ctx.items.at(mat.x, mat.y)?.amount ?? mat.amount);
+          const haul = { resource: mat.resource, amount: share.amount, from: { x: mat.x, y: mat.y }, to: { x: s.x, y: s.y }, toBlueprint: true, picked: false };
           return {
             job: {
               kind: 'construir', sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: 0, work: 0,
-              haul: { resource: mat.resource, amount: mat.amount, from: { x: mat.x, y: mat.y }, to: { x: s.x, y: s.y }, toBlueprint: true, picked: false },
+              haul: share.extra.length ? { ...haul, extra: share.extra } : haul,
             },
             path: route.path,
           };
@@ -588,6 +622,8 @@ export function reservePlan(r: Reservations, c: Colonist, job: ColonistJob): boo
   if (h) {
     if (!h.picked && !r.reserve(h.from.x, h.from.y, c.id, 'pickup')) return fail();
     if (!h.toBlueprint && !r.reserve(h.to.x, h.to.y, c.id, 'drop')) return fail();
+    // Los otros planos del reparto, para que nadie más les lleve lo mismo.
+    for (const e of h.extra ?? []) if (!r.reserve(e.x, e.y, c.id, 'work')) return fail();
   }
   return true;
 }

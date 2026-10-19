@@ -51,6 +51,7 @@ Terminado: diseño un refugio cerrado y los colonos lo construyen con recursos.
 - [x] Planos: colocar, cancelar y demoler (ratón y táctil)
 - [x] Muros, puertas, portones, suelos, camas y banco de trabajo
 - [x] Construcción como trabajo que consume recursos
+- [x] Llevar material a varios planos cercanos en un solo viaje (#20)
 - [x] Habitaciones cerradas detectadas (para ánimo y temperatura futura)
 - [x] Máquinas de producción: cantera (piedra) y recicladora (chatarra a partir de basura y restos), para cuando se agoten los del mapa
 - [x] Materiales: metal (se funde chatarra en el horno) y hormigón
