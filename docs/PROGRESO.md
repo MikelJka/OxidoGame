@@ -9,8 +9,8 @@ Diario de sesiones, la más reciente arriba.
 - **Destilería** en 🏗 → Talleres: 🔩20 ⚙️2, 2×2, se puede mover. Con una orden, un colono le lleva madera y cada tanda (10 🪵 → 2 ⛽) lleva 500 de trabajo, el doble que un cuchillo. Lo que he puesto yo: lo que tarda en construirse (700) y su aguante (300), como la recicladora; no se electrifica.
 - Qué probar: construir una destilería, darle una orden «hasta tener 10 ⛽» y ver que el colono lleva madera y destila. En el móvil, que el panel del taller se toque bien.
 - Sin npm en el entorno: tests con Bun (311, 3 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
-- Siguen esperando la respuesta de Mikel: más colonos (#21) y la segunda parte de #22.
-- Siguiente: el buggy blindado de los colonos (segunda parte de los vehículos).
+- Mientras tanto Mikel ha decidido #21 (A y C) y la segunda parte de #22, y pidió la prioridad médica tras los combates: ya están en «Pendiente».
+- Siguiente: la segunda parte de #22 (cama de prisionero para capturar, curar en el suelo, rematar baja el ánimo), que va antes en la lista.
 
 ## 2026-10-19 (3) — Heridas que se infectan y 💊 Medicina
 
