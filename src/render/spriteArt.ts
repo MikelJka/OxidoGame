@@ -1,6 +1,7 @@
 // Dibujos pixel art de colonos, montones y plantas sobre un lienzo 2D.
 // Los usan la vista 2D (Phaser) y la vista 3D (Three.js).
 import type { Colonist } from '../sim/colonist';
+import type { CreatureId } from '../data/creatures';
 import type { CropDef } from '../data/crops';
 import type { ResourceId } from '../data/resources';
 
@@ -23,6 +24,11 @@ export function paintColonist(ctx: CanvasRenderingContext2D, c: Colonist): void 
     ctx.fillRect(x, y, w, h);
   };
   const outline = '#1a1410';
+  // Las criaturas tienen su propio dibujo (según su id, para que otro motor ponga su modelo).
+  if (c.creature) {
+    paintCreature(px, c.creature);
+    return;
+  }
   // Sombra
   px(4, 14, 8, 1, 'rgba(0,0,0,0.35)');
   // Piernas
@@ -64,9 +70,47 @@ export function paintColonist(ctx: CanvasRenderingContext2D, c: Colonist): void 
   }
 }
 
+/** Dibujo de una criatura de 16×16, mirando a la derecha (el sprite se voltea). */
+function paintCreature(px: (x: number, y: number, w: number, h: number, color: string) => void, id: CreatureId): void {
+  const outline = '#1a1410';
+  switch (id) {
+    case 'perro_mutante': {
+      // Perro flaco y sarnoso, piel gris verdosa con calvas rosadas y ojo brillante.
+      const fur = '#6b6f4a';
+      const dark = '#474a30';
+      px(2, 14, 12, 1, 'rgba(0,0,0,0.35)'); // sombra
+      // Patas
+      for (const x of [3, 5, 10, 12]) {
+        px(x, 11, 1, 3, outline);
+      }
+      // Cuerpo
+      px(2, 6, 10, 6, outline);
+      px(3, 7, 8, 4, fur);
+      px(3, 10, 8, 1, dark);
+      px(5, 7, 2, 1, '#c98a8a'); // calva
+      px(8, 9, 2, 1, '#c98a8a');
+      // Lomo erizado
+      px(4, 5, 1, 1, outline);
+      px(6, 5, 1, 1, outline);
+      px(8, 5, 1, 1, outline);
+      // Cola
+      px(0, 5, 2, 1, outline);
+      px(1, 6, 1, 1, dark);
+      // Cabeza y hocico
+      px(10, 3, 5, 5, outline);
+      px(11, 4, 3, 3, fur);
+      px(14, 6, 2, 2, outline);
+      px(11, 2, 1, 2, outline); // oreja
+      px(13, 4, 1, 1, '#d4ff4a'); // ojo
+      px(14, 8, 1, 1, '#e8e0c8'); // colmillo
+      break;
+    }
+  }
+}
+
 /** Clave de textura: cambia si cambia su papel (un prisionero que se une ya no lleva mono). */
 export function colonistLookKey(c: Colonist): string {
-  return `${c.id}-${c.role}-${c.look.shirt}-${c.look.hair}${c.raider?.leader ? '-lider' : ''}`;
+  return `${c.id}-${c.creature ?? c.role}-${c.look.shirt}-${c.look.hair}${c.raider?.leader ? '-lider' : ''}`;
 }
 
 /** Dibuja un montón pixel art de 12×10 para un recurso. */

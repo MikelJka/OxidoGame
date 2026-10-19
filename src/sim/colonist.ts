@@ -1,5 +1,6 @@
 import type { WeaponId } from '../data/weapons';
 import { ArmorId, armorWalk } from '../data/armor';
+import { CREATURE_IDS, CREATURES, CreatureId } from '../data/creatures';
 import {
   FIRST_NAMES, HAIR_COLORS, NICKNAMES, SHIRT_COLORS, SKILLS, SKIN_COLORS, Skill, TRAITS, TRAIT_CONFLICTS, TraitDef,
 } from '../data/colonists';
@@ -135,6 +136,8 @@ export interface Colonist {
   prisoner?: PrisonerInfo;
   /** Saqueador: si huye, cuándo se va y de qué raid es (y si es su líder ★). */
   raider?: RaiderInfo;
+  /** Criatura (perro mutante…): hostil como un saqueador, pero no se la captura y al caer muere. */
+  creature?: CreatureId;
   /** Comerciante: lo que vende, a quién vende y cuándo se va. */
   trader?: TraderInfo;
   /** Ticks hasta poder volver a golpear. */
@@ -260,7 +263,8 @@ export function createColonist(id: number, at: Point, rng: Rng): Colonist {
 }
 
 export function walkSpeedMultiplier(c: Colonist): number {
-  return c.traits.reduce((m, t) => m * (t.walkSpeed ?? 1), 1) * armorWalk([c.vest, c.helmet]);
+  const beast = c.creature ? CREATURES[c.creature].walkSpeed : 1;
+  return c.traits.reduce((m, t) => m * (t.walkSpeed ?? 1), 1) * armorWalk([c.vest, c.helmet]) * beast;
 }
 
 export function activityLabel(c: Colonist): string {
@@ -335,10 +339,13 @@ const ROLE_PLURAL: Record<PawnRole, [string, string]> = {
 export function groupSummary(pawns: readonly Colonist[]): string {
   if (pawns.length === 0) return 'Nadie';
   const parts: string[] = [];
-  for (const role of Object.keys(ROLE_PLURAL) as PawnRole[]) {
-    const of = pawns.filter((c) => c.role === role);
+  // Primero las personas por papel; luego las criaturas (perros mutantes…), por especie.
+  const groups: [Colonist[], string, string, PawnRole | null][] = (Object.keys(ROLE_PLURAL) as PawnRole[]).map((role) => [
+    pawns.filter((c) => c.role === role && !c.creature), ...ROLE_PLURAL[role], role,
+  ]);
+  for (const id of CREATURE_IDS) groups.push([pawns.filter((c) => c.creature === id), CREATURES[id].name.toLowerCase(), CREATURES[id].plural, null]);
+  for (const [of, one, many, role] of groups) {
     if (of.length === 0) continue;
-    const [one, many] = ROLE_PLURAL[role];
     const downed = of.filter((c) => c.downed).length;
     const hurt = of.filter((c) => !c.downed && (c.wounds.length > 0 || c.health < 0.999)).length;
     const extra: string[] = [];

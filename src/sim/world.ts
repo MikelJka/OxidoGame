@@ -361,7 +361,7 @@ export class World implements JobContext {
   }
 
   /** Una persona muere: deja lo que llevaba y se apunta en el diario. */
-  killPawn(c: Colonist, cause: string): void {
+  killPawn(c: Colonist, cause: string, quiet = false): void {
     dropGear(this, c);
     if (c.role === 'colono') {
       this.dropJob(c);
@@ -379,6 +379,11 @@ export class World implements JobContext {
       const i = this.others.indexOf(c);
       if (i >= 0) this.others.splice(i, 1);
       if (c.carrying) this.items.drop(c.tile.x, c.tile.y, c.carrying.resource, c.carrying.amount);
+      if (quiet) return;
+      if (c.creature) {
+        this.addLog(`${c.name} muere (${cause}).`, 'info');
+        return;
+      }
       const who = c.role === 'saqueador' ? 'Un saqueador' : c.role === 'prisionero' ? 'El prisionero' : 'Alguien';
       this.addLog(`${who} (${c.name}) ha muerto (${cause}).`, 'info');
     }

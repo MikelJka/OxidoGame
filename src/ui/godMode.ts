@@ -4,7 +4,7 @@ import type { Colonist, PawnRole } from '../sim/colonist';
 import {
   godClear, godDrop, godFinishWork, godGrowAll, godHealAll, godKill, godSkip, godSpawn, godWound, pawnNear,
 } from '../sim/god';
-import { offerWanderer, startRaid, startTrader } from '../sim/people';
+import { offerWanderer, startPack, startRaid, startTrader } from '../sim/people';
 import { RESOURCES, RESOURCE_ICONS, RESOURCE_NAMES, ResourceId } from '../data/resources';
 import { TICKS_PER_DAY, TICKS_PER_HOUR } from '../sim/time';
 
@@ -117,6 +117,7 @@ export function mountGodMode(opts: Options): GodPanel {
 
   const ACTIONS: [string, string, (w: World) => string | void][] = [
     ['⚔️ Raid', 'Llega un raid de 3 saqueadores', (w) => void startRaid(w, 3)],
+    ['🐕 Manada', 'Llega una manada de 5 perros mutantes', (w) => void startPack(w, 5)],
     ['🐫 Caravana', 'Llega una caravana', (w) => void startTrader(w)],
     ['🚶 Superviviente', 'Alguien pide unirse', (w) => {
       if (w.offer) return 'Ya hay alguien esperando respuesta';

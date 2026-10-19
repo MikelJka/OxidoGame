@@ -1,0 +1,22 @@
+{
+  "_": "Bloque 2 del catálogo (aprobado por Mikel el 2026-10-18). walkSpeed: velocidad al andar respecto a un colono; health: vida respecto a un colono; damage: daño del golpe (×1 = puños); breaksWalls: rompe muros y puertas.",
+  "creatures": {
+    "perro_mutante": {
+      "name": "Perro mutante",
+      "plural": "perros mutantes",
+      "emoji": "🐕",
+      "fromDay": 8,
+      "walkSpeed": 1.5,
+      "health": 0.6,
+      "damage": 1.2,
+      "breaksWalls": false
+    }
+  },
+  "packs": {
+    "_": "Una manada llega en lugar de un raid de saqueadores 1 de cada `every` veces (1 de cada `everyNearRadiation` si la colonia está a menos de `radiationRange` casillas de una zona irradiada). Tamaño de la manada: entre size[0] y size[1] perros (por la dureza de la partida).",
+    "every": 3,
+    "everyNearRadiation": 2,
+    "radiationRange": 25,
+    "size": [3, 8]
+  }
+}

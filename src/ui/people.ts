@@ -1,5 +1,6 @@
 // Gente: diario de la colonia, prisioneros, comercio con caravanas, supervivientes que piden
 // unirse y fin de partida. Solo interfaz: las reglas están en src/sim/people.ts.
+import { CREATURES } from '../data/creatures';
 import type { World } from '../sim/world';
 import type { Colonist } from '../sim/colonist';
 import { dealBalance, makeDeal, slaveValue, TRADER_MARGIN, TradeDeal } from '../sim/people';
@@ -443,6 +444,10 @@ export function mountPeople(opts: Options): PeopleUI {
 
   return {
     openFor(c: Colonist): void {
+      if (c.creature) {
+        opts.toast(`${CREATURES[c.creature].emoji} ${c.name} · ${healthLabel(c).toLowerCase()}${c.raider?.fleeing ? ' · huye' : ''}`, 2500);
+        return;
+      }
       if (c.role === 'saqueador') {
         opts.toast(`⚔️ ${c.name} (saqueador${c.raider?.leader ? ', líder del raid ★' : ''}) · ${healthLabel(c).toLowerCase()} · combate ${c.skills.combate}${c.downed ? (c.raider?.finish ? ' · un carcelero lo rematará' : ' · un carcelero lo capturará') : ''}`, 2500);
         return;

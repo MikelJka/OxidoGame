@@ -7,8 +7,7 @@ import type { Colonist } from './colonist';
 import type { World } from './world';
 import { isPassable } from './map';
 import { Point } from './pathfinding';
-import { hurt } from './health';
-import { attack, canHit } from './people';
+import { attack, canHit, foeLabel, hurtFoe } from './people';
 import { VehicleDef, vehicleDef } from '../data/vehicles';
 
 /** Lado del vehículo en casillas (todos son de 2×2 por ahora). */
@@ -245,15 +244,16 @@ export function updateVehicle(w: World, v: Vehicle, ticksPerSecond: number, tick
   }
 }
 
-/** Atropella a los saqueadores de pie que pilla: los deja en el suelo (como un golpe, no mata). */
+/** Atropella a los saqueadores de pie que pilla: los deja en el suelo (como un golpe, no mata); a un perro mutante, lo mata. */
 function runOver(w: World, v: Vehicle, def: VehicleDef): void {
-  for (const o of w.others) {
+  for (const o of [...w.others]) {
     if (o.role !== 'saqueador' || o.downed || !covers(v, o.tile.x, o.tile.y)) continue;
     const last = w.runOverAt.get(o.id);
     if (last !== undefined && w.tick - last < 60) continue;
     w.runOverAt.set(o.id, w.tick);
-    hurt(o, def.runOverDamage, 'las piernas', true);
-    w.addLog(o.downed ? `🚙 El ${def.name.toLowerCase()} atropella a ${o.name} (saqueador): cae al suelo.` : `🚙 El ${def.name.toLowerCase()} atropella a ${o.name} (saqueador).`, 'bueno');
+    const fell = hurtFoe(w, o, def.runOverDamage, 'las piernas');
+    const what = fell ? (o.creature ? ': muere' : ': cae al suelo') : '';
+    w.addLog(`🚙 El ${def.name.toLowerCase()} atropella a ${foeLabel(o)}${what}.`, 'bueno');
   }
 }
 

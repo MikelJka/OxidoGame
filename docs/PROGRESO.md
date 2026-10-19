@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 (10) — Perros mutantes en manada (mutantes, primera parte)
+
+- Sin incidencias nuevas en 🐞. Esta sesión, la siguiente tarea aprobada de la fase 4: los **mutantes** (bloque 2 del catálogo), primera parte.
+- **🐕 Perros mutantes**: desde el día 8, 1 de cada 3 raids es una manada de 3 a 8 perros (1 de cada 2 si la colonia está a menos de 25 casillas de una zona irradiada). Andan ×1,5, tienen el 60 % de la vida de un colono y muerden ×1,2. No tienen líder: huyen al caer la mitad. No rompen muros ni puertas, no saquean y, al caer, mueren (no se capturan).
+- Los números están en `src/data/creatures.json`. Lo que he puesto yo: la manada crece con la dureza (como los raids), Combate de 4 a 8, y si no queda ningún colono en pie se marchan.
+- El 🚙 buggy, al atropellar a un perro, lo mata (a los saqueadores los sigue derribando).
+- Modo Dios: nuevo atajo **🐕 Manada** (5 perros).
+- Qué probar: en 🪄, lanzar 🐕 Manada y ver que llegan rápido, que caen antes que un saqueador y que huyen al morir la mitad; que las torretas les disparan y las puertas automáticas se cierran. En el móvil, tocar a un perro: el aviso dice su salud.
+- Sin npm en el entorno: tests con Bun (372, 13 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Siguiente: el bruto mutante (desde el día 15, rompe muros y puertas) o el buggy de los saqueadores, por el orden de «Pendiente».
+
 ## 2026-10-19 (9) — Medicina cerrada, radio de llamada y buggy blindado
 
 - Sesión larga pedida por Mikel, que me pidió tomar la decisión más lógica para cerrar la medicina. Decidido: **curarse uno mismo, opción A**; **el herido en pie, opción C**.

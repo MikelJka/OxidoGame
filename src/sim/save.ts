@@ -1,6 +1,7 @@
 // Guardar y cargar partidas. El formato lleva versión y se lee de forma tolerante, para que
 // una partida guardada siga sirviendo cuando se publica una versión nueva del juego:
 // lo que ya no existe se descarta y lo nuevo toma su valor por defecto.
+import { isCreature } from '../data/creatures';
 import { SKILLS, Skill, TRAITS } from '../data/colonists';
 import { BUILDINGS } from '../data/buildings';
 import { CROPS, cropDef } from '../data/crops';
@@ -102,6 +103,8 @@ interface SavedColonist {
   role?: string;
   prisoner?: { resistance: number; mode: string; lastTalk: number };
   raider?: { fleeing: boolean; leaveAt: number; group?: number; leader?: boolean; finish?: boolean };
+  /** Criatura (perro mutante…), desde 2026-10-19. */
+  creature?: string;
   trader?: { stock: Record<string, number>; slaves: SavedColonist[]; leaveAt: number; leaving: boolean };
   /** Arma, la que prefiere y munición (desde que hay armas). */
   weapon?: string | null;
@@ -150,6 +153,7 @@ function savePawn(c: Colonist): SavedColonist {
     role: c.role,
     prisoner: c.prisoner ? { ...c.prisoner } : undefined,
     raider: c.raider ? { ...c.raider } : undefined,
+    ...(c.creature ? { creature: c.creature } : {}),
     trader: c.trader
       ? { stock: { ...c.trader.stock } as Record<string, number>, slaves: c.trader.slaves.map(savePawn), leaveAt: c.trader.leaveAt, leaving: c.trader.leaving }
       : undefined,
@@ -370,6 +374,7 @@ function restoreColonist(s: SavedColonist): Colonist {
           ...(s.raider.finish ? { finish: true } : {}),
         }
       : undefined,
+    ...(isCreature(s.creature) ? { creature: s.creature } : {}),
     trader: s.trader
       ? {
           stock: Object.fromEntries(Object.entries(s.trader.stock ?? {}).filter(([r]) => isResource(r)).map(([r, n]) => [r, Math.max(0, num(n, 0))])),

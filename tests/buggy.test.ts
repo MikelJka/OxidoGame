@@ -6,7 +6,7 @@ import { vehicleDef } from '../src/data/vehicles';
 import { loadWorld, serializeWorld } from '../src/sim/save';
 import { checkWorld } from '../src/sim/diagnostics';
 import { TICKS_PER_DAY, TICKS_PER_HOUR, TICKS_PER_SECOND } from '../src/sim/world';
-import { attack } from '../src/sim/people';
+import { attack, makeCreature } from '../src/sim/people';
 import { vehiclePath } from '../src/sim/vehicles';
 
 type W = ReturnType<typeof flatWorld>;
@@ -121,6 +121,22 @@ describe('buggy blindado', () => {
     expect(r.downed).toBe(true);
     expect(w.others).toContain(r);
     expect(w.log.some((e) => e.text.includes('atropella'))).toBe(true);
+  });
+
+  it('a un perro mutante atropellado lo mata', () => {
+    const w = flatWorld(2);
+    const { v } = buggyWithDriver(w);
+    v.fuel = 10;
+    const d = w.makePawn('saqueador');
+    makeCreature(w, d, 'perro_mutante', 1);
+    d.tile = { x: 14, y: 12 };
+    d.pos = { x: 14.5, y: 12.5 };
+    d.health = 0.3;
+    w.others.push(d);
+    expect(w.orderVehicleMove(v.id, { x: 27, y: 12 })).toBe('ok');
+    run(w, 3000, () => !w.others.includes(d));
+    expect(w.others).not.toContain(d);
+    expect(w.log.some((e) => e.text.includes('atropella a Perro mutante 1: muere'))).toBe(true);
   });
 
   it('dentro, los golpes hacen un 40 % menos', () => {

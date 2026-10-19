@@ -6,11 +6,12 @@ import { personValue, RESOURCE_VALUES } from '../data/values';
 import { isGear, raiderWeaponPool, WEAPONS, WeaponDef } from '../data/weapons';
 import { armorProtection, isArmor, raiderVestPool } from '../data/armor';
 import { MEDICINE_STOCK } from '../data/medicine';
+import { CREATURES, CreatureId, PACKS } from '../data/creatures';
 import type { Colonist } from './colonist';
 import type { Structure } from './structures';
 import { BODY_PARTS, healthLabel, hurt } from './health';
 import { findPath, Point } from './pathfinding';
-import { inBounds, isPassable, Prop, Terrain } from './map';
+import { inBounds, isPassable, isWater, Prop, RADIATION_THRESHOLD, Terrain } from './map';
 import { vehicleArmorFor } from './vehicles';
 import { DIFFICULTIES, RADIO_GAP_DAYS, raidGap, raidSize, TRADER_GAP, WANDERER_GAP } from './storyteller';
 import type { World } from './world';
@@ -24,6 +25,27 @@ export const ATTACK_COOLDOWN = 45;
 export const ENGAGE_RANGE = 10;
 
 const hostile = (c: Colonist) => c.role === 'saqueador' && !c.downed && !c.raider?.fleeing;
+
+/** Cómo se nombra a un enemigo en el diario: «Rata (saqueador)» o «Perro mutante 2». */
+export function foeLabel(c: Colonist): string {
+  return c.creature ? c.name : `${c.name} (saqueador)`;
+}
+
+/**
+ * Daño a quien no es de la colonia ni colono: a los saqueadores se les derriba sin matarlos (luego se
+ * elige capturarlos o rematarlos, #22); una criatura tiene su propia vida y al caer muere.
+ * Devuelve true si acaba de caer (o de morir).
+ */
+export function hurtFoe(w: World, b: Colonist, dmg: number, part: string): boolean {
+  const wasDown = b.downed;
+  if (b.creature) {
+    hurt(b, dmg / CREATURES[b.creature].health, part);
+    if (b.downed && w.others.includes(b)) w.killPawn(b, 'abatido', true);
+    return !wasDown && b.downed;
+  }
+  hurt(b, dmg, part, b.role === 'saqueador');
+  return !wasDown && b.downed;
+}
 
 /** Valor de lo que tiene la colonia (para el tamaño de los raids). */
 export function colonyWealth(w: World): number {
@@ -61,7 +83,10 @@ export function runStoryteller(w: World): void {
   } else sch.nextRadio = undefined;
   if (w.tick >= sch.nextRaid) {
     sch.nextRaid = w.tick + days(raidGap(w.difficulty.level));
-    startRaid(w, raidSize(w.day, colonyWealth(w), w.colonists.length, diff.raidScale));
+    // Mutantes (bloque 2 del catálogo): desde el día 8, 1 de cada 3 raids es una manada de perros
+    // (1 de cada 2 si la colonia está cerca de una zona irradiada).
+    if (w.day >= CREATURES.perro_mutante.fromDay && w.rng.chance(1 / packOdds(w))) startPack(w, packSize(w));
+    else startRaid(w, raidSize(w.day, colonyWealth(w), w.colonists.length, diff.raidScale));
   }
   if (w.tick >= sch.nextTrader) {
     sch.nextTrader = w.tick + days(TRADER_GAP);
@@ -109,6 +134,72 @@ export function startRaid(w: World, n: number): Colonist[] {
   w.raidGroups.push({ id: first.id, size: out.length, leaderId: leader.id, escaped: [], routed: false });
   const lead = out.length > 1 ? `, con ${leader.name} ★ al frente` : '';
   w.addLog(`⚔️ ¡Raid! ${n} ${n === 1 ? 'saqueador llega' : 'saqueadores llegan'}${lead}. Recluta a los colonos (🎖) para defenderos.`, 'malo', 'raid', first.tile);
+  return out;
+}
+
+/** 1 de cada cuántos raids es una manada: menos si la colonia está cerca de una zona irradiada. */
+export function packOdds(w: World): number {
+  return nearRadiation(w) ? PACKS.everyNearRadiation : PACKS.every;
+}
+
+/** ¿Hay una casilla irradiada a menos de `PACKS.radiationRange` casillas del centro de la colonia? */
+export function nearRadiation(w: World): boolean {
+  const home = w.colonyPoint();
+  if (!home) return false;
+  const m = w.map;
+  const R = PACKS.radiationRange;
+  for (let y = Math.max(0, home.y - R); y <= Math.min(m.height - 1, home.y + R); y++) {
+    for (let x = Math.max(0, home.x - R); x <= Math.min(m.width - 1, home.x + R); x++) {
+      if ((x - home.x) ** 2 + (y - home.y) ** 2 >= R * R) continue;
+      const i = y * m.width + x;
+      if (m.radiation[i] > RADIATION_THRESHOLD && !isWater(m.terrain[i] as Terrain)) return true;
+    }
+  }
+  return false;
+}
+
+/** Perros de una manada: entre 3 y 8, por la dureza de la partida. */
+export function packSize(w: World): number {
+  const n = w.rng.int(PACKS.size[0], PACKS.size[1]);
+  return Math.max(2, Math.round(n * DIFFICULTIES[w.difficulty.level].raidScale));
+}
+
+/** Prepara a una persona nueva como criatura: sin rasgos, sin armas y con su nombre. */
+export function makeCreature(w: World, c: Colonist, kind: CreatureId, n: number): void {
+  c.role = 'saqueador';
+  c.creature = kind;
+  c.name = `${CREATURES[kind].name} ${n}`;
+  c.nickname = '';
+  c.traits = [];
+  c.weapon = null;
+  c.weaponChoice = 'ninguna';
+  c.ammo = 0;
+  c.vest = null;
+  c.helmet = null;
+  c.skills.combate = w.rng.int(4, 8);
+  c.raider = { fleeing: false, leaveAt: w.tick + TICKS_PER_DAY };
+}
+
+/** Llega una manada de `n` perros mutantes por un mismo borde (sin líder: huyen al caer la mitad). */
+export function startPack(w: World, n: number, kind: CreatureId = 'perro_mutante'): Colonist[] {
+  const out: Colonist[] = [];
+  const first = w.makePawn('saqueador');
+  if (!w.placeAtEdge(first)) return out;
+  for (let i = 0; i < n; i++) {
+    const c = i === 0 ? first : w.makePawn('saqueador');
+    makeCreature(w, c, kind, i + 1);
+    if (i > 0) {
+      const spot = nearFree(w, first.tile) ?? first.tile;
+      c.tile = { ...spot };
+      c.pos = { x: spot.x + 0.5, y: spot.y + 0.5 };
+    }
+    c.raider!.group = first.id;
+    out.push(c);
+    w.others.push(c);
+  }
+  w.raidGroups.push({ id: first.id, size: out.length, leaderId: -1, escaped: [], routed: false });
+  const def = CREATURES[kind];
+  w.addLog(`${def.emoji} ¡Una manada de ${n} ${n === 1 ? def.name.toLowerCase() : def.plural}! Son rápidos pero frágiles; no rompen muros ni puertas. Recluta a los colonos (🎖).`, 'malo', 'raid', first.tile);
   return out;
 }
 
@@ -272,7 +363,7 @@ export function attack(w: World, a: Colonist, b: Colonist): boolean {
 /** Aviso de pelea (#17, #18): un colono ataca o es atacado por un saqueador (uno por colono y hora). */
 function fightAlert(w: World, a: Colonist, b: Colonist): void {
   if (a.role === 'colono' && b.role === 'saqueador') w.combatAlert(a, 'combate', `⚔️ ${a.name} está peleando con ${b.name}.`);
-  else if (b.role === 'colono' && a.role === 'saqueador') w.combatAlert(b, 'combate', `⚔️ ${a.name} (saqueador) ataca a ${b.name}.`);
+  else if (b.role === 'colono' && a.role === 'saqueador') w.combatAlert(b, 'combate', `⚔️ ${foeLabel(a)} ataca a ${b.name}.`);
 }
 
 /** Parte de los fallos a distancia que dan a un colono en la línea de tiro (número aprobado por Mikel). */
@@ -306,13 +397,15 @@ function applyHit(w: World, a: Colonist, b: Colonist, weapon: WeaponDef | null |
   const hard = a.role === 'saqueador' ? DIFFICULTIES[w.difficulty.level].enemyDamage : 1;
   // Dentro de un vehículo blindado se ahorra parte del daño (el buggy, −40 %).
   const armor = (1 - armorProtection([b.vest, b.helmet])) * (1 - vehicleArmorFor(w, b));
-  const dmg = (0.08 + w.rng.next() * 0.1) * (1 + a.skills.combate * 0.03) * tough * hard * (weapon?.damage ?? 1) * armor;
+  // Una criatura muerde o golpea con su propio daño (el perro mutante, ×1,2).
+  const blow = a.creature ? CREATURES[a.creature].damage : (weapon?.damage ?? 1);
+  const dmg = (0.08 + w.rng.next() * 0.1) * (1 + a.skills.combate * 0.03) * tough * hard * blow * armor;
   const part = BODY_PARTS[w.rng.int(0, BODY_PARTS.length - 1)];
   const wasDown = b.downed;
-  // A los saqueadores se les derriba, no se les mata: luego se elige capturarlo o rematarlo (#22).
-  hurt(b, dmg, part, b.role === 'saqueador');
-  if (!wasDown && b.downed) {
+  const fell = b.role === 'colono' ? (hurt(b, dmg, part), !wasDown && b.downed) : hurtFoe(w, b, dmg, part);
+  if (fell) {
     if (b.role === 'colono') w.addLog(`🩸 ${b.name} cae herido (${part}).`, 'malo', 'caido', b.tile);
+    else if (b.creature) w.addLog(`${b.name} cae muerto.`, 'bueno');
     else w.addLog(`${b.name} (saqueador) cae al suelo.`, 'bueno');
     // Quienes lo ven caer pueden entrar en pánico.
     if (b.role === 'colono') witnessFall(w, b);
@@ -391,9 +484,7 @@ function turretShot(w: World, s: Structure, b: Colonist, from: Point, dist: numb
   const armor = (1 - armorProtection([b.vest, b.helmet])) * (1 - vehicleArmorFor(w, b));
   const dmg = (0.08 + w.rng.next() * 0.1) * (1 + TURRET_AIM_SKILL * 0.03) * tough * t.damage * armor;
   const part = BODY_PARTS[w.rng.int(0, BODY_PARTS.length - 1)];
-  const wasDown = b.downed;
-  hurt(b, dmg, part, true);
-  if (!wasDown && b.downed) w.addLog(`🔫 La ${s.def.name.toLowerCase()} derriba a ${b.name} (saqueador).`, 'bueno');
+  if (hurtFoe(w, b, dmg, part)) w.addLog(b.creature ? `🔫 La ${s.def.name.toLowerCase()} abate a ${b.name}.` : `🔫 La ${s.def.name.toLowerCase()} derriba a ${foeLabel(b)}.`, 'bueno');
   return true;
 }
 
@@ -534,7 +625,8 @@ export function checkRaidMorale(w: World): void {
     const standing = members.filter((o) => !o.downed);
     const fallen = g.size - g.escaped.length - standing.length;
     const leader = members.find((o) => o.id === g.leaderId);
-    const leaderDown = !g.escaped.includes(g.leaderId) && (!leader || leader.downed);
+    // Las manadas no tienen líder (leaderId < 0): solo huyen al caer la mitad.
+    const leaderDown = g.leaderId >= 0 && !g.escaped.includes(g.leaderId) && (!leader || leader.downed);
     if (!leaderDown && fallen * 2 < g.size) continue;
     g.routed = true;
     if (standing.length === 0) continue;
@@ -544,6 +636,11 @@ export function checkRaidMorale(w: World): void {
       o.path = [];
     }
     const name = leader?.name ?? 'su líder';
+    const beasts = standing.find((o) => o.creature)?.creature;
+    if (beasts && !leaderDown) {
+      w.addLog(`🏳 Ha caído la mitad de la manada: los ${CREATURES[beasts].plural} huyen.`, 'bueno');
+      continue;
+    }
     w.addLog(leaderDown ? `🏳 Ha caído ${name} ★, el líder del raid: los saqueadores huyen.` : '🏳 Ha caído la mitad del raid: los saqueadores huyen.', 'bueno');
   }
 }
@@ -560,6 +657,11 @@ export function updateOthers(w: World): void {
         o.tile = { ...carrier.tile };
         continue;
       }
+    }
+    // Una criatura no se queda en el suelo: muere (por si cae por algo que no sea un golpe).
+    if (o.downed && o.creature) {
+      w.killPawn(o, 'heridas');
+      continue;
     }
     if (o.downed) {
       o.path = [];
@@ -637,13 +739,19 @@ function updateRaider(w: World, o: Colonist): void {
   if (!r.fleeing && (o.health < 0.45 || w.tick > r.leaveAt)) {
     r.fleeing = true;
     o.path = [];
-    w.addLog(`${o.name} (saqueador) huye.`, 'bueno');
+    w.addLog(`${foeLabel(o)} huye.`, 'bueno');
   }
   if (r.fleeing) {
     goAway(w, o, '');
     return;
   }
   const targets = w.colonists.filter((c) => !c.downed);
+  // Las criaturas no saquean: sin nadie en pie, se marchan.
+  if (targets.length === 0 && o.creature) {
+    r.fleeing = true;
+    o.path = [];
+    return;
+  }
   if (targets.length === 0) {
     // Nadie en pie: saquea un montón y se va.
     if (!o.carrying) {
