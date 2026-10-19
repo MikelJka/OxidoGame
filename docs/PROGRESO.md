@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 (5) — Cama para capturar, curar en el suelo y rematar pesa (#22, segunda parte)
+
+- Sin incidencias nuevas en 🐞. Esta sesión, la segunda parte de **#22**, como la eligió Mikel (B y 3, y curar en el suelo).
+- **Capturar pide cama**: un carcelero solo va a capturar si hay una cama de prisionero libre (y no la tiene apalabrada otro). Sin cama, en el panel del caído ⛓ sale apagado y dice «Sin cama de prisionero libre: se queda en el suelo»; en cuanto hay una, lo capturan y lo llevan a ella. El saqueador caído ya no se levanta solo.
+- **Curar en el suelo**: quien tenga «Médico» va a cerrarle las heridas al saqueador que se desangra, donde está. No gasta 💊 en él (eso lo he decidido yo). El panel dice si se desangra o quién le cura.
+- **Rematar pesa**: −5 % de ánimo («Remató a un saqueador») a quien remata y −3 % («Vio rematar a un saqueador») a los colonos despiertos a 8 casillas o menos; a los «duros», nada. Lo que he puesto yo: dura 24 h y las 8 casillas (en `src/data/morale.json`). Se guarda con la partida.
+- Qué probar: con 🪄 lanzar un raid sin cama de prisionero, derribar a uno y ver ⛓ apagado y al médico curándolo; construir la cama y ver que lo capturan; rematar a otro y mirar el ánimo en la ficha del colono. En el móvil, que el panel se lea bien en 380 px.
+- Sin npm en el entorno: tests con Bun (316, 5 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Siguiente: la prioridad médica tras los combates (primera parte, sin camas de hospital); falta decidir cuánto peor es curarse uno mismo, se propondrá.
+
 ## 2026-10-19 (4) — ⛽ Combustible y destilería
 
 - Sin incidencias nuevas en 🐞. Mikel decidió los números del ⛽, así que esta sesión, la primera parte de los vehículos: el combustible y la destilería.

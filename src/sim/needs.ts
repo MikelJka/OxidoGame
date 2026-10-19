@@ -3,6 +3,7 @@
 import { FOOD_RESOURCES, RAW_FOOD, ResourceId } from '../data/resources';
 import type { Colonist } from './colonist';
 import { INFECTION } from '../data/medicine';
+import { FINISH_MOOD } from '../data/morale';
 
 /** Días de juego que tarda un colono en pasar de lleno a vacío. */
 export const FOOD_DAYS = 1.5;
@@ -48,6 +49,10 @@ export interface Needs {
   lastMeal: 'cocinada' | 'cruda' | null;
   /** De noche, duerme o trabaja junto a una lámpara encendida (lo actualiza `World` cada segundo). */
   inLight?: boolean;
+  /** Tick hasta el que le pesa haber rematado a un saqueador (#22). */
+  finishedUntil?: number;
+  /** Tick hasta el que le pesa haber visto rematar a un saqueador (#22). */
+  sawFinishUntil?: number;
 }
 
 export function defaultNeeds(): Needs {
@@ -111,6 +116,8 @@ export function moodOf(c: Colonist, tick = 0): { mood: number; reasons: MoodReas
   else if (n.sleptIn === 'habitacion') reasons.push({ text: 'Durmió en una cama bajo techo', value: 0.08 });
   else if (n.sleptIn === 'cama') reasons.push({ text: 'Durmió en una cama', value: 0.04 });
   if (n.inLight) reasons.push({ text: 'Habitación con luz', value: LIGHT_MOOD });
+  if ((n.finishedUntil ?? 0) > tick) reasons.push({ text: 'Remató a un saqueador', value: -FINISH_MOOD.killer });
+  else if ((n.sawFinishUntil ?? 0) > tick) reasons.push({ text: 'Vio rematar a un saqueador', value: -FINISH_MOOD.witness });
   if (c.infection) reasons.push({ text: 'Herida infectada', value: -INFECTION.moodPenalty });
   if (c.traits.some((t) => t.id === 'optimista')) reasons.push({ text: 'Optimista', value: 0.1 });
   if (c.traits.some((t) => t.id === 'pesimista')) reasons.push({ text: 'Pesimista', value: -0.1 });

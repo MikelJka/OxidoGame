@@ -17,6 +17,7 @@ import { findRefuge, updatePanic } from './panic';
 import { canTalk, colonistFight, dropGear, makePrisoner, runStoryteller, talkToPrisoner, TurretShot, updateOthers, updateTurrets, validAttackTarget } from './people';
 import { AMMO_CARRY, AMMO_LOW, isGear, isWeapon, WEAPON_IDS, WEAPONS, weaponScore } from '../data/weapons';
 import { ARMOR_IDS, ARMORS, isArmor } from '../data/armor';
+import { FINISH_MOOD } from '../data/morale';
 import { TRAPPED_TILES } from './diagnostics';
 import {
   BAD_WATER_TICKS_DAYS, DEHYDRATED, DRINK_TICKS, EAT_TICKS, EXHAUSTED, foodDecay, foodPreference, HUNGRY, isFood, isRawFood, NUTRITION, restDecay,
@@ -1223,6 +1224,31 @@ export class World implements JobContext {
     return null;
   }
 
+  /** Camas de prisionero libres menos las que ya tiene apalabradas un carcelero que va a capturar (#22). */
+  prisonBedsFree(): number {
+    let free = 0;
+    for (const s of this.structures.all()) {
+      if (!s.built || s.def.id !== 'cama_prision') continue;
+      const busy = this.others.some((o) => o.role === 'prisionero' && o.carriedBy === undefined && o.tile.x === s.x && o.tile.y === s.y) ||
+        this.colonists.some((k) => k.job?.escorting && k.job.x === s.x && k.job.y === s.y);
+      if (!busy) free++;
+    }
+    const going = this.colonists.filter((k) => k.job?.kind === 'carcelero' && k.job.warden === 'capturar' && !k.job.escorting).length;
+    return Math.max(0, free - going);
+  }
+
+  /** Rematar pesa (#22): −5 % a quien remata y −3 % a quien lo ve cerca; a los «duros», nada. */
+  private finishMood(killer: Colonist, at: Point): void {
+    const until = this.tick + FINISH_MOOD.hours * TICKS_PER_HOUR;
+    const tough = (k: Colonist) => k.traits.some((t) => t.id === 'duro');
+    if (!tough(killer)) killer.needs.finishedUntil = until;
+    for (const k of this.colonists) {
+      if (k === killer || tough(k) || k.downed || k.activity === 'sleeping') continue;
+      if (Math.max(Math.abs(k.tile.x - at.x), Math.abs(k.tile.y - at.y)) > FINISH_MOOD.witnessRadius) continue;
+      k.needs.sawFinishUntil = until;
+    }
+  }
+
   /** Trabajos con personas: curar, capturar, dar de comer, convencer y llevar a la celda. */
   private updatePawnJob(c: Colonist): void {
     const j = c.job!;
@@ -1256,7 +1282,8 @@ export class World implements JobContext {
       // Con 💊 en la colonia, la usa: cierra las heridas el doble de rápido y trata la infección.
       const bleeding = o.wounds.some((w) => w.bleeding);
       const dose = needsDose(o);
-      const pill = (bleeding || dose) && this.takeMedicine();
+      // A los saqueadores en el suelo solo se les cierran las heridas: la 💊 no se gasta en ellos.
+      const pill = o.role !== 'saqueador' && (bleeding || dose) && this.takeMedicine();
       const n = treatWounds(o, pill);
       if (n) this.addLog(`🩹 ${c.name} cura ${n === 1 ? 'una herida' : `${n} heridas`} de ${o.name}${pill ? ' con 💊 Medicina' : ''}.`, 'bueno');
       if (pill && dose) {
@@ -1267,25 +1294,29 @@ export class World implements JobContext {
       return;
     }
     if (j.warden === 'rematar') {
+      const at = { ...o.tile };
       this.dropJob(c);
       this.killPawn(o, `rematado por ${c.name}`);
+      this.finishMood(c, at);
       return;
     }
     if (j.warden === 'capturar') {
-      makePrisoner(o, 0.45 + this.rng.next() * 0.45);
-      this.addLog(`⛓ ${c.name} captura a ${o.name}. Está en 👥 → Prisioneros.`, 'bueno');
+      // Sin cama de prisionero libre (o sin camino hasta ella) no se captura: sigue en el suelo (#22).
       const bed = this.freePrisonBed();
       const path = bed ? findPath(this.map, c.tile, bed, 60000) : null;
-      if (bed && path) {
-        o.carriedBy = c.id;
-        j.escorting = true;
-        j.x = bed.x;
-        j.y = bed.y;
-        c.path = path;
-        c.activity = 'toJob';
+      if (!bed || !path) {
+        this.dropJob(c);
+        this.nextJobScan.set(c.id, this.tick + JOB_RETRY_TICKS);
         return;
       }
-      this.dropJob(c);
+      makePrisoner(o, 0.45 + this.rng.next() * 0.45);
+      this.addLog(`⛓ ${c.name} captura a ${o.name}. Está en 👥 → Prisioneros.`, 'bueno');
+      o.carriedBy = c.id;
+      j.escorting = true;
+      j.x = bed.x;
+      j.y = bed.y;
+      c.path = path;
+      c.activity = 'toJob';
       return;
     }
     if (j.warden === 'alimentar') {

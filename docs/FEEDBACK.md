@@ -6,11 +6,6 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 - [ ] **Definir todo el contenido antes que nada** (2026-10-18, pedido por Mikel): la 3D queda aparcada; primero se define e implementa todo el contenido. Una sesión ha escrito `docs/CATALOGO.md` con todo lo que falta y sus números: Mikel lo revisa, marca ✅ cada bloque que apruebe y lo aprobado pasa aquí, por fases. La simulación se mantiene portable (reglas en `src/sim`, contenido en `src/data`) para poder pasar más adelante a un motor con mejor 3D.
 
-- [ ] **#22 Derribar en vez de matar; capturar, saquear o rematar** (2026-10-18, 🐞): las torretas y los colonos disparan a los saqueadores hasta dejarlos en el suelo (no hasta matarlos). Con uno en el suelo se puede elegir: capturarlo y curarlo si hay cama de prisionero, quitarle lo que lleva o rematarlo. **Hecha la primera parte** (2026-10-19): los golpes de colonos y torretas dejan a los saqueadores en el suelo sin matarlos, y al tocar a uno caído sale un panel con ⛓ Capturar (lo de antes) o 🗡 Rematar. **Elegido por Mikel (2026-10-19) para la segunda parte: B y 3**, y además:
-  - **B**: para capturar hace falta una cama de prisionero libre; sin cama, el botón ⛓ sale apagado y el caído se queda en el suelo hasta que haya una (o se le remate).
-  - **3**: rematar baja el ánimo: −5 % a quien remata y −3 % a quien lo ve (salvo los «duros»).
-  - Al saqueador caído **se le puede curar en el suelo**, donde está (el médico le cierra las heridas para que no se desangre).
-
 - [ ] **Prioridad médica tras los combates** (2026-10-19, pedido por Mikel en el chat): cuando todos los saqueadores estén en el suelo o huyendo, los colonos **no reclutados** ponen siempre por delante lo médico:
   - **Lo primero de todo** es atender a un colono herido: curarle donde está y llevarle a una cama de hospital (cuando existan) o, si no hay, a su cama.
   - **El herido** va a una cama de hospital (cuando existan), si no a su cama si está libre, o se tumba en el suelo; si no hay otro colono libre para atenderle, **se cura él mismo**, con peor calidad que si le cura otro.
@@ -45,6 +40,8 @@ Lo que Mikel ha pedido dejar para más adelante. No se trabaja en ello salvo par
 Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat o con 🐞).
 
 ## Hecho
+
+- [x] **#22 Derribar en vez de matar; capturar, saquear o rematar** (2026-10-18, 🐞; elegido por Mikel: B y 3): los golpes de colonos y torretas dejan a los saqueadores en el suelo sin matarlos (sueltan arma y armadura) y al tocarlos sale ⛓ Capturar o 🗡 Rematar. **Segunda parte** (2026-10-19): para capturar hace falta una cama de prisionero libre (sin ella ⛓ sale apagado y el caído se queda en el suelo, sin levantarse); el médico le cierra las heridas donde está para que no se desangre (sin gastar 💊); rematar quita −5 % de ánimo a quien remata y −3 % a quien lo ve a 8 casillas o menos (no a los «duros»), durante 24 h.
 
 - [x] **Infecciones y 💊 Medicina, primera parte** (2026-10-19, bloque 1 del catálogo): una herida que sigue abierta 12 h puede infectarse (20 %; 8 % si la curaron sin medicina; 2 % con medicina). El infectado tiene −15 % de ánimo y de velocidad de trabajo; cada día sin su 💊 empeora y al tercero seguido muere; con una 💊 al día durante 2 días se cura. El médico la usa sola: trata la infección y, al curar heridas, si hay 💊, las cierra el doble de rápido. La 💊 sale a veces al saquear escombros y la traen algunas caravanas. Falta la mesa de boticario y la hierba curativa.
 

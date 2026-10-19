@@ -86,7 +86,8 @@ export function tickHealth(c: Colonist, ticks: number, ticksPerDay: number, asle
   c.health = Math.max(0, c.health - loss);
   if (c.health <= 0) return { died: true, cause: cause || 'heridas' };
   if (c.health < DOWNED) c.downed = true;
-  else if (c.downed && c.health >= STANDS_UP) c.downed = false;
+  // Un saqueador caído no se levanta (#22): sigue en el suelo hasta que se le capture o se le remate.
+  else if (c.downed && c.health >= STANDS_UP && c.role !== 'saqueador') c.downed = false;
   return { died: false };
 }
 

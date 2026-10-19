@@ -1,0 +1,9 @@
+{
+  "finish": {
+    "_": "Rematar a un saqueador en el suelo (#22, elegido por Mikel): ánimo que quita a quien remata y a quien lo ve (salvo los «duros»), cuánto dura y a cuántas casillas se ve",
+    "killer": 0.05,
+    "witness": 0.03,
+    "hours": 24,
+    "witnessRadius": 8
+  }
+}

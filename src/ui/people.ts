@@ -162,12 +162,12 @@ export function mountPeople(opts: Options): PeopleUI {
     const out: HTMLElement[] = [];
     const wardens = w.colonists.filter((c) => c.priorities.carcelero > 0);
     if (list.length === 0) {
-      out.push(empty('⛓', 'No hay prisioneros. Los saqueadores que caen heridos se capturan (lo hace quien tenga la tarea Carcelero); también se compran esclavos a las caravanas.'));
+      out.push(empty('⛓', 'No hay prisioneros. Los saqueadores que caen heridos se capturan si hay una cama de prisionero libre (lo hace quien tenga la tarea Carcelero); también se compran esclavos a las caravanas.'));
       return out;
     }
     if (wardens.length === 0) out.push(el('p', 'warn', '⚠️ Nadie tiene la tarea Carcelero: nadie les dará de comer ni hablará con ellos.'));
     if (!w.structures.all().some((s) => s.built && s.def.id === 'cama_prision')) {
-      out.push(el('p', 'pp-hint', '💡 Construye una cama de prisionero (🏗 → Muebles): los capturados se llevan allí.'));
+      out.push(el('p', 'pp-hint', '💡 Construye una cama de prisionero (🏗 → Muebles): sin una libre no se puede capturar a nadie.'));
     }
     for (const p of list) {
       const info = p.prisoner!;

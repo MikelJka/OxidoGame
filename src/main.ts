@@ -1102,14 +1102,24 @@ function renderFoe(): void {
     foeId = null;
     return;
   }
+  const w = scene().world;
   const finish = !!o.raider?.finish;
-  const by = scene().world.colonists.find((c) => c.job?.pid === o.id && c.job.kind === 'carcelero');
+  const by = w.colonists.find((c) => c.job?.pid === o.id && c.job.kind === 'carcelero');
+  const doc = w.colonists.find((c) => c.job?.pid === o.id && c.job.kind === 'curar');
+  // Para capturar hace falta una cama de prisionero libre (#22): sin ella, ⛓ sale apagado.
+  const bed = w.prisonBedsFree() > 0 || (!!by && !finish);
   $('fo-name').textContent = `⚔️ ${o.name} (saqueador${o.raider?.leader ? ' ★' : ''})`;
-  const what = finish ? 'Se le rematará' : 'Se le capturará';
-  $('fo-status').textContent = `En el suelo · ${what}${by ? ` · ${by.name} va a ello` : ' · falta un colono con «Carcelero»'}`;
-  $('fo-capture').classList.toggle('active', !finish);
+  const what = finish ? 'Se le rematará' : bed ? 'Se le capturará' : 'Sin cama de prisionero libre: se queda en el suelo';
+  const who = by ? ` · ${by.name} va a ello` : finish || bed ? (w.colonists.some((c) => c.priorities.carcelero > 0) ? '' : ' · falta un colono con «Carcelero»') : '';
+  const bleeding = o.wounds.some((k) => k.bleeding);
+  const heal = doc ? ` · 🩹 ${doc.name} le cura` : bleeding ? ' · 🩸 Se desangra: lo curará quien tenga «Médico»' : '';
+  $('fo-status').textContent = `En el suelo · ${what}${who}${heal}`;
+  const cap = $('fo-capture') as HTMLButtonElement;
+  cap.disabled = !bed;
+  cap.title = bed ? 'Un carcelero lo captura y lo lleva a una cama de prisionero' : 'Hace falta una cama de prisionero libre (🏗 → Muebles)';
+  $('fo-capture').classList.toggle('active', !finish && bed);
   $('fo-finish').classList.toggle('active', finish);
-  $('fo-capture').setAttribute('aria-pressed', String(!finish));
+  $('fo-capture').setAttribute('aria-pressed', String(!finish && bed));
   $('fo-finish').setAttribute('aria-pressed', String(finish));
 }
 function setFoeFate(fate: 'capturar' | 'rematar'): void {

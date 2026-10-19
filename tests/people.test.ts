@@ -16,6 +16,11 @@ function runTicks(w: ReturnType<typeof flatWorld>, n: number, until?: () => bool
 }
 
 /** Saqueador puesto a mano en una casilla. */
+function prisonBed(w: ReturnType<typeof flatWorld>, x: number, y: number): void {
+  w.structures.place(x, y, 'cama_prision');
+  w.completeStructure(w.structures.at(x, y)!);
+}
+
 function raiderAt(w: ReturnType<typeof flatWorld>, x: number, y: number): Colonist {
   const r = w.makePawn('saqueador');
   r.tile = { x, y };
@@ -155,6 +160,7 @@ describe('moral de los raids', () => {
 describe('prisioneros', () => {
   it('el carcelero captura a un saqueador caído', () => {
     const w = flatWorld(1);
+    prisonBed(w, 12, 10);
     const r = raiderAt(w, 9, 5);
     hurt(r, 0.95, 'la pierna izquierda');
     expect(r.downed).toBe(true);
@@ -174,8 +180,7 @@ describe('prisioneros', () => {
 
   it('el capturado se lleva a una cama de prisionero si la hay', () => {
     const w = flatWorld(1);
-    w.structures.place(12, 10, 'cama_prision');
-    w.completeStructure(w.structures.at(12, 10)!);
+    prisonBed(w, 12, 10);
     const r = raiderAt(w, 8, 5);
     hurt(r, 0.95, 'la cabeza');
     runTicks(w, 4000, () => r.role === 'prisionero' && r.carriedBy === undefined && r.tile.x === 12);

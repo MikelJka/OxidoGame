@@ -105,6 +105,8 @@ export interface JobContext {
   /** Saqueadores, prisioneros y comerciantes. */
   others: Colonist[];
   tick: number;
+  /** Camas de prisionero libres que no tiene ya apalabradas otro carcelero (para capturar hace falta una, #22). */
+  prisonBedsFree(): number;
 }
 
 /** Un taller tiene que seguir: orden activa y la colonia aún no tiene lo que pide. */
@@ -389,13 +391,17 @@ function pawnJob(ctx: JobContext, c: Colonist, o: Colonist, kind: 'curar' | 'car
 const reservedByOther = (ctx: JobContext, c: Colonist, o: Colonist) =>
   ctx.colonists.some((k) => k !== c && k.job?.pid === o.id);
 
-/** Médico: cura las heridas que sangran y da su 💊 a los infectados (colonos y prisioneros). */
+/**
+ * Médico: cura las heridas que sangran y da su 💊 a los infectados (colonos y prisioneros).
+ * A los saqueadores en el suelo les cierra las heridas donde están, para que no se desangren (#22).
+ */
 function doctorCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   if (c.priorities.curar === 0) return [];
-  const patients = [...ctx.colonists.filter((k) => k !== c), ...ctx.others.filter((k) => k.role === 'prisionero')];
+  const downedFoe = (k: Colonist) => k.role === 'saqueador' && k.downed && k.carriedBy === undefined && !k.raider?.finish;
+  const patients = [...ctx.colonists.filter((k) => k !== c), ...ctx.others.filter((k) => k.role === 'prisionero' || downedFoe(k))];
   const pills = ctx.inventory().medicina > 0;
   return patients
-    .filter((p) => (p.wounds.some((w) => w.bleeding) || (pills && needsDose(p))) && !reservedByOther(ctx, c, p))
+    .filter((p) => (p.wounds.some((w) => w.bleeding) || (pills && p.role !== 'saqueador' && needsDose(p))) && !reservedByOther(ctx, c, p))
     .map((p) => ({ kind: 'curar' as const, x: p.tile.x, y: p.tile.y, dist: manhattan(c.tile, p.tile.x, p.tile.y), make: () => pawnJob(ctx, c, p, 'curar', 120) }));
 }
 
@@ -405,11 +411,16 @@ function wardenCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   const out: Candidate[] = [];
   const inv = ctx.inventory();
   const food = RESOURCES.filter(isFood).reduce((a, r) => a + inv[r], 0);
+  // Para capturar hace falta una cama de prisionero libre (#22); sin ella, el caído sigue en el suelo.
+  const beds = ctx.prisonBedsFree();
   for (const o of ctx.others) {
     if (o.carriedBy !== undefined || reservedByOther(ctx, c, o)) continue;
     const add = (work: number, warden: NonNullable<ColonistJob['warden']>) =>
       out.push({ kind: 'carcelero', x: o.tile.x, y: o.tile.y, dist: manhattan(c.tile, o.tile.x, o.tile.y), make: () => pawnJob(ctx, c, o, 'carcelero', work, warden) });
-    if (o.role === 'saqueador' && o.downed) add(o.raider?.finish ? FINISH_WORK : 90, o.raider?.finish ? 'rematar' : 'capturar');
+    if (o.role === 'saqueador' && o.downed) {
+      if (o.raider?.finish) add(FINISH_WORK, 'rematar');
+      else if (beds > 0) add(90, 'capturar');
+    }
     if (o.role !== 'prisionero' || !o.prisoner || o.prisoner.mode === 'liberar') continue;
     if (food > 0 && (o.needs.food < 0.45 || o.needs.water < 0.45)) add(60, 'alimentar');
     else if (canTalk(ctx.tick, o)) add(150, 'convencer');

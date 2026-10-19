@@ -73,7 +73,7 @@ Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed 
 - [x] Muerte permanente y fin de partida
 - [x] Avisos en pantalla de raids, peleas, heridos, caídos, muertes, pánico, visitas y caravanas (#17, #18)
 - [x] Supervivientes que piden unirse, prisioneros (capturar, retener, convencer, liberar) y caravanas con esclavos
-- [ ] Derribar en vez de matar; capturar, saquear o rematar (#22) (hecho: los golpes derriban sin matar y en el suelo se elige ⛓ Capturar o 🗡 Rematar; falta lo que decida Mikel en su propuesta)
+- [x] Derribar en vez de matar; capturar, saquear o rematar (#22): los golpes derriban sin matar; en el suelo sueltan lo que llevan y se elige ⛓ Capturar (con cama de prisionero libre) o 🗡 Rematar (baja el ánimo); el médico los cura donde están
 
 ## Fase 5 — Investigación y máquinas
 
