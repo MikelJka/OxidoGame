@@ -8,6 +8,7 @@
  */
 import data from './research.json';
 import { BUILDINGS } from './buildings';
+import { RECIPES } from './recipes';
 
 export interface ResearchDef {
   id: string;
@@ -33,7 +34,7 @@ function validate(): ResearchDef[] {
     ids.add(p.id);
   }
   // Lo que una construcción pide investigar tiene que existir en el árbol.
-  for (const b of BUILDINGS) if (b.research !== undefined && !ids.has(b.research)) fail(`${b.id} pide la investigación ${b.research}, que no existe`);
+  for (const b of [...BUILDINGS, ...RECIPES]) if (b.research !== undefined && !ids.has(b.research)) fail(`${b.id} pide la investigación ${b.research}, que no existe`);
   return data.projects;
 }
 

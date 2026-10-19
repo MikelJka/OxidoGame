@@ -222,6 +222,36 @@
     "description": "Munición para el arco."
   },
   {
+    "id": "fabricar_pistola",
+    "name": "Pistola casera",
+    "station": "banco_trabajo",
+    "research": "polvora",
+    "inputs": {
+      "chatarra": 8,
+      "componentes": 1
+    },
+    "outputs": {
+      "pistola": 1
+    },
+    "work": 400,
+    "description": "Dispara a 9 casillas (×2,2, normal); gasta balas."
+  },
+  {
+    "id": "fabricar_balas",
+    "name": "Balas (15)",
+    "station": "banco_trabajo",
+    "research": "polvora",
+    "inputs": {
+      "chatarra": 3,
+      "componentes": 1
+    },
+    "outputs": {
+      "balas": 15
+    },
+    "work": 200,
+    "description": "Munición para las armas de fuego."
+  },
+  {
     "id": "fabricar_chaleco_cuero",
     "name": "Chaleco de cuero",
     "station": "banco_trabajo",

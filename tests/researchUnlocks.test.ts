@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { flatWorld } from './helpers';
 import { BUILDINGS, buildingDef } from '../src/data/buildings';
 import { researchDef } from '../src/data/research';
-import { buildingsUnlockedBy, researchCost } from '../src/sim/research';
+import { unlockedBy, researchCost } from '../src/sim/research';
 import { loadWorld, serializeWorld } from '../src/sim/save';
 import { TICKS_PER_HOUR } from '../src/sim/world';
 
@@ -12,7 +12,7 @@ describe('la investigación desbloquea construcciones', () => {
   it('la torreta ligera pide «Torretas» y la pesada «Artillería»', () => {
     expect(buildingDef('torreta_ligera').research).toBe('torretas');
     expect(buildingDef('torreta_pesada').research).toBe('artilleria');
-    expect(buildingsUnlockedBy(BUILDINGS, 'torretas').map((b) => b.id)).toEqual(['torreta_ligera']);
+    expect(unlockedBy(BUILDINGS, 'torretas').map((b) => b.id)).toEqual(['torreta_ligera']);
     // Lo demás se sigue construyendo sin investigar.
     expect(BUILDINGS.filter((b) => b.research).map((b) => b.id).sort()).toEqual(['torreta_ligera', 'torreta_pesada']);
   });

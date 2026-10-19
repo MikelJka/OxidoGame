@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 (17) — Pistola casera y balas con «Pólvora» (armas de fuego, primera parte), y plan del árbol de investigación
+
+- Pedido por Mikel en el chat: hacer lo previsto para la siguiente sesión y planificar el árbol de investigación completo.
+- **🔫 Pistola casera** (banco de trabajo, 🔩8 ⚙️1): ×2,2 de daño, ritmo normal, 9 casillas, gasta balas. **⁍ Balas** (🔩3 ⚙️1 → 15), una por disparo; los tiradores cogen 20 y vuelven a por más con menos de 5, como con las flechas. Las dos recetas piden **«Pólvora»**: hasta entonces salen con 🔒 en el banco y dicen qué investigar. Al terminar Pólvora, el diario dice «Ya se puede fabricar: Pistola casera, Balas (15)».
+- Cada arma coge **su** munición: el arquero, flechas; el de la pistola, balas. Si cambia de arma, deja la munición que ya no le sirve. Un colono prefiere la pistola al machete solo si hay balas.
+- **Saqueadores con pistola** desde el día 15 (como dice el catálogo), con 15 balas; al caer la sueltan con las balas que le queden.
+- Por dentro: las armas pasan a `src/data/weapons.json` (números y armas de los saqueadores por día), y las recetas pueden pedir investigación (`research`). Los talleres reciben su orden con `World.setStationBill`, que lo comprueba.
+- **Plan del árbol completo**: bloque 13 de `docs/CATALOGO.md`, con 20 proyectos en 4 ramas (supervivencia, armas, agua y contacto) y 4 extras opcionales. Espera a Mikel (opciones en «Propuestas para Mikel»).
+- Qué probar: en el banco de trabajo, ver la pistola y las balas con 🔒; investigar Pólvora (🪄 acelera), fabricarlas y ver que un colono cambia su arma por la pistola y coge balas. En la ficha, ver «🔫 Pistola casera … · ⁍ 20». Lanzar un raid con 🪄 pasado el día 15 y ver pistolas. En el móvil, que las tarjetas con 🔒 se lean.
+- Sin npm en el entorno: tests con Bun (425, 8 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Siguiente: la escopeta y el rifle con «Armas largas» (bloque 4, segunda parte).
+
 ## 2026-10-19 (16) — Las torretas piden investigación (fase 5, segunda parte)
 
 - Sin incidencias nuevas en 🐞. Siguiente tarea aprobada: que la investigación desbloquee, empezando por las torretas, como decidió Mikel el 2026-10-18.

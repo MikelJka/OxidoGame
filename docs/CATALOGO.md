@@ -111,3 +111,58 @@ Lo ya aprobado y pendiente (puerta automática, fuego amigo y posturas, combusti
 
 - Calidad de las habitaciones según su tamaño y muebles (mesa, sillas, alfombra, cuadro): de −5 % a +10 % de ánimo.
 - Ocio: mesa de juego (🪵15) y hoguera para reunirse; sin ratos libres en 2 días, −8 % de ánimo.
+
+## 13. Árbol de investigación completo (fases 5 y 6) — ⏳ Propuesta, sin aprobar (2026-10-19)
+
+Pedido por Mikel en el chat («planifica el árbol de investigación completo»). Junta en un solo árbol los 10 proyectos ya aprobados (bloque 3) y lo que piden los bloques aprobados que aún no tienen proyecto (agua, facciones, mercado, estaciones, caza). Lo que ya se puede construir sigue libre, salvo lo que se diga aquí. Horas para un colono con Investigación 10; entre paréntesis, lo que pide antes. **Negrita**: proyecto nuevo, que no estaba en el bloque 3.
+
+### Rama de supervivencia
+
+| Proyecto | Horas | Pide | Desbloquea |
+| --- | --- | --- | --- |
+| Medicina de campo | 6 | — | Según lo que elijas en «Propuestas para Mikel» (A: mesa de boticario y hierba; B: curar con 💊 un 25 % más rápido) |
+| Agricultura mejorada | 8 | — | Abono (🍄2 + 🪨1 → 3 abono; huerto abonado +25 % de cosecha) |
+| Hidropónica | 10 | Agricultura mejorada | Bandeja hidropónica (antes no pedía nada) |
+| **Sastrería** | 6 | — | Abrigo (🧵10) y, con la caza, el chaleco de cuero con 🟫 cuero (bloques 10 y 11) |
+| **Calefacción** | 8 | Sastrería | Estufa (🪨10 🔩6, gasta 🪵1 cada 3 h) (bloque 11) |
+
+### Rama de armas y defensa
+
+| Proyecto | Horas | Pide | Desbloquea |
+| --- | --- | --- | --- |
+| Pólvora | 8 | — | Balas y pistola casera ✔ hecho |
+| Armas largas | 12 | Pólvora | Escopeta y rifle |
+| Blindaje avanzado | 12 | Armas largas | Chaleco táctico y casco táctico |
+| Torretas | 14 | Pólvora | Torreta ligera ✔ hecho |
+| Artillería | 20 | Torretas | Torreta pesada ✔ hecho y mortero |
+
+### Rama del agua (update del agua, ya elegida por Mikel)
+
+| Proyecto | Horas | Pide | Desbloquea |
+| --- | --- | --- | --- |
+| Puentes | 4 | — | Puente de madera y de metal, plataformas y muelle |
+| **Hidráulica** | 10 | Puentes | Molino de agua (500 W) y puente levadizo |
+| **Navegación** | 8 | Puentes | Balsa |
+| **Motores** | 14 | Navegación, Pólvora | Lancha armada (⛽) |
+
+(La pesca desde el muelle y las trampas de pesca irían libres con el muelle.)
+
+### Rama de contacto (fase 6)
+
+| Proyecto | Horas | Pide | Desbloquea |
+| --- | --- | --- | --- |
+| Radio | 10 | Medicina de campo (o nada, según la propuesta C) | Radio: llamar a una caravana o pedir ayuda a los aliados |
+| **Rutas comerciales** | 8 | Radio | En 📜 → Comercio, ver la tendencia de precios (▲ ▼) y las necesidades de la próxima caravana antes de que llegue |
+
+### Proyectos extra *(opcionales, contenido nuevo: solo si los apruebas)*
+
+| Proyecto | Horas | Pide | Qué haría |
+| --- | --- | --- | --- |
+| Medicina avanzada | 12 | Medicina de campo | Las heridas se curan un 25 % antes y la infección sale la mitad de veces |
+| Baterías mejoradas | 8 | — | Las baterías guardan el doble |
+| Munición perforante | 10 | Armas largas | Balas perforantes (🔩4 ⚙️1 → 10): no les quita el 20 % que para la armadura |
+| Desguace de máquinas | 10 | Torretas | Los drones y arañas destruidos dejan el doble de ⚙️ |
+
+Total: 20 proyectos sin los extras, 158 h para un colono con Investigación 10 (unos 16–20 días de juego con un investigador que dedique 8–10 h al día); con los 4 extras, 24 proyectos y 198 h.
+
+Por decidir (están en «Propuestas para Mikel» de `FEEDBACK.md`): si la bandeja hidropónica pasa a pedir Agricultura mejorada, qué de la rama del agua pide investigación, qué extras entran y si las horas se quedan así.

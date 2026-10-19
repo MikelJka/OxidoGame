@@ -1,0 +1,20 @@
+{
+  "ammoCarry": 20,
+  "ammoLow": 5,
+  "raiderAmmo": 15,
+  "weapons": [
+    { "id": "palo", "damage": 1.4, "cooldown": 1, "reach": 1, "speedLabel": "normal" },
+    { "id": "cuchillo", "damage": 1.8, "cooldown": 0.75, "reach": 1, "speedLabel": "rápido" },
+    { "id": "tuberia", "damage": 2.2, "cooldown": 1.35, "reach": 1, "speedLabel": "lento" },
+    { "id": "lanza", "damage": 2.0, "cooldown": 1, "reach": 2, "speedLabel": "normal" },
+    { "id": "machete", "damage": 2.8, "cooldown": 1, "reach": 1, "speedLabel": "normal" },
+    { "id": "arco", "damage": 1.6, "cooldown": 1.35, "reach": 8, "ammo": "flechas", "speedLabel": "lento" },
+    { "id": "pistola", "damage": 2.2, "cooldown": 1, "reach": 9, "ammo": "balas", "firearm": true, "speedLabel": "normal" }
+  ],
+  "raiderPools": [
+    { "fromDay": 0, "weapons": [null, "palo", "palo", "cuchillo"] },
+    { "fromDay": 8, "weapons": ["palo", "cuchillo", "tuberia", "lanza"] },
+    { "fromDay": 12, "weapons": ["cuchillo", "tuberia", "lanza", "arco", "arco"] },
+    { "fromDay": 15, "weapons": ["cuchillo", "tuberia", "lanza", "arco", "arco", "pistola"] }
+  ]
+}

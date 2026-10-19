@@ -878,18 +878,25 @@ game.events.on('station-select', (s: Structure | null) => {
       b.type = 'button';
       b.classList.toggle('active', on);
       b.setAttribute('aria-pressed', String(on));
+      const locked = !scene().world.canCraft(r);
+      const need = locked && r.research ? researchDef(r.research) : undefined;
+      b.classList.toggle('locked', locked);
       const top = mk('span', 'ps-card-top');
-      top.append(mk('strong', '', r.name), mk('span', 'ps-check', on ? '✔ En marcha' : ''));
+      top.append(mk('strong', '', `${locked ? '🔒 ' : ''}${r.name}`), mk('span', 'ps-check', on ? '✔ En marcha' : ''));
       const have = (Object.keys(r.inputs) as ResourceId[]).every((res) => inv[res] >= (r.inputs[res] ?? 0));
       const formula = mk('span', 'ps-formula', `${fmtRes(r.inputs)} → ${fmtRes(r.outputs)}`);
       if (!have) formula.append(mk('span', 'ps-lack', ' · falta material'));
-      b.append(top, formula, mk('span', 'ps-desc', r.description));
+      b.append(top, formula, mk('span', 'ps-desc', need ? `Pide investigar «${need.name}» (📜 → 🔬 Investigación). ${r.description}` : r.description));
       b.addEventListener('click', () => {
         const sc = scene();
+        if (locked && !on) {
+          showToast(`🔒 ${r.name}: antes hay que investigar «${need?.name ?? r.research}» en 📜 → 🔬 Investigación`, 3500);
+          return;
+        }
         // La orden nueva sigue el modo de la anterior; sin anterior, «fabricar 1».
         const prev = s.bill;
         const mode = prev?.mode ?? (prev ? 'until' : 'count');
-        sc.world.structures.setBill(s, on ? null : { recipe: r, target: prev ? Math.max(1, prev.target) : 1, paused: false, mode });
+        sc.world.setStationBill(s, on ? null : { recipe: r, target: prev ? Math.max(1, prev.target) : 1, paused: false, mode });
         sc.refreshStation();
       });
       return b;
@@ -1442,7 +1449,7 @@ function renderWeapon(c: Colonist): void {
   renderArmor(c);
   weaponPawnId = c.id;
   const def = c.weapon ? WEAPONS[c.weapon] : null;
-  const ammo = def?.ammo ? ` · ${RESOURCE_ICONS.flechas} ${c.ammo}` : '';
+  const ammo = def?.ammo ? ` · ${RESOURCE_ICONS[def.ammo]} ${c.ammo}` : '';
   $('cp-weapon-now').textContent = c.weapon
     ? `${RESOURCE_ICONS[c.weapon]} ${RESOURCE_NAMES[c.weapon]} (×${String(def!.damage).replace('.', ',')}, ${def!.speedLabel}${def!.reach > 1 ? `, alcance ${def!.reach}` : ''})${ammo}`
     : '✊ Sin arma (puños)';

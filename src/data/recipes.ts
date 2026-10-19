@@ -13,6 +13,8 @@ export interface RecipeDef {
   /** Ticks de trabajo de un colono normal. */
   work: number;
   description: string;
+  /** Investigación que hay que terminar para poder encargarla (id de `research.json`). */
+  research?: string;
 }
 
 export function validateRecipe(d: unknown): RecipeDef {
@@ -32,6 +34,7 @@ export function validateRecipe(d: unknown): RecipeDef {
     }
   }
   if (!(r.work > 0)) fail('trabajo');
+  if (r.research !== undefined && (typeof r.research !== 'string' || !r.research)) fail('investigación no válida');
   return r;
 }
 

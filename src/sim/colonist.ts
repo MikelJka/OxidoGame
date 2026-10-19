@@ -148,7 +148,7 @@ export interface Colonist {
   weapon: WeaponId | null;
   /** Qué arma quiere: la mejor libre («auto»), ninguna, o una concreta (se elige en la ficha). */
   weaponChoice: WeaponChoice;
-  /** Munición que lleva encima (flechas). */
+  /** Munición que lleva encima (la de su arma: flechas o balas). */
   ammo: number;
   /** Chaleco y casco puestos. */
   vest: ArmorId | null;

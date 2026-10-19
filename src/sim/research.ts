@@ -1,7 +1,6 @@
 // Investigación (fase 5, bloque 3 del catálogo): se elige un proyecto y avanza mientras un
 // colono con el trabajo «Investigar» está en un banco de investigación. Determinista: sin azar.
 import { RESEARCH, RESEARCH_REFERENCE_SKILL, ResearchDef, researchDef } from '../data/research';
-import type { BuildingDef } from '../data/buildings';
 import { TICKS_PER_HOUR } from './time';
 
 export interface ResearchState {
@@ -29,14 +28,19 @@ export function isResearched(r: ResearchState, id: string): boolean {
   return r.done.includes(id);
 }
 
-/** Se pueden poner planos nuevos de esta construcción (no pide investigación, o ya está hecha). */
-export function buildingUnlocked(r: ResearchState, def: BuildingDef): boolean {
-  return def.research === undefined || isResearched(r, def.research);
+/** Contenido que puede pedir una investigación (construcciones, recetas…). */
+export interface Researchable {
+  research?: string;
 }
 
-/** Construcciones que desbloquea un proyecto (para avisar al terminarlo). */
-export function buildingsUnlockedBy(buildings: readonly BuildingDef[], id: string): BuildingDef[] {
-  return buildings.filter((b) => b.research === id);
+/** Ya se puede usar: no pide investigación, o ya está hecha (planos nuevos, recetas…). */
+export function unlocked(r: ResearchState, thing: Researchable): boolean {
+  return thing.research === undefined || isResearched(r, thing.research);
+}
+
+/** Lo que desbloquea un proyecto (para avisar al terminarlo). */
+export function unlockedBy<T extends Researchable>(list: readonly T[], id: string): T[] {
+  return list.filter((b) => b.research === id);
 }
 
 /** Se puede empezar: existe, no está hecho y lo que pide antes ya está terminado. */

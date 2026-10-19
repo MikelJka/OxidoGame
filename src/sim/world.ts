@@ -15,11 +15,11 @@ import { giveDose, needsDose, tickHealth, tickInfection, treatWounds } from './h
 import { Difficulty, initialSchedule, makeDifficulty, scaledSupplies, StorySchedule } from './storyteller';
 import { findRefuge, updatePanic } from './panic';
 import { canTalk, colonistFight, dropGear, makePrisoner, runStoryteller, talkToPrisoner, TurretShot, updateOthers, updateTurrets, validAttackTarget } from './people';
-import { AMMO_CARRY, AMMO_LOW, isGear, isWeapon, WEAPON_IDS, WEAPONS, weaponScore } from '../data/weapons';
+import { AMMO_CARRY, AMMO_LOW, ammoFor, isAmmo, isGear, isWeapon, WEAPON_IDS, WEAPONS, weaponScore } from '../data/weapons';
 import { ARMOR_IDS, ARMORS, isArmor } from '../data/armor';
 import { FINISH_MOOD } from '../data/morale';
 import { Corpse, updateCorpses } from './corpses';
-import { addResearch, buildingUnlocked, buildingsUnlockedBy, chooseResearch, newResearch, ResearchState } from './research';
+import { addResearch, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
 import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
 import { anchorFor, besideTiles, defOf, nextTo, occupant, updateVehicle, Vehicle, vehicleCenter, vehiclePath, VehicleSeat, covers } from './vehicles';
 import { vehicleDef } from '../data/vehicles';
@@ -29,10 +29,11 @@ import {
   restGain, STARVING, THIRSTY, TIRED, waterDecay,
 } from './needs';
 import { applyTerrainJob, LOWER_STONE, terrainBlocker, TerrainJob, TerrainOrders } from './terrain';
-import { PlaceShape, Structure, Structures } from './structures';
+import { Bill, PlaceShape, Structure, Structures } from './structures';
 import { isDaylight, lacksPower, litTiles, PowerNet, shutDoorTiles, stationSpeed, updatePower, windStrength } from './power';
 import type { TileRect } from './designations';
 import { BUILDINGS, buildingDef } from '../data/buildings';
+import { RECIPES, RecipeDef } from '../data/recipes';
 import { RESOURCES, ResourceId, STARTING_SUPPLIES } from '../data/resources';
 
 import { TICKS_PER_DAY, TICKS_PER_HOUR, TICKS_PER_SECOND } from './time';
@@ -701,12 +702,17 @@ export class World implements JobContext {
     if (c.weaponChoice !== 'auto') {
       if (c.weapon !== c.weaponChoice && inv[c.weaponChoice] > 0) return c.weaponChoice;
     } else {
-      const arrows = c.ammo > 0 || inv.flechas > 0;
+      // Cada arma de disparo vale si hay su munición: la que lleva encima o la del almacén.
+      const carried = ammoFor(c.weapon);
+      const hasAmmo = (id: typeof c.weapon) => {
+        const a = ammoFor(id);
+        return !a || (carried === a && c.ammo > 0) || inv[a] > 0;
+      };
       let best = c.weapon;
-      let bestScore = weaponScore(c.weapon, arrows);
+      let bestScore = weaponScore(c.weapon, hasAmmo(c.weapon));
       for (const id of WEAPON_IDS) {
         if (inv[id] <= 0) continue;
-        const sc = weaponScore(id, arrows);
+        const sc = weaponScore(id, hasAmmo(id));
         if (sc > bestScore + 0.05) {
           best = id;
           bestScore = sc;
@@ -714,7 +720,8 @@ export class World implements JobContext {
       }
       if (best !== c.weapon) return best;
     }
-    if (c.weapon && WEAPONS[c.weapon].ammo && c.ammo < AMMO_LOW && inv.flechas > 0) return 'flechas';
+    const ammo = ammoFor(c.weapon);
+    if (ammo && c.ammo < AMMO_LOW && inv[ammo] > 0) return ammo;
     // Armadura: el chaleco y el casco que más protegen de los que hay libres.
     if (c.armorChoice === 'auto') {
       for (const slot of ['chaleco', 'casco'] as const) {
@@ -750,8 +757,8 @@ export class World implements JobContext {
     c.gearTask = undefined;
     this.nextGearScan.delete(c.id);
     if (choice === 'ninguna' || (choice !== 'auto' && c.weapon && c.weapon !== choice)) {
+      if (c.ammo > 0) this.items.drop(c.tile.x, c.tile.y, ammoFor(c.weapon) ?? 'flechas', c.ammo);
       if (c.weapon) this.items.drop(c.tile.x, c.tile.y, c.weapon, 1);
-      if (c.ammo > 0) this.items.drop(c.tile.x, c.tile.y, 'flechas', c.ammo);
       c.weapon = null;
       c.ammo = 0;
     }
@@ -784,8 +791,10 @@ export class World implements JobContext {
     if (c.tile.x === t.x && c.tile.y === t.y && c.path.length === 0) {
       c.gearTask = undefined;
       c.activity = 'idle';
-      if (t.resource === 'flechas') {
-        const got = this.items.at(t.x, t.y)?.resource === 'flechas' ? this.items.take(t.x, t.y, AMMO_CARRY - c.ammo) : null;
+      if (isAmmo(t.resource)) {
+        // Solo la munición de su arma (si la ha cambiado mientras iba, no la coge).
+        if (ammoFor(c.weapon) !== t.resource) return;
+        const got = this.items.at(t.x, t.y)?.resource === t.resource ? this.items.take(t.x, t.y, AMMO_CARRY - c.ammo) : null;
         if (got) c.ammo += got.amount;
         return;
       }
@@ -801,10 +810,11 @@ export class World implements JobContext {
       if (!isWeapon(t.resource) || this.items.at(t.x, t.y)?.resource !== t.resource) return;
       const got = this.items.take(t.x, t.y, 1);
       if (!got) return;
-      // Deja la que llevaba (y sus flechas, si la nueva no las usa) donde estaba la nueva.
+      // Deja la que llevaba (y su munición, si la nueva no usa la misma) donde estaba la nueva.
+      const oldAmmo = ammoFor(c.weapon);
       if (c.weapon) this.items.drop(t.x, t.y, c.weapon, 1);
-      if (c.ammo > 0 && !WEAPONS[t.resource].ammo) {
-        this.items.drop(t.x, t.y, 'flechas', c.ammo);
+      if (c.ammo > 0 && oldAmmo !== WEAPONS[t.resource].ammo) {
+        this.items.drop(t.x, t.y, oldAmmo ?? 'flechas', c.ammo);
         c.ammo = 0;
       }
       c.weapon = t.resource;
@@ -1229,8 +1239,9 @@ export class World implements JobContext {
     if (j.kind === 'investigar') {
       const finished = addResearch(this.research, done);
       if (finished) {
-        const now = buildingsUnlockedBy(BUILDINGS, finished.id).map((b) => b.name);
-        const extra = now.length ? ` Ya se puede construir: ${now.join(', ')}.` : '';
+        const build = unlockedBy(BUILDINGS, finished.id).map((b) => b.name);
+        const craft = unlockedBy(RECIPES, finished.id).map((r) => r.name);
+        const extra = (build.length ? ` Ya se puede construir: ${build.join(', ')}.` : '') + (craft.length ? ` Ya se puede fabricar: ${craft.join(', ')}.` : '');
         this.addLog(`🔬 Investigación terminada: ${finished.name}. Desbloquea: ${finished.unlocks}.${extra}`, 'bueno');
       }
       if (finished || j.progress >= j.work) this.dropJob(c);
@@ -1881,7 +1892,7 @@ export class World implements JobContext {
 
   /** Se pueden poner planos nuevos de esta construcción (las torretas piden su investigación). */
   canBuild(defId: string): boolean {
-    return buildingUnlocked(this.research, buildingDef(defId));
+    return unlocked(this.research, buildingDef(defId));
   }
 
   /**
@@ -1891,6 +1902,18 @@ export class World implements JobContext {
   placeBuildArea(r: TileRect, defId: string, shape: PlaceShape, rot: 0 | 1 = 0): number {
     if (!this.canBuild(defId)) return 0;
     return this.structures.placeArea(r, defId, shape, rot);
+  }
+
+  /** Ya se puede encargar esta receta (las armas de fuego y las balas piden «Pólvora»). */
+  canCraft(recipe: RecipeDef): boolean {
+    return unlocked(this.research, recipe);
+  }
+
+  /** Pone (o quita, con null) la orden de un taller. false si la receta aún pide investigación. */
+  setStationBill(s: Structure, bill: Bill | null): boolean {
+    if (bill && !this.canCraft(bill.recipe)) return false;
+    this.structures.setBill(s, bill);
+    return true;
   }
 
   // --- Reclutar y órdenes directas -------------------------------------------------

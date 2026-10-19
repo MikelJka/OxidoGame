@@ -69,7 +69,7 @@ Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed 
 - [x] Salud: heridas localizadas, tratamiento, infecciones, 💊 Medicina, mesa de boticario y hierba curativa
 - [x] Dificultad configurable al empezar (días sin raids, dureza)
 - [ ] Raids de saqueadores y mutantes que escalan con la riqueza (hechos los saqueadores, los perros mutantes, el bruto mutante y sus cadáveres; falta la hoguera para quemarlos)
-- [ ] Combate: armas cuerpo a cuerpo y a distancia, cobertura con bonificaciones, control directo (hecho: control con 🎖, armas cuerpo a cuerpo y arco, cobertura y alcance, armadura, la moral de los raids con su líder ★ y el pánico de los colonos y el fuego amigo y las posturas; faltan las armas de fuego, con la investigación)
+- [ ] Combate: armas cuerpo a cuerpo y a distancia, cobertura con bonificaciones, control directo (hecho: control con 🎖, armas cuerpo a cuerpo y arco, cobertura y alcance, armadura, la moral de los raids con su líder ★ y el pánico de los colonos y el fuego amigo y las posturas; hecha la pistola casera con balas, que pide «Pólvora»; faltan la escopeta y el rifle)
 - [x] Muerte permanente y fin de partida
 - [x] Avisos en pantalla de raids, peleas, heridos, caídos, muertes, pánico, visitas y caravanas (#17, #18)
 - [x] Supervivientes que piden unirse, prisioneros (capturar, retener, convencer, liberar) y caravanas con esclavos
@@ -80,7 +80,7 @@ Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed 
 
 ## Fase 5 — Investigación y máquinas
 
-- [ ] Banco de investigación y árbol tecnológico en JSON (hechos el banco, el árbol en `src/data/research.json` y la pestaña 📜 → 🔬 Investigación; las torretas ya piden «Torretas» y «Artillería»; falta que los demás proyectos desbloqueen lo suyo a medida que se haga ese contenido)
+- [ ] Banco de investigación y árbol tecnológico en JSON (hechos el banco, el árbol en `src/data/research.json` y la pestaña 📜 → 🔬 Investigación; las torretas ya piden «Torretas» y «Artillería», y la pistola y las balas, «Pólvora»; falta que los demás proyectos desbloqueen lo suyo a medida que se haga ese contenido)
 - [ ] Puentes, torretas, cañones, filtros de agua, pozos, generadores de combustible (hechas las torretas eléctricas ligera y pesada, pedidas por Mikel antes de la investigación, y la destilería de ⛽ combustible)
 - [ ] Enemigos máquina y drones
 

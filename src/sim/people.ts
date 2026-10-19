@@ -3,7 +3,7 @@
 // prisioneros (retener, convencer, liberar) y caravanas de comerciantes (con esclavos).
 import { RESOURCES, ResourceId } from '../data/resources';
 import { personValue, RESOURCE_VALUES } from '../data/values';
-import { isGear, raiderWeaponPool, WEAPONS, WeaponDef } from '../data/weapons';
+import { ammoFor, isGear, RAIDER_AMMO, raiderWeaponPool, WEAPONS, WeaponDef } from '../data/weapons';
 import { armorProtection, isArmor, raiderVestPool } from '../data/armor';
 import { MEDICINE_STOCK } from '../data/medicine';
 import { CREATURES, CreatureId, PACKS } from '../data/creatures';
@@ -148,12 +148,12 @@ export function startRaid(w: World, n: number, withBuggy?: boolean): Colonist[] 
     r.pos = { x: spot.x + 0.5, y: spot.y + 0.5 };
     out.push(r);
   }
-  // Armados según el día: palos y cuchillos al principio; tuberías, lanzas y arcos más adelante.
+  // Armados según el día: palos y cuchillos al principio; tuberías, lanzas, arcos y pistolas más adelante.
   const pool = raiderWeaponPool(w.day);
   for (const r of out) {
     r.skills.combate = Math.max(r.skills.combate, w.rng.int(3, 10));
     r.weapon = pool[w.rng.int(0, pool.length - 1)];
-    r.ammo = r.weapon && WEAPONS[r.weapon].ammo ? 15 : 0;
+    r.ammo = ammoFor(r.weapon) ? RAIDER_AMMO : 0;
     const vests = raiderVestPool(w.day);
     if (vests.some((v) => v)) r.vest = vests[w.rng.int(0, vests.length - 1)];
     w.others.push(r);
@@ -333,7 +333,7 @@ function nearFree(w: World, p: Point): Point | null {
 
 // --- Combate ------------------------------------------------------------------------
 
-/** Arma que puede usar ahora (un arco sin flechas no dispara: se pelea con los puños). */
+/** Arma que puede usar ahora (un arco sin flechas o una pistola sin balas no disparan: puños). */
 export function usableWeapon(c: Colonist): WeaponDef | null {
   if (!c.weapon) return null;
   const def = WEAPONS[c.weapon];
@@ -423,7 +423,7 @@ export function canHit(w: World, a: Colonist, b: Colonist): boolean {
   return coverAt(w, a.tile, b.tile) < FULL_COVER;
 }
 
-/** Un golpe (o un disparo, con arco). Devuelve true si acierta. */
+/** Un golpe (o un disparo, con arco o pistola). Devuelve true si acierta. */
 export function attack(w: World, a: Colonist, b: Colonist): boolean {
   const weapon = usableWeapon(a);
   fightAlert(w, a, b);
@@ -777,8 +777,8 @@ export function updateOthers(w: World): void {
 
 /** Suelta el arma y la munición que lleva en su casilla (se pueden recoger). */
 export function dropGear(w: World, c: Colonist): void {
+  if (c.ammo > 0) w.items.drop(c.tile.x, c.tile.y, ammoFor(c.weapon) ?? 'flechas', c.ammo);
   if (c.weapon) w.items.drop(c.tile.x, c.tile.y, c.weapon, 1);
-  if (c.ammo > 0) w.items.drop(c.tile.x, c.tile.y, 'flechas', c.ammo);
   if (c.vest) w.items.drop(c.tile.x, c.tile.y, c.vest, 1);
   if (c.helmet) w.items.drop(c.tile.x, c.tile.y, c.helmet, 1);
   c.weapon = null;

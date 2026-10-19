@@ -295,6 +295,24 @@ export function paintItem(ctx: CanvasRenderingContext2D, r: ResourceId): void {
       for (let i = 0; i < 8; i++) px(3 + Math.round(Math.sin((i / 7) * Math.PI) * 3), 1 + i, 2, 1, '#7a5634');
       px(3, 1, 1, 8, 'rgba(220,210,190,0.8)');
       break;
+    case 'pistola':
+      // Pistola casera: cañón de tubo, cuerpo de chapa remachada y empuñadura con cinta.
+      px(2, 3, 8, 2, '#5c5a56'); // cañón
+      px(9, 3, 1, 1, '#1a1410'); // boca
+      px(3, 5, 4, 1, '#8a4a26'); // cuerpo oxidado
+      px(2, 5, 2, 4, '#3a2a1a'); // empuñadura
+      px(2, 6, 2, 1, '#a57a48'); // cinta
+      px(4, 6, 1, 1, '#1a1410'); // gatillo
+      px(3, 3, 1, 1, '#b4b1a8'); // remache
+      break;
+    case 'balas':
+      // Cartuchos de latón en fila.
+      for (const x of [2, 5, 8]) {
+        px(x, 4, 2, 4, '#c29a3e');
+        px(x, 3, 2, 1, '#8a8780');
+        px(x, 7, 2, 1, '#8a6a2a');
+      }
+      break;
     case 'chaleco_cuero':
     case 'chaleco_chapa':
     case 'chaleco_metal': {
