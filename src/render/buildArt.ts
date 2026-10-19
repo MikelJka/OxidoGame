@@ -196,6 +196,24 @@ function drawStation(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: numb
     px(11, tileH + 3, 3, 1, '#d0c050');
     return;
   }
+  if (def.id === 'mesa_boticario') {
+    // Mesa con un mortero, frascos y un manojo de hierbas colgando.
+    px(0, 1, tile, tileH - 1, '#1a1410');
+    px(1, 2, tile - 2, tileH - 3, top);
+    px(1, tileH - 1, tile - 2, 2, face);
+    px(1, tileH + 1, 2, wallH - 1, dark);
+    px(tile - 3, tileH + 1, 2, wallH - 1, dark);
+    px(3, 3, 4, 3, '#5c5a56'); // mortero
+    px(4, 3, 2, 1, '#8a8780');
+    px(6, 1, 1, 3, '#7a5634'); // mano del mortero
+    px(9, 2, 2, 4, '#1a1410'); // frascos
+    px(9, 3, 2, 2, '#6aa0c0');
+    px(12, 3, 2, 3, '#1a1410');
+    px(12, 4, 2, 1, '#c04040');
+    px(2, tileH - 3, 4, 1, '#5a9a5a'); // hierbas
+    px(3, tileH - 4, 2, 1, '#2e6a3a');
+    return;
+  }
   if (def.id === 'cocina') {
     // Fogón de piedra con dos ollas encima y fuego en la boca.
     px(1, 1, tile - 2, h - 1, '#1a1410');

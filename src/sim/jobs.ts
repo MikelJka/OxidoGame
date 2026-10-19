@@ -1,6 +1,7 @@
 // Sistema de trabajos: convierte designaciones, montones sueltos y planos en tareas,
 // las reserva para un colono y elige la siguiente según sus prioridades y la distancia.
 // Determinista: sin azar.
+import type { Skill } from '../data/colonists';
 import { MAX_STACK, RESOURCES, ResourceId } from '../data/resources';
 import { BLUEPRINT_SHARE_RADIUS, FINISH_WORK, WORK_SKILL, WORK_TYPES, WorkType } from '../data/work';
 import { Colonist, ColonistJob } from './colonist';
@@ -34,8 +35,8 @@ export const JOB_PATH_NODES = 12000;
 const SIDES: readonly Point[] = [{ x: 0, y: 1 }, { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: -1 }];
 
 /** Velocidad de trabajo de un colono (1 = normal): de ×0,6 con habilidad 0 a ×1,6 con 20. */
-export function workSpeed(c: Colonist, kind: WorkType): number {
-  const skill = WORK_SKILL[kind];
+export function workSpeed(c: Colonist, kind: WorkType, skillOverride?: Skill): number {
+  const skill = skillOverride ?? WORK_SKILL[kind];
   return (skill ? 0.6 + c.skills[skill] * 0.05 : 1) * needsWorkFactor(c);
 }
 

@@ -139,6 +139,17 @@ export function paintItem(ctx: CanvasRenderingContext2D, r: ResourceId): void {
         px(x + 1, y, 3, 1, '#c8ccd0');
       }
       break;
+    case 'hierba':
+      // Manojos de hierba curativa atados.
+      px(1, 3, 10, 6, '#1a1410');
+      px(2, 4, 3, 4, '#5a9a5a');
+      px(7, 4, 3, 4, '#5a9a5a');
+      px(2, 4, 3, 1, '#8ac06a');
+      px(7, 4, 3, 1, '#8ac06a');
+      px(3, 2, 1, 2, '#e8e0a0');
+      px(8, 2, 1, 2, '#e8e0a0');
+      px(5, 6, 2, 1, '#c8a060');
+      break;
     case 'fibra':
       // Madejas de fibra atadas.
       px(1, 3, 10, 6, '#1a1410');

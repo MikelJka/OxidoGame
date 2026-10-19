@@ -1187,7 +1187,9 @@ export class World implements JobContext {
     if (Math.abs(dx) > 0.01) c.facing = dx > 0 ? 1 : -1;
     // Un taller electrificado con corriente va el doble de rápido.
     const boost = (j.kind === 'fabricar' || j.kind === 'cocinar') && target ? stationSpeed(target) : 1;
-    j.progress += workSpeed(c, j.kind) * this.lightFactor(c.tile) * boost;
+    // Algunos talleres van con otra habilidad (la mesa de boticario, con Medicina).
+    const skill = (j.kind === 'fabricar' || j.kind === 'cocinar') ? target?.def.workSkill : undefined;
+    j.progress += workSpeed(c, j.kind, skill) * this.lightFactor(c.tile) * boost;
     if (building && j.move) {
       if (j.progress >= j.work) this.finishMoveStep(c);
       return;

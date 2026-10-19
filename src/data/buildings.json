@@ -914,6 +914,30 @@
     ]
   },
   {
+    "id": "mesa_boticario",
+    "movable": true,
+    "name": "Mesa de boticario",
+    "category": "taller",
+    "workSkill": "medicina",
+    "cost": {
+      "madera": 15,
+      "chatarra": 6
+    },
+    "work": 500,
+    "hp": 150,
+    "blocks": true,
+    "height": 1,
+    "colors": {
+      "top": "#8a7a5a",
+      "face": "#5a4a32",
+      "dark": "#2e2418"
+    },
+    "size": [
+      2,
+      1
+    ]
+  },
+  {
     "id": "pozo",
     "name": "Pozo",
     "category": "agua",

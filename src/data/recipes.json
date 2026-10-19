@@ -299,5 +299,19 @@
     },
     "work": 500,
     "description": "10 de madera dan 2 de combustible para los vehículos."
+  },
+  {
+    "id": "preparar_medicina",
+    "name": "Preparar medicina",
+    "station": "mesa_boticario",
+    "inputs": {
+      "hierba": 4,
+      "fibra": 1
+    },
+    "outputs": {
+      "medicina": 1
+    },
+    "work": 300,
+    "description": "4 de hierba curativa y 1 de fibra dan una 💊 Medicina. Va más rápido con buena Medicina."
   }
 ]

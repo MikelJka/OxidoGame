@@ -4,51 +4,99 @@
     "name": "Patatas",
     "resource": "patata",
     "growDays": 3,
-    "yield": [8, 12],
+    "yield": [
+      8,
+      12
+    ],
     "minFertility": 0.35,
     "sowWork": 60,
     "harvestWork": 90,
     "growsInDark": false,
     "description": "Aguantan casi cualquier tierra. La comida de siempre.",
-    "colors": { "leaf": "#6e8a3a", "dark": "#4a6026", "fruit": "#b08a52" }
+    "colors": {
+      "leaf": "#6e8a3a",
+      "dark": "#4a6026",
+      "fruit": "#b08a52"
+    }
   },
   {
     "id": "maiz",
     "name": "Maíz",
     "resource": "maiz",
     "growDays": 4,
-    "yield": [12, 18],
+    "yield": [
+      12,
+      18
+    ],
     "minFertility": 0.6,
     "sowWork": 70,
     "harvestWork": 110,
     "growsInDark": false,
     "description": "Da más que las patatas, pero pide buena tierra y tarda más.",
-    "colors": { "leaf": "#7a9a3a", "dark": "#526a24", "fruit": "#e0c040" }
+    "colors": {
+      "leaf": "#7a9a3a",
+      "dark": "#526a24",
+      "fruit": "#e0c040"
+    }
   },
   {
     "id": "setas",
     "name": "Setas",
     "resource": "setas",
     "growDays": 2,
-    "yield": [4, 7],
+    "yield": [
+      4,
+      7
+    ],
     "minFertility": 0.15,
     "sowWork": 50,
     "harvestWork": 60,
     "growsInDark": true,
     "description": "Crecen deprisa, también de noche y en suelo pobre, pero dan poco.",
-    "colors": { "leaf": "#c8b8a0", "dark": "#7a6a58", "fruit": "#a85a3a" }
+    "colors": {
+      "leaf": "#c8b8a0",
+      "dark": "#7a6a58",
+      "fruit": "#a85a3a"
+    }
   },
   {
     "id": "canamo",
     "name": "Cáñamo",
     "resource": "fibra",
     "growDays": 3.5,
-    "yield": [6, 10],
+    "yield": [
+      6,
+      10
+    ],
     "minFertility": 0.45,
     "sowWork": 60,
     "harvestWork": 100,
     "growsInDark": false,
     "description": "No se come: da fibra para tejidos, cuerdas y vendas.",
-    "colors": { "leaf": "#4f8a4a", "dark": "#305a2c", "fruit": "#8ac06a" }
+    "colors": {
+      "leaf": "#4f8a4a",
+      "dark": "#305a2c",
+      "fruit": "#8ac06a"
+    }
+  },
+  {
+    "id": "hierba",
+    "name": "Hierba curativa",
+    "resource": "hierba",
+    "growDays": 5,
+    "yield": [
+      4,
+      6
+    ],
+    "minFertility": 0.45,
+    "sowWork": 60,
+    "harvestWork": 90,
+    "growsInDark": false,
+    "description": "No se come: en la mesa de boticario, 4 de hierba y 1 de fibra dan una 💊 Medicina.",
+    "colors": {
+      "leaf": "#5a9a5a",
+      "dark": "#2e6a3a",
+      "fruit": "#e8e0a0"
+    }
   }
 ]
