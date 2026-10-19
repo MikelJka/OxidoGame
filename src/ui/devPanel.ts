@@ -6,7 +6,7 @@ import feedbackMd from '../../docs/FEEDBACK.md?raw';
 import { buildStatus, nextSession, percent } from './devStatus';
 
 /** Horario de la sesión automática de desarrollo (hora de Madrid). Actualizar si cambia. */
-export const SESSION_HOURS = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22] as const;
+export const SESSION_HOURS = [0, 4, 8, 12, 16, 20] as const;
 export const SESSION_MINUTE = 19;
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text = ''): HTMLElementTagNameMap[K] => {
