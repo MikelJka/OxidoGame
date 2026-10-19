@@ -48,3 +48,6 @@ export const WORK_SKILL: Partial<Record<WorkType, Skill>> = {
  * los planos cercanos (a esta distancia en casillas, sin diagonales, del primero) y lo reparte.
  */
 export const BLUEPRINT_SHARE_RADIUS = 8;
+
+/** Trabajo (en ticks, como capturar = 90) de rematar a un saqueador en el suelo (#22). */
+export const FINISH_WORK = 30;

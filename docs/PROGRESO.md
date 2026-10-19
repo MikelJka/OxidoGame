@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 (2) — Derribar en vez de matar; capturar o rematar (#22, primera parte)
+
+- Sin incidencias nuevas en 🐞. Esta sesión, la primera parte de **#22**.
+- Los golpes y disparos de los colonos y de las torretas ya no matan a los saqueadores: como mucho los dejan en el suelo (con un 5 % de salud). A los colonos los golpes les siguen pudiendo matar.
+- Al tocar a un saqueador en el suelo sale un panel con **⛓ Capturar** (lo de siempre: un carcelero lo lleva preso) y **🗡 Rematar** (un carcelero acaba con él; suelta lo que llevaba). Dice qué se hará y quién va a ello, o si falta un colono con «Carcelero». La orden se guarda con la partida.
+- Qué probar: lanzar un ⚔️ Raid con 🪄, derribar a un saqueador, tocarlo y elegir 🗡 Rematar; con otro, ⛓ Capturar. En el móvil, que los botones del panel se toquen bien.
+- Sin npm en el entorno: tests con Bun (300, 7 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Espera la respuesta de Mikel: cómo conseguir más colonos (#21) y la segunda parte de #22 (cama de prisionero para capturar, desangrarse, saquear y si rematar baja el ánimo), con opciones en «Propuestas para Mikel».
+- Siguiente: el resto de «Pendiente» en su orden (combustible ⛽ y destilería; luego puentes y plataformas), y #21 y #22 en cuanto Mikel responda.
+
 ## 2026-10-19 — Llevar material a varios planos de una vez (#20)
 
 - Sin incidencias nuevas en 🐞. Esta sesión, **#20**.

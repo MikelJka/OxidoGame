@@ -1087,7 +1087,59 @@ const people = mountPeople({
     view3d?.lookAt(x + 0.5, y + 0.5);
   },
 });
-game.events.on('pawn-tap', (c: Colonist) => people.openFor(c));
+// Saqueador en el suelo (#22): elegir si se le captura o se le remata.
+const foePanel = $('foe-panel');
+let foeId: number | null = null;
+function downedFoe(): Colonist | undefined {
+  const w = scene().world;
+  const o = foeId === null ? undefined : w.others.find((k) => k.id === foeId);
+  return o && o.role === 'saqueador' && o.downed ? o : undefined;
+}
+function renderFoe(): void {
+  const o = downedFoe();
+  foePanel.hidden = !o;
+  if (!o) {
+    foeId = null;
+    return;
+  }
+  const finish = !!o.raider?.finish;
+  const by = scene().world.colonists.find((c) => c.job?.pid === o.id && c.job.kind === 'carcelero');
+  $('fo-name').textContent = `⚔️ ${o.name} (saqueador${o.raider?.leader ? ' ★' : ''})`;
+  const what = finish ? 'Se le rematará' : 'Se le capturará';
+  $('fo-status').textContent = `En el suelo · ${what}${by ? ` · ${by.name} va a ello` : ' · falta un colono con «Carcelero»'}`;
+  $('fo-capture').classList.toggle('active', !finish);
+  $('fo-finish').classList.toggle('active', finish);
+  $('fo-capture').setAttribute('aria-pressed', String(!finish));
+  $('fo-finish').setAttribute('aria-pressed', String(finish));
+}
+function setFoeFate(fate: 'capturar' | 'rematar'): void {
+  const o = downedFoe();
+  if (o) scene().world.setDownedFate(o.id, fate);
+  renderFoe();
+}
+$('fo-close').addEventListener('click', () => {
+  foeId = null;
+  renderFoe();
+});
+$('fo-capture').addEventListener('click', () => setFoeFate('capturar'));
+$('fo-finish').addEventListener('click', () => setFoeFate('rematar'));
+window.setInterval(() => {
+  if (!foePanel.hidden) renderFoe();
+}, 500);
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !foePanel.hidden) {
+    foeId = null;
+    renderFoe();
+  }
+});
+game.events.on('pawn-tap', (c: Colonist) => {
+  if (c.role === 'saqueador' && c.downed) {
+    foeId = c.id;
+    renderFoe();
+    return;
+  }
+  people.openFor(c);
+});
 
 // --- Modo Dios y menú principal ------------------------------------------------------
 const GOD_KEY = 'oxido.dios';

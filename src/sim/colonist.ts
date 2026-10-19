@@ -60,7 +60,7 @@ export interface ColonistJob {
   /** Persona a la que va el trabajo (curar, capturar, alimentar, convencer). */
   pid?: number;
   /** Qué hace el carcelero. */
-  warden?: 'capturar' | 'alimentar' | 'convencer';
+  warden?: 'capturar' | 'alimentar' | 'convencer' | 'rematar';
   /** Capturar: ya lo lleva a cuestas hacia una cama de prisionero. */
   escorting?: boolean;
 }
@@ -173,6 +173,8 @@ export interface RaiderInfo {
   group?: number;
   /** Líder del raid (el de más Combate), marcado con ★. */
   leader?: boolean;
+  /** En el suelo: el jugador ha mandado rematarlo en vez de capturarlo (#22). */
+  finish?: boolean;
 }
 
 /** Un raid en marcha: cuántos llegaron, quién lo dirige y quién se ha escapado ya. */
@@ -278,7 +280,7 @@ export function activityLabel(c: Colonist): string {
       return `Yendo a ${WORK_NAMES[c.job.kind].toLowerCase()}`;
     case 'working': {
       if (!c.job) return 'Trabajando';
-      const WARDEN = { capturar: 'Capturando', alimentar: 'Dando de comer al prisionero', convencer: 'Hablando con el prisionero' } as const;
+      const WARDEN = { capturar: 'Capturando', rematar: 'Rematando al saqueador', alimentar: 'Dando de comer al prisionero', convencer: 'Hablando con el prisionero' } as const;
       const verb = c.job.farm === 'sembrar' ? 'Sembrando' : c.job.farm === 'cosechar' ? 'Cosechando' : c.job.warden ? WARDEN[c.job.warden] : WORK_VERBS[c.job.kind];
       return `${verb} (${Math.floor((c.job.progress / c.job.work) * 100)} %)`;
     }

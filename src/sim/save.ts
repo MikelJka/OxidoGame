@@ -91,7 +91,7 @@ interface SavedColonist {
   downed?: boolean;
   role?: string;
   prisoner?: { resistance: number; mode: string; lastTalk: number };
-  raider?: { fleeing: boolean; leaveAt: number; group?: number; leader?: boolean };
+  raider?: { fleeing: boolean; leaveAt: number; group?: number; leader?: boolean; finish?: boolean };
   trader?: { stock: Record<string, number>; slaves: SavedColonist[]; leaveAt: number; leaving: boolean };
   /** Arma, la que prefiere y munición (desde que hay armas). */
   weapon?: string | null;
@@ -337,6 +337,7 @@ function restoreColonist(s: SavedColonist): Colonist {
           leaveAt: num(s.raider.leaveAt, 0),
           ...(s.raider.group !== undefined ? { group: num(s.raider.group, 0) } : {}),
           ...(s.raider.leader ? { leader: true } : {}),
+          ...(s.raider.finish ? { finish: true } : {}),
         }
       : undefined,
     trader: s.trader

@@ -293,7 +293,8 @@ function applyHit(w: World, a: Colonist, b: Colonist, weapon: WeaponDef | null |
   const dmg = (0.08 + w.rng.next() * 0.1) * (1 + a.skills.combate * 0.03) * tough * hard * (weapon?.damage ?? 1) * armor;
   const part = BODY_PARTS[w.rng.int(0, BODY_PARTS.length - 1)];
   const wasDown = b.downed;
-  hurt(b, dmg, part);
+  // A los saqueadores se les derriba, no se les mata: luego se elige capturarlo o rematarlo (#22).
+  hurt(b, dmg, part, b.role === 'saqueador');
   if (!wasDown && b.downed) {
     if (b.role === 'colono') w.addLog(`🩸 ${b.name} cae herido (${part}).`, 'malo', 'caido', b.tile);
     else w.addLog(`${b.name} (saqueador) cae al suelo.`, 'bueno');
@@ -374,7 +375,7 @@ function turretShot(w: World, s: Structure, b: Colonist, from: Point, dist: numb
   const dmg = (0.08 + w.rng.next() * 0.1) * (1 + TURRET_AIM_SKILL * 0.03) * tough * t.damage * armor;
   const part = BODY_PARTS[w.rng.int(0, BODY_PARTS.length - 1)];
   const wasDown = b.downed;
-  hurt(b, dmg, part);
+  hurt(b, dmg, part, true);
   if (!wasDown && b.downed) w.addLog(`🔫 La ${s.def.name.toLowerCase()} derriba a ${b.name} (saqueador).`, 'bueno');
   return true;
 }

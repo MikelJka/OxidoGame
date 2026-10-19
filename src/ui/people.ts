@@ -444,7 +444,7 @@ export function mountPeople(opts: Options): PeopleUI {
   return {
     openFor(c: Colonist): void {
       if (c.role === 'saqueador') {
-        opts.toast(`⚔️ ${c.name} (saqueador${c.raider?.leader ? ', líder del raid ★' : ''}) · ${healthLabel(c).toLowerCase()} · combate ${c.skills.combate}${c.downed ? ' · un carcelero lo capturará' : ''}`, 2500);
+        opts.toast(`⚔️ ${c.name} (saqueador${c.raider?.leader ? ', líder del raid ★' : ''}) · ${healthLabel(c).toLowerCase()} · combate ${c.skills.combate}${c.downed ? (c.raider?.finish ? ' · un carcelero lo rematará' : ' · un carcelero lo capturará') : ''}`, 2500);
         return;
       }
       tab = c.role === 'comerciante' ? 'comercio' : c.role === 'prisionero' ? 'prisioneros' : 'diario';

@@ -2,7 +2,7 @@
 // las reserva para un colono y elige la siguiente según sus prioridades y la distancia.
 // Determinista: sin azar.
 import { MAX_STACK, RESOURCES, ResourceId } from '../data/resources';
-import { BLUEPRINT_SHARE_RADIUS, WORK_SKILL, WORK_TYPES, WorkType } from '../data/work';
+import { BLUEPRINT_SHARE_RADIUS, FINISH_WORK, WORK_SKILL, WORK_TYPES, WorkType } from '../data/work';
 import { Colonist, ColonistJob } from './colonist';
 import { Designations } from './designations';
 import { GroundItems } from './items';
@@ -378,7 +378,7 @@ function refuelCandidates(ctx: JobContext, c: Colonist): Candidate[] {
 }
 
 /** Trabajo junto a una persona: el médico o el carcelero va hasta ella. */
-function pawnJob(ctx: JobContext, c: Colonist, o: Colonist, kind: 'curar' | 'carcelero', work: number, warden?: 'capturar' | 'alimentar' | 'convencer'): JobPlan | null {
+function pawnJob(ctx: JobContext, c: Colonist, o: Colonist, kind: 'curar' | 'carcelero', work: number, warden?: NonNullable<ColonistJob['warden']>): JobPlan | null {
   const near = Math.max(Math.abs(c.tile.x - o.tile.x), Math.abs(c.tile.y - o.tile.y)) <= 1;
   const route = near ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, [o.tile]);
   if (!route) return null;
@@ -405,9 +405,9 @@ function wardenCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   const food = RESOURCES.filter(isFood).reduce((a, r) => a + inv[r], 0);
   for (const o of ctx.others) {
     if (o.carriedBy !== undefined || reservedByOther(ctx, c, o)) continue;
-    const add = (work: number, warden: 'capturar' | 'alimentar' | 'convencer') =>
+    const add = (work: number, warden: NonNullable<ColonistJob['warden']>) =>
       out.push({ kind: 'carcelero', x: o.tile.x, y: o.tile.y, dist: manhattan(c.tile, o.tile.x, o.tile.y), make: () => pawnJob(ctx, c, o, 'carcelero', work, warden) });
-    if (o.role === 'saqueador' && o.downed) add(90, 'capturar');
+    if (o.role === 'saqueador' && o.downed) add(o.raider?.finish ? FINISH_WORK : 90, o.raider?.finish ? 'rematar' : 'capturar');
     if (o.role !== 'prisionero' || !o.prisoner || o.prisoner.mode === 'liberar') continue;
     if (food > 0 && (o.needs.food < 0.45 || o.needs.water < 0.45)) add(60, 'alimentar');
     else if (canTalk(ctx.tick, o)) add(150, 'convencer');

@@ -364,6 +364,24 @@ export class World implements JobContext {
     }
   }
 
+  /**
+   * Saqueador en el suelo (#22): «rematar» manda a un carcelero a acabar con él; «capturar»
+   * (lo de siempre) lo lleva preso. false si no es un saqueador en el suelo.
+   */
+  setDownedFate(id: number, fate: 'capturar' | 'rematar'): boolean {
+    const o = this.others.find((k) => k.id === id);
+    if (!o || o.role !== 'saqueador' || !o.downed || o.carriedBy !== undefined) return false;
+    const finish = fate === 'rematar';
+    if (!!o.raider?.finish === finish) return true;
+    const r = (o.raider ??= { fleeing: false, leaveAt: this.tick + TICKS_PER_DAY });
+    if (finish) r.finish = true;
+    else delete r.finish;
+    // Quien iba a hacer lo otro lo deja: se vuelve a repartir el trabajo.
+    for (const c of this.colonists) if (c.job?.pid === id && c.job.kind === 'carcelero') this.dropJob(c);
+    this.addLog(finish ? `🗡 Se rematará a ${o.name} (saqueador).` : `⛓ Se capturará a ${o.name} (saqueador).`, 'info');
+    return true;
+  }
+
   /** Persona nueva (aún sin colocar). */
   makePawn(role: Colonist['role']): Colonist {
     const c = createColonist(this.nextPawnId++, { x: 0, y: 0 }, this.rng);
@@ -1022,7 +1040,8 @@ export class World implements JobContext {
       if (!o) return false;
       if (j.kind === 'curar') return o.wounds.some((w) => w.bleeding);
       if (j.escorting) return o.role === 'prisionero';
-      if (j.warden === 'capturar') return o.role === 'saqueador' && o.downed;
+      if (j.warden === 'capturar') return o.role === 'saqueador' && o.downed && !o.raider?.finish;
+      if (j.warden === 'rematar') return o.role === 'saqueador' && o.downed && !!o.raider?.finish;
       if (o.role !== 'prisionero' || o.prisoner?.mode === 'liberar') return false;
       if (j.warden === 'alimentar') return this.foodStack() !== null;
       return canTalk(this.tick, o);
@@ -1218,6 +1237,11 @@ export class World implements JobContext {
       const n = treatWounds(o);
       this.addLog(`🩹 ${c.name} cura ${n === 1 ? 'una herida' : `${n} heridas`} de ${o.name}.`, 'bueno');
       this.dropJob(c);
+      return;
+    }
+    if (j.warden === 'rematar') {
+      this.dropJob(c);
+      this.killPawn(o, `rematado por ${c.name}`);
       return;
     }
     if (j.warden === 'capturar') {

@@ -67,9 +67,16 @@ export function tickHealth(c: Colonist, ticks: number, ticksPerDay: number, asle
   return { died: false };
 }
 
-/** Recibe un golpe: baja la salud y deja una herida que sangra. */
-export function hurt(c: Colonist, amount: number, part: string): void {
-  c.health = Math.max(0, c.health - amount);
+/** Salud mínima que deja un golpe a un saqueador: se le derriba, no se le mata (#22). */
+export const SPARED_HEALTH = 0.05;
+
+/**
+ * Recibe un golpe: baja la salud y deja una herida que sangra. Con `spare`, el golpe no mata:
+ * como mucho lo deja en el suelo con `SPARED_HEALTH` (si ya estaba por debajo, no baja más).
+ */
+export function hurt(c: Colonist, amount: number, part: string, spare = false): void {
+  const floor = spare ? Math.min(c.health, SPARED_HEALTH) : 0;
+  c.health = Math.max(floor, c.health - amount);
   c.wounds.push({ part, severity: Math.min(1, amount * 2.5), bleeding: true, treated: false });
   if (c.health < DOWNED) c.downed = true;
 }

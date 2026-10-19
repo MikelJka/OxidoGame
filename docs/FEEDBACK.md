@@ -6,7 +6,7 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 - [ ] **Definir todo el contenido antes que nada** (2026-10-18, pedido por Mikel): la 3D queda aparcada; primero se define e implementa todo el contenido. Una sesión ha escrito `docs/CATALOGO.md` con todo lo que falta y sus números: Mikel lo revisa, marca ✅ cada bloque que apruebe y lo aprobado pasa aquí, por fases. La simulación se mantiene portable (reglas en `src/sim`, contenido en `src/data`) para poder pasar más adelante a un motor con mejor 3D.
 
-- [ ] **#22 Derribar en vez de matar; capturar, saquear o rematar** (2026-10-18, 🐞): las torretas y los colonos disparan a los saqueadores hasta dejarlos en el suelo (no hasta matarlos). Con uno en el suelo se puede elegir: capturarlo y curarlo si hay cama de prisionero, quitarle lo que lleva o rematarlo.
+- [ ] **#22 Derribar en vez de matar; capturar, saquear o rematar** (2026-10-18, 🐞): las torretas y los colonos disparan a los saqueadores hasta dejarlos en el suelo (no hasta matarlos). Con uno en el suelo se puede elegir: capturarlo y curarlo si hay cama de prisionero, quitarle lo que lleva o rematarlo. **Hecha la primera parte** (2026-10-19): los golpes de colonos y torretas dejan a los saqueadores en el suelo sin matarlos, y al tocar a uno caído sale un panel con ⛓ Capturar (lo de antes) o 🗡 Rematar. Lo demás espera la propuesta «#22, segunda parte».
 
 - [ ] **#21 Más colonos o formas de ampliar la colonia** (2026-10-18, 🐞): el progreso es lento con tan pocos colonos. Hay que decidir cómo: propuesta con opciones en «Propuestas para Mikel».
 
@@ -42,6 +42,14 @@ Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat 
   - **C — Radio de llamada** (edificio nuevo, 🔩20 ⚙️4, 100 W): con corriente atrae un superviviente cada 3 días además de los de ahora; sin radio, todo sigue igual.
   - **D — A y B juntas.**
   Responde con la letra (o con números tuyos) por el chat o con 🐞.
+
+- **#22, segunda parte: qué pasa con el saqueador en el suelo** (2026-10-19). Ya está hecho que no se les mata a golpes y que se elige ⛓ Capturar o 🗡 Rematar. Hoy, además, al caer sueltan solos el arma y la armadura (así que «quitarle lo que lleva» ya pasa), se les captura aunque no haya cama de prisionero (se quedan en el suelo) y, si nadie los captura, se desangran en unas horas. Opciones:
+  - **A — Como está ahora**: captura automática salvo que se pida rematar; se desangran si nadie los coge.
+  - **B — Hace falta cama de prisionero libre para capturar**: sin cama, el botón ⛓ sale apagado y se quedan en el suelo hasta que haya una (o se les remate o se desangren).
+  - **C — Nadie decide solo**: el caído espera en el suelo sin desangrarse hasta que el jugador elija ⛓ Capturar, 🗡 Rematar o 🎒 Saquear (quitarle arma, armadura y lo que cargue y dejarlo marchar cuando se levante).
+  - **D — B y C juntas.**
+  Y aparte: ¿rematar baja el ánimo de los colonos? **1** no; **2** −5 % durante un día a quien lo hace; **3** −5 % a quien lo hace y −3 % a quien lo ve (salvo los «duros»).
+  Responde con la letra y el número (p. ej. «D2») por el chat o con 🐞.
 
 ## Hecho
 
