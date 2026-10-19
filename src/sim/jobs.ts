@@ -107,7 +107,12 @@ export interface JobContext {
   tick: number;
   /** Camas de prisionero libres que no tiene ya apalabradas otro carcelero (para capturar hace falta una, #22). */
   prisonBedsFree(): number;
+  /** No queda ningún saqueador en pie que no huya: toca lo médico antes que nada. */
+  fightOver(): boolean;
 }
+
+/** Colono que necesita que le atiendan ya: sangra. */
+export const needsUrgentCare = (k: Colonist): boolean => k.role === 'colono' && k.wounds.some((w) => w.bleeding);
 
 /** Un taller tiene que seguir: orden activa y la colonia aún no tiene lo que pide. */
 export function stationWantsWork(ctx: JobContext, s: Structure): boolean {
@@ -153,6 +158,8 @@ interface Candidate {
   y: number;
   dist: number;
   make: () => JobPlan | null;
+  /** Va por delante de todo lo demás (curar a un colono herido tras el combate). */
+  urgent?: boolean;
 }
 
 const manhattan = (a: Point, x: number, y: number) => Math.abs(a.x - x) + Math.abs(a.y - y);
@@ -396,13 +403,24 @@ const reservedByOther = (ctx: JobContext, c: Colonist, o: Colonist) =>
  * A los saqueadores en el suelo les cierra las heridas donde están, para que no se desangren (#22).
  */
 function doctorCandidates(ctx: JobContext, c: Colonist): Candidate[] {
-  if (c.priorities.curar === 0) return [];
+  // Tras el combate, cualquier colono no reclutado atiende antes que nada a los colonos heridos,
+  // aunque no sea médico (prioridad médica, pedida por Mikel el 2026-10-19).
+  const urgentOn = !c.drafted && ctx.fightOver();
+  if (c.priorities.curar === 0) {
+    if (!urgentOn) return [];
+    return ctx.colonists
+      .filter((p) => p !== c && needsUrgentCare(p) && !reservedByOther(ctx, c, p))
+      .map((p) => ({ kind: 'curar' as const, x: p.tile.x, y: p.tile.y, dist: manhattan(c.tile, p.tile.x, p.tile.y), urgent: true, make: () => pawnJob(ctx, c, p, 'curar', 120) }));
+  }
   const downedFoe = (k: Colonist) => k.role === 'saqueador' && k.downed && k.carriedBy === undefined && !k.raider?.finish;
   const patients = [...ctx.colonists.filter((k) => k !== c), ...ctx.others.filter((k) => k.role === 'prisionero' || downedFoe(k))];
   const pills = ctx.inventory().medicina > 0;
   return patients
     .filter((p) => (p.wounds.some((w) => w.bleeding) || (pills && p.role !== 'saqueador' && needsDose(p))) && !reservedByOther(ctx, c, p))
-    .map((p) => ({ kind: 'curar' as const, x: p.tile.x, y: p.tile.y, dist: manhattan(c.tile, p.tile.x, p.tile.y), make: () => pawnJob(ctx, c, p, 'curar', 120) }));
+    .map((p) => ({
+      kind: 'curar' as const, x: p.tile.x, y: p.tile.y, dist: manhattan(c.tile, p.tile.x, p.tile.y),
+      urgent: urgentOn && needsUrgentCare(p), make: () => pawnJob(ctx, c, p, 'curar', 120),
+    }));
 }
 
 /** Carcelero: captura a los saqueadores caídos, da de comer a los prisioneros y habla con ellos. */
@@ -585,7 +603,8 @@ export function findJob(ctx: JobContext, c: Colonist): JobPlan | null {
   ];
   const byPriority = new Map<number, Candidate[]>();
   for (const cand of all) {
-    const p = c.priorities[cand.kind];
+    // Lo urgente (prioridad 0) va antes que la prioridad 1.
+    const p = cand.urgent ? 0 : c.priorities[cand.kind];
     const list = byPriority.get(p) ?? [];
     list.push(cand);
     byPriority.set(p, list);

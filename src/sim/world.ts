@@ -4,7 +4,7 @@ import { findPath, isWalkable, Point } from './pathfinding';
 import { Rng } from './rng';
 import { GroundItems } from './items';
 import { Designations } from './designations';
-import { canWorkFrom, findJob, findJobAt, stationWantsWork, JOB_PATH_NODES, JobContext, pathToNearest, reservePlan, Reservations, workSpeed } from './jobs';
+import { canWorkFrom, findJob, findJobAt, needsUrgentCare, stationWantsWork, JOB_PATH_NODES, JobContext, pathToNearest, reservePlan, Reservations, workSpeed } from './jobs';
 import { harvestAt, harvestTile, Stockpile } from './resources';
 import { StorageZones } from './zones';
 import { ZoneClearing } from './clearing';
@@ -297,6 +297,7 @@ export class World implements JobContext {
     }
     if (this.eventsEnabled && this.tick % TICKS_PER_HOUR === 0) runStoryteller(this);
     if (this.tick % RESCUE_TICKS === 0) this.rescueTrapped();
+    if (this.tick % TICKS_PER_SECOND === 0) this.medicalPriority();
     // Electricidad: cada segundo se reparte la corriente y se encienden o apagan las lámparas.
     if (this.tick % TICKS_PER_SECOND === 0) {
       this.powerNets = updatePower(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR, { hour: this.hour, wind: this.wind });
@@ -1222,6 +1223,51 @@ export class World implements JobContext {
       if (!busy) return { x: s.x, y: s.y };
     }
     return null;
+  }
+
+  /** No queda ningún saqueador en pie que no huya (todos en el suelo, huyendo o no hay raid). */
+  fightOver(): boolean {
+    return !this.others.some((o) => o.role === 'saqueador' && !o.downed && !o.raider?.fleeing);
+  }
+
+  /**
+   * Prioridad médica tras el combate (pedida por Mikel el 2026-10-19): a cada colono que sangra
+   * y no tiene a nadie yendo a curarle, va el colono libre más cercano, aunque deje lo que hace.
+   * Libre: no reclutado, ni en el suelo, ni en pánico, ni comiendo o durmiendo, ni curando ya.
+   */
+  medicalPriority(): void {
+    if (!this.fightOver()) return;
+    const tending = new Set<number>();
+    for (const k of this.colonists) if (k.job?.kind === 'curar' && k.job.pid !== undefined) tending.add(k.job.pid);
+    for (const p of this.colonists) {
+      if (!needsUrgentCare(p) || tending.has(p.id)) continue;
+      let best: Colonist | undefined;
+      let bestD = Infinity;
+      for (const k of this.colonists) {
+        if (k === p || k.drafted || k.downed || k.panic || k.need || k.job?.kind === 'curar') continue;
+        const d = Math.abs(k.tile.x - p.tile.x) + Math.abs(k.tile.y - p.tile.y);
+        if (d < bestD) {
+          bestD = d;
+          best = k;
+        }
+      }
+      if (!best) continue;
+      // Solo deja lo que hace si de verdad puede ir a curar (si no llega, sigue con lo suyo).
+      const plan = findJob(this, best);
+      if (!plan || plan.job.kind !== 'curar' || plan.job.pid === undefined) continue;
+      const patient = this.colonists.find((k) => k.id === plan.job.pid);
+      if (!patient || !needsUrgentCare(patient)) continue;
+      if (best.job) {
+        this.addLog(`🩹 ${best.name} deja lo que hace para atender a ${patient.name}.`, 'info');
+        this.dropJob(best);
+      }
+      best.gearTask = undefined;
+      best.job = plan.job;
+      best.path = plan.path;
+      best.activity = 'toJob';
+      best.waitTicks = 0;
+      tending.add(patient.id);
+    }
   }
 
   /** Camas de prisionero libres menos las que ya tiene apalabradas un carcelero que va a capturar (#22). */

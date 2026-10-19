@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 (6) — Prioridad médica tras los combates (primera parte)
+
+- Sin incidencias nuevas en 🐞. Esta sesión, la primera parte de la prioridad médica que pidió Mikel.
+- Cuando no queda ningún saqueador en pie (todos en el suelo o huyendo), a cada colono que sangra va el colono libre más cercano, **aunque no tenga «Médico»**, y si estaba haciendo otra cosa la deja («🩹 … deja lo que hace para atender a …» en el diario). Le cura donde está.
+- Los colonos heridos van antes que los saqueadores caídos y los prisioneros. No van los reclutados, los que están en el suelo, en pánico, comiendo o durmiendo. Mientras haya saqueadores en pie, todo sigue como antes (solo cura quien tiene «Médico»).
+- Qué probar: con 🪄 lanzar un raid, dejar que hieran a un colono y, cuando caigan o huyan los saqueadores, ver que el colono más cercano deja lo que hace y va a curarle aunque tenga «Médico» a —.
+- Sin npm en el entorno: tests con Bun (322, 6 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Espera la respuesta de Mikel: cuánto peor es curarse uno mismo (opciones en «Propuestas para Mikel»).
+- Siguiente: la segunda parte (llevar al herido a su cama, o que vaya él o se tumbe en el suelo); después, #21 A.
+
 ## 2026-10-19 (5) — Cama para capturar, curar en el suelo y rematar pesa (#22, segunda parte)
 
 - Sin incidencias nuevas en 🐞. Esta sesión, la segunda parte de **#22**, como la eligió Mikel (B y 3, y curar en el suelo).

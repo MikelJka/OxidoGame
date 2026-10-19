@@ -9,7 +9,8 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 - [ ] **Prioridad médica tras los combates** (2026-10-19, pedido por Mikel en el chat): cuando todos los saqueadores estén en el suelo o huyendo, los colonos **no reclutados** ponen siempre por delante lo médico:
   - **Lo primero de todo** es atender a un colono herido: curarle donde está y llevarle a una cama de hospital (cuando existan) o, si no hay, a su cama.
   - **El herido** va a una cama de hospital (cuando existan), si no a su cama si está libre, o se tumba en el suelo; si no hay otro colono libre para atenderle, **se cura él mismo**, con peor calidad que si le cura otro.
-  - Falta decidir cuánto peor es curarse uno mismo (se propondrá al hacerlo) y las camas de hospital, que todavía no están aprobadas como edificio.
+  - Falta decidir cuánto peor es curarse uno mismo (propuesta en «Propuestas para Mikel») y las camas de hospital, que todavía no están aprobadas como edificio.
+  - **Hecha la primera parte** (2026-10-19): sin saqueadores en pie (todos en el suelo o huyendo), el colono libre más cercano a un colono que sangra deja lo que hace y va a curarle donde está, aunque no tenga «Médico»; los colonos van antes que los saqueadores caídos y los prisioneros. Faltan: llevar al herido a su cama (o que vaya él, o se tumbe) y curarse uno mismo.
 
 - [ ] **#21 Más colonos o formas de ampliar la colonia** (2026-10-18, 🐞): el progreso es lento con tan pocos colonos. **Elegido por Mikel (2026-10-19): A y C.** **A**: el primer superviviente llega el día 2 y luego uno cada 2-4 días (la mitad de espera que ahora). **C**: **radio de llamada** (edificio nuevo en 🏗, 🔩20 ⚙️4, 100 W): con corriente atrae un superviviente más cada 3 días; sin radio, todo sigue igual. Por partes: primero A, luego la radio.
 
@@ -38,6 +39,12 @@ Lo que Mikel ha pedido dejar para más adelante. No se trabaja en ello salvo par
 ## Propuestas para Mikel
 
 Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat o con 🐞).
+
+- **Curarse uno mismo** (prioridad médica tras los combates, 2026-10-19): cuando un colono sangra y no hay otro libre para atenderle, se cura él mismo. ¿Cuánto peor que si le cura otro?
+  - **A**: tarda el doble en cerrarse las heridas y la herida se infecta más (12 % en vez de 8 %; con 💊, 4 % en vez de 2 %).
+  - **B**: tarda el doble, sin más (se infecta igual que si le cura otro).
+  - **C**: tarda el doble y solo puede si está de pie (en el suelo, se desangra si nadie viene).
+  - **D**: como A, pero usando su habilidad de Medicina con −5 (si no tiene, más lento aún).
 
 ## Hecho
 
