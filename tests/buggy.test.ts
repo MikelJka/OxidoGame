@@ -137,7 +137,7 @@ describe('buggy blindado', () => {
       driver.vest = null;
       driver.helmet = null;
       // Mismo azar: el golpe sale igual.
-      w.rng.state = 12345;
+      w.rng.setState(12345);
       const before = driver.health;
       for (let i = 0; i < 20 && driver.health === before; i++) attack(w, r, driver);
       return before - driver.health;
