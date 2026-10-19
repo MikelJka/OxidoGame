@@ -12,8 +12,9 @@ import { TICKS_PER_DAY, TICKS_PER_HOUR } from '../sim/time';
 import { START_HOUR } from '../sim/world';
 import { mountAlerts } from './alerts';
 import { RESEARCH, RESEARCH_BENCH, researchDef } from '../data/research';
-import { buildingDef } from '../data/buildings';
-import { canResearch, isResearched, researchFraction } from '../sim/research';
+import { BUILDINGS, buildingDef } from '../data/buildings';
+import { RECIPES } from '../data/recipes';
+import { canResearch, isResearched, researchFraction, unlockedBy } from '../sim/research';
 
 export interface PeopleUI {
   /** Abre la pestaña de una persona tocada en el mapa (prisionero o comerciante). */
@@ -182,6 +183,8 @@ export function mountPeople(opts: Options): PeopleUI {
       const head = el('div', 'pp-head');
       head.append(el('strong', undefined, `${done ? '✅' : on ? '🔬' : open ? '📘' : '🔒'} ${p.name}`), el('span', 'muted', done ? 'Hecho' : `${p.hours} h`));
       card.append(head, el('div', 'muted', `Desbloquea: ${p.unlocks}`));
+      // Del árbol completo, lo que aún no está en el juego llega en otra actualización.
+      if (!unlockedBy(BUILDINGS, p.id).length && !unlockedBy(RECIPES, p.id).length) card.append(el('div', 'pp-hint', '🕒 Todavía no desbloquea nada: llegará en una próxima actualización.'));
       if (!done) {
         const f = researchFraction(r, p.id);
         if (f > 0) {

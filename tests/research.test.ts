@@ -21,7 +21,11 @@ describe('investigación', () => {
     r.done.push('polvora');
     expect(canResearch(r, 'armas_largas')).toBe(true);
     expect(canResearch(r, 'polvora')).toBe(false);
-    expect(RESEARCH.length).toBe(10);
+    // El árbol completo (bloque 13, elegido por Mikel el 2026-10-19): 26 proyectos, 256 h.
+    expect(RESEARCH.length).toBe(26);
+    expect(RESEARCH.reduce((n, p) => n + p.hours, 0)).toBe(256);
+    expect(researchDef('hidroponica')?.requires).toEqual(['agricultura']);
+    expect(researchDef('motores')?.requires).toEqual(['navegacion', 'polvora']);
   });
 
   it('un proyecto se termina al llegar a su trabajo y queda hecho', () => {
