@@ -1,9 +1,10 @@
 /**
  * Armas. Son también recursos (se fabrican, se guardan en el almacén y se apilan); aquí, lo que
  * hacen en el combate. Los números están en `weapons.json` (aprobados por Mikel el 2026-10-17;
- * la pistola casera y las balas, en el bloque 4 del catálogo, el 2026-10-18).
+ * la pistola casera, la escopeta, el rifle y las balas, en el bloque 4 del catálogo, el 2026-10-18).
  * - weapons: daño (× los puños), ritmo (× el tiempo entre golpes), alcance en casillas,
- *   munición que gasta cada disparo y si es de fuego.
+ *   munición que gasta cada disparo y si es de fuego. La escopeta pega su daño a `closeRange`
+ *   casillas o menos y `farDamage` más lejos.
  * - ammoCarry / ammoLow: munición que coge un tirador de una vez y por debajo de cuánta vuelve.
  * - raiderAmmo: munición con la que llega un saqueador tirador.
  * - raiderPools: armas de los saqueadores desde cada día (sin arma = puños, `null`).
@@ -11,7 +12,7 @@
 import data from './weapons.json';
 import type { ResourceId } from './resources';
 
-export type WeaponId = 'palo' | 'cuchillo' | 'tuberia' | 'lanza' | 'machete' | 'arco' | 'pistola';
+export type WeaponId = 'palo' | 'cuchillo' | 'tuberia' | 'lanza' | 'machete' | 'arco' | 'pistola' | 'escopeta' | 'rifle';
 export type AmmoId = 'flechas' | 'balas';
 export const AMMO_IDS: readonly AmmoId[] = ['flechas', 'balas'];
 
@@ -19,6 +20,10 @@ export interface WeaponDef {
   id: WeaponId;
   /** Multiplica el daño de los puños. */
   damage: number;
+  /** Si existe, `damage` solo se hace a esta distancia o menos; más lejos, `farDamage`. */
+  closeRange?: number;
+  /** Daño más allá de `closeRange` (la escopeta, ×1,8). */
+  farDamage?: number;
   /** Multiplica el tiempo entre golpes (rápido < 1 < lento). */
   cooldown: number;
   /** Casillas de alcance (1 = pegado). */
@@ -31,7 +36,7 @@ export interface WeaponDef {
   speedLabel: 'rápido' | 'normal' | 'lento';
 }
 
-const IDS: readonly WeaponId[] = ['palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'pistola'];
+const IDS: readonly WeaponId[] = ['palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'pistola', 'escopeta', 'rifle'];
 
 function validate(): Record<WeaponId, WeaponDef> {
   const fail = (m: string): never => {
@@ -43,6 +48,8 @@ function validate(): Record<WeaponId, WeaponDef> {
     if (!(d.damage > 0) || !(d.cooldown > 0) || !Number.isInteger(d.reach) || d.reach < 1) fail(`${d.id}: números no válidos`);
     if (d.ammo !== undefined && !AMMO_IDS.includes(d.ammo)) fail(`${d.id}: munición desconocida ${d.ammo}`);
     if (d.firearm && !d.ammo) fail(`${d.id}: un arma de fuego gasta munición`);
+    if ((d.closeRange === undefined) !== (d.farDamage === undefined)) fail(`${d.id}: closeRange y farDamage van juntos`);
+    if (d.closeRange !== undefined && !(Number.isInteger(d.closeRange) && d.closeRange >= 1 && d.closeRange < d.reach && d.farDamage! > 0)) fail(`${d.id}: daño por distancia no válido`);
     if (!['rápido', 'normal', 'lento'].includes(d.speedLabel)) fail(`${d.id}: ritmo no válido`);
     out[d.id] = d;
   }
@@ -81,6 +88,11 @@ export function isGear(r: ResourceId): boolean {
   return isWeapon(r) || isAmmo(r);
 }
 
+/** Daño (× los puños) del arma a `dist` casillas: la escopeta pega menos lejos. */
+export function damageAt(w: WeaponDef, dist: number): number {
+  return w.closeRange !== undefined && dist > w.closeRange ? w.farDamage! : w.damage;
+}
+
 /** Munición que gasta el arma que lleva (o null si no gasta). */
 export function ammoFor(id: WeaponId | null): AmmoId | null {
   return (id && WEAPONS[id].ammo) || null;
@@ -88,13 +100,15 @@ export function ammoFor(id: WeaponId | null): AmmoId | null {
 
 /**
  * Lo bueno que es un arma para elegirla sola: daño por tiempo; las de disparo solo valen si hay
- * su munición (si no, se usan como un palo malo).
+ * su munición (si no, se usan como un palo malo), y entre ellas cuenta algo el alcance (el rifle
+ * antes que la pistola). La escopeta cuenta con el daño medio entre cerca y lejos.
  */
 export function weaponScore(id: WeaponId | null, hasAmmo: boolean): number {
   if (!id) return 1;
   const w = WEAPONS[id];
   if (w.ammo && !hasAmmo) return 0.5;
-  return (w.damage / w.cooldown) * (w.reach > 1 ? (w.ammo ? 2.5 : 1.1) : 1);
+  const dmg = w.farDamage !== undefined ? (w.damage + w.farDamage) / 2 : w.damage;
+  return (dmg / w.cooldown) * (w.reach > 1 ? (w.ammo ? 2.5 * (1 + w.reach / 50) : 1.1) : 1);
 }
 
 /** Arma de un saqueador según el día del raid (sin arma = puños). */

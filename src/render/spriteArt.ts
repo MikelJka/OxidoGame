@@ -305,6 +305,26 @@ export function paintItem(ctx: CanvasRenderingContext2D, r: ResourceId): void {
       px(4, 6, 1, 1, '#1a1410'); // gatillo
       px(3, 3, 1, 1, '#b4b1a8'); // remache
       break;
+    case 'escopeta':
+      // Escopeta: dos cañones cortos y gruesos, culata de madera.
+      px(4, 3, 7, 1, '#5c5a56'); // cañón de arriba
+      px(4, 4, 7, 1, '#47453f'); // cañón de abajo
+      px(10, 3, 1, 2, '#1a1410'); // bocas
+      px(3, 3, 2, 3, '#8a4a26'); // cierre oxidado
+      px(1, 4, 3, 2, '#7a5634'); // culata
+      px(0, 5, 2, 2, '#6a4628');
+      px(4, 6, 1, 1, '#1a1410'); // gatillo
+      break;
+    case 'rifle':
+      // Rifle: cañón largo y fino, mira y culata de madera.
+      px(4, 4, 8, 1, '#5c5a56'); // cañón
+      px(11, 4, 1, 1, '#1a1410'); // boca
+      px(5, 3, 3, 1, '#2e2c28'); // mira
+      px(2, 5, 5, 1, '#7a5634'); // caja de madera
+      px(0, 5, 2, 2, '#6a4628'); // culata
+      px(5, 6, 1, 1, '#1a1410'); // gatillo
+      px(7, 5, 1, 2, '#8a4a26'); // cargador
+      break;
     case 'balas':
       // Cartuchos de latón en fila.
       for (const x of [2, 5, 8]) {

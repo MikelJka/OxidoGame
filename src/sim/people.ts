@@ -3,7 +3,7 @@
 // prisioneros (retener, convencer, liberar) y caravanas de comerciantes (con esclavos).
 import { RESOURCES, ResourceId } from '../data/resources';
 import { personValue, RESOURCE_VALUES } from '../data/values';
-import { ammoFor, isGear, RAIDER_AMMO, raiderWeaponPool, WEAPONS, WeaponDef } from '../data/weapons';
+import { ammoFor, damageAt, isGear, RAIDER_AMMO, raiderWeaponPool, WEAPONS, WeaponDef } from '../data/weapons';
 import { armorProtection, isArmor, raiderVestPool } from '../data/armor';
 import { MEDICINE_STOCK } from '../data/medicine';
 import { CREATURES, CreatureId, PACKS } from '../data/creatures';
@@ -148,7 +148,8 @@ export function startRaid(w: World, n: number, withBuggy?: boolean): Colonist[] 
     r.pos = { x: spot.x + 0.5, y: spot.y + 0.5 };
     out.push(r);
   }
-  // Armados según el día: palos y cuchillos al principio; tuberías, lanzas, arcos y pistolas más adelante.
+  // Armados según el día: palos y cuchillos al principio; tuberías, lanzas, arcos y pistolas más adelante;
+  // escopetas y rifles desde el día 25.
   const pool = raiderWeaponPool(w.day);
   for (const r of out) {
     r.skills.combate = Math.max(r.skills.combate, w.rng.int(3, 10));
@@ -333,7 +334,7 @@ function nearFree(w: World, p: Point): Point | null {
 
 // --- Combate ------------------------------------------------------------------------
 
-/** Arma que puede usar ahora (un arco sin flechas o una pistola sin balas no disparan: puños). */
+/** Arma que puede usar ahora (un arco sin flechas o un arma de fuego sin balas no disparan: puños). */
 export function usableWeapon(c: Colonist): WeaponDef | null {
   if (!c.weapon) return null;
   const def = WEAPONS[c.weapon];
@@ -423,7 +424,7 @@ export function canHit(w: World, a: Colonist, b: Colonist): boolean {
   return coverAt(w, a.tile, b.tile) < FULL_COVER;
 }
 
-/** Un golpe (o un disparo, con arco o pistola). Devuelve true si acierta. */
+/** Un golpe (o un disparo, con arco o arma de fuego). Devuelve true si acierta. */
 export function attack(w: World, a: Colonist, b: Colonist): boolean {
   const weapon = usableWeapon(a);
   fightAlert(w, a, b);
@@ -491,7 +492,8 @@ function applyHit(w: World, a: Colonist, b: Colonist, weapon: WeaponDef | null |
   const hard = a.role === 'saqueador' ? DIFFICULTIES[w.difficulty.level].enemyDamage : 1;
   const armor = 1 - armorProtection([b.vest, b.helmet]);
   // Una criatura muerde o golpea con su propio daño (el perro mutante, ×1,2).
-  const blow = a.creature ? CREATURES[a.creature].damage : (weapon?.damage ?? 1);
+  // La escopeta pega menos a más de 3 casillas.
+  const blow = a.creature ? CREATURES[a.creature].damage : weapon ? damageAt(weapon, tileDistance(a, b)) : 1;
   // Dentro de un vehículo blindado, el blindaje se lleva parte del golpe (el buggy, −40 %; el de los
   // saqueadores, −30 %) y pierde esa vida.
   const dmg = absorbHit(w, b, (0.08 + w.rng.next() * 0.1) * (1 + a.skills.combate * 0.03) * tough * hard * blow * armor);

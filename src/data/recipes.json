@@ -237,6 +237,37 @@
     "description": "Dispara a 9 casillas (×2,2, normal); gasta balas."
   },
   {
+    "id": "fabricar_escopeta",
+    "name": "Escopeta",
+    "station": "banco_trabajo",
+    "research": "armas_largas",
+    "inputs": {
+      "metal": 6,
+      "componentes": 2
+    },
+    "outputs": {
+      "escopeta": 1
+    },
+    "work": 500,
+    "description": "Dispara a 6 casillas (×3,6 a 3 o menos, ×1,8 más lejos; lenta); gasta balas."
+  },
+  {
+    "id": "fabricar_rifle",
+    "name": "Rifle",
+    "station": "banco_trabajo",
+    "research": "armas_largas",
+    "inputs": {
+      "metal": 8,
+      "componentes": 3,
+      "madera": 4
+    },
+    "outputs": {
+      "rifle": 1
+    },
+    "work": 600,
+    "description": "Dispara a 14 casillas (×3,0, lento); gasta balas."
+  },
+  {
     "id": "fabricar_balas",
     "name": "Balas (15)",
     "station": "banco_trabajo",

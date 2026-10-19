@@ -1,7 +1,7 @@
 /** Recursos de la colonia y trabajos para obtenerlos del mapa. Ampliar aquí, no en la lógica. */
 import type { Skill } from './colonists';
 
-export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra', 'metal', 'hormigon', 'comida', 'palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'flechas', 'pistola', 'balas', 'chaleco_cuero', 'chaleco_chapa', 'chaleco_metal', 'casco_chapa', 'casco_metal', 'medicina', 'combustible', 'hierba'] as const;
+export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra', 'metal', 'hormigon', 'comida', 'palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'flechas', 'pistola', 'escopeta', 'rifle', 'balas', 'chaleco_cuero', 'chaleco_chapa', 'chaleco_metal', 'casco_chapa', 'casco_metal', 'medicina', 'combustible', 'hierba'] as const;
 
 export type ResourceId = (typeof RESOURCES)[number];
 
@@ -25,6 +25,8 @@ export const RESOURCE_NAMES: Record<ResourceId, string> = {
   arco: 'Arco',
   flechas: 'Flechas',
   pistola: 'Pistola casera',
+  escopeta: 'Escopeta',
+  rifle: 'Rifle',
   balas: 'Balas',
   chaleco_cuero: 'Chaleco de cuero',
   chaleco_chapa: 'Chaleco de chapa',
@@ -64,6 +66,8 @@ export const RESOURCE_ICONS: Record<ResourceId, string> = {
   arco: '🏹',
   flechas: '➶',
   pistola: '🔫',
+  escopeta: '🔫',
+  rifle: '🔫',
   balas: '⁍',
   chaleco_cuero: '🦺',
   chaleco_chapa: '🦺',
@@ -124,6 +128,8 @@ export const MAX_STACK: Record<ResourceId, number> = {
   arco: 10,
   flechas: 100,
   pistola: 10,
+  escopeta: 10,
+  rifle: 10,
   balas: 100,
   chaleco_cuero: 10,
   chaleco_chapa: 10,

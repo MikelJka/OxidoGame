@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 (18) — Escopeta y rifle con «Armas largas» (armas de fuego, segunda parte)
+
+- Sin incidencias nuevas en 🐞. Siguiente tarea aprobada: la escopeta y el rifle (bloque 4 del catálogo, primera del orden del árbol completo).
+- **Escopeta** (banco de trabajo, 🔗6 ⚙️2): ×3,6 de daño a 3 casillas o menos y ×1,8 más lejos, lenta, alcance 6. **Rifle** (🔗8 ⚙️3 🪵4): ×3,0, lento, alcance 14. Las dos gastan ⁍ balas y piden investigar **«Armas largas»** (que pide «Pólvora»); hasta entonces salen con 🔒 en el banco.
+- Al elegir arma solos, los colonos prefieren el rifle a la pistola y la pistola a la escopeta (que cuenta con su daño medio), y cualquiera de las tres al machete si hay balas. En la ficha se puede fijar la que se quiera.
+- **Saqueadores con escopeta o rifle** desde el día 25, con 15 balas; al caer las sueltan.
+- Por dentro: el daño que baja con la distancia va en `weapons.json` (`closeRange`, `farDamage`) y se calcula con `damageAt`.
+- Qué probar: investigar Pólvora y Armas largas en 📜 → 🔬 Investigación (🪄 acelera), ver en el diario «Ya se puede fabricar: Escopeta, Rifle», fabricarlos y ver que un colono coge el rifle. En la ficha, «🔫 Escopeta (×3,6 a 3 o menos, ×1,8 más lejos, lento, alcance 6)». Lanzar un raid con 🪄 pasado el día 25.
+- Sin npm en el entorno: tests con Bun (432, 7 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Siguen esperando la respuesta de Mikel: la hoguera (A-D) y «Medicina de campo» (A-C), en «Propuestas para Mikel».
+- Siguiente: el subfusil y el rifle de francotirador con «Armas automáticas».
+
 ## 2026-10-19 (17) — Pistola casera y balas con «Pólvora» (armas de fuego, primera parte), y plan del árbol de investigación
 
 - Pedido por Mikel en el chat: hacer lo previsto para la siguiente sesión y planificar el árbol de investigación completo.
