@@ -80,7 +80,7 @@ Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed 
 
 ## Fase 5 — Investigación y máquinas
 
-- [ ] Banco de investigación y árbol tecnológico en JSON
+- [ ] Banco de investigación y árbol tecnológico en JSON (hechos el banco, el árbol en `src/data/research.json` y la pestaña 📜 → 🔬 Investigación; falta que los proyectos bloqueen y desbloqueen lo suyo)
 - [ ] Puentes, torretas, cañones, filtros de agua, pozos, generadores de combustible (hechas las torretas eléctricas ligera y pesada, pedidas por Mikel antes de la investigación, y la destilería de ⛽ combustible)
 - [ ] Enemigos máquina y drones
 

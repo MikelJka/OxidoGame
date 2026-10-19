@@ -56,6 +56,7 @@ export const DESIGN_COLORS: Record<WorkType | TerrainJob | 'cancelar' | 'almacen
   terreno: 0xc09060,
   fabricar: 0xd0a060,
   cocinar: 0xe0a070,
+  investigar: 0x9ab0e0,
   curar: 0xe06a6a,
   carcelero: 0xd09040,
   talar: 0x9bc45a,

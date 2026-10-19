@@ -202,6 +202,22 @@ function drawStation(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: numb
     px(11, tileH + 3, 3, 1, '#d0c050');
     return;
   }
+  if (def.id === 'banco_investigacion') {
+    // Mesa con un microscopio viejo, papeles y una radio desmontada.
+    px(0, 1, tile, tileH - 1, '#1a1410');
+    px(1, 2, tile - 2, tileH - 3, top);
+    px(1, tileH - 1, tile - 2, 2, face);
+    px(1, tileH + 1, 2, wallH - 1, dark);
+    px(tile - 3, tileH + 1, 2, wallH - 1, dark);
+    px(3, 1, 2, 5, '#3a3a40'); // microscopio
+    px(2, 5, 4, 1, '#5c5a56');
+    px(3, 1, 2, 1, '#9ab0e0');
+    px(8, 3, 3, 3, '#e8e0c8'); // papeles
+    px(9, 4, 2, 1, '#8a8070');
+    px(12, 2, 3, 3, '#4a5a4a'); // radio
+    px(13, 3, 1, 1, '#c0e080');
+    return;
+  }
   if (def.id === 'mesa_boticario') {
     // Mesa con un mortero, frascos y un manojo de hierbas colgando.
     px(0, 1, tile, tileH - 1, '#1a1410');

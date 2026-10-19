@@ -13,7 +13,7 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 - [ ] **Catálogo de contenido aprobado entero** (2026-10-18, Mikel marcó ✅ los 12 bloques de `docs/CATALOGO.md`). Va por fases y en este orden; cada punto, por partes:
   - [x] Fase 4: **infecciones y medicinas** (bloque 1: infección, 💊, mesa de boticario y hierba curativa). **Hecha la primera parte** (2026-10-19): las heridas se infectan, la 💊 Medicina (en escombros y caravanas) y el médico que la usa. **Hecha la segunda parte** (2026-10-19): la mesa de boticario (🪵15 🔩6, 2×1, en 🏗 → Talleres; 4 🌿 + 1 🧵 → 1 💊, va con la habilidad Medicina) y el cultivo 🌿 Hierba curativa (5 días, cosecha 4–6, fertilidad ≥ 0,45). Bloque terminado.
   - [ ] Fase 4: **mutantes** (bloque 2: perros mutantes, bruto mutante y cadáveres). **Hecha la primera parte** (2026-10-19): los perros mutantes en manada (desde el día 8, 1 de cada 3 raids; 1 de cada 2 cerca de una zona irradiada). **Hecha la segunda parte** (2026-10-19): el bruto mutante (desde el día 15, 1 por cada 3 perros; lento, el triple de vida, golpe ×3 y rompe muros y puertas). **Hecha la tercera parte** (2026-10-19): los cadáveres (al morir, perros y brutos dejan su cadáver; quien lo ve a 5 casillas o menos pierde un 5 % de ánimo, y a los 4 días se pudre y desaparece). Falta la hoguera (🪵5) para quemarlos.
-  - [ ] Fase 5: **banco de investigación y árbol** (bloque 3; **decidido por Mikel el 2026-10-18**: las dos torretas, ya construibles, pasarán a pedir su investigación, la ligera «Torretas» y la pesada «Artillería»; en las partidas empezadas, las construidas se quedan. Siguen **sin munición**: solo gastan corriente), y con él las **armas de fuego y balas** (bloque 4) y las **defensas** (bloque 5: torretas, mortero, hidropónica y blindaje táctico; los puentes van con la update del agua).
+  - [ ] Fase 5: **banco de investigación y árbol** (bloque 3; **decidido por Mikel el 2026-10-18**: las dos torretas, ya construibles, pasarán a pedir su investigación, la ligera «Torretas» y la pesada «Artillería»; en las partidas empezadas, las construidas se quedan. Siguen **sin munición**: solo gastan corriente). **Hecha la primera parte** (2026-10-19): el banco de investigación (🏗 → Talleres), el trabajo «Investigar», el árbol de 10 proyectos y la pestaña 📜 → 🔬 Investigación; los proyectos se terminan pero aún no bloquean ni desbloquean nada (eso va en la segunda parte, empezando por las torretas). Y con él las **armas de fuego y balas** (bloque 4) y las **defensas** (bloque 5: torretas, mortero, hidropónica y blindaje táctico; los puentes van con la update del agua).
   - [ ] Fase 5: **máquinas y drones** (bloque 6).
   - [ ] Fase 6: **facciones** (bloque 7), **mercado** (bloque 8) y **sucesos** (bloque 9).
   - [ ] Opcionales aprobados: **caza** (bloque 10), **estaciones y ropa** (bloque 11) y **ocio y habitaciones** (bloque 12).
@@ -35,6 +35,11 @@ Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat 
   - **B**: la hoguera se construye gratis (o casi) y cada quema gasta 🪵5.
   - **C**: como A, pero solo se queman los cadáveres que marques con una orden nueva «🔥 Quemar» (los demás se pudren).
   - **D**: como A, y además quemar a un mutante da algo (p. ej. 🦴 o abono para el huerto), por decidir.
+
+- **Investigación «Medicina de campo»** (2026-10-19, bloque 3): el árbol dice que desbloquea la mesa de boticario, la 💊 y la hierba curativa, pero eso ya se puede construir y plantar sin investigar (el bloque 1 se hizo antes), y el catálogo también dice que «lo construido hasta ahora sigue libre». ¿Qué hago?
+  - **A** (la que haría): como con las torretas, la mesa de boticario y la hierba pasan a pedir «Medicina de campo»; en las partidas empezadas, las mesas y huertos de hierba que ya haya se quedan. La 💊 de las ruinas y las caravanas sigue saliendo.
+  - **B**: se quedan libres y «Medicina de campo» da otra cosa: curar con 💊 un 25 % más rápido (o lo que digas).
+  - **C**: se quedan libres y «Medicina de campo» se quita del árbol; «Radio» deja de pedirla y queda sin requisitos.
 
 ## Hecho
 

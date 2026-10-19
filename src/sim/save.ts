@@ -1,6 +1,7 @@
 // Guardar y cargar partidas. El formato lleva versión y se lee de forma tolerante, para que
 // una partida guardada siga sirviendo cuando se publica una versión nueva del juego:
 // lo que ya no existe se descarta y lo nuevo toma su valor por defecto.
+import { loadResearch } from './research';
 import { isCreature } from '../data/creatures';
 import { SKILLS, Skill, TRAITS } from '../data/colonists';
 import { BUILDINGS } from '../data/buildings';
@@ -72,6 +73,8 @@ export interface SaveData {
   nextVehicleId?: number;
   /** Cadáveres de criaturas (desde 2026-10-19; las anteriores, ninguno). */
   corpses?: { id: number; creature: string; x: number; y: number; diedAt: number }[];
+  /** Investigación (desde el 2026-10-19; las partidas de antes no tienen nada investigado). */
+  research?: { current: string | null; progress: Record<string, number>; done: string[] };
   nextCorpseId?: number;
   /** Raids, caravanas y supervivientes activados (por defecto, sí). */
   events?: boolean;
@@ -219,6 +222,7 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     nextVehicleId: world.nextVehicleId,
     corpses: world.corpses.map((c) => ({ ...c })),
     nextCorpseId: world.nextCorpseId,
+    research: { current: world.research.current, progress: { ...world.research.progress }, done: [...world.research.done] },
     events: world.eventsEnabled,
     difficulty: { ...world.difficulty },
     items: world.items.list().map((s) => ({ x: s.x, y: s.y, resource: s.resource, amount: s.amount })),
@@ -526,6 +530,7 @@ export function loadWorld(input: string | unknown): World {
     world.corpses.push({ id: num(c.id, 0), creature: c.creature, x, y, diedAt: num(c.diedAt, world.tick) });
   }
   world.nextCorpseId = Math.max(num(d.nextCorpseId, 1), ...world.corpses.map((c) => c.id + 1), 1);
+  world.research = loadResearch(d.research);
   // Asientos de vehículos que ya no existen: fuera.
   for (const c of world.pawns()) if (c.vehicle && !world.vehicle(c.vehicle.id)) delete c.vehicle;
   for (const it of d.items ?? []) {

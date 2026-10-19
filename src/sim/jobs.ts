@@ -5,6 +5,8 @@ import type { Skill } from '../data/colonists';
 import { MAX_STACK, RESOURCES, ResourceId } from '../data/resources';
 import { BLUEPRINT_SHARE_RADIUS, FINISH_WORK, WORK_SKILL, WORK_TYPES, WorkType } from '../data/work';
 import { Colonist, ColonistJob } from './colonist';
+import { RESEARCH_BENCH, RESEARCH_CHUNK_HOURS } from '../data/research';
+import type { ResearchState } from './research';
 import { Designations } from './designations';
 import { GroundItems } from './items';
 import { GameMap, index, isPassable, PROP_INFO, Prop } from './map';
@@ -108,6 +110,8 @@ export interface JobContext {
   tick: number;
   /** Camas de prisionero libres que no tiene ya apalabradas otro carcelero (para capturar hace falta una, #22). */
   prisonBedsFree(): number;
+  /** Investigación: el proyecto en marcha (si no hay, nadie investiga). */
+  research: ResearchState;
   /** No queda ningún saqueador en pie que no huya: toca lo médico antes que nada. */
   fightOver(): boolean;
   /** Colono en el suelo, fuera de la cama, al que hay que llevar a una cama libre tras el combate. */
@@ -362,6 +366,32 @@ function fabricateCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   return out;
 }
 
+/** Banco de investigación libre con un proyecto en marcha: alguien con «Investigar» va a él. */
+export function researchBenchReady(ctx: JobContext, s: Structure): boolean {
+  return s.built && s.def.id === RESEARCH_BENCH && !s.demolish && !s.upgrade && !s.moveTo && ctx.research.current !== null;
+}
+
+function researchCandidates(ctx: JobContext, c: Colonist): Candidate[] {
+  if (c.priorities.investigar === 0 || ctx.research.current === null) return [];
+  const out: Candidate[] = [];
+  for (const s of ctx.structures.stations()) {
+    if (!researchBenchReady(ctx, s)) continue;
+    const holder = ctx.reservations.holder(s.x, s.y);
+    if (holder !== undefined && holder !== c.id) continue;
+    out.push({
+      kind: 'investigar', x: s.x, y: s.y, dist: manhattan(c.tile, s.x, s.y),
+      make: () => {
+        const here = ctx.structures.isBesideStructure(c.tile, s);
+        const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, ctx.structures.sidesOf(s));
+        if (!route) return null;
+        // Investiga un rato seguido y luego vuelve a mirar qué hacer.
+        return { job: { kind: 'investigar', sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: 0, work: RESEARCH_CHUNK_HOURS * TICKS_PER_HOUR }, path: route.path };
+      },
+    });
+  }
+  return out;
+}
+
 /** Generadores con menos de la mitad de combustible: alguien con «Transportar» les lleva más. */
 function refuelCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   if (c.priorities.transportar === 0) return [];
@@ -601,7 +631,7 @@ function terrainCandidates(ctx: JobContext, c: Colonist): Candidate[] {
 export function findJob(ctx: JobContext, c: Colonist): JobPlan | null {
   const all = [
     ...doctorCandidates(ctx, c), ...wardenCandidates(ctx, c),
-    ...buildCandidates(ctx, c), ...farmCandidates(ctx, c), ...fabricateCandidates(ctx, c), ...terrainCandidates(ctx, c),
+    ...buildCandidates(ctx, c), ...farmCandidates(ctx, c), ...fabricateCandidates(ctx, c), ...researchCandidates(ctx, c), ...terrainCandidates(ctx, c),
     ...harvestCandidates(ctx, c), ...refuelCandidates(ctx, c), ...haulCandidates(ctx, c),
   ];
   const byPriority = new Map<number, Candidate[]>();

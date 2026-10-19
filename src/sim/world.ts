@@ -4,7 +4,7 @@ import { findPath, isWalkable, Point } from './pathfinding';
 import { Rng } from './rng';
 import { GroundItems } from './items';
 import { Designations } from './designations';
-import { canWorkFrom, findJob, findJobAt, needsUrgentCare, stationWantsWork, JOB_PATH_NODES, JobContext, pathToNearest, reservePlan, Reservations, workSpeed } from './jobs';
+import { canWorkFrom, findJob, findJobAt, needsUrgentCare, researchBenchReady, stationWantsWork, JOB_PATH_NODES, JobContext, pathToNearest, reservePlan, Reservations, workSpeed } from './jobs';
 import { harvestAt, harvestTile, Stockpile } from './resources';
 import { StorageZones } from './zones';
 import { ZoneClearing } from './clearing';
@@ -19,6 +19,7 @@ import { AMMO_CARRY, AMMO_LOW, isGear, isWeapon, WEAPON_IDS, WEAPONS, weaponScor
 import { ARMOR_IDS, ARMORS, isArmor } from '../data/armor';
 import { FINISH_MOOD } from '../data/morale';
 import { Corpse, updateCorpses } from './corpses';
+import { addResearch, chooseResearch, newResearch, ResearchState } from './research';
 import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
 import { anchorFor, besideTiles, defOf, nextTo, occupant, updateVehicle, Vehicle, vehicleCenter, vehiclePath, VehicleSeat, covers } from './vehicles';
 import { vehicleDef } from '../data/vehicles';
@@ -132,6 +133,8 @@ export class World implements JobContext {
   nextVehicleId = 1;
   /** Cadáveres de criaturas que se pudren en el mapa (bloque 2). */
   readonly corpses: Corpse[] = [];
+  /** Investigación: proyecto en marcha, lo hecho y lo terminado. */
+  research: ResearchState = newResearch();
   nextCorpseId = 1;
   /** Último tick en que un vehículo atropelló a cada saqueador (para no golpearle en cada paso). */
   readonly runOverAt = new Map<number, number>();
@@ -1147,6 +1150,10 @@ export class World implements JobContext {
       }
       return h ? true : !this.structures.needsAny(s);
     }
+    if (j.kind === 'investigar') {
+      const s = this.jobStructure(j);
+      return !!s && researchBenchReady(this, s);
+    }
     if (j.kind === 'terreno') {
       return this.terrain.at(j.x, j.y) === j.terrain && !terrainBlocker(this.map, j.x, j.y, j.terrain!, !!this.structures.at(j.x, j.y));
     }
@@ -1196,8 +1203,9 @@ export class World implements JobContext {
       return;
     }
     const building = j.kind === 'construir' || j.kind === 'fabricar' || j.kind === 'cocinar';
-    const target = building ? this.jobStructure(j) : undefined;
-    const inPlace = building ? !!target && this.structures.isBesideStructure(c.tile, target) : canWorkFrom(this.map, c.tile, j.x, j.y);
+    const atStructure = building || j.kind === 'investigar';
+    const target = atStructure ? this.jobStructure(j) : undefined;
+    const inPlace = atStructure ? !!target && this.structures.isBesideStructure(c.tile, target) : canWorkFrom(this.map, c.tile, j.x, j.y);
     if (!inPlace) {
       const path = findPath(this.map, c.tile, j.stand, JOB_PATH_NODES);
       if (!path || path.length === 0) {
@@ -1215,7 +1223,14 @@ export class World implements JobContext {
     const boost = (j.kind === 'fabricar' || j.kind === 'cocinar') && target ? stationSpeed(target) : 1;
     // Algunos talleres van con otra habilidad (la mesa de boticario, con Medicina).
     const skill = (j.kind === 'fabricar' || j.kind === 'cocinar') ? target?.def.workSkill : undefined;
-    j.progress += workSpeed(c, j.kind, skill) * this.lightFactor(c.tile) * boost;
+    const done = workSpeed(c, j.kind, skill) * this.lightFactor(c.tile) * boost;
+    j.progress += done;
+    if (j.kind === 'investigar') {
+      const finished = addResearch(this.research, done);
+      if (finished) this.addLog(`🔬 Investigación terminada: ${finished.name}. Desbloquea: ${finished.unlocks}.`, 'bueno');
+      if (finished || j.progress >= j.work) this.dropJob(c);
+      return;
+    }
     if (building && j.move) {
       if (j.progress >= j.work) this.finishMoveStep(c);
       return;
@@ -1862,6 +1877,14 @@ export class World implements JobContext {
   // --- Reclutar y órdenes directas -------------------------------------------------
 
   /** Recluta (o libera) a un colono. Reclutado deja lo que hacía y espera órdenes. */
+  /** Elige el proyecto de investigación (null para parar). Devuelve false si aún no se puede. */
+  setResearch(id: string | null): boolean {
+    if (!chooseResearch(this.research, id)) return false;
+    // Quien estaba investigando lo deja para volver a mirar qué hacer.
+    if (id === null) for (const c of this.colonists) if (c.job?.kind === 'investigar') this.dropJob(c);
+    return true;
+  }
+
   setDrafted(colonistId: number, drafted: boolean): void {
     const c = this.colonists.find((k) => k.id === colonistId);
     if (!c || c.drafted === drafted) return;

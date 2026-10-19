@@ -938,6 +938,31 @@
     ]
   },
   {
+    "id": "banco_investigacion",
+    "movable": true,
+    "name": "Banco de investigación",
+    "category": "taller",
+    "workSkill": "investigacion",
+    "cost": {
+      "madera": 20,
+      "chatarra": 15,
+      "componentes": 2
+    },
+    "work": 600,
+    "hp": 200,
+    "blocks": true,
+    "height": 1,
+    "colors": {
+      "top": "#7a7468",
+      "face": "#4e4a40",
+      "dark": "#26241e"
+    },
+    "size": [
+      2,
+      1
+    ]
+  },
+  {
     "id": "pozo",
     "name": "Pozo",
     "category": "agua",

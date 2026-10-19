@@ -11,6 +11,9 @@ import { SKILLS, SKILL_NAMES } from '../data/colonists';
 import { TICKS_PER_DAY, TICKS_PER_HOUR } from '../sim/time';
 import { START_HOUR } from '../sim/world';
 import { mountAlerts } from './alerts';
+import { RESEARCH, RESEARCH_BENCH, researchDef } from '../data/research';
+import { buildingDef } from '../data/buildings';
+import { canResearch, isResearched, researchFraction } from '../sim/research';
 
 export interface PeopleUI {
   /** Abre la pestaña de una persona tocada en el mapa (prisionero o comerciante). */
@@ -25,7 +28,7 @@ interface Options {
   focus: (x: number, y: number) => void;
 }
 
-type Tab = 'diario' | 'prisioneros' | 'comercio';
+type Tab = 'diario' | 'prisioneros' | 'comercio' | 'investigacion';
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] => {
   const e = document.createElement(tag);
@@ -153,6 +156,52 @@ export function mountPeople(opts: Options): PeopleUI {
       grave.append(el('summary', undefined, `🪦 Cementerio (${w.graveyard.length})`));
       for (const g of w.graveyard) grave.append(el('div', 'log-row', `${g.name} · día ${g.day} · ${g.cause}`));
       out.push(grave);
+    }
+    return out;
+  }
+
+  // --- Investigación -----------------------------------------------------------------
+  function renderResearch(w: World): HTMLElement[] {
+    const r = w.research;
+    const out: HTMLElement[] = [];
+    const bench = buildingDef(RESEARCH_BENCH);
+    if (!w.structures.all().some((s) => s.built && s.def.id === RESEARCH_BENCH)) {
+      out.push(el('p', 'pp-hint', `💡 Construye un ${bench.name.toLowerCase()} (🏗 → Talleres): sin él no se investiga.`));
+    } else if (!w.colonists.some((c) => c.priorities.investigar > 0)) {
+      out.push(el('p', 'warn', '⚠️ Nadie tiene el trabajo Investigar: actívalo en las prioridades de algún colono.'));
+    }
+    const cur = r.current ? researchDef(r.current) : undefined;
+    out.push(el('p', 'muted', cur
+      ? `En marcha: ${cur.name} (${pct(researchFraction(r, cur.id))}). Avanza mientras alguien investiga en el banco; va más rápido con buena Investigación.`
+      : 'Elige un proyecto. Lo que ya se podía construir sigue libre: no hace falta investigarlo.'));
+    for (const p of RESEARCH) {
+      const done = isResearched(r, p.id);
+      const on = r.current === p.id;
+      const open = canResearch(r, p.id);
+      const card = el('div', 'pp-card');
+      const head = el('div', 'pp-head');
+      head.append(el('strong', undefined, `${done ? '✅' : on ? '🔬' : open ? '📘' : '🔒'} ${p.name}`), el('span', 'muted', done ? 'Hecho' : `${p.hours} h`));
+      card.append(head, el('div', 'muted', `Desbloquea: ${p.unlocks}`));
+      if (!done) {
+        const f = researchFraction(r, p.id);
+        if (f > 0) {
+          const row = el('div', 'need');
+          row.append(el('span', undefined, 'Hecho'), bar(f, '#9ab0e0'), el('span', 'num', String(Math.floor(f * 100))));
+          card.append(row);
+        }
+        if (open) {
+          const b = button(on ? '⏸ Parar' : '🔬 Investigar', () => {
+            w.setResearch(on ? null : p.id);
+            rerender();
+          }, on ? 'Dejar de investigarlo (lo hecho se guarda)' : 'Investigar este proyecto');
+          if (on) b.classList.add('active');
+          card.append(b);
+        } else {
+          const need = p.requires.filter((q) => !isResearched(r, q)).map((q) => researchDef(q)?.name ?? q);
+          card.append(el('div', 'pp-hint', `Antes hace falta: ${need.join(', ')}`));
+        }
+      }
+      out.push(card);
     }
     return out;
   }
@@ -325,9 +374,10 @@ export function mountPeople(opts: Options): PeopleUI {
     const trader = w.others.some((o) => o.role === 'comerciante' && !o.trader?.leaving);
     // Se repinta solo si cambia algo que se ve (para no perder toques a medias).
     const key = [
-      tab, logFilter, w.log.length, w.log[w.log.length - 1]?.tick, trader, w.colonists.length, w.day,
+      tab, logFilter, w.research.current, w.log.length, w.log[w.log.length - 1]?.tick, trader, w.colonists.length, w.day,
       prisoners.map((p) => `${p.id}:${p.prisoner!.mode}:${Math.round(p.prisoner!.resistance * 100)}:${Math.round(p.needs.food * 20)}:${Math.round(p.needs.water * 20)}:${Math.round(p.health * 20)}`).join(','),
       tab === 'comercio' ? `${JSON.stringify(w.inventory())}:${Math.floor(w.tick / TICKS_PER_HOUR)}` : '',
+      tab === 'investigacion' ? `${w.research.current}:${w.research.done.join(',')}:${w.research.current ? Math.floor(researchFraction(w.research, w.research.current) * 100) : ''}:${w.structures.stations().length}:${w.colonists.map((c) => c.priorities.investigar).join('')}` : '',
     ].join('|');
     if (key === lastKey) return;
     lastKey = key;
@@ -336,6 +386,7 @@ export function mountPeople(opts: Options): PeopleUI {
       ['diario', '📜', 'Diario', ''],
       ['prisioneros', '⛓', 'Prisioneros', prisoners.length || ''],
       ['comercio', '🐫', 'Comercio', trader ? '!' : ''],
+      ['investigacion', '🔬', 'Investigación', w.research.current ? '' : w.structures.stations().some((s) => s.def.id === RESEARCH_BENCH) ? '!' : ''],
     ];
     tabs.replaceChildren(...TABS.map(([t, icon, label, badge]) => {
       const b = button('', () => setTab(t), label);
@@ -347,7 +398,7 @@ export function mountPeople(opts: Options): PeopleUI {
       return b;
     }));
     foot.hidden = true;
-    body.replaceChildren(...(tab === 'diario' ? renderLog(w) : tab === 'prisioneros' ? renderPrisoners(w) : renderTrade(w)));
+    body.replaceChildren(...(tab === 'diario' ? renderLog(w) : tab === 'prisioneros' ? renderPrisoners(w) : tab === 'investigacion' ? renderResearch(w) : renderTrade(w)));
   }
 
   // --- Superviviente que pide unirse ---------------------------------------------------

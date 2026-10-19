@@ -26,6 +26,8 @@ import { isWeapon, WEAPON_IDS, WEAPONS } from './data/weapons';
 import { armorProtection } from './data/armor';
 import { CROPS } from './data/crops';
 import { recipesFor } from './data/recipes';
+import { RESEARCH_BENCH, researchDef } from './data/research';
+import { researchFraction } from './sim/research';
 import type { ResourceId } from './data/resources';
 import { billPending, type Structure } from './sim/structures';
 import { occupant, VEHICLE_SEATS, type Vehicle, type VehicleSeat } from './sim/vehicles';
@@ -837,6 +839,18 @@ game.events.on('station-select', (s: Structure | null) => {
   renderStationPower(s);
   renderStationMove(s);
   const inv = scene().world.inventory();
+  if (s.def.id === RESEARCH_BENCH) {
+    // El banco de investigación no fabrica: el proyecto se elige en 📜 → 🔬 Investigación.
+    const r = scene().world.research;
+    const cur = r.current ? researchDef(r.current) : undefined;
+    $('sp-recipes').replaceChildren(
+      mk('span', 'ps-desc', cur
+        ? `🔬 Investigando: ${cur.name} (${Math.floor(researchFraction(r, cur.id) * 100)} %). Lo hace quien tenga el trabajo «Investigar».`
+        : '🔬 Sin proyecto: elige uno en 📜 → 🔬 Investigación.'),
+    );
+    $('sp-controls').hidden = true;
+    return;
+  }
   $('sp-recipes').replaceChildren(
     ...recipesFor(s.def.id).map((r) => {
       const on = s.bill?.recipe.id === r.id;

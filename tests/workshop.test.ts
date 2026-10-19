@@ -26,7 +26,8 @@ function buildNow(world: ReturnType<typeof flatWorld>, x: number, y: number, id:
 describe('talleres y metal', () => {
   it('las recetas son válidas y cada taller tiene alguna; hay construcciones de metal', () => {
     expect(RECIPES.length).toBeGreaterThanOrEqual(2);
-    for (const st of BUILDINGS.filter((b) => b.category === 'taller')) expect(recipesFor(st.id).length).toBeGreaterThan(0);
+    // El banco de investigación no fabrica: investiga.
+    for (const st of BUILDINGS.filter((b) => b.category === 'taller' && b.id !== 'banco_investigacion')) expect(recipesFor(st.id).length).toBeGreaterThan(0);
     expect(recipeDef('fundir_chatarra')!.outputs.metal).toBeGreaterThan(0);
     for (const cat of ['muro', 'torre', 'puerta', 'porton']) {
       expect(BUILDINGS.some((b) => b.category === cat && b.cost.metal)).toBe(true);

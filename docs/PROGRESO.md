@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 (15) — Fin de la fase 4 y banco de investigación (fase 5, primera parte)
+
+- Sin incidencias nuevas en 🐞. Lo siguiente de la fase 4 (la hoguera) espera a que Mikel elija, y lo demás que falta en ella (las armas de fuego) va con la investigación de la fase 5.
+- **Fase 4 terminada**: se cumple el criterio («una partida de 30 minutos en la que se puede morir de hambre, de sed o por un raid»), comprobado con tests (`tests/phase4.test.ts`): con agua y sin comida se muere de hambre, con comida y sin agua, de sed, y un raid fuerte acaba con un colono solo. Quedan de la fase 4 la hoguera y las armas de fuego.
+- **🔬 Banco de investigación** (🏗 → Talleres, 🪵20 🔩15 ⚙️2, 2×1) y trabajo nuevo **Investigar** (va con la habilidad Investigación; sale en las prioridades). Se elige el proyecto en **📜 → 🔬 Investigación** y avanza mientras alguien investiga en el banco (un rato de 2 h seguidas y vuelve a mirar qué hacer). Un colono con Investigación 10 tarda las horas que dice el catálogo. Lo hecho en un proyecto se guarda aunque se cambie a otro.
+- **Árbol** (`src/data/research.json`): los 10 proyectos del catálogo con sus horas y lo que piden antes (Armas largas pide Pólvora, etc.). Al terminar uno sale un aviso en el diario. **Todavía no bloquean ni desbloquean nada**: eso es la segunda parte (primero, que las torretas pidan «Torretas» y «Artillería», como decidió Mikel).
+- Qué probar: construir el banco (🪄 → terminar obras va rápido), abrir 📜 → 🔬 Investigación, pulsar «🔬 Investigar» en Puentes y ver que un colono va al banco y la barra sube; al tocar el banco se ve el proyecto en marcha. Guardar y cargar: sigue igual. En el móvil, que las 4 pestañas de 📜 se lean.
+- Sin npm en el entorno: tests con Bun (413, 9 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Espera la respuesta de Mikel: qué hace «Medicina de campo», si la mesa de boticario ya es libre (opciones A-C en «Propuestas para Mikel»), y la hoguera (A-D).
+- Siguiente: que los proyectos desbloqueen (torretas primero); después, las armas de fuego y balas con «Pólvora».
+
 ## 2026-10-19 (14) — Los cadáveres de los mutantes (mutantes, tercera parte)
 
 - Sin incidencias nuevas en 🐞. Siguiente tarea aprobada de la fase 4: los **cadáveres** (bloque 2 del catálogo). Es grande, así que va en dos partes: esta, el cadáver y lo que se pudre; la siguiente, la hoguera para quemarlos.
