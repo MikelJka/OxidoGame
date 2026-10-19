@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { GameMap, describeTile, inBounds } from '../sim/map';
 import { activityLabel, Colonist, groupSummary, type Stance } from '../sim/colonist';
-import { TURRET_SHOT_TICKS } from '../sim/people';
+import { radioHoursLeft, TURRET_SHOT_TICKS } from '../sim/people';
 import { isWalkable } from '../sim/pathfinding';
 import { GameSpeed, World } from '../sim/world';
 import { loadWorld } from '../sim/save';
@@ -1779,7 +1779,10 @@ function powerLabel(w: World, s: Structure): string {
   else if (s.def.source === 'wind') parts.push(s.sheltered ? 'tapado: necesita las casillas de alrededor libres' : `${s.output ?? 0} W, viento ${Math.round(w.wind * 100)} %`);
   else if (s.electric) parts.push(s.powered ? 'eléctrico: el doble de rápido' : 'eléctrico, sin corriente: velocidad normal');
   else if (s.upgrade) parts.push('electrificando');
-  else if (s.def.autoDoor) parts.push(!s.powered ? 'sin corriente: se queda abierta' : w.shutDoors.has(s.y * w.map.width + s.x) ? 'cerrada a los saqueadores' : 'con corriente: se cierra ante un raid');
+  else if (s.def.callWanderers) {
+    const left = radioHoursLeft(w);
+    parts.push(!s.powered ? 'sin corriente: no llama' : left === null ? 'llamando' : `llamando: alguien la oirá en ${left} h`);
+  } else if (s.def.autoDoor) parts.push(!s.powered ? 'sin corriente: se queda abierta' : w.shutDoors.has(s.y * w.map.width + s.x) ? 'cerrada a los saqueadores' : 'con corriente: se cierra ante un raid');
   else if ((s.def.power ?? 0) < 0) parts.push(s.powered ? (s.def.light ? 'encendida' : 'en marcha') : s.def.light ? 'sin corriente' : 'sin corriente: parada');
   if (s.def.power || s.electric || s.def.battery || s.def.conduit) {
     const net = w.powerNetOf(s);

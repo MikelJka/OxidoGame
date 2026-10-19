@@ -65,6 +65,8 @@ export interface BuildingDef {
    * Daño (× el de los puños), ritmo (× el tiempo entre disparos) y alcance en casillas.
    */
   turret?: { damage: number; cooldown: number; reach: number };
+  /** Radio de llamada: con corriente, atrae un superviviente más cada tantos días (no se suman varias). */
+  callWanderers?: { days: number };
   /** Lámpara: casillas que ilumina alrededor. */
   light?: number;
   /** Casillas de vista desde lo alto (torres; servirá para ver venir a los enemigos). */
@@ -107,6 +109,7 @@ export function validateBuilding(d: unknown): BuildingDef {
     if (b.category !== 'defensa' || !((b.power ?? 0) < 0)) fail('una torreta es una defensa que gasta corriente');
     if (!(t.damage > 0) || !(t.cooldown > 0) || !Number.isInteger(t.reach) || t.reach < 2 || t.reach > 20) fail('torreta: daño, ritmo o alcance no válidos');
   }
+  if (b.callWanderers !== undefined && (b.category !== 'electricidad' || !((b.power ?? 0) < 0) || !(b.callWanderers.days > 0))) fail('una radio de llamada gasta corriente y llama cada tantos días');
   if (b.movable !== undefined && (typeof b.movable !== 'boolean' || !['mueble', 'taller', 'electricidad'].includes(b.category))) fail('solo se mueven muebles, talleres y lámparas');
   if (!b.colors?.top || !b.colors.face || !b.colors.dark) fail('faltan colores');
   return b;

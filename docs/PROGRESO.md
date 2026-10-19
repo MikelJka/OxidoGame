@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 (9) — Radio de llamada: un superviviente más cada 3 días (#21, terminada)
+
+- Sin incidencias nuevas en 🐞. Esta sesión, la segunda parte de **#21** (opción C), con los números que eligió Mikel.
+- Nueva **radio de llamada** en 🏗 → Electricidad (🔩20 ⚙️4, 1×1, gasta 100 W). Con corriente, cada 3 días de llamada llega un superviviente más que pide unirse («… Ha oído la radio 📻» en el diario). Sin radio, todo sigue igual.
+- Lo he decidido yo: solo cuentan las horas con corriente (si se va la luz, se para la cuenta y luego sigue); varias radios no llaman más a menudo; si hay alguien esperando respuesta, el de la radio espera a que se resuelva. Al tocar la radio se ve en cuántas horas la oirá alguien.
+- Los números están en `src/data/buildings.json` (`callWanderers`). Las horas se guardan en la partida; las partidas viejas empiezan en 0.
+- Qué probar: construir la radio con cable a un generador o una placa con batería; tocarla y ver «llamando: alguien la oirá en N h»; con 🪄 acelerar y ver que a los 3 días llega alguien que ha oído la radio. Sin corriente debe decir «sin corriente: no llama».
+- Sin npm en el entorno: tests con Bun (336, 6 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Siguen esperando la respuesta de Mikel: cuánto peor es curarse uno mismo y cuándo se acuesta el herido que sigue en pie («Propuestas para Mikel»).
+- Siguiente: el buggy blindado de los colonos (vehículos, segunda parte).
+
 ## 2026-10-19 (8) — Más supervivientes: el primero el día 2 y luego cada 2-4 días (#21, primera parte)
 
 - Sin incidencias nuevas en 🐞. Lo que queda de la prioridad médica espera la respuesta de Mikel, así que esta sesión, la primera parte de **#21** (opción A).

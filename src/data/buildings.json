@@ -1062,6 +1062,29 @@
     }
   },
   {
+    "id": "radio",
+    "name": "Radio de llamada",
+    "category": "electricidad",
+    "cost": {
+      "chatarra": 20,
+      "componentes": 4
+    },
+    "work": 250,
+    "hp": 60,
+    "blocks": true,
+    "height": 1,
+    "power": -100,
+    "callWanderers": {
+      "_": "#21 C (elegido por Mikel el 2026-10-19): con corriente atrae un superviviente más cada 3 días",
+      "days": 3
+    },
+    "colors": {
+      "top": "#5a6a5a",
+      "face": "#3a463a",
+      "dark": "#1a201a"
+    }
+  },
+  {
     "id": "lampara",
     "movable": true,
     "name": "Lámpara",

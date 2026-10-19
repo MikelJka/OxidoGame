@@ -419,6 +419,20 @@ function drawElectric(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: num
     px(cx - 2, 1, 4, 2, top);
     return;
   }
+  if (def.callWanderers) {
+    // Radio de llamada: caja con dial y altavoz, y una antena alta con la punta roja.
+    const cx = Math.floor(tile / 2);
+    const y0 = Math.max(4, h - tileH - wallH + 2);
+    px(cx + 2, 0, 1, y0 + 1, face); // antena
+    px(cx + 1, 0, 3, 2, '#d9534f');
+    px(1, y0, tile - 2, h - y0 - 1, '#1a1410');
+    px(2, y0 + 1, tile - 4, tileH - 3, top);
+    px(2, y0 + tileH - 2, tile - 4, h - y0 - tileH, face);
+    px(4, y0 + tileH, 4, Math.max(2, wallH - 4), dark); // altavoz
+    px(tile - 8, y0 + tileH, 3, 2, '#d8c27a'); // dial
+    px(tile - 7, y0 + tileH + 3, 1, 1, '#8fc060'); // piloto
+    return;
+  }
   if (def.source === 'solar') {
     // Placa solar: marco bajo con celdas azules en cuadrícula.
     const y0 = Math.max(0, h - tileH - 3);

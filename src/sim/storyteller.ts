@@ -14,6 +14,8 @@ export interface StorySchedule {
   nextRaid: number;
   /** Tick de la próxima caravana. */
   nextTrader: number;
+  /** Horas que lleva llamando una radio con corriente (#21 C); al llegar a su plazo, llega alguien. */
+  radioHours: number;
 }
 
 export function initialSchedule(ticksPerDay: number, startTick: number, graceDays: number = FIRST_RAID_DAY): StorySchedule {
@@ -21,6 +23,7 @@ export function initialSchedule(ticksPerDay: number, startTick: number, graceDay
     nextWanderer: startTick + FIRST_WANDERER_DAY * ticksPerDay,
     nextRaid: startTick + graceDays * ticksPerDay,
     nextTrader: startTick + FIRST_TRADER_DAY * ticksPerDay,
+    radioHours: 0,
   };
 }
 

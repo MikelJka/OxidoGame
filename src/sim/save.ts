@@ -63,7 +63,7 @@ export interface SaveData {
   graveyard?: { name: string; cause: string; day: number }[];
   gameOver?: { day: number; cause: string } | null;
   offer?: { pawn: SavedColonist; until: number } | null;
-  schedule?: { nextWanderer: number; nextRaid: number; nextTrader: number };
+  schedule?: { nextWanderer: number; nextRaid: number; nextTrader: number; radioHours?: number };
   nextPawnId?: number;
   /** Raids, caravanas y supervivientes activados (por defecto, sí). */
   events?: boolean;
@@ -466,7 +466,12 @@ export function loadWorld(input: string | unknown): World {
   }
   // Partidas de antes del narrador: los sucesos empiezan a contar desde ahora.
   world.schedule = d.schedule
-    ? { nextWanderer: num(d.schedule.nextWanderer, 0), nextRaid: num(d.schedule.nextRaid, 0), nextTrader: num(d.schedule.nextTrader, 0) }
+    ? {
+        nextWanderer: num(d.schedule.nextWanderer, 0),
+        nextRaid: num(d.schedule.nextRaid, 0),
+        nextTrader: num(d.schedule.nextTrader, 0),
+        radioHours: Math.max(0, num(d.schedule.radioHours, 0)),
+      }
     : initialSchedule(TICKS_PER_DAY, world.tick);
   // #21 A: en partidas guardadas con la espera antigua (4-8 días), el próximo superviviente
   // no tarda más que la espera nueva más larga.
