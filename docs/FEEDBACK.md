@@ -6,9 +6,17 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 - [ ] **Definir todo el contenido antes que nada** (2026-10-18, pedido por Mikel): la 3D queda aparcada; primero se define e implementa todo el contenido. Una sesión ha escrito `docs/CATALOGO.md` con todo lo que falta y sus números: Mikel lo revisa, marca ✅ cada bloque que apruebe y lo aprobado pasa aquí, por fases. La simulación se mantiene portable (reglas en `src/sim`, contenido en `src/data`) para poder pasar más adelante a un motor con mejor 3D.
 
-- [ ] **#22 Derribar en vez de matar; capturar, saquear o rematar** (2026-10-18, 🐞): las torretas y los colonos disparan a los saqueadores hasta dejarlos en el suelo (no hasta matarlos). Con uno en el suelo se puede elegir: capturarlo y curarlo si hay cama de prisionero, quitarle lo que lleva o rematarlo. **Hecha la primera parte** (2026-10-19): los golpes de colonos y torretas dejan a los saqueadores en el suelo sin matarlos, y al tocar a uno caído sale un panel con ⛓ Capturar (lo de antes) o 🗡 Rematar. Lo demás espera la propuesta «#22, segunda parte».
+- [ ] **#22 Derribar en vez de matar; capturar, saquear o rematar** (2026-10-18, 🐞): las torretas y los colonos disparan a los saqueadores hasta dejarlos en el suelo (no hasta matarlos). Con uno en el suelo se puede elegir: capturarlo y curarlo si hay cama de prisionero, quitarle lo que lleva o rematarlo. **Hecha la primera parte** (2026-10-19): los golpes de colonos y torretas dejan a los saqueadores en el suelo sin matarlos, y al tocar a uno caído sale un panel con ⛓ Capturar (lo de antes) o 🗡 Rematar. **Elegido por Mikel (2026-10-19) para la segunda parte: B y 3**, y además:
+  - **B**: para capturar hace falta una cama de prisionero libre; sin cama, el botón ⛓ sale apagado y el caído se queda en el suelo hasta que haya una (o se le remate).
+  - **3**: rematar baja el ánimo: −5 % a quien remata y −3 % a quien lo ve (salvo los «duros»).
+  - Al saqueador caído **se le puede curar en el suelo**, donde está (el médico le cierra las heridas para que no se desangre).
 
-- [ ] **#21 Más colonos o formas de ampliar la colonia** (2026-10-18, 🐞): el progreso es lento con tan pocos colonos. Hay que decidir cómo: propuesta con opciones en «Propuestas para Mikel».
+- [ ] **Prioridad médica tras los combates** (2026-10-19, pedido por Mikel en el chat): cuando todos los saqueadores estén en el suelo o huyendo, los colonos **no reclutados** ponen siempre por delante lo médico:
+  - **Lo primero de todo** es atender a un colono herido: curarle donde está y llevarle a una cama de hospital (cuando existan) o, si no hay, a su cama.
+  - **El herido** va a una cama de hospital (cuando existan), si no a su cama si está libre, o se tumba en el suelo; si no hay otro colono libre para atenderle, **se cura él mismo**, con peor calidad que si le cura otro.
+  - Falta decidir cuánto peor es curarse uno mismo (se propondrá al hacerlo) y las camas de hospital, que todavía no están aprobadas como edificio.
+
+- [ ] **#21 Más colonos o formas de ampliar la colonia** (2026-10-18, 🐞): el progreso es lento con tan pocos colonos. **Elegido por Mikel (2026-10-19): A y C.** **A**: el primer superviviente llega el día 2 y luego uno cada 2-4 días (la mitad de espera que ahora). **C**: **radio de llamada** (edificio nuevo en 🏗, 🔩20 ⚙️4, 100 W): con corriente atrae un superviviente más cada 3 días; sin radio, todo sigue igual. Por partes: primero A, luego la radio.
 
 - [ ] **Armas** (2026-10-17, aprobado por Mikel): cuerpo a cuerpo (cuchillo, tubería, lanza, machete) y a distancia (arco; pistola casera, escopeta y rifle). Decidido con Mikel: cada colono coge solo la mejor arma libre y en su ficha se le puede fijar una o dejarlo desarmado; munición en dos tipos, flechas (madera + fibra) para el arco y balas (chatarra + componentes) para las de fuego; ahora se fabrican en el banco las de cuerpo a cuerpo y el arco, y **las de fuego se desbloquean con investigación (fase 5)**; los saqueadores llegan armados según el día (palos y cuchillos al principio, arcos y armas de fuego más adelante) y al caer sueltan el arma. Incluye los armeros de pared (fase 3). **Hechas** las de cuerpo a cuerpo, el arco, las flechas y el armero; faltan, con la investigación, las de fuego y las balas.
 
@@ -35,21 +43,6 @@ Lo que Mikel ha pedido dejar para más adelante. No se trabaja en ello salvo par
 ## Propuestas para Mikel
 
 Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat o con 🐞).
-
-- **#21 ¿Cómo llegan más colonos?** (2026-10-18). Ahora se empieza con 3 colonos; el primer superviviente puede llegar el día 3 y luego uno cada 4-8 días (y se pueden convencer prisioneros o comprar esclavos). Opciones:
-  - **A — Más supervivientes**: el primero el día 2 y luego uno cada 2-4 días (la mitad de espera).
-  - **B — Empezar con más gente** (solo partidas nuevas): Tranquila 5, Normal 4, Dura y Brutal 3.
-  - **C — Radio de llamada** (edificio nuevo, 🔩20 ⚙️4, 100 W): con corriente atrae un superviviente cada 3 días además de los de ahora; sin radio, todo sigue igual.
-  - **D — A y B juntas.**
-  Responde con la letra (o con números tuyos) por el chat o con 🐞.
-
-- **#22, segunda parte: qué pasa con el saqueador en el suelo** (2026-10-19). Ya está hecho que no se les mata a golpes y que se elige ⛓ Capturar o 🗡 Rematar. Hoy, además, al caer sueltan solos el arma y la armadura (así que «quitarle lo que lleva» ya pasa), se les captura aunque no haya cama de prisionero (se quedan en el suelo) y, si nadie los captura, se desangran en unas horas. Opciones:
-  - **A — Como está ahora**: captura automática salvo que se pida rematar; se desangran si nadie los coge.
-  - **B — Hace falta cama de prisionero libre para capturar**: sin cama, el botón ⛓ sale apagado y se quedan en el suelo hasta que haya una (o se les remate o se desangren).
-  - **C — Nadie decide solo**: el caído espera en el suelo sin desangrarse hasta que el jugador elija ⛓ Capturar, 🗡 Rematar o 🎒 Saquear (quitarle arma, armadura y lo que cargue y dejarlo marchar cuando se levante).
-  - **D — B y C juntas.**
-  Y aparte: ¿rematar baja el ánimo de los colonos? **1** no; **2** −5 % durante un día a quien lo hace; **3** −5 % a quien lo hace y −3 % a quien lo ve (salvo los «duros»).
-  Responde con la letra y el número (p. ej. «D2») por el chat o con 🐞.
 
 ## Hecho
 
