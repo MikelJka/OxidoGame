@@ -74,7 +74,7 @@ Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed 
 - [x] Avisos en pantalla de raids, peleas, heridos, caídos, muertes, pánico, visitas y caravanas (#17, #18)
 - [x] Supervivientes que piden unirse, prisioneros (capturar, retener, convencer, liberar) y caravanas con esclavos
 - [ ] Más colonos (#21): hecho que el primer superviviente llegue el día 2 y luego uno cada 2-4 días; falta la radio de llamada
-- [ ] Prioridad médica tras los combates (hecho: sin saqueadores en pie, cualquier colono no reclutado deja lo que hace y cura primero a los colonos que sangran, y al que está en el suelo lo lleva a una cama libre; faltan que el herido que sigue en pie vaya él a la cama y curarse uno mismo)
+- [x] Prioridad médica tras los combates: sin saqueadores en pie, cualquier colono no reclutado cura primero a los colonos que sangran y lleva al caído a una cama; sin nadie libre, el herido se cura él mismo (peor); el malherido en pie guarda cama hasta el 80 %
 - [x] Derribar en vez de matar; capturar, saquear o rematar (#22): los golpes derriban sin matar; en el suelo sueltan lo que llevan y se elige ⛓ Capturar (con cama de prisionero libre) o 🗡 Rematar (baja el ánimo); el médico los cura donde están
 
 ## Fase 5 — Investigación y máquinas

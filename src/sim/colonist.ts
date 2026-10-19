@@ -13,9 +13,9 @@ import { Rng } from './rng';
 
 export type ColonistActivity = 'idle' | 'wandering' | 'moving' | 'toJob' | 'working' | 'toNeed' | 'eating' | 'sleeping';
 
-/** Lo que hace por sí mismo para cubrir una necesidad: comer (en un montón de comida) o dormir. */
+/** Lo que hace por sí mismo para cubrir una necesidad: comer (en un montón de comida), dormir o reposar herido. */
 export interface NeedTask {
-  type: 'comer' | 'dormir' | 'beber';
+  type: 'comer' | 'dormir' | 'beber' | 'reposar';
   /** Casilla del montón de comida, de la cama (o donde duerme en el suelo) o desde donde bebe. */
   x: number;
   y: number;
@@ -127,6 +127,8 @@ export interface Colonist {
   infection?: Infection;
   /** En el suelo, sin poder moverse (salud muy baja). */
   downed: boolean;
+  /** Malherido tras un combate: guarda cama hasta recuperarse (se levanta a comer y beber). */
+  resting?: boolean;
   /** Quién es: de la colonia, saqueador, prisionero o comerciante. */
   role: PawnRole;
   /** Prisionero: resistencia a unirse y qué hacer con él. */
@@ -264,6 +266,10 @@ export function activityLabel(c: Colonist): string {
   if (c.panic) return c.path.length > 0 ? '😱 En pánico, huyendo a refugiarse' : '😱 En pánico, escondido';
   if (c.need) {
     if (c.activity === 'eating') return c.need.type === 'beber' ? 'Bebiendo' : 'Comiendo';
+    if (c.need.type === 'reposar') {
+      if (c.activity === 'sleeping') return c.need.bed ? 'Herido, reposando en la cama' : 'Herido, reposando en el suelo';
+      return 'Herido, yendo a la cama a reposar';
+    }
     if (c.activity === 'sleeping') return c.need.bed ? 'Durmiendo en la cama' : 'Durmiendo en el suelo';
     return c.need.type === 'comer' ? 'Yendo a comer' : c.need.type === 'beber' ? 'Yendo a beber' : 'Yendo a dormir';
   }

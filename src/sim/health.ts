@@ -3,7 +3,7 @@
 // las infecciones llega de fuera (`Rng`).
 import type { Colonist } from './colonist';
 import type { Rng } from './rng';
-import { INFECTION } from '../data/medicine';
+import { INFECTION, SELF_CARE_HEAL } from '../data/medicine';
 
 /** Una herida en una parte del cuerpo. */
 export interface Wound {
@@ -16,6 +16,8 @@ export interface Wound {
   treated: boolean;
   /** La curó alguien con medicina 💊 (cierra el doble de rápido y casi no se infecta). */
   medicine?: boolean;
+  /** Se la curó él mismo: se cierra más despacio y se infecta más. */
+  self?: boolean;
   /** Ticks que lleva abierta. */
   age?: number;
   /** Ya se ha mirado si se infecta (a las 12 h). */
@@ -80,7 +82,7 @@ export function tickHealth(c: Colonist, ticks: number, ticksPerDay: number, asle
   if (fed && bleed === 0) {
     const regen = ((asleep ? 0.6 : 0.2) * ticks) / day;
     c.health = Math.min(1, c.health + regen);
-    for (const w of c.wounds) w.severity -= (w.medicine ? INFECTION.medicineHealFactor * 2 : w.treated ? 2 : 1) * regen;
+    for (const w of c.wounds) w.severity -= (w.medicine ? INFECTION.medicineHealFactor * 2 : w.treated ? 2 : 1) * (w.self ? SELF_CARE_HEAL : 1) * regen;
     c.wounds = c.wounds.filter((w) => w.severity > 0);
   }
   c.health = Math.max(0, c.health - loss);
@@ -105,14 +107,15 @@ export function hurt(c: Colonist, amount: number, part: string, spare = false): 
   if (c.health < DOWNED) c.downed = true;
 }
 
-/** Cura las heridas que sangran (trabajo de un médico); con `medicine`, usando 💊. */
-export function treatWounds(c: Colonist, medicine = false): number {
+/** Cura las heridas que sangran (trabajo de un médico); con `medicine`, usando 💊; con `self`, se las cura él mismo. */
+export function treatWounds(c: Colonist, medicine = false, self = false): number {
   let n = 0;
   for (const w of c.wounds) {
     if (!w.bleeding) continue;
     w.bleeding = false;
     w.treated = true;
     if (medicine) w.medicine = true;
+    if (self) w.self = true;
     n++;
   }
   return n;
@@ -139,7 +142,9 @@ export function tickInfection(c: Colonist, ticks: number, ticksPerDay: number, r
     w.age = (w.age ?? 0) + ticks;
     if (w.infectRolled || w.age < limit) continue;
     w.infectRolled = true;
-    const p = w.medicine ? INFECTION.chanceMedicine : w.treated ? INFECTION.chanceTreated : INFECTION.chanceUntreated;
+    const p = w.self
+      ? (w.medicine ? INFECTION.chanceSelfMedicine : INFECTION.chanceSelf)
+      : w.medicine ? INFECTION.chanceMedicine : w.treated ? INFECTION.chanceTreated : INFECTION.chanceUntreated;
     if (!c.infection && rng.chance(p)) {
       c.infection = { part: w.part, dayTicks: 0, untreatedDays: 0, doses: 0, dosedToday: false };
       out.infected = w.part;

@@ -87,10 +87,12 @@ interface SavedColonist {
   drafted?: boolean;
   needs?: { food: number; rest: number; sleptIn: string | null; water?: number; badWaterUntil?: number; lastMeal?: string | null; inLight?: boolean; finishedUntil?: number; sawFinishUntil?: number };
   health?: number;
-  wounds?: { part: string; severity: number; bleeding: boolean; treated: boolean; medicine?: boolean; age?: number; infectRolled?: boolean }[];
+  wounds?: { part: string; severity: number; bleeding: boolean; treated: boolean; medicine?: boolean; self?: boolean; age?: number; infectRolled?: boolean }[];
   /** Infección (desde las medicinas). */
   infection?: { part: string; dayTicks: number; untreatedDays: number; doses: number; dosedToday: boolean };
   downed?: boolean;
+  /** Guarda cama malherido tras un combate (desde 2026-10-19). */
+  resting?: boolean;
   role?: string;
   prisoner?: { resistance: number; mode: string; lastTalk: number };
   raider?: { fleeing: boolean; leaveAt: number; group?: number; leader?: boolean; finish?: boolean };
@@ -137,6 +139,7 @@ function savePawn(c: Colonist): SavedColonist {
     wounds: c.wounds.map((w) => ({ ...w })),
     infection: c.infection ? { ...c.infection } : undefined,
     downed: c.downed,
+    ...(c.resting ? { resting: true } : {}),
     role: c.role,
     prisoner: c.prisoner ? { ...c.prisoner } : undefined,
     raider: c.raider ? { ...c.raider } : undefined,
@@ -325,7 +328,7 @@ function restoreColonist(s: SavedColonist): Colonist {
     wounds: (s.wounds ?? []).map((w) => ({
       part: String(w.part ?? 'el cuerpo'), severity: Math.max(0, Math.min(1, num(w.severity, 0))), bleeding: !!w.bleeding, treated: !!w.treated,
       // Las heridas de partidas antiguas ya no se infectan (no se sabe cuánto llevan abiertas).
-      ...(w.medicine ? { medicine: true } : {}), age: Math.max(0, num(w.age, 0)), infectRolled: w.age === undefined ? true : !!w.infectRolled,
+      ...(w.medicine ? { medicine: true } : {}), ...(w.self ? { self: true } : {}), age: Math.max(0, num(w.age, 0)), infectRolled: w.age === undefined ? true : !!w.infectRolled,
     })),
     infection: s.infection
       ? {
@@ -337,6 +340,7 @@ function restoreColonist(s: SavedColonist): Colonist {
         }
       : undefined,
     downed: !!s.downed,
+    ...(s.resting ? { resting: true } : {}),
     role: (['colono', 'saqueador', 'prisionero', 'comerciante'] as const).find((r) => r === s.role) ?? 'colono',
     prisoner: s.prisoner
       ? {

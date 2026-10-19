@@ -8,7 +8,9 @@
     "workFactor": 0.85,
     "dosesToCure": 2,
     "deadlyDays": 3,
-    "medicineHealFactor": 2
+    "medicineHealFactor": 2,
+    "chanceSelf": 0.12,
+    "chanceSelfMedicine": 0.04
   },
   "find": {
     "_": "💊 en las ruinas: probabilidad de encontrar al saquear escombros y unidades; y lo que traen las caravanas que venden medicina",
@@ -21,5 +23,15 @@
       2,
       8
     ]
+  },
+  "selfCare": {
+    "_": "Curarse uno mismo (decidido el 2026-10-19, opción A): sus heridas se cierran a la mitad de velocidad que si le cura otro y se infectan más (chanceSelf / chanceSelfMedicine)",
+    "healFactor": 0.5,
+    "work": 120
+  },
+  "bedRest": {
+    "_": "El herido en pie tras el combate (opción C): se acuesta con la salud por debajo de startBelow y se queda hasta untilHealth; se levanta a comer y beber",
+    "startBelow": 0.5,
+    "untilHealth": 0.8
   }
 }

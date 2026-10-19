@@ -41,6 +41,9 @@ describe('prioridad médica tras los combates', () => {
     expect(w.fightOver()).toBe(true);
     runTicks(w, 3000, () => !bleeds(patient));
     expect(bleeds(patient)).toBe(false);
+    // Le ha curado el otro: no se ha curado él mismo.
+    expect(patient.wounds[0].self).toBeUndefined();
+    expect(w.log.some((e) => e.text.includes('se cura él mismo'))).toBe(false);
   });
 
   it('mientras queda un saqueador en pie, quien no es médico no cura', () => {
@@ -101,7 +104,7 @@ describe('prioridad médica tras los combates', () => {
     expect(doc.job?.pid).toBe(patient.id);
   });
 
-  it('un reclutado no deja su puesto para curar', () => {
+  it('un reclutado no deja su puesto para curar (el herido se cura él mismo)', () => {
     const w = flatWorld(2);
     const [helper, patient] = w.colonists;
     helper.drafted = true;
@@ -109,7 +112,8 @@ describe('prioridad médica tras los combates', () => {
     hurt(patient, 0.3, 'el brazo izquierdo');
     runTicks(w, 300, () => false);
     expect(helper.job).toBeNull();
-    expect(bleeds(patient)).toBe(true);
+    expect(bleeds(patient)).toBe(false);
+    expect(patient.wounds[0].self).toBe(true);
   });
 });
 

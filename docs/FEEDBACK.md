@@ -6,12 +6,6 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 - [ ] **Definir todo el contenido antes que nada** (2026-10-18, pedido por Mikel): la 3D queda aparcada; primero se define e implementa todo el contenido. Una sesión ha escrito `docs/CATALOGO.md` con todo lo que falta y sus números: Mikel lo revisa, marca ✅ cada bloque que apruebe y lo aprobado pasa aquí, por fases. La simulación se mantiene portable (reglas en `src/sim`, contenido en `src/data`) para poder pasar más adelante a un motor con mejor 3D.
 
-- [ ] **Prioridad médica tras los combates** (2026-10-19, pedido por Mikel en el chat): cuando todos los saqueadores estén en el suelo o huyendo, los colonos **no reclutados** ponen siempre por delante lo médico:
-  - **Lo primero de todo** es atender a un colono herido: curarle donde está y llevarle a una cama de hospital (cuando existan) o, si no hay, a su cama.
-  - **El herido** va a una cama de hospital (cuando existan), si no a su cama si está libre, o se tumba en el suelo; si no hay otro colono libre para atenderle, **se cura él mismo**, con peor calidad que si le cura otro.
-  - Falta decidir cuánto peor es curarse uno mismo (propuesta en «Propuestas para Mikel») y las camas de hospital, que todavía no están aprobadas como edificio.
-  - **Hecha la primera parte** (2026-10-19): sin saqueadores en pie (todos en el suelo o huyendo), el colono libre más cercano a un colono que sangra deja lo que hace y va a curarle donde está, aunque no tenga «Médico»; los colonos van antes que los saqueadores caídos y los prisioneros. **Hecha la segunda parte** (2026-10-19): al colono que está en el suelo, tras curarle, se le lleva a cuestas a la cama libre más cercana (si no hay, se queda en el suelo) y allí se recupera como durmiendo. Faltan: que el herido que sigue en pie vaya él a la cama (o se tumbe) y curarse uno mismo; las dos esperan respuesta en «Propuestas para Mikel».
-
 - [ ] **#21 Más colonos o formas de ampliar la colonia** (2026-10-18, 🐞): el progreso es lento con tan pocos colonos. **Elegido por Mikel (2026-10-19): A y C.** **A**: el primer superviviente llega el día 2 y luego uno cada 2-4 días (la mitad de espera que ahora). **C**: **radio de llamada** (edificio nuevo en 🏗, 🔩20 ⚙️4, 100 W): con corriente atrae un superviviente más cada 3 días; sin radio, todo sigue igual. Por partes: primero A, luego la radio. **Hecha la primera parte, A** (2026-10-19): el primer superviviente puede llegar el día 2 y luego uno cada 2-4 días. Falta la radio de llamada.
 
 - [ ] **Armas** (2026-10-17, aprobado por Mikel): cuerpo a cuerpo (cuchillo, tubería, lanza, machete) y a distancia (arco; pistola casera, escopeta y rifle). Decidido con Mikel: cada colono coge solo la mejor arma libre y en su ficha se le puede fijar una o dejarlo desarmado; munición en dos tipos, flechas (madera + fibra) para el arco y balas (chatarra + componentes) para las de fuego; ahora se fabrican en el banco las de cuerpo a cuerpo y el arco, y **las de fuego se desbloquean con investigación (fase 5)**; los saqueadores llegan armados según el día (palos y cuchillos al principio, arcos y armas de fuego más adelante) y al caer sueltan el arma. Incluye los armeros de pared (fase 3). **Hechas** las de cuerpo a cuerpo, el arco, las flechas y el armero; faltan, con la investigación, las de fuego y las balas.
@@ -40,19 +34,15 @@ Lo que Mikel ha pedido dejar para más adelante. No se trabaja en ello salvo par
 
 Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat o con 🐞).
 
-- **Curarse uno mismo** (prioridad médica tras los combates, 2026-10-19): cuando un colono sangra y no hay otro libre para atenderle, se cura él mismo. ¿Cuánto peor que si le cura otro?
-  - **A**: tarda el doble en cerrarse las heridas y la herida se infecta más (12 % en vez de 8 %; con 💊, 4 % en vez de 2 %).
-  - **B**: tarda el doble, sin más (se infecta igual que si le cura otro).
-  - **C**: tarda el doble y solo puede si está de pie (en el suelo, se desangra si nadie viene).
-  - **D**: como A, pero usando su habilidad de Medicina con −5 (si no tiene, más lento aún).
-
-- **El herido que sigue en pie y la cama** (prioridad médica tras los combates, 2026-10-19): un colono con heridas que aún puede andar, tras el combate, «va a su cama». ¿Cuándo se acuesta y hasta cuándo?
-  - **A**: solo si sangra o tiene la salud por debajo del 50 %; se queda hasta llegar al 80 % (sin trabajar).
-  - **B**: con cualquier herida abierta; se queda hasta que se le cierren todas.
-  - **C**: solo si tiene la salud por debajo del 50 %; se queda hasta el 80 %, pero se levanta a comer y beber.
-  - **D**: no se acuesta: sigue trabajando, más despacio (−20 %) mientras tenga heridas abiertas; solo el que cae al suelo va a la cama.
+(Ninguna pendiente.)
 
 ## Hecho
+
+- [x] **Prioridad médica tras los combates** (2026-10-19, pedido por Mikel en el chat): cuando todos los saqueadores estén en el suelo o huyendo, los colonos **no reclutados** ponen siempre por delante lo médico:
+  - **Lo primero de todo** es atender a un colono herido: curarle donde está y llevarle a una cama de hospital (cuando existan) o, si no hay, a su cama.
+  - **El herido** va a una cama de hospital (cuando existan), si no a su cama si está libre, o se tumba en el suelo; si no hay otro colono libre para atenderle, **se cura él mismo**, con peor calidad que si le cura otro.
+  - **Decidido (2026-10-19, Mikel pidió tomar la decisión más lógica)**: curarse uno mismo, opción **A** (sus heridas se cierran a la mitad de velocidad y se infectan más: 12 %, 4 % con 💊); el herido en pie, opción **C** (con la salud por debajo del 50 % se acuesta y se queda hasta el 80 %, pero se levanta a comer y beber). Las camas de hospital siguen sin aprobar como edificio.
+  - **Hecha la primera parte** (2026-10-19): sin saqueadores en pie (todos en el suelo o huyendo), el colono libre más cercano a un colono que sangra deja lo que hace y va a curarle donde está, aunque no tenga «Médico»; los colonos van antes que los saqueadores caídos y los prisioneros. **Hecha la segunda parte** (2026-10-19): al colono que está en el suelo, tras curarle, se le lleva a cuestas a la cama libre más cercana (si no hay, se queda en el suelo) y allí se recupera como durmiendo. **Hecha la tercera parte** (2026-10-19): curarse uno mismo y el herido en pie que guarda cama. Solo faltaría la cama de hospital, cuando se apruebe.
 
 - [x] **#22 Derribar en vez de matar; capturar, saquear o rematar** (2026-10-18, 🐞; elegido por Mikel: B y 3): los golpes de colonos y torretas dejan a los saqueadores en el suelo sin matarlos (sueltan arma y armadura) y al tocarlos sale ⛓ Capturar o 🗡 Rematar. **Segunda parte** (2026-10-19): para capturar hace falta una cama de prisionero libre (sin ella ⛓ sale apagado y el caído se queda en el suelo, sin levantarse); el médico le cierra las heridas donde está para que no se desangre (sin gastar 💊); rematar quita −5 % de ánimo a quien remata y −3 % a quien lo ve a 8 casillas o menos (no a los «duros»), durante 24 h.
 

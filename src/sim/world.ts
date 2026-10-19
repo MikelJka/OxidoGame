@@ -18,6 +18,7 @@ import { canTalk, colonistFight, dropGear, makePrisoner, runStoryteller, talkToP
 import { AMMO_CARRY, AMMO_LOW, isGear, isWeapon, WEAPON_IDS, WEAPONS, weaponScore } from '../data/weapons';
 import { ARMOR_IDS, ARMORS, isArmor } from '../data/armor';
 import { FINISH_MOOD } from '../data/morale';
+import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
 import { TRAPPED_TILES } from './diagnostics';
 import {
   BAD_WATER_TICKS_DAYS, DEHYDRATED, DRINK_TICKS, EAT_TICKS, EXHAUSTED, foodDecay, foodPreference, HUNGRY, isFood, isRawFood, NUTRITION, restDecay,
@@ -809,17 +810,24 @@ export class World implements JobContext {
     const wantsSleep = n.rest < (busy ? EXHAUSTED : TIRED) || (!busy && this.isNight && n.rest < 0.75);
     const wantsFood = n.food < (busy ? STARVING : HUNGRY);
     const wantsWater = n.water < (busy ? DEHYDRATED : THIRSTY);
-    if (!wantsSleep && !wantsFood && !wantsWater) return false;
+    const wantsRest = this.wantsBedRest(c);
+    if (!wantsSleep && !wantsFood && !wantsWater && !wantsRest) return false;
     if (this.tick < (this.nextNeedScan.get(c.id) ?? 0)) return false;
     // Primero lo más grave.
     const wants: { what: 'comer' | 'dormir' | 'beber'; level: number }[] = [];
     if (wantsFood) wants.push({ what: 'comer', level: n.food });
     if (wantsWater) wants.push({ what: 'beber', level: n.water });
-    if (wantsSleep) wants.push({ what: 'dormir', level: n.rest });
+    // El malherido guarda cama (y allí también descansa); antes, come y bebe si lo necesita.
+    if (wantsSleep && !wantsRest) wants.push({ what: 'dormir', level: n.rest });
     wants.sort((a, b) => a.level - b.level);
     for (const { what } of wants) {
       const ok = what === 'comer' ? this.startEating(c) : what === 'beber' ? this.startDrinking(c) : this.startSleeping(c);
       if (ok) return true;
+    }
+    if (wantsRest) {
+      if (!c.resting) this.addLog(`🛏 ${c.name} está malherido y se acuesta hasta recuperarse.`, 'info');
+      c.resting = true;
+      return this.startSleeping(c, 'reposar');
     }
     this.nextNeedScan.set(c.id, this.tick + JOB_RETRY_TICKS);
     return false;
@@ -908,8 +916,21 @@ export class World implements JobContext {
     return false;
   }
 
-  /** Va a la cama libre más cercana; si no hay, duerme donde está. */
-  private startSleeping(c: Colonist): boolean {
+  /**
+   * El herido que sigue en pie guarda cama tras el combate (decidido el 2026-10-19, opción C): con la
+   * salud por debajo del 50 % se acuesta y se queda hasta el 80 %; se levanta a comer y beber.
+   * No con heridas que sangran (primero se curan), ni reclutado, ni mientras haya saqueadores en pie.
+   */
+  wantsBedRest(c: Colonist): boolean {
+    if (c.role !== 'colono' || c.downed) return false;
+    if (c.resting && c.health >= BED_REST.untilHealth) c.resting = false;
+    if (!c.resting && c.health >= BED_REST.startBelow) return false;
+    if (c.drafted || c.panic || c.wounds.some((w) => w.bleeding) || !this.fightOver()) return false;
+    return c.needs.food >= STARVING && c.needs.water >= DEHYDRATED;
+  }
+
+  /** Va a la cama libre más cercana; si no hay, duerme (o reposa) donde está. */
+  private startSleeping(c: Colonist, type: 'dormir' | 'reposar' = 'dormir'): boolean {
     const beds = this.structures
       .all()
       .filter((s) => s.built && s.def.id === 'cama' && this.reservations.holder(s.x, s.y) === undefined && !this.bedTaken(s.x, s.y, c))
@@ -919,12 +940,12 @@ export class World implements JobContext {
       const route = this.routeTo(c, [{ x: b.x, y: b.y }]);
       if (!route) continue;
       this.reservations.reserve(b.x, b.y, c.id, 'work');
-      c.need = { type: 'dormir', x: b.x, y: b.y, bed: true, progress: 0 };
+      c.need = { type, x: b.x, y: b.y, bed: true, progress: 0 };
       c.path = route.path;
       c.activity = 'toNeed';
       return true;
     }
-    c.need = { type: 'dormir', x: c.tile.x, y: c.tile.y, bed: false, progress: 0 };
+    c.need = { type, x: c.tile.x, y: c.tile.y, bed: false, progress: 0 };
     c.path = [];
     c.activity = 'sleeping';
     return true;
@@ -941,6 +962,12 @@ export class World implements JobContext {
 
   private updateNeed(c: Colonist): void {
     const t = c.need!;
+    if (t.type === 'reposar' && !this.wantsBedRest(c)) {
+      // Recuperado (o vuelve el combate, o tiene que ir a comer o beber): se levanta.
+      if (!c.resting) this.addLog(`🛏 ${c.name} se ha recuperado y se levanta.`, 'bueno');
+      this.endNeed(c);
+      return;
+    }
     if (c.path.length > 0) {
       this.moveAlongPath(c);
       return;
@@ -1001,6 +1028,7 @@ export class World implements JobContext {
     }
     c.activity = 'sleeping';
     c.needs.rest = Math.min(1, c.needs.rest + restGain(t.bed, TICKS_PER_HOUR));
+    if (t.type === 'reposar') return;
     // Se despierta descansado (o, de día, bastante descansado) o si el hambre aprieta.
     const rested = c.needs.rest >= 0.99 || (!this.isNight && c.needs.rest >= 0.85);
     if (rested || c.needs.food < STARVING) {
@@ -1308,7 +1336,7 @@ export class World implements JobContext {
       const plan = findJob(this, best);
       if (!plan || plan.job.kind !== 'curar' || plan.job.pid === undefined) continue;
       const patient = this.colonists.find((k) => k.id === plan.job.pid);
-      if (!patient || !(needsUrgentCare(patient) || this.wantsCarryToBed(patient))) continue;
+      if (!patient || tending.has(patient.id) || !(needsUrgentCare(patient) || this.wantsCarryToBed(patient))) continue;
       if (best.job) {
         this.addLog(`🩹 ${best.name} deja lo que hace para atender a ${patient.name}.`, 'info');
         this.dropJob(best);
@@ -1319,6 +1347,18 @@ export class World implements JobContext {
       best.activity = 'toJob';
       best.waitTicks = 0;
       tending.add(patient.id);
+    }
+    // Sin nadie libre que le atienda, el herido que sigue en pie se cura él mismo (peor que si le cura otro).
+    for (const p of this.colonists) {
+      if (!needsUrgentCare(p) || tending.has(p.id) || p.downed || p.drafted || p.panic || p.need) continue;
+      if (p.job) this.dropJob(p);
+      p.gearTask = undefined;
+      p.job = { kind: 'curar', x: p.tile.x, y: p.tile.y, pid: p.id, stand: { ...p.tile }, progress: 0, work: SELF_CARE_WORK };
+      p.path = [];
+      p.activity = 'toJob';
+      p.waitTicks = 0;
+      tending.add(p.id);
+      this.addLog(`🩹 Nadie puede atender a ${p.name}: se cura él mismo.`, 'info');
     }
   }
 
@@ -1369,7 +1409,7 @@ export class World implements JobContext {
       this.dropJob(c);
       return;
     }
-    if (Math.max(Math.abs(c.tile.x - o.tile.x), Math.abs(c.tile.y - o.tile.y)) > 1) {
+    if (o !== c && Math.max(Math.abs(c.tile.x - o.tile.x), Math.abs(c.tile.y - o.tile.y)) > 1) {
       const route = this.routeTo(c, [o.tile]);
       if (!route) {
         this.dropJob(c);
@@ -1391,11 +1431,14 @@ export class World implements JobContext {
       const dose = needsDose(o);
       // A los saqueadores en el suelo solo se les cierran las heridas: la 💊 no se gasta en ellos.
       const pill = o.role !== 'saqueador' && (bleeding || dose) && this.takeMedicine();
-      const n = treatWounds(o, pill);
-      if (n) this.addLog(`🩹 ${c.name} cura ${n === 1 ? 'una herida' : `${n} heridas`} de ${o.name}${pill ? ' con 💊 Medicina' : ''}.`, 'bueno');
+      const self = o === c;
+      const n = treatWounds(o, pill, self);
+      const what = n === 1 ? 'una herida' : `${n} heridas`;
+      if (n) this.addLog(self ? `🩹 ${c.name} se cura ${what} él mismo${pill ? ' con 💊 Medicina' : ''}.` : `🩹 ${c.name} cura ${what} de ${o.name}${pill ? ' con 💊 Medicina' : ''}.`, 'bueno');
       if (pill && dose) {
         const cured = giveDose(o);
-        this.addLog(cured ? `💊 ${c.name} trata a ${o.name}: se cura de la infección.` : `💊 ${c.name} da a ${o.name} su medicina contra la infección (falta otra mañana).`, 'bueno');
+        if (self) this.addLog(cured ? `💊 ${c.name} toma su medicina: se cura de la infección.` : `💊 ${c.name} toma su medicina contra la infección (falta otra mañana).`, 'bueno');
+        else this.addLog(cured ? `💊 ${c.name} trata a ${o.name}: se cura de la infección.` : `💊 ${c.name} da a ${o.name} su medicina contra la infección (falta otra mañana).`, 'bueno');
       }
       // Tras el combate, al colono que está en el suelo se le lleva a una cama libre; si no hay, se queda donde está.
       if (this.wantsCarryToBed(o)) {
