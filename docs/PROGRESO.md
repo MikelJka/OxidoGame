@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 (4) — ⛽ Combustible y destilería
+
+- Sin incidencias nuevas en 🐞. Mikel decidió los números del ⛽, así que esta sesión, la primera parte de los vehículos: el combustible y la destilería.
+- Nuevo recurso **⛽ Combustible** (valor 6, montones de 50). Solo sale de la destilería: los barriles del mapa no dan y las caravanas no lo traen.
+- **Destilería** en 🏗 → Talleres: 🔩20 ⚙️2, 2×2, se puede mover. Con una orden, un colono le lleva madera y cada tanda (10 🪵 → 2 ⛽) lleva 500 de trabajo, el doble que un cuchillo. Lo que he puesto yo: lo que tarda en construirse (700) y su aguante (300), como la recicladora; no se electrifica.
+- Qué probar: construir una destilería, darle una orden «hasta tener 10 ⛽» y ver que el colono lleva madera y destila. En el móvil, que el panel del taller se toque bien.
+- Sin npm en el entorno: tests con Bun (311, 3 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Siguen esperando la respuesta de Mikel: más colonos (#21) y la segunda parte de #22.
+- Siguiente: el buggy blindado de los colonos (segunda parte de los vehículos).
+
 ## 2026-10-19 (3) — Heridas que se infectan y 💊 Medicina
 
 - Sin incidencias nuevas en 🐞. Lo siguiente en «Pendiente» era el ⛽ y la destilería, pero faltan números (cuánto da un barril, qué cuesta la destilería): propuesta con opciones en «Propuestas para Mikel». Esta sesión, la primera parte del bloque 1 del catálogo (infecciones y medicinas, fase 4, la fase actual).

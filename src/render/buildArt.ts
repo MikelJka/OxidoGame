@@ -180,6 +180,22 @@ function drawStation(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: numb
     px(11, 0, 1, 3, dark);
     return;
   }
+  if (def.id === 'destileria') {
+    // Alambique de cobre con serpentín, fuego debajo y un bidón de combustible al lado.
+    px(1, 1, tile - 2, h - 1, '#1a1410');
+    px(2, 2, tile - 4, tileH - 3, dark);
+    px(3, 1, 7, h - 3, '#1a1410');
+    px(4, 2, 5, h - 6, top); // caldera
+    px(5, 3, 1, h - 9, '#e0a060'); // brillo
+    px(4, h - 4, 5, 2, '#2a1a10');
+    px(5, h - 4, 3, 1, '#e07a2a'); // fuego
+    px(9, 3, 3, 1, '#8a9096'); // tubo
+    for (let y = 4; y < tileH + 2; y += 2) px(11, y, 2, 1, '#8a9096'); // serpentín
+    px(10, tileH + 1, 5, wallH - 2, '#1a1410');
+    px(11, tileH + 2, 3, wallH - 4, '#a03a2a'); // bidón
+    px(11, tileH + 3, 3, 1, '#d0c050');
+    return;
+  }
   if (def.id === 'cocina') {
     // Fogón de piedra con dos ollas encima y fuego en la boca.
     px(1, 1, tile - 2, h - 1, '#1a1410');
