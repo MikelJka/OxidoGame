@@ -11,7 +11,7 @@ import type { Structure } from './structures';
 import { BODY_PARTS, healthLabel, hurt } from './health';
 import { findPath, Point } from './pathfinding';
 import { inBounds, isPassable, Prop, Terrain } from './map';
-import { DIFFICULTIES, raidGap, raidSize, TRADER_GAP, WANDERER_GAP } from './storyteller';
+import { DIFFICULTIES, RADIO_GAP_DAYS, raidGap, raidSize, TRADER_GAP, WANDERER_GAP } from './storyteller';
 import type { World } from './world';
 import { maybePanic, witnessFall } from './panic';
 import { TICKS_PER_DAY } from './time';
@@ -47,6 +47,17 @@ export function runStoryteller(w: World): void {
     sch.nextWanderer = w.tick + days(WANDERER_GAP);
     if (!w.offer) offerWanderer(w);
   }
+  // Radio de llamada (#21 C): mientras haya una con corriente, atrae un superviviente más cada 3 días.
+  if (w.radioOn()) {
+    if (sch.nextRadio === undefined) sch.nextRadio = w.tick + Math.round(RADIO_GAP_DAYS * TICKS_PER_DAY);
+    else if (w.tick >= sch.nextRadio) {
+      // Si hay otro esperando respuesta, lo intenta a la hora siguiente.
+      if (!w.offer) {
+        offerWanderer(w, true);
+        sch.nextRadio = w.tick + Math.round(RADIO_GAP_DAYS * TICKS_PER_DAY);
+      }
+    }
+  } else sch.nextRadio = undefined;
   if (w.tick >= sch.nextRaid) {
     sch.nextRaid = w.tick + days(raidGap(w.difficulty.level));
     startRaid(w, raidSize(w.day, colonyWealth(w), w.colonists.length, diff.raidScale));
@@ -58,10 +69,10 @@ export function runStoryteller(w: World): void {
 }
 
 /** Un superviviente pide unirse (el jugador decide). */
-export function offerWanderer(w: World): void {
+export function offerWanderer(w: World, byRadio = false): void {
   const c = w.makePawn('colono');
   w.offer = { kind: 'superviviente', pawn: c, until: w.tick + TICKS_PER_DAY / 2 };
-  w.addLog(`🚶 ${c.name} «${c.nickname}», ${c.age} años, pide unirse a la colonia.`, 'info', 'visita');
+  w.addLog(`🚶 ${c.name} «${c.nickname}», ${c.age} años, ${byRadio ? 'ha oído la 📻 radio y ' : ''}pide unirse a la colonia.`, 'info', 'visita');
 }
 
 /** Llega un raid de `n` saqueadores por un mismo borde. */

@@ -14,6 +14,8 @@ export interface StorySchedule {
   nextRaid: number;
   /** Tick de la próxima caravana. */
   nextTrader: number;
+  /** Tick del superviviente que atrae la radio de llamada con corriente (sin radio encendida, no hay). */
+  nextRadio?: number;
 }
 
 export function initialSchedule(ticksPerDay: number, startTick: number, graceDays: number = FIRST_RAID_DAY): StorySchedule {
@@ -27,6 +29,8 @@ export function initialSchedule(ticksPerDay: number, startTick: number, graceDay
 /** Días entre sucesos (mínimo y máximo). */
 /** Días entre supervivientes (en `src/data/storyteller.json`). */
 export const WANDERER_GAP: [number, number] = [storyData.wanderers.gapDays[0], storyData.wanderers.gapDays[1]];
+/** Días entre los supervivientes de más que atrae una radio de llamada con corriente (#21 C). */
+export const RADIO_GAP_DAYS: number = storyData.radio.gapDays;
 export const RAID_GAP: [number, number] = [3, 6];
 export const TRADER_GAP: [number, number] = [4, 7];
 

@@ -73,7 +73,7 @@ Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed 
 - [x] Muerte permanente y fin de partida
 - [x] Avisos en pantalla de raids, peleas, heridos, caídos, muertes, pánico, visitas y caravanas (#17, #18)
 - [x] Supervivientes que piden unirse, prisioneros (capturar, retener, convencer, liberar) y caravanas con esclavos
-- [ ] Más colonos (#21): hecho que el primer superviviente llegue el día 2 y luego uno cada 2-4 días; falta la radio de llamada
+- [x] Más colonos (#21): el primer superviviente el día 2 y luego uno cada 2-4 días, y la radio de llamada (uno más cada 3 días con corriente)
 - [x] Prioridad médica tras los combates: sin saqueadores en pie, cualquier colono no reclutado cura primero a los colonos que sangran y lleva al caído a una cama; sin nadie libre, el herido se cura él mismo (peor); el malherido en pie guarda cama hasta el 80 %
 - [x] Derribar en vez de matar; capturar, saquear o rematar (#22): los golpes derriban sin matar; en el suelo sueltan lo que llevan y se elige ⛓ Capturar (con cama de prisionero libre) o 🗡 Rematar (baja el ánimo); el médico los cura donde están
 

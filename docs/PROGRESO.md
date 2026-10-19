@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 (9) — Medicina cerrada, curarse solo, guardar cama y radio de llamada
+
+- Sesión larga pedida por Mikel, que me pidió tomar la decisión más lógica para cerrar la medicina. Decidido: **curarse uno mismo, opción A**; **el herido en pie, opción C**.
+- **Curarse uno mismo**: tras el combate, si nadie libre puede atender a un colono que sangra y sigue en pie, se cura él mismo («🩹 Nadie puede atender a …: se cura él mismo»). Sus heridas se cierran a la mitad de velocidad y se infectan más (12 %; 4 % con 💊). El que está en el suelo no puede.
+- **Guardar cama**: un colono en pie con la salud por debajo del 50 %, sin saqueadores en pie, se acuesta en la cama libre más cercana (o en el suelo si no hay) y se queda hasta el 80 %; se levanta a comer y beber y vuelve. La ficha dice «Herido, reposando en la cama».
+- **Mesa de boticario** (🏗 → Talleres, 🪵15 🔩6, 2×1): 4 🌿 + 1 🧵 → 1 💊, 300 de trabajo, más rápido con buena Medicina. Nuevo cultivo **🌿 Hierba curativa** (5 días, 4–6, tierra media). El bloque 1 del catálogo queda terminado.
+- **📻 Radio de llamada** (#21 C; 🏗 → Electricidad, 🔩20 ⚙️4, 100 W): con corriente, un superviviente más cada 3 días; si se queda sin corriente, el plazo empieza de nuevo.
+- Lo que he puesto yo: la mesa tarda 500 en construirse y aguanta 150; la radio, 500 y 120; la hierba vale 3; trabajo de curarse solo, el mismo que si te cura otro (120).
+- Qué probar: con 🪄 lanzar un raid con un solo colono y ver que se cura él mismo; dejar a uno por debajo del 50 % y ver que se acuesta. Sembrar 🌿, construir la mesa y darle una orden de 💊. Construir la radio con un generador y esperar 3 días. En el móvil, que el menú 🏗 y las fichas se lean en 380 px.
+- Sin npm en el entorno: tests con Bun (347, 17 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Siguiente: el buggy de los colonos (vehículos, segunda parte).
+
 ## 2026-10-19 (8) — Más supervivientes: el primero el día 2 y luego cada 2-4 días (#21, primera parte)
 
 - Sin incidencias nuevas en 🐞. Lo que queda de la prioridad médica espera la respuesta de Mikel, así que esta sesión, la primera parte de **#21** (opción A).

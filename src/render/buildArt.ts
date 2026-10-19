@@ -458,6 +458,17 @@ function drawElectric(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: num
     px(cx - 1, 4, 3, 3, dark);
     return;
   }
+  if (def.id === 'radio') {
+    // Radio de llamada: caja con dial y altavoz y una antena alta.
+    px(2, 5, tile - 4, h - 5, '#1a1410');
+    px(3, 6, tile - 6, tileH - 6, top);
+    px(3, tileH - 1, tile - 6, wallH - 1, face);
+    px(5, tileH + 1, 4, Math.max(2, wallH - 3), dark); // altavoz
+    px(tile - 8, tileH + 1, 3, 2, '#d8c27a'); // dial
+    px(tile - 5, 0, 1, 7, '#8a9096'); // antena
+    px(tile - 6, 0, 3, 1, '#d9534f');
+    return;
+  }
   // Máquinas: caja con rejilla; el generador, con su chimenea; la batería, con sus bornes.
   px(1, 1, tile - 2, h - 1, '#1a1410');
   px(2, 2, tile - 4, tileH - 3, top);

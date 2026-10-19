@@ -1274,6 +1274,11 @@ export class World implements JobContext {
     return !this.others.some((o) => o.role === 'saqueador' && !o.downed && !o.raider?.fleeing);
   }
 
+  /** Hay una radio de llamada construida y con corriente (#21 C). */
+  radioOn(): boolean {
+    return this.structures.all().some((s) => s.built && s.def.id === 'radio' && !lacksPower(s));
+  }
+
   /** En la casilla hay una cama (de colono) construida. */
   isBedTile(x: number, y: number): boolean {
     const s = this.structures.at(x, y);

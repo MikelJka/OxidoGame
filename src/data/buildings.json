@@ -1106,5 +1106,25 @@
       "face": "#6e6c66",
       "dark": "#2a2826"
     }
+  },
+  {
+    "id": "radio",
+    "movable": true,
+    "name": "Radio de llamada",
+    "category": "electricidad",
+    "cost": {
+      "chatarra": 20,
+      "componentes": 4
+    },
+    "work": 500,
+    "hp": 120,
+    "blocks": true,
+    "height": 1,
+    "power": -100,
+    "colors": {
+      "top": "#6a7a5a",
+      "face": "#4a4a42",
+      "dark": "#22221e"
+    }
   }
 ]
