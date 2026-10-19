@@ -127,6 +127,8 @@ try {
     await page.screenshot({ path: `smoke/${d.name}-gente-comercio.png` });
     await page.click('#pp-close');
     // Modo Dios: abrir el panel, dejar metal en el centro y terminar obras.
+    // Antes se quitan los avisos: en el móvil, cuatro avisos largos tapan el botón 🪄.
+    await page.evaluate(() => document.querySelectorAll('#alerts .alert-card').forEach((e) => e.remove()));
     await page.click('#god-btn');
     await sleep(300);
     await page.click('#gp-tools button');
