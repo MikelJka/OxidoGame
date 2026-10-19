@@ -441,7 +441,9 @@ for (const def of BUILDINGS) {
   n.className = 'n';
   n.textContent = cost;
   b.append(name, n);
+  b.dataset.name = name.textContent;
   b.title = `${BUILDING_CATEGORY_NAMES[def.category]} · ${def.name} · coste ${cost}`;
+  if (def.research) b.title += ` · pide investigar «${researchDef(def.research)?.name}»`;
   if (def.turret) b.title += ` · gasta ${-(def.power ?? 0)} W · con corriente dispara sola a ${def.turret.reach} casillas, sin munición`;
   buildList.append(b);
 }
@@ -452,7 +454,17 @@ function setBuildCategory(cat: BuildingCategory): void {
     tab.classList.toggle('active', c === cat);
   }
   for (const b of buildList.querySelectorAll<HTMLButtonElement>('button[data-cat]')) b.hidden = b.dataset.cat !== cat;
+  refreshBuildLocks();
   tabButtons.get(cat)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+/** Lo que aún pide investigación sale con 🔒 (se puede tocar para ver qué falta). */
+function refreshBuildLocks(): void {
+  const w = (game.scene.getScene('world') as WorldScene | null)?.world;
+  for (const b of buildList.querySelectorAll<HTMLButtonElement>('button[data-build]')) {
+    const locked = !!w && !w.canBuild(b.dataset.build!);
+    b.classList.toggle('locked', locked);
+    b.querySelector('.tl')!.textContent = `${locked ? '🔒 ' : ''}${b.dataset.name}`;
+  }
 }
 setBuildCategory(buildCategory);
 const modeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('#order-modes button[data-mode], #build-modes button[data-mode]'));
@@ -502,13 +514,21 @@ for (const sheet of [orderModes, buildModes]) {
 }
 
 ordersBtn.addEventListener('click', () => showMenu(orderModes.hidden ? 'orders' : null));
-buildBtn.addEventListener('click', () => showMenu(buildModes.hidden ? 'build' : null));
+buildBtn.addEventListener('click', () => {
+  if (buildModes.hidden) refreshBuildLocks();
+  showMenu(buildModes.hidden ? 'build' : null);
+});
 for (const b of modeButtons) {
   b.addEventListener('click', () => {
     const s = scene();
     const mode = b.dataset.mode as Exclude<DesignMode, null>;
     if (mode === 'construir') {
       const id = b.dataset.build!;
+      const def = buildingDef(id);
+      if (!s.world.canBuild(id)) {
+        showToast(`🔒 ${def.name}: antes hay que investigar «${researchDef(def.research!)?.name}» en 📜 → 🔬 Investigación`, 3500);
+        return;
+      }
       const same = s.designMode === 'construir' && s.buildDefId === id;
       s.buildDefId = id;
       // Muros en contorno (para cerrar cuartos); el resto, casilla a casilla.

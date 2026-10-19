@@ -76,6 +76,11 @@ export interface BuildingDef {
   vehicle?: string;
   /** Taller cuyo trabajo acelera otra habilidad que la de fabricar (mesa de boticario: Medicina). */
   workSkill?: Skill;
+  /**
+   * Investigación que hay que terminar para poder poner planos nuevos (id de `research.json`).
+   * Lo ya construido o planeado en partidas empezadas se queda.
+   */
+  research?: string;
   /** Colores del dibujo: cara de arriba, frente y sombra. */
   colors: { top: string; face: string; dark: string };
 }
@@ -117,6 +122,7 @@ export function validateBuilding(d: unknown): BuildingDef {
   if (b.movable !== undefined && (typeof b.movable !== 'boolean' || !['mueble', 'taller', 'electricidad'].includes(b.category))) fail('solo se mueven muebles, talleres y lámparas');
   if ((b.category === 'vehiculo') !== (b.vehicle !== undefined) || (b.vehicle !== undefined && !vehicleDef(b.vehicle))) fail('un vehículo necesita su definición en vehicles.json');
   if (b.workSkill !== undefined && (b.category !== 'taller' || !SKILLS.includes(b.workSkill))) fail(`habilidad de taller desconocida ${b.workSkill}`);
+  if (b.research !== undefined && (typeof b.research !== 'string' || !b.research)) fail('investigación no válida');
   if (!b.colors?.top || !b.colors.face || !b.colors.dark) fail('faltan colores');
   return b;
 }

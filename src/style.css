@@ -828,3 +828,6 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 .alert-bueno { border-left-color: #8fbf5a; }
 .alert-k-raid, .alert-k-muerte { background: rgba(70, 18, 14, 0.94); }
 @keyframes alert-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+/* Construcciones que aún piden investigación (🔒). */
+#build-list button.locked { opacity: 0.55; }

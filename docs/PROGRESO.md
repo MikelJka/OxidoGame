@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 (16) — Las torretas piden investigación (fase 5, segunda parte)
+
+- Sin incidencias nuevas en 🐞. Siguiente tarea aprobada: que la investigación desbloquee, empezando por las torretas, como decidió Mikel el 2026-10-18.
+- **🔒 Torretas**: la **torreta ligera** pide terminar «Torretas» (que pide «Pólvora») y la **pesada**, «Artillería». Hasta entonces su botón de 🏗 → Defensas sale con 🔒 y apagado, y al tocarlo dice qué hay que investigar; no se pueden poner planos. Siguen sin munición: solo gastan corriente.
+- **Partidas empezadas**: las torretas ya construidas o con plano puesto se quedan y funcionan; solo no se pueden poner más hasta investigarlas.
+- Al terminar un proyecto que desbloquea algo, el diario lo dice: «Ya se puede construir: Torreta ligera».
+- Por dentro: las construcciones llevan en `src/data/buildings.json` la investigación que piden (`research`), y los planos se ponen con `World.placeBuildArea`, que la comprueba (el dibujado ya no decide).
+- Qué probar: abrir 🏗 → Defensas y ver las torretas con 🔒; tocar una y leer el aviso. Con el banco, investigar Pólvora y luego Torretas (🪄 acelera), ver el aviso del diario y que ya se puede poner la torreta ligera. Cargar una partida con torretas: siguen ahí. En el móvil, que el 🔒 quepa en el botón.
+- Sin npm en el entorno: tests con Bun (417, 4 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Espera la respuesta de Mikel: la hoguera (A-D) y «Medicina de campo» (A-C), en «Propuestas para Mikel».
+- Siguiente: «Pólvora» desbloquea las balas y la pistola casera (bloque 4, primera parte de las armas de fuego).
+
 ## 2026-10-19 (15) — Fin de la fase 4 y banco de investigación (fase 5, primera parte)
 
 - Sin incidencias nuevas en 🐞. Lo siguiente de la fase 4 (la hoguera) espera a que Mikel elija, y lo demás que falta en ella (las armas de fuego) va con la investigación de la fase 5.

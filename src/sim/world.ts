@@ -19,7 +19,7 @@ import { AMMO_CARRY, AMMO_LOW, isGear, isWeapon, WEAPON_IDS, WEAPONS, weaponScor
 import { ARMOR_IDS, ARMORS, isArmor } from '../data/armor';
 import { FINISH_MOOD } from '../data/morale';
 import { Corpse, updateCorpses } from './corpses';
-import { addResearch, chooseResearch, newResearch, ResearchState } from './research';
+import { addResearch, buildingUnlocked, buildingsUnlockedBy, chooseResearch, newResearch, ResearchState } from './research';
 import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
 import { anchorFor, besideTiles, defOf, nextTo, occupant, updateVehicle, Vehicle, vehicleCenter, vehiclePath, VehicleSeat, covers } from './vehicles';
 import { vehicleDef } from '../data/vehicles';
@@ -29,9 +29,10 @@ import {
   restGain, STARVING, THIRSTY, TIRED, waterDecay,
 } from './needs';
 import { applyTerrainJob, LOWER_STONE, terrainBlocker, TerrainJob, TerrainOrders } from './terrain';
-import { Structure, Structures } from './structures';
+import { PlaceShape, Structure, Structures } from './structures';
 import { isDaylight, lacksPower, litTiles, PowerNet, shutDoorTiles, stationSpeed, updatePower, windStrength } from './power';
 import type { TileRect } from './designations';
+import { BUILDINGS, buildingDef } from '../data/buildings';
 import { RESOURCES, ResourceId, STARTING_SUPPLIES } from '../data/resources';
 
 import { TICKS_PER_DAY, TICKS_PER_HOUR, TICKS_PER_SECOND } from './time';
@@ -1227,7 +1228,11 @@ export class World implements JobContext {
     j.progress += done;
     if (j.kind === 'investigar') {
       const finished = addResearch(this.research, done);
-      if (finished) this.addLog(`🔬 Investigación terminada: ${finished.name}. Desbloquea: ${finished.unlocks}.`, 'bueno');
+      if (finished) {
+        const now = buildingsUnlockedBy(BUILDINGS, finished.id).map((b) => b.name);
+        const extra = now.length ? ` Ya se puede construir: ${now.join(', ')}.` : '';
+        this.addLog(`🔬 Investigación terminada: ${finished.name}. Desbloquea: ${finished.unlocks}.${extra}`, 'bueno');
+      }
       if (finished || j.progress >= j.work) this.dropJob(c);
       return;
     }
@@ -1874,9 +1879,22 @@ export class World implements JobContext {
     return { planos, demoler };
   }
 
+  /** Se pueden poner planos nuevos de esta construcción (las torretas piden su investigación). */
+  canBuild(defId: string): boolean {
+    return buildingUnlocked(this.research, buildingDef(defId));
+  }
+
+  /**
+   * Pone planos de construcción en un área (la orden de 🏗). Devuelve cuántos; 0 si aún falta
+   * la investigación que pide.
+   */
+  placeBuildArea(r: TileRect, defId: string, shape: PlaceShape, rot: 0 | 1 = 0): number {
+    if (!this.canBuild(defId)) return 0;
+    return this.structures.placeArea(r, defId, shape, rot);
+  }
+
   // --- Reclutar y órdenes directas -------------------------------------------------
 
-  /** Recluta (o libera) a un colono. Reclutado deja lo que hacía y espera órdenes. */
   /** Elige el proyecto de investigación (null para parar). Devuelve false si aún no se puede. */
   setResearch(id: string | null): boolean {
     if (!chooseResearch(this.research, id)) return false;
@@ -1885,6 +1903,7 @@ export class World implements JobContext {
     return true;
   }
 
+  /** Recluta (o libera) a un colono. Reclutado deja lo que hacía y espera órdenes. */
   setDrafted(colonistId: number, drafted: boolean): void {
     const c = this.colonists.find((k) => k.id === colonistId);
     if (!c || c.drafted === drafted) return;

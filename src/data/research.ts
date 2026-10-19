@@ -32,6 +32,8 @@ function validate(): ResearchDef[] {
     for (const r of p.requires) if (!ids.has(r)) fail(`${p.id} pide ${r}, que no existe o va después`);
     ids.add(p.id);
   }
+  // Lo que una construcción pide investigar tiene que existir en el árbol.
+  for (const b of BUILDINGS) if (b.research !== undefined && !ids.has(b.research)) fail(`${b.id} pide la investigación ${b.research}, que no existe`);
   return data.projects;
 }
 

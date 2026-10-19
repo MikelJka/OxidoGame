@@ -497,6 +497,7 @@
       "chatarra": 25,
       "componentes": 4
     },
+    "research": "torretas",
     "work": 600,
     "hp": 250,
     "blocks": true,
@@ -521,6 +522,7 @@
       "metal": 30,
       "componentes": 6
     },
+    "research": "artilleria",
     "work": 1000,
     "hp": 500,
     "blocks": true,
