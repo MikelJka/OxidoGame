@@ -10,7 +10,7 @@ import { TERRAIN_JOBS, TerrainJob } from './terrain';
 import { RESOURCES, ResourceId } from '../data/resources';
 import { WORK_TYPES, WorkType } from '../data/work';
 import { Colonist, DEFAULT_PRIORITY, STANCES, WorkPriority } from './colonist';
-import { GameMap, isPassable } from './map';
+import { GameMap, inBounds, isPassable } from './map';
 import type { StoragePriority } from './zones';
 import { ALERT_KINDS, GameSpeed, LogEntry, TICKS_PER_DAY, World } from './world';
 import { initialSchedule, makeDifficulty, WANDERER_GAP } from './storyteller';
@@ -70,6 +70,9 @@ export interface SaveData {
   /** Vehículos (desde el buggy, 2026-10-19). Se guardan parados. */
   vehicles?: { id: number; def: string; x: number; y: number; fuel: number; hp: number; facing?: number }[];
   nextVehicleId?: number;
+  /** Cadáveres de criaturas (desde 2026-10-19; las anteriores, ninguno). */
+  corpses?: { id: number; creature: string; x: number; y: number; diedAt: number }[];
+  nextCorpseId?: number;
   /** Raids, caravanas y supervivientes activados (por defecto, sí). */
   events?: boolean;
   /** Dureza y días sin raids (desde que existe; las anteriores, Normal). */
@@ -90,7 +93,7 @@ interface SavedColonist {
   priorities: Record<string, number>;
   carrying: { resource: string; amount: number } | null;
   drafted?: boolean;
-  needs?: { food: number; rest: number; sleptIn: string | null; water?: number; badWaterUntil?: number; lastMeal?: string | null; inLight?: boolean; finishedUntil?: number; sawFinishUntil?: number };
+  needs?: { food: number; rest: number; sleptIn: string | null; water?: number; badWaterUntil?: number; lastMeal?: string | null; inLight?: boolean; finishedUntil?: number; sawFinishUntil?: number; sawCorpseUntil?: number };
   health?: number;
   wounds?: { part: string; severity: number; bleeding: boolean; treated: boolean; medicine?: boolean; self?: boolean; age?: number; infectRolled?: boolean }[];
   /** Infección (desde las medicinas). */
@@ -214,6 +217,8 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     nextPawnId: world.nextPawnId,
     vehicles: world.vehicles.map((v) => ({ id: v.id, def: v.def, x: v.x, y: v.y, fuel: v.fuel, hp: v.hp, facing: v.facing })),
     nextVehicleId: world.nextVehicleId,
+    corpses: world.corpses.map((c) => ({ ...c })),
+    nextCorpseId: world.nextCorpseId,
     events: world.eventsEnabled,
     difficulty: { ...world.difficulty },
     items: world.items.list().map((s) => ({ x: s.x, y: s.y, resource: s.resource, amount: s.amount })),
@@ -395,6 +400,8 @@ function restoreColonist(s: SavedColonist): Colonist {
       // Partidas de antes de #22 (segunda parte): sin nada que les pese.
       ...(num(s.needs?.finishedUntil, 0) > 0 ? { finishedUntil: num(s.needs?.finishedUntil, 0) } : {}),
       ...(num(s.needs?.sawFinishUntil, 0) > 0 ? { sawFinishUntil: num(s.needs?.sawFinishUntil, 0) } : {}),
+      // Partidas de antes de los cadáveres: no han visto ninguno.
+      ...(num(s.needs?.sawCorpseUntil, 0) > 0 ? { sawCorpseUntil: num(s.needs?.sawCorpseUntil, 0) } : {}),
     },
     need: null,
     // Partidas de antes de las armas: sin arma, eligiendo sola la mejor.
@@ -511,6 +518,14 @@ export function loadWorld(input: string | unknown): World {
     });
   }
   world.nextVehicleId = Math.max(num(d.nextVehicleId, 1), ...world.vehicles.map((v) => v.id + 1), 1);
+  for (const c of d.corpses ?? []) {
+    if (!isCreature(c.creature)) continue;
+    const x = Math.round(num(c.x, -1));
+    const y = Math.round(num(c.y, -1));
+    if (!inBounds(world.map, x, y)) continue;
+    world.corpses.push({ id: num(c.id, 0), creature: c.creature, x, y, diedAt: num(c.diedAt, world.tick) });
+  }
+  world.nextCorpseId = Math.max(num(d.nextCorpseId, 1), ...world.corpses.map((c) => c.id + 1), 1);
   // Asientos de vehículos que ya no existen: fuera.
   for (const c of world.pawns()) if (c.vehicle && !world.vehicle(c.vehicle.id)) delete c.vehicle;
   for (const it of d.items ?? []) {

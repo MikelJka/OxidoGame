@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 (14) — Los cadáveres de los mutantes (mutantes, tercera parte)
+
+- Sin incidencias nuevas en 🐞. Siguiente tarea aprobada de la fase 4: los **cadáveres** (bloque 2 del catálogo). Es grande, así que va en dos partes: esta, el cadáver y lo que se pudre; la siguiente, la hoguera para quemarlos.
+- **💀 Cadáveres**: al morir, cada perro y bruto mutante deja su cadáver tumbado donde cae (también si lo mata el modo Dios o lo atropella el buggy). Los saqueadores y colonos no dejan cadáver, como hasta ahora.
+- **Se pudre**: el colono despierto y en pie que tiene un cadáver a **5 casillas** o menos pierde un **5 % de ánimo** («Vio un cadáver pudriéndose», en su ficha), que le dura 2 horas después de dejar de verlo. Varios cadáveres pesan lo mismo que uno. Se dibuja cada vez más oscuro y con más moscas, y a los **4 días** se ha podrido del todo y desaparece.
+- Los números están en `src/data/creatures.json`. Lo que he puesto yo: que se pudra en 4 días, que el mal rato dure 2 horas al dejar de verlo, que no se sume por cada cadáver y que no lo noten los que duermen o están en el suelo. En la vista 3D todavía no se dibujan.
+- Qué probar: en 🪄 lanzar 🐕 Manada, matar a los perros cerca de la colonia y ver los cadáveres en el suelo; tocar a un colono que pase cerca y leer en su ánimo «Vio un cadáver pudriéndose». Con la velocidad alta, ver que se oscurecen y a los 4 días desaparecen. Guardar y cargar: siguen ahí.
+- Sin npm en el entorno: tests con Bun (404, 7 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Espera la respuesta de Mikel: cómo funciona la hoguera (opciones A-D en «Propuestas para Mikel» de FEEDBACK.md).
+- Siguiente: la hoguera (🪵5) para quemar los cadáveres (mutantes, cuarta parte) cuando Mikel elija, y con ella el bloque 2 terminado.
+
 ## 2026-10-19 (13) — El bruto mutante (mutantes, segunda parte)
 
 - Sin incidencias nuevas en 🐞. Siguiente tarea aprobada de la fase 4: el **bruto mutante** (bloque 2 del catálogo).

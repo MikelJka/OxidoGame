@@ -19,7 +19,9 @@ import { CropDef } from '../data/crops';
 import { drawBuilding, faceHeight, wallHeight } from './buildArt';
 import { paintVehicle, VEHICLE_H, VEHICLE_W } from './vehicleArt';
 import { defOf, occupant, Vehicle } from '../sim/vehicles';
-import { colonistLookKey, COLONIST_SIZE, CROP_SIZE, ITEM_H, ITEM_W, paintColonist, paintCrop, paintItem } from './spriteArt';
+import { colonistLookKey, COLONIST_SIZE, CROP_SIZE, ITEM_H, ITEM_W, paintColonist, paintCorpse, paintCrop, paintItem } from './spriteArt';
+import { rotOf } from '../sim/corpses';
+import { TICKS_PER_DAY } from '../sim/time';
 import { canvasPropRasterizer, paintGround, PropRasterizer, TILE } from './mapArt';
 import { LIFT, liftOf, occludedFraction, pickTile, rowY, setTilt, TILE_H, tiltIndex, TILTS, TOP_MARGIN } from './projection';
 import { fromView, normalizeRotation, Rotation, rotateMap, tileFromView, tileToView, toView } from './rotation';
@@ -159,6 +161,8 @@ export class WorldScene extends Phaser.Scene {
   private carrySprites = new Map<number, Phaser.GameObjects.Image>();
   /** Dibujo de cada vehículo, por id. */
   private vehicleSprites = new Map<number, Phaser.GameObjects.Image>();
+  /** Dibujo de cada cadáver, por id. */
+  private corpseSprites = new Map<number, Phaser.GameObjects.Image>();
   /** Vehículo cuyo panel está abierto: tocar el suelo lo manda allí. */
   selectedVehicleId: number | null = null;
   /** Almacén cuyo panel está abierto (se resalta). */
@@ -249,6 +253,7 @@ export class WorldScene extends Phaser.Scene {
     this.repaintChangedTiles();
     this.syncColonists();
     this.syncVehicles();
+    this.syncCorpses();
     this.drawTurretShots();
     this.syncItems();
     this.syncDesignations();
@@ -1091,6 +1096,36 @@ export class WorldScene extends Phaser.Scene {
       img.setPosition(c.x * TILE, rowY(c.y + 0.9) - lift + bob);
       if (this.rotation === 0) img.setFlipX(v.facing < 0);
       img.setDepth(COLONIST_DEPTH + (c.y + 0.9) / 1000);
+    }
+  }
+
+  /** Dibuja los cadáveres tumbados donde cayeron (más oscuros cuanto más podridos) y quita los que ya no están. */
+  private syncCorpses(): void {
+    const alive = new Set(this.world.corpses.map((c) => c.id));
+    for (const [id, img] of this.corpseSprites) {
+      if (alive.has(id)) continue;
+      img.destroy();
+      this.corpseSprites.delete(id);
+    }
+    for (const k of this.world.corpses) {
+      // Tres dibujos por criatura según lo podrido que esté.
+      const stage = Math.min(2, Math.floor(rotOf(k, this.world.tick, TICKS_PER_DAY) * 3));
+      const key = `corpse-${k.creature}-${stage}`;
+      if (!this.textures.exists(key)) {
+        const tex = this.textures.createCanvas(key, COLONIST_SIZE, COLONIST_SIZE);
+        if (tex) {
+          paintCorpse(tex.getContext(), k.creature, stage / 2);
+          tex.refresh();
+        }
+      }
+      let img = this.corpseSprites.get(k.id);
+      if (!img) {
+        img = this.add.image(0, 0, key).setOrigin(0.5, 0.75).setAngle(-90);
+        this.corpseSprites.set(k.id, img);
+      } else if (img.texture.key !== key) img.setTexture(key);
+      const v = this.toViewPoint(k.x + 0.5, k.y + 0.5);
+      img.setPosition(v.x * TILE, rowY(v.y) - this.liftAt(k.x, k.y) - 4);
+      img.setDepth(COLONIST_DEPTH + (v.y - 0.1) / 1000);
     }
   }
 

@@ -140,6 +140,29 @@ function paintCreature(px: (x: number, y: number, w: number, h: number, color: s
   }
 }
 
+/**
+ * Cadáver de una criatura (por su id): su mismo dibujo, apagado y manchado, para tumbarlo en el suelo.
+ * `rot` va de 0 (recién muerto) a 1 (podrido): cuanto más podrido, más oscuro y con más moscas.
+ */
+export function paintCorpse(ctx: CanvasRenderingContext2D, id: CreatureId, rot: number): void {
+  const px = (x: number, y: number, w: number, h: number, color: string) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, w, h);
+  };
+  paintCreature(px, id);
+  // Apagado: se pinta encima solo donde ya hay dibujo.
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-atop';
+  ctx.fillStyle = `rgba(52,40,26,${(0.35 + 0.35 * rot).toFixed(2)})`;
+  ctx.fillRect(0, 0, COLONIST_SIZE, COLONIST_SIZE);
+  ctx.restore();
+  // Mancha de sangre seca y moscas.
+  px(3, 14, 10, 1, 'rgba(90,20,14,0.55)');
+  const flies = rot < 0.34 ? 1 : rot < 0.67 ? 2 : 3;
+  const spots = [[2, 2], [12, 1], [7, 0]];
+  for (let i = 0; i < flies; i++) px(spots[i][0], spots[i][1], 1, 1, '#141414');
+}
+
 /** Clave de textura: cambia si cambia su papel (un prisionero que se une ya no lleva mono). */
 export function colonistLookKey(c: Colonist): string {
   return `${c.id}-${c.creature ?? c.role}-${c.look.shirt}-${c.look.hair}${c.raider?.leader ? '-lider' : ''}`;

@@ -18,6 +18,7 @@ import { canTalk, colonistFight, dropGear, makePrisoner, runStoryteller, talkToP
 import { AMMO_CARRY, AMMO_LOW, isGear, isWeapon, WEAPON_IDS, WEAPONS, weaponScore } from '../data/weapons';
 import { ARMOR_IDS, ARMORS, isArmor } from '../data/armor';
 import { FINISH_MOOD } from '../data/morale';
+import { Corpse, updateCorpses } from './corpses';
 import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
 import { anchorFor, besideTiles, defOf, nextTo, occupant, updateVehicle, Vehicle, vehicleCenter, vehiclePath, VehicleSeat, covers } from './vehicles';
 import { vehicleDef } from '../data/vehicles';
@@ -129,6 +130,9 @@ export class World implements JobContext {
   readonly vehicles: Vehicle[] = [];
   /** Siguiente id para un vehículo nuevo. */
   nextVehicleId = 1;
+  /** Cadáveres de criaturas que se pudren en el mapa (bloque 2). */
+  readonly corpses: Corpse[] = [];
+  nextCorpseId = 1;
   /** Último tick en que un vehículo atropelló a cada saqueador (para no golpearle en cada paso). */
   readonly runOverAt = new Map<number, number>();
   /** Montones de recursos en el suelo. */
@@ -307,6 +311,8 @@ export class World implements JobContext {
     if (this.eventsEnabled && this.tick % TICKS_PER_HOUR === 0) runStoryteller(this);
     if (this.tick % RESCUE_TICKS === 0) this.rescueTrapped();
     if (this.tick % TICKS_PER_SECOND === 0) this.medicalPriority();
+    // Cadáveres: se pudren y a quien los ve cerca le pesa.
+    if (this.tick % TICKS_PER_SECOND === 0 && this.corpses.length > 0) updateCorpses(this.corpses, this.colonists, this.tick, TICKS_PER_HOUR, TICKS_PER_DAY);
     // Electricidad: cada segundo se reparte la corriente y se encienden o apagan las lámparas.
     if (this.tick % TICKS_PER_SECOND === 0) {
       this.powerNets = updatePower(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR, { hour: this.hour, wind: this.wind });
@@ -380,6 +386,8 @@ export class World implements JobContext {
       const i = this.others.indexOf(c);
       if (i >= 0) this.others.splice(i, 1);
       if (c.carrying) this.items.drop(c.tile.x, c.tile.y, c.carrying.resource, c.carrying.amount);
+      // Las criaturas dejan su cadáver donde caen.
+      if (c.creature) this.corpses.push({ id: this.nextCorpseId++, creature: c.creature, x: c.tile.x, y: c.tile.y, diedAt: this.tick });
       if (quiet) return;
       if (c.creature) {
         this.addLog(`${c.name} muere (${cause}).`, 'info');

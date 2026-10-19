@@ -1,7 +1,7 @@
 /**
  * Mutantes y criaturas (bloque 2 del catálogo, aprobado por Mikel el 2026-10-18).
- * Los números están en `creatures.json`: perros mutantes y brutos mutantes; los cadáveres llegan
- * en la parte siguiente.
+ * Los números están en `creatures.json`: perros mutantes, brutos mutantes y sus cadáveres (la hoguera
+ * para quemarlos llega en la parte siguiente).
  */
 import data from './creatures.json';
 
@@ -44,4 +44,16 @@ export const PACKS = {
   size: [data.packs.size[0], data.packs.size[1]] as const,
   /** Desde el día del bruto, 1 bruto por cada tantos perros de la manada. */
   dogsPerBrute: data.packs.dogsPerBrute,
+};
+
+/** Cadáveres de las criaturas: cuánto tardan en pudrirse y cuánto ánimo quitan a quien los ve. */
+export const CORPSES = {
+  /** Días hasta que se pudre del todo y desaparece. */
+  rotDays: data.corpses.rotDays,
+  /** Ánimo que quita a quien lo ve. */
+  moodPenalty: data.corpses.moodPenalty,
+  /** Casillas a las que se ve. */
+  viewRadius: data.corpses.viewRadius,
+  /** Horas que dura el mal rato después de dejar de verlo. */
+  moodHours: data.corpses.moodHours,
 };

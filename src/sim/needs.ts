@@ -4,6 +4,7 @@ import { FOOD_RESOURCES, RAW_FOOD, ResourceId } from '../data/resources';
 import type { Colonist } from './colonist';
 import { INFECTION } from '../data/medicine';
 import { FINISH_MOOD } from '../data/morale';
+import { CORPSES } from '../data/creatures';
 
 /** Días de juego que tarda un colono en pasar de lleno a vacío. */
 export const FOOD_DAYS = 1.5;
@@ -53,6 +54,8 @@ export interface Needs {
   finishedUntil?: number;
   /** Tick hasta el que le pesa haber visto rematar a un saqueador (#22). */
   sawFinishUntil?: number;
+  /** Tick hasta el que le pesa haber visto un cadáver pudriéndose (bloque 2). */
+  sawCorpseUntil?: number;
 }
 
 export function defaultNeeds(): Needs {
@@ -118,6 +121,7 @@ export function moodOf(c: Colonist, tick = 0): { mood: number; reasons: MoodReas
   if (n.inLight) reasons.push({ text: 'Habitación con luz', value: LIGHT_MOOD });
   if ((n.finishedUntil ?? 0) > tick) reasons.push({ text: 'Remató a un saqueador', value: -FINISH_MOOD.killer });
   else if ((n.sawFinishUntil ?? 0) > tick) reasons.push({ text: 'Vio rematar a un saqueador', value: -FINISH_MOOD.witness });
+  if ((n.sawCorpseUntil ?? 0) > tick) reasons.push({ text: 'Vio un cadáver pudriéndose', value: -CORPSES.moodPenalty });
   if (c.infection) reasons.push({ text: 'Herida infectada', value: -INFECTION.moodPenalty });
   if (c.traits.some((t) => t.id === 'optimista')) reasons.push({ text: 'Optimista', value: 0.1 });
   if (c.traits.some((t) => t.id === 'pesimista')) reasons.push({ text: 'Pesimista', value: -0.1 });
