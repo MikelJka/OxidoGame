@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 (7) — Al herido en el suelo se le lleva a una cama
+
+- Sin incidencias nuevas en 🐞. Esta sesión, la segunda parte de la prioridad médica tras los combates.
+- Sin saqueadores en pie, al colono que está en el suelo lo atiende el colono libre más cercano (aunque no sea médico): le cura donde está y luego **le lleva a cuestas a la cama libre más cercana** («🛏 … lleva a … a una cama»). Si ya no sangraba, va igual a llevarle. Sin cama libre, se queda curado en el suelo.
+- En la cama se recupera como durmiendo (unas tres veces más rápido que tirado en el suelo). Quien va a dormir no se mete en una cama donde hay un herido. La ficha dice «Malherido, le llevan a una cama» o «recuperándose en la cama».
+- Qué probar: con 🪄 lanzar un raid con una cama construida, dejar que tumben a un colono y, cuando caigan o huyan los saqueadores, ver que otro le cura y le lleva a la cama. En el móvil, que la ficha se lea bien.
+- Sin npm en el entorno: tests con Bun (327, 5 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Esperan la respuesta de Mikel: cuánto peor es curarse uno mismo y cuándo se acuesta el herido que sigue en pie (opciones en «Propuestas para Mikel»).
+- Siguiente: #21 A (el primer superviviente el día 2 y luego uno cada 2-4 días).
+
 ## 2026-10-19 (6) — Prioridad médica tras los combates (primera parte)
 
 - Sin incidencias nuevas en 🐞. Esta sesión, la primera parte de la prioridad médica que pidió Mikel.

@@ -10,7 +10,7 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
   - **Lo primero de todo** es atender a un colono herido: curarle donde está y llevarle a una cama de hospital (cuando existan) o, si no hay, a su cama.
   - **El herido** va a una cama de hospital (cuando existan), si no a su cama si está libre, o se tumba en el suelo; si no hay otro colono libre para atenderle, **se cura él mismo**, con peor calidad que si le cura otro.
   - Falta decidir cuánto peor es curarse uno mismo (propuesta en «Propuestas para Mikel») y las camas de hospital, que todavía no están aprobadas como edificio.
-  - **Hecha la primera parte** (2026-10-19): sin saqueadores en pie (todos en el suelo o huyendo), el colono libre más cercano a un colono que sangra deja lo que hace y va a curarle donde está, aunque no tenga «Médico»; los colonos van antes que los saqueadores caídos y los prisioneros. Faltan: llevar al herido a su cama (o que vaya él, o se tumbe) y curarse uno mismo.
+  - **Hecha la primera parte** (2026-10-19): sin saqueadores en pie (todos en el suelo o huyendo), el colono libre más cercano a un colono que sangra deja lo que hace y va a curarle donde está, aunque no tenga «Médico»; los colonos van antes que los saqueadores caídos y los prisioneros. **Hecha la segunda parte** (2026-10-19): al colono que está en el suelo, tras curarle, se le lleva a cuestas a la cama libre más cercana (si no hay, se queda en el suelo) y allí se recupera como durmiendo. Faltan: que el herido que sigue en pie vaya él a la cama (o se tumbe) y curarse uno mismo; las dos esperan respuesta en «Propuestas para Mikel».
 
 - [ ] **#21 Más colonos o formas de ampliar la colonia** (2026-10-18, 🐞): el progreso es lento con tan pocos colonos. **Elegido por Mikel (2026-10-19): A y C.** **A**: el primer superviviente llega el día 2 y luego uno cada 2-4 días (la mitad de espera que ahora). **C**: **radio de llamada** (edificio nuevo en 🏗, 🔩20 ⚙️4, 100 W): con corriente atrae un superviviente más cada 3 días; sin radio, todo sigue igual. Por partes: primero A, luego la radio.
 
@@ -45,6 +45,12 @@ Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat 
   - **B**: tarda el doble, sin más (se infecta igual que si le cura otro).
   - **C**: tarda el doble y solo puede si está de pie (en el suelo, se desangra si nadie viene).
   - **D**: como A, pero usando su habilidad de Medicina con −5 (si no tiene, más lento aún).
+
+- **El herido que sigue en pie y la cama** (prioridad médica tras los combates, 2026-10-19): un colono con heridas que aún puede andar, tras el combate, «va a su cama». ¿Cuándo se acuesta y hasta cuándo?
+  - **A**: solo si sangra o tiene la salud por debajo del 50 %; se queda hasta llegar al 80 % (sin trabajar).
+  - **B**: con cualquier herida abierta; se queda hasta que se le cierren todas.
+  - **C**: solo si tiene la salud por debajo del 50 %; se queda hasta el 80 %, pero se levanta a comer y beber.
+  - **D**: no se acuesta: sigue trabajando, más despacio (−20 %) mientras tenga heridas abiertas; solo el que cae al suelo va a la cama.
 
 ## Hecho
 

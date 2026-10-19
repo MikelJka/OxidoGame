@@ -109,6 +109,8 @@ export interface JobContext {
   prisonBedsFree(): number;
   /** No queda ningún saqueador en pie que no huya: toca lo médico antes que nada. */
   fightOver(): boolean;
+  /** Colono en el suelo, fuera de la cama, al que hay que llevar a una cama libre tras el combate. */
+  wantsCarryToBed(p: Colonist): boolean;
 }
 
 /** Colono que necesita que le atiendan ya: sangra. */
@@ -409,17 +411,17 @@ function doctorCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   if (c.priorities.curar === 0) {
     if (!urgentOn) return [];
     return ctx.colonists
-      .filter((p) => p !== c && needsUrgentCare(p) && !reservedByOther(ctx, c, p))
+      .filter((p) => p !== c && (needsUrgentCare(p) || ctx.wantsCarryToBed(p)) && !reservedByOther(ctx, c, p))
       .map((p) => ({ kind: 'curar' as const, x: p.tile.x, y: p.tile.y, dist: manhattan(c.tile, p.tile.x, p.tile.y), urgent: true, make: () => pawnJob(ctx, c, p, 'curar', 120) }));
   }
   const downedFoe = (k: Colonist) => k.role === 'saqueador' && k.downed && k.carriedBy === undefined && !k.raider?.finish;
   const patients = [...ctx.colonists.filter((k) => k !== c), ...ctx.others.filter((k) => k.role === 'prisionero' || downedFoe(k))];
   const pills = ctx.inventory().medicina > 0;
   return patients
-    .filter((p) => (p.wounds.some((w) => w.bleeding) || (pills && p.role !== 'saqueador' && needsDose(p))) && !reservedByOther(ctx, c, p))
+    .filter((p) => (p.wounds.some((w) => w.bleeding) || (pills && p.role !== 'saqueador' && needsDose(p)) || (urgentOn && ctx.wantsCarryToBed(p))) && !reservedByOther(ctx, c, p))
     .map((p) => ({
       kind: 'curar' as const, x: p.tile.x, y: p.tile.y, dist: manhattan(c.tile, p.tile.x, p.tile.y),
-      urgent: urgentOn && needsUrgentCare(p), make: () => pawnJob(ctx, c, p, 'curar', 120),
+      urgent: urgentOn && (needsUrgentCare(p) || ctx.wantsCarryToBed(p)), make: () => pawnJob(ctx, c, p, 'curar', 120),
     }));
 }
 

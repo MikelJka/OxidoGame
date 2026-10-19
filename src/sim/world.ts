@@ -594,10 +594,23 @@ export class World implements JobContext {
       if (c.job) this.dropJob(c);
       if (c.need) this.endNeed(c);
       c.path = [];
-      c.activity = 'idle';
       c.panic = undefined;
+      if (c.carriedBy !== undefined) {
+        // Lo llevan a cuestas a una cama: va con quien le lleva.
+        const carrier = this.colonists.find((k) => k.id === c.carriedBy);
+        if (carrier?.job?.escorting && carrier.job.pid === c.id) {
+          c.pos = { ...carrier.pos };
+          c.tile = { ...carrier.tile };
+          c.activity = 'idle';
+          return;
+        }
+        c.carriedBy = undefined;
+      }
+      // En una cama se recupera como durmiendo (más deprisa que tirado en el suelo).
+      c.activity = this.isBedTile(c.tile.x, c.tile.y) ? 'sleeping' : 'idle';
       return;
     }
+    c.carriedBy = undefined;
     // En pánico: solo corre a refugiarse (y sigue con hambre y sueño, pero no va a por ellos).
     if (c.panic) {
       if (this.needsEnabled) this.decayNeeds(c);
@@ -899,7 +912,7 @@ export class World implements JobContext {
   private startSleeping(c: Colonist): boolean {
     const beds = this.structures
       .all()
-      .filter((s) => s.built && s.def.id === 'cama' && this.reservations.holder(s.x, s.y) === undefined)
+      .filter((s) => s.built && s.def.id === 'cama' && this.reservations.holder(s.x, s.y) === undefined && !this.bedTaken(s.x, s.y, c))
       .sort((a, b) => Math.abs(a.x - c.tile.x) + Math.abs(a.y - c.tile.y) - (Math.abs(b.x - c.tile.x) + Math.abs(b.y - c.tile.y)));
     if (c.job) this.dropJob(c);
     for (const b of beds.slice(0, 4)) {
@@ -998,7 +1011,7 @@ export class World implements JobContext {
 
   /** Busca trabajo (si toca) y lo empieza. true si ahora tiene uno. */
   private tryStartJob(c: Colonist): boolean {
-    const people = this.others.length > 0 || this.colonists.some((k) => k.wounds.some((w) => w.bleeding) || needsDose(k));
+    const people = this.others.length > 0 || this.colonists.some((k) => k.wounds.some((w) => w.bleeding) || needsDose(k) || k.downed);
     if (!people && this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.structures.toMove().length === 0 && this.structures.stations().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0 && !this.structures.all().some((s) => s.built && !!s.def.fuel)) return false;
     if (this.tick < (this.nextJobScan.get(c.id) ?? 0)) return false;
     const plan = findJob(this, c);
@@ -1028,7 +1041,7 @@ export class World implements JobContext {
     }
     if (c.job.escorting) {
       // Suelta a quien llevaba a la celda donde esté.
-      for (const o of this.others) if (o.carriedBy === c.id) o.carriedBy = undefined;
+      for (const o of [...this.others, ...this.colonists]) if (o.carriedBy === c.id) o.carriedBy = undefined;
     }
     c.job = null;
     c.path = [];
@@ -1048,7 +1061,8 @@ export class World implements JobContext {
     if (j.kind === 'curar' || j.kind === 'carcelero') {
       const o = this.pawns().find((k) => k.id === j.pid);
       if (!o) return false;
-      if (j.kind === 'curar') return o.wounds.some((w) => w.bleeding) || (needsDose(o) && this.medicineStack() !== null);
+      if (j.kind === 'curar' && j.escorting) return o.downed && o.carriedBy === c.id;
+      if (j.kind === 'curar') return o.wounds.some((w) => w.bleeding) || (needsDose(o) && this.medicineStack() !== null) || this.wantsCarryToBed(o);
       if (j.escorting) return o.role === 'prisionero';
       if (j.warden === 'capturar') return o.role === 'saqueador' && o.downed && !o.raider?.finish;
       if (j.warden === 'rematar') return o.role === 'saqueador' && o.downed && !!o.raider?.finish;
@@ -1230,6 +1244,44 @@ export class World implements JobContext {
     return !this.others.some((o) => o.role === 'saqueador' && !o.downed && !o.raider?.fleeing);
   }
 
+  /** En la casilla hay una cama (de colono) construida. */
+  isBedTile(x: number, y: number): boolean {
+    const s = this.structures.at(x, y);
+    return !!s && s.built && s.def.id === 'cama';
+  }
+
+  /** La cama la ocupa otro: un herido tumbado en ella o al que llevan a ella. */
+  private bedTaken(x: number, y: number, except?: Colonist): boolean {
+    const bed = this.structures.at(x, y);
+    return this.colonists.some((k) => k !== except && (
+      (k.downed && k.carriedBy === undefined && !!bed && this.structures.at(k.tile.x, k.tile.y) === bed) ||
+      (k.job?.kind === 'curar' && !!k.job.escorting && k.job.x === x && k.job.y === y && k.job.pid !== except?.id)));
+  }
+
+  /** La cama libre más cercana para un herido (sin nadie durmiendo, tumbado ni de camino a ella). */
+  private restBedFor(p: Colonist): Point | null {
+    let best: Point | null = null;
+    let bestD = Infinity;
+    for (const s of this.structures.all()) {
+      if (!s.built || s.def.id !== 'cama' || this.reservations.holder(s.x, s.y) !== undefined || this.bedTaken(s.x, s.y, p)) continue;
+      const d = Math.abs(s.x - p.tile.x) + Math.abs(s.y - p.tile.y);
+      if (d < bestD) {
+        bestD = d;
+        best = { x: s.x, y: s.y };
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Prioridad médica, segunda parte: tras el combate, a un colono en el suelo que no está en una cama
+   * (ni lo llevan) se le cura y se le lleva a la cama libre más cercana. Si no hay cama, se queda en el suelo.
+   */
+  wantsCarryToBed(p: Colonist): boolean {
+    if (p.role !== 'colono' || !p.downed || p.carriedBy !== undefined || this.isBedTile(p.tile.x, p.tile.y)) return false;
+    return this.fightOver() && this.restBedFor(p) !== null;
+  }
+
   /**
    * Prioridad médica tras el combate (pedida por Mikel el 2026-10-19): a cada colono que sangra
    * y no tiene a nadie yendo a curarle, va el colono libre más cercano, aunque deje lo que hace.
@@ -1240,7 +1292,7 @@ export class World implements JobContext {
     const tending = new Set<number>();
     for (const k of this.colonists) if (k.job?.kind === 'curar' && k.job.pid !== undefined) tending.add(k.job.pid);
     for (const p of this.colonists) {
-      if (!needsUrgentCare(p) || tending.has(p.id)) continue;
+      if (!(needsUrgentCare(p) || this.wantsCarryToBed(p)) || tending.has(p.id)) continue;
       let best: Colonist | undefined;
       let bestD = Infinity;
       for (const k of this.colonists) {
@@ -1256,7 +1308,7 @@ export class World implements JobContext {
       const plan = findJob(this, best);
       if (!plan || plan.job.kind !== 'curar' || plan.job.pid === undefined) continue;
       const patient = this.colonists.find((k) => k.id === plan.job.pid);
-      if (!patient || !needsUrgentCare(patient)) continue;
+      if (!patient || !(needsUrgentCare(patient) || this.wantsCarryToBed(patient))) continue;
       if (best.job) {
         this.addLog(`🩹 ${best.name} deja lo que hace para atender a ${patient.name}.`, 'info');
         this.dropJob(best);
@@ -1299,6 +1351,15 @@ export class World implements JobContext {
   private updatePawnJob(c: Colonist): void {
     const j = c.job!;
     const o = this.pawns().find((k) => k.id === j.pid)!;
+    if (j.escorting && j.kind === 'curar') {
+      // Ha llegado a la cama: deja al herido en ella para que se recupere.
+      o.carriedBy = undefined;
+      o.tile = { x: j.x, y: j.y };
+      o.pos = { x: j.x + 0.5, y: j.y + 0.5 };
+      this.addLog(`🛏 ${c.name} deja a ${o.name} en una cama para que se recupere.`, 'bueno');
+      this.dropJob(c);
+      return;
+    }
     if (j.escorting) {
       // Ha llegado a la cama: deja al prisionero en ella.
       o.carriedBy = undefined;
@@ -1335,6 +1396,21 @@ export class World implements JobContext {
       if (pill && dose) {
         const cured = giveDose(o);
         this.addLog(cured ? `💊 ${c.name} trata a ${o.name}: se cura de la infección.` : `💊 ${c.name} da a ${o.name} su medicina contra la infección (falta otra mañana).`, 'bueno');
+      }
+      // Tras el combate, al colono que está en el suelo se le lleva a una cama libre; si no hay, se queda donde está.
+      if (this.wantsCarryToBed(o)) {
+        const bed = this.restBedFor(o);
+        const path = bed ? findPath(this.map, c.tile, bed, 60000) : null;
+        if (bed && path) {
+          o.carriedBy = c.id;
+          j.escorting = true;
+          j.x = bed.x;
+          j.y = bed.y;
+          c.path = path;
+          c.activity = 'toJob';
+          this.addLog(`🛏 ${c.name} lleva a ${o.name} a una cama.`, 'info');
+          return;
+        }
       }
       this.dropJob(c);
       return;

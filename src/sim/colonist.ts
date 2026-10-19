@@ -260,7 +260,7 @@ export function walkSpeedMultiplier(c: Colonist): number {
 }
 
 export function activityLabel(c: Colonist): string {
-  if (c.downed) return 'En el suelo, malherido';
+  if (c.downed) return c.carriedBy !== undefined ? 'Malherido, le llevan a una cama' : c.activity === 'sleeping' ? 'Malherido, recuperándose en la cama' : 'En el suelo, malherido';
   if (c.panic) return c.path.length > 0 ? '😱 En pánico, huyendo a refugiarse' : '😱 En pánico, escondido';
   if (c.need) {
     if (c.activity === 'eating') return c.need.type === 'beber' ? 'Bebiendo' : 'Comiendo';
@@ -277,7 +277,7 @@ export function activityLabel(c: Colonist): string {
     case 'moving': return 'Yendo a una orden';
     case 'toJob':
       if (!c.job) return 'Yendo a trabajar';
-      if (c.job.escorting) return 'Llevando al prisionero a su cama';
+      if (c.job.escorting) return c.job.kind === 'curar' ? 'Llevando al herido a una cama' : 'Llevando al prisionero a su cama';
       if (c.job.haul) return c.job.haul.picked ? (c.job.haul.toBlueprint ? 'Llevando material a un plano' : 'Llevando al almacén') : 'Yendo a recoger';
       return `Yendo a ${WORK_NAMES[c.job.kind].toLowerCase()}`;
     case 'working': {

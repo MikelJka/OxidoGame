@@ -112,3 +112,98 @@ describe('prioridad médica tras los combates', () => {
     expect(bleeds(patient)).toBe(true);
   });
 });
+
+function buildNow(w: W, x: number, y: number, id: string) {
+  w.structures.place(x, y, id);
+  const s = w.structures.at(x, y)!;
+  for (const [r, n] of Object.entries(s.def.cost)) w.structures.deliver(s, r as never, n as number);
+  w.completeStructure(s);
+  return s;
+}
+
+/** Deja a un colono en el suelo con una herida que sangra (sin que se desangre durante el test). */
+function knockDown(c: Colonist): void {
+  hurt(c, 0.3, 'el pecho');
+  c.health = 0.1;
+  c.downed = true;
+}
+
+describe('prioridad médica tras los combates: llevar al herido a una cama', () => {
+  it('tras curarle, lleva al colono caído a la cama libre más cercana', () => {
+    const w = flatWorld(2);
+    const [helper, patient] = w.colonists;
+    w.needsEnabled = false;
+    patient.priorities.curar = 0;
+    place(helper, 10, 10);
+    place(patient, 14, 12);
+    buildNow(w, 20, 18, 'cama');
+    knockDown(patient);
+    runTicks(w, 6000, () => patient.tile.x === 20 && patient.tile.y === 18 && patient.carriedBy === undefined);
+    expect(bleeds(patient)).toBe(false);
+    expect(patient.tile).toEqual({ x: 20, y: 18 });
+    expect(patient.carriedBy).toBeUndefined();
+    w.step();
+    expect(patient.activity).toBe('sleeping');
+    expect(helper.job?.pid).not.toBe(patient.id);
+    expect(w.log.some((e) => e.text.includes('en una cama para que se recupere'))).toBe(true);
+  });
+
+  it('también lleva a la cama a un caído que ya no sangra, aunque quien vaya no sea médico', () => {
+    const w = flatWorld(2);
+    const [helper, patient] = w.colonists;
+    w.needsEnabled = false;
+    helper.priorities.curar = 0;
+    patient.priorities.curar = 0;
+    place(patient, 14, 12);
+    buildNow(w, 6, 6, 'cama');
+    patient.health = 0.1;
+    patient.downed = true;
+    expect(w.wantsCarryToBed(patient)).toBe(true);
+    runTicks(w, 6000, () => patient.tile.x === 6 && patient.tile.y === 6 && patient.carriedBy === undefined);
+    expect(patient.tile).toEqual({ x: 6, y: 6 });
+    expect(w.wantsCarryToBed(patient)).toBe(false);
+  });
+
+  it('sin cama libre, se queda curado en el suelo', () => {
+    const w = flatWorld(2);
+    const [, patient] = w.colonists;
+    w.needsEnabled = false;
+    patient.priorities.curar = 0;
+    place(patient, 14, 12);
+    knockDown(patient);
+    expect(w.wantsCarryToBed(patient)).toBe(false);
+    runTicks(w, 3000, () => !bleeds(patient));
+    expect(bleeds(patient)).toBe(false);
+    for (let i = 0; i < 60; i++) w.step();
+    expect(patient.tile).toEqual({ x: 14, y: 12 });
+    expect(patient.carriedBy).toBeUndefined();
+  });
+
+  it('mientras queda un saqueador en pie, no se le lleva a la cama', () => {
+    const w = flatWorld(2);
+    const [, patient] = w.colonists;
+    w.needsEnabled = false;
+    place(patient, 14, 12);
+    buildNow(w, 6, 6, 'cama');
+    patient.health = 0.1;
+    patient.downed = true;
+    raiderAt(w, 28, 28);
+    expect(w.wantsCarryToBed(patient)).toBe(false);
+  });
+
+  it('quien va a dormir no se mete en la cama donde está tumbado un herido', () => {
+    const w = flatWorld(2, { needs: true });
+    const [sleeper, patient] = w.colonists;
+    buildNow(w, 6, 6, 'cama');
+    place(patient, 6, 6);
+    patient.health = 0.1;
+    patient.downed = true;
+    w.step();
+    expect(patient.activity).toBe('sleeping');
+    expect(w.wantsCarryToBed(patient)).toBe(false);
+    sleeper.needs.rest = 0.05;
+    runTicks(w, 200, () => sleeper.need?.type === 'dormir');
+    expect(sleeper.need?.type).toBe('dormir');
+    expect(sleeper.need?.bed).toBe(false);
+  });
+});
