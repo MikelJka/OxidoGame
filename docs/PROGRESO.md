@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 (13) — El bruto mutante (mutantes, segunda parte)
+
+- Sin incidencias nuevas en 🐞. Siguiente tarea aprobada de la fase 4: el **bruto mutante** (bloque 2 del catálogo).
+- **👹 Bruto mutante**: desde el día 15, cada manada trae 1 bruto por cada 3 perros (una de 6 perros, 2 brutos). Anda ×0,7, tiene el triple de vida de un colono y pega ×3. Como los perros, no tiene líder, no saquea y al caer muere.
+- **Rompe muros y puertas**: si no puede llegar a un colono, se abre paso a golpes por el muro, puerta o portón que le corte el paso (también las puertas automáticas cerradas). Si hay otro camino abierto, por largo que sea, va por él y no rompe nada. Avisa al empezar a romper algo y al romperlo; lo roto desaparece sin dejar material.
+- Los números están en `src/data/creatures.json`. Lo que he puesto yo: cada golpe quita **30 de vida** a un muro (uno de madera, 150, cae en 5 golpes; uno de piedra, 420, en 14), golpea al ritmo normal (como los puños) y no rompe talleres, muebles ni torretas, solo muros, puertas y portones. Dibujo propio: una mole verde jorobada con brazos enormes y un ojo rojo.
+- Modo Dios: nuevo atajo **👹 Manada con brutos** (6 perros y 2 brutos); 🐕 Manada sigue trayendo solo 5 perros.
+- Qué probar: encerrar a un colono con muros de madera, lanzar 👹 Manada con brutos y ver que el bruto rompe un muro y entra (los perros se quedan fuera dando vueltas); con una puerta automática con corriente, ver que también la rompe. En el móvil, tocar al bruto y leer el aviso.
+- Sin npm en el entorno: tests con Bun (397, 7 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Siguiente: los cadáveres (mutantes, tercera parte): quemarlos en una hoguera o dejarlos pudrirse.
+
 ## 2026-10-19 (12) — El buggy de los saqueadores (vehículos, tercera parte)
 
 - Pedido por Mikel en el chat: el buggy de los saqueadores, como el de los colonos pero con otros números y otro dibujo.

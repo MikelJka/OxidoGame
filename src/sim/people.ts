@@ -11,7 +11,7 @@ import type { Colonist } from './colonist';
 import type { Structure } from './structures';
 import { BODY_PARTS, healthLabel, hurt } from './health';
 import { findPath, Point } from './pathfinding';
-import { inBounds, isPassable, isWater, Prop, RADIATION_THRESHOLD, Terrain } from './map';
+import { BLOCK_SOLID, inBounds, isPassable, isWater, Prop, PROP_INFO, RADIATION_THRESHOLD, Terrain, TERRAIN_INFO } from './map';
 import { absorbHit, VEHICLE_SIZE } from './vehicles';
 import { RAIDER_VEHICLE, vehicleDef } from '../data/vehicles';
 import { DIFFICULTIES, RADIO_GAP_DAYS, raidGap, raidSize, TRADER_GAP, WANDERER_GAP } from './storyteller';
@@ -216,14 +216,25 @@ export function makeCreature(w: World, c: Colonist, kind: CreatureId, n: number)
   c.raider = { fleeing: false, leaveAt: w.tick + TICKS_PER_DAY };
 }
 
-/** Llega una manada de `n` perros mutantes por un mismo borde (sin líder: huyen al caer la mitad). */
-export function startPack(w: World, n: number, kind: CreatureId = 'perro_mutante'): Colonist[] {
+/** Brutos que trae una manada de `dogs` perros: desde el día 15, 1 por cada 3 perros. */
+export function packBrutes(w: World, dogs: number): number {
+  return w.day >= CREATURES.bruto_mutante.fromDay ? Math.floor(dogs / PACKS.dogsPerBrute) : 0;
+}
+
+/**
+ * Llega una manada de `n` perros mutantes (y `brutes` brutos) por un mismo borde. Sin líder: huyen
+ * al caer la mitad.
+ */
+export function startPack(w: World, n: number, brutes = packBrutes(w, n)): Colonist[] {
   const out: Colonist[] = [];
   const first = w.makePawn('saqueador');
   if (!w.placeAtEdge(first)) return out;
-  for (let i = 0; i < n; i++) {
+  const kinds: CreatureId[] = [...Array<CreatureId>(n).fill('perro_mutante'), ...Array<CreatureId>(brutes).fill('bruto_mutante')];
+  const count: Partial<Record<CreatureId, number>> = {};
+  kinds.forEach((kind, i) => {
     const c = i === 0 ? first : w.makePawn('saqueador');
-    makeCreature(w, c, kind, i + 1);
+    count[kind] = (count[kind] ?? 0) + 1;
+    makeCreature(w, c, kind, count[kind]!);
     if (i > 0) {
       const spot = nearFree(w, first.tile) ?? first.tile;
       c.tile = { ...spot };
@@ -232,11 +243,58 @@ export function startPack(w: World, n: number, kind: CreatureId = 'perro_mutante
     c.raider!.group = first.id;
     out.push(c);
     w.others.push(c);
-  }
+  });
   w.raidGroups.push({ id: first.id, size: out.length, leaderId: -1, escaped: [], routed: false });
-  const def = CREATURES[kind];
-  w.addLog(`${def.emoji} ¡Una manada de ${n} ${n === 1 ? def.name.toLowerCase() : def.plural}! Son rápidos pero frágiles; no rompen muros ni puertas. Recluta a los colonos (🎖).`, 'malo', 'raid', first.tile);
+  const dog = CREATURES.perro_mutante;
+  const brute = CREATURES.bruto_mutante;
+  const dogs = n === 1 ? dog.name.toLowerCase() : dog.plural;
+  if (brutes > 0) {
+    const big = brutes === 1 ? `un ${brute.name.toLowerCase()}` : `${brutes} ${brute.plural}`;
+    w.addLog(`${dog.emoji}${brute.emoji} ¡Una manada de ${n} ${dogs} y ${big}! El bruto es lento pero muy duro y rompe muros y puertas. Recluta a los colonos (🎖).`, 'malo', 'raid', first.tile);
+  } else {
+    w.addLog(`${dog.emoji} ¡Una manada de ${n} ${dogs}! Son rápidos pero frágiles; no rompen muros ni puertas. Recluta a los colonos (🎖).`, 'malo', 'raid', first.tile);
+  }
   return out;
+}
+
+/**
+ * Coste de abrirse paso a golpes por una casilla para quien rompe muros (el bruto mutante): un muro,
+ * puerta o portón terminado que corte el paso (o una puerta automática cerrada). Infinity si no se
+ * puede: no hay nada que romper o, sin ello, la casilla tampoco se podría pisar (agua, acantilado…).
+ */
+export function breakCost(w: World, x: number, y: number, perHit: number): number {
+  const m = w.map;
+  if (!inBounds(m, x, y) || perHit <= 0) return Infinity;
+  const i = y * m.width + x;
+  if (m.blocked[i] !== BLOCK_SOLID && !w.shutDoors.has(i)) return Infinity;
+  if (!TERRAIN_INFO[m.terrain[i] as Terrain].walkable || PROP_INFO[m.props[i] as Prop].blocks || m.cliff[i]) return Infinity;
+  const s = w.structures.mainAt(x, y);
+  if (!s || !s.built || !BREAKABLE.has(s.def.category)) return Infinity;
+  // Cada golpe cuesta como andar unas casillas: prefiere rodear si el rodeo es corto.
+  return 4 + 3 * Math.ceil(s.hp / perHit);
+}
+
+const BREAKABLE: ReadonlySet<string> = new Set(['muro', 'puerta', 'porton']);
+
+/** Un golpe de quien rompe muros a la construcción que le corta el paso. */
+export function smashStructure(w: World, o: Colonist, s: Structure): void {
+  const def = o.creature ? CREATURES[o.creature] : undefined;
+  if (!def?.breaksWalls) return;
+  o.attackCooldown = ATTACK_COOLDOWN;
+  const dx = s.x + 0.5 - o.pos.x;
+  if (Math.abs(dx) > 0.01) o.facing = dx > 0 ? 1 : -1;
+  if (s.hp >= s.def.hp) w.addLog(`${def.emoji} ¡${o.name} está rompiendo ${articled(s.def.name)}!`, 'malo', 'combate', { x: s.x, y: s.y });
+  s.hp -= def.wallDamage;
+  if (s.hp <= 0) {
+    w.breakStructure(s);
+    w.addLog(`💥 ${o.name} ha roto ${articled(s.def.name)}.`, 'malo', 'combate', { x: s.x, y: s.y });
+  }
+}
+
+/** «el muro de madera», «la puerta de chapa». */
+function articled(name: string): string {
+  const low = name.charAt(0).toLowerCase() + name.slice(1);
+  return /^(puerta|empalizada|muralla|torre|barricada)/i.test(name) ? `la ${low}` : `el ${low}`;
 }
 
 /** Llega una caravana: un comerciante con mercancía y, a veces, esclavos. */
@@ -819,13 +877,29 @@ function updateRaider(w: World, o: Colonist): void {
     return;
   }
   // Recalcula el camino de vez en cuando (el objetivo se mueve).
-  dropShutPath(w, o);
+  const breaker = o.creature && CREATURES[o.creature].breaksWalls ? CREATURES[o.creature] : undefined;
+  if (!breaker) dropShutPath(w, o);
   if (o.path.length === 0 || (w.tick + o.id) % 30 === 0) {
-    const path = findPath(w.map, o.tile, target.tile, 20000, w.shutDoors);
+    let path = findPath(w.map, o.tile, target.tile, 20000, w.shutDoors);
+    // El bruto mutante, si no llega, se abre paso rompiendo muros y puertas.
+    if (!path && breaker) path = findPath(w.map, o.tile, target.tile, 20000, w.shutDoors, (x, y) => breakCost(w, x, y, breaker.wallDamage));
     o.path = path ? path.slice(0, Math.max(1, path.length - 1)) : [];
     if (!path) {
       // No llega (muros): da vueltas un rato y acabará marchándose.
       o.path = [];
+    }
+  }
+  // Lo siguiente del camino es un muro o una puerta cerrada: lo golpea hasta romperlo.
+  if (breaker && o.path.length) {
+    const next = o.path[0];
+    const i = next.y * w.map.width + next.x;
+    if (!isPassable(w.map, next.x, next.y) || w.shutDoors.has(i)) {
+      const s = w.structures.mainAt(next.x, next.y);
+      if (s && breakCost(w, next.x, next.y, breaker.wallDamage) < Infinity) {
+        o.activity = 'working';
+        if (!o.attackCooldown) smashStructure(w, o, s);
+      } else o.path = [];
+      return;
     }
   }
   o.activity = 'moving';

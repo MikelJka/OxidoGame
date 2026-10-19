@@ -1,11 +1,11 @@
 /**
  * Mutantes y criaturas (bloque 2 del catálogo, aprobado por Mikel el 2026-10-18).
- * Los números están en `creatures.json`. Por ahora, los perros mutantes; el bruto y los
- * cadáveres llegan en las partes siguientes.
+ * Los números están en `creatures.json`: perros mutantes y brutos mutantes; los cadáveres llegan
+ * en la parte siguiente.
  */
 import data from './creatures.json';
 
-export type CreatureId = 'perro_mutante';
+export type CreatureId = 'perro_mutante' | 'bruto_mutante';
 
 export interface CreatureDef {
   id: CreatureId;
@@ -22,6 +22,8 @@ export interface CreatureDef {
   damage: number;
   /** Rompe muros y puertas. */
   breaksWalls: boolean;
+  /** Vida que quita cada golpe a un muro o una puerta (0 si no los rompe). */
+  wallDamage: number;
 }
 
 export const CREATURES: Record<CreatureId, CreatureDef> = Object.fromEntries(
@@ -40,4 +42,6 @@ export const PACKS = {
   everyNearRadiation: data.packs.everyNearRadiation,
   radiationRange: data.packs.radiationRange,
   size: [data.packs.size[0], data.packs.size[1]] as const,
+  /** Desde el día del bruto, 1 bruto por cada tantos perros de la manada. */
+  dogsPerBrute: data.packs.dogsPerBrute,
 };

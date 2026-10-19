@@ -105,6 +105,38 @@ function paintCreature(px: (x: number, y: number, w: number, h: number, color: s
       px(14, 8, 1, 1, '#e8e0c8'); // colmillo
       break;
     }
+    case 'bruto_mutante': {
+      // Mole jorobada de piel verde grisácea con bultos, brazos enormes hasta el suelo y un ojo rojo.
+      const skin = '#6f7d52';
+      const dark = '#4a5636';
+      const lump = '#9a8a5a';
+      px(1, 14, 14, 2, 'rgba(0,0,0,0.4)'); // sombra
+      // Piernas cortas y gruesas
+      px(4, 11, 3, 4, outline);
+      px(9, 11, 3, 4, outline);
+      px(5, 12, 1, 2, dark);
+      px(10, 12, 1, 2, dark);
+      // Torso ancho, joroba
+      px(2, 3, 12, 9, outline);
+      px(3, 4, 10, 7, skin);
+      px(3, 9, 10, 2, dark);
+      px(4, 3, 4, 1, outline); // joroba
+      px(5, 5, 2, 1, lump); // bultos
+      px(9, 7, 2, 2, lump);
+      px(4, 8, 1, 1, lump);
+      // Brazos enormes que llegan al suelo, puño derecho más grande
+      px(0, 5, 2, 8, outline);
+      px(1, 6, 1, 6, dark);
+      px(14, 5, 2, 7, outline);
+      px(13, 11, 3, 3, outline);
+      px(14, 12, 1, 1, skin);
+      // Cabeza pequeña hundida entre los hombros
+      px(8, 1, 5, 4, outline);
+      px(9, 2, 3, 2, skin);
+      px(11, 2, 1, 1, '#ff3a2a'); // ojo
+      px(10, 4, 3, 1, '#e8e0c8'); // dientes
+      break;
+    }
   }
 }
 

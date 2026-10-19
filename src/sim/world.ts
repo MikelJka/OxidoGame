@@ -1833,6 +1833,13 @@ export class World implements JobContext {
     this.items.dropAll(s.x, s.y, back);
   }
 
+  /** Una construcción rota a golpes (por el bruto mutante): desaparece sin dejar material. */
+  breakStructure(s: Structure): void {
+    const tiles = this.structures.tilesOf(s);
+    this.structures.demolish(s);
+    for (const t of tiles) this.shutDoors.delete(t.y * this.map.width + t.x);
+  }
+
   /** Marca para demoler (o quita el plano, si no está terminada) cada construcción de un área. */
   demolishArea(r: TileRect): { planos: number; demoler: number } {
     let planos = 0;

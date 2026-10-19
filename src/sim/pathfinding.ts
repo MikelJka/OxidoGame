@@ -24,9 +24,15 @@ function moveCost(map: GameMap, x: number, y: number): number {
  * (vacía si origen == destino) o null si no hay camino. `shut`: casillas (y·ancho + x) cerradas
  * para quien busca el camino (las puertas automáticas para los saqueadores durante un raid).
  */
-export function findPath(map: GameMap, from: Point, to: Point, maxNodes = 20000, shut?: ReadonlySet<number>): Point[] | null {
-  if (!isWalkable(map, to.x, to.y) || !isWalkable(map, from.x, from.y)) return null;
-  if (shut?.has(to.y * map.width + to.x)) return null;
+export function findPath(
+  map: GameMap, from: Point, to: Point, maxNodes = 20000, shut?: ReadonlySet<number>, through?: (x: number, y: number) => number,
+): Point[] | null {
+  // `through`: coste de abrirse paso por una casilla que no se puede pisar (Infinity si no se puede);
+  // lo usan quienes rompen muros y puertas (el bruto mutante). Esas casillas no cuentan como cerradas.
+  const open = (x: number, y: number): boolean => isWalkable(map, x, y) || (!!through && through(x, y) < Infinity);
+  const closedTo = (i: number): boolean => !!shut?.has(i) && !(through && through(i % map.width, Math.floor(i / map.width)) < Infinity);
+  if (!isWalkable(map, to.x, to.y) || !open(from.x, from.y)) return null;
+  if (closedTo(to.y * map.width + to.x)) return null;
   if (from.x === to.x && from.y === to.y) return [];
 
   const w = map.width;
@@ -54,13 +60,15 @@ export function findPath(map: GameMap, from: Point, to: Point, maxNodes = 20000,
     for (const [dx, dy, step] of DIRS) {
       const nx = cx + dx;
       const ny = cy + dy;
-      if (!isWalkable(map, nx, ny)) continue;
+      if (!open(nx, ny)) continue;
       // Sin cortar esquinas: en diagonal, ambas casillas laterales deben ser transitables.
+      // (Quien rompe muros no pasa en diagonal entre dos: tiene que romper uno.)
       if (dx !== 0 && dy !== 0 && (!isWalkable(map, cx + dx, cy) || !isWalkable(map, cx, cy + dy))) continue;
       const n = ny * w + nx;
-      if (shut && (shut.has(n) || (dx !== 0 && dy !== 0 && (shut.has(cy * w + cx + dx) || shut.has((cy + dy) * w + cx))))) continue;
+      if (shut && (closedTo(n) || (dx !== 0 && dy !== 0 && (shut.has(cy * w + cx + dx) || shut.has((cy + dy) * w + cx))))) continue;
       if (closed[n]) continue;
-      const cost = g[current] + step * moveCost(map, nx, ny);
+      const base = isWalkable(map, nx, ny) && !shut?.has(n) ? moveCost(map, nx, ny) : through!(nx, ny);
+      const cost = g[current] + step * base;
       if (cost < g[n]) {
         g[n] = cost;
         parent[n] = current;
