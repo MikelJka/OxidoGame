@@ -28,6 +28,8 @@ import { CROPS } from './data/crops';
 import { recipesFor } from './data/recipes';
 import type { ResourceId } from './data/resources';
 import { billPending, type Structure } from './sim/structures';
+import { occupant, VEHICLE_SEATS, type Vehicle, type VehicleSeat } from './sim/vehicles';
+import { vehicleDef } from './data/vehicles';
 import type { GrowZone } from './sim/farming';
 import { BUILDING_CATEGORY_NAMES, BuildingCategory, BUILDINGS, buildingDef } from './data/buildings';
 import { STORAGE_PRIORITIES, STORAGE_PRIORITY_NAMES, StorageZone } from './sim/zones';
@@ -758,6 +760,69 @@ $('pc-unmove').addEventListener('click', () => {
   if (selectedPiece) scene().world.cancelMoveStructure(selectedPiece.id);
   renderPiece();
 });
+// --- Vehículos: panel con conductor, tirador y ⛽ -----------------------------------
+const vehiclePanel = $('vehicle-panel');
+let selectedVehicle: Vehicle | null = null;
+const seatSelects: Record<VehicleSeat, HTMLSelectElement> = {
+  conductor: $<HTMLSelectElement>('vh-conductor'),
+  tirador: $<HTMLSelectElement>('vh-tirador'),
+};
+function renderVehicle(): void {
+  const v = selectedVehicle;
+  vehiclePanel.hidden = !v;
+  if (!v) return;
+  const w = scene().world;
+  const def = vehicleDef(v.def)!;
+  const driver = occupant(w, v, 'conductor');
+  $('vh-name').textContent = `🚙 ${def.name}`;
+  const state = v.path.length > 0 ? 'en marcha' : v.fuel <= 0 ? 'sin combustible' : 'parado';
+  $('vh-status').textContent = `⛽ ${Math.floor(v.fuel)}/${def.fuelCapacity} · ${state} · blindaje −${Math.round(def.armor * 100)} %`;
+  // Un desplegable por asiento: nadie o un colono (los que pueden).
+  const people = w.colonists.filter((c) => !c.downed);
+  const key = people.map((c) => `${c.id}:${c.name}`).join('|');
+  for (const seat of VEHICLE_SEATS) {
+    const sel = seatSelects[seat];
+    if (sel.dataset.key !== key) {
+      sel.dataset.key = key;
+      const none = new Option('— Nadie —', '');
+      sel.replaceChildren(none, ...people.map((c) => new Option(`${c.name} «${c.nickname}»`, String(c.id))));
+    }
+    const who = occupant(w, v, seat);
+    if (document.activeElement !== sel) sel.value = who ? String(who.id) : '';
+  }
+  $<HTMLButtonElement>('vh-empty').disabled = !w.colonists.some((c) => c.vehicle?.id === v.id);
+  $('vh-hint').textContent = !driver
+    ? 'Elige un conductor: irá andando y se subirá.'
+    : !driver.vehicle?.boarded
+      ? `${driver.name} va hacia el vehículo…`
+      : v.fuel <= 0
+        ? 'Sin ⛽: apárcalo junto a un montón de ⛽ (a 2 casillas) y repostará solo.'
+        : 'Toca el suelo para llevarlo allí. Atropella a los saqueadores que pilla.';
+}
+game.events.on('vehicle-select', (v: Vehicle | null) => {
+  selectedVehicle = v;
+  renderVehicle();
+});
+for (const seat of VEHICLE_SEATS) {
+  seatSelects[seat].addEventListener('change', () => {
+    const v = selectedVehicle;
+    if (!v) return;
+    const w = scene().world;
+    const id = Number(seatSelects[seat].value);
+    if (!seatSelects[seat].value) {
+      const who = occupant(w, v, seat);
+      if (who) w.leaveVehicle(who);
+    } else if (!w.boardVehicle(v.id, id, seat)) showToast('No puede subirse ahora');
+    seatSelects[seat].blur();
+    renderVehicle();
+  });
+}
+$('vh-empty').addEventListener('click', () => {
+  if (selectedVehicle) scene().world.emptyVehicle(selectedVehicle.id);
+  renderVehicle();
+});
+$('vh-close').addEventListener('click', () => scene().selectVehicle(null));
+
 let lastStation: Structure | null = null;
 game.events.on('station-select', (s: Structure | null) => {
   stationPanel.hidden = !s;
@@ -997,6 +1062,7 @@ window.addEventListener('keydown', (e) => {
   else if (!farmPanel.hidden) s.selectFarm(null);
   else if (!stationPanel.hidden) s.selectStation(null);
   else if (!piecePanel.hidden) s.selectPiece(null);
+  else if (!vehiclePanel.hidden) s.selectVehicle(null);
 });
 
 // --- Información de casilla y avisos -----------------------------------------

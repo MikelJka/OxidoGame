@@ -13,6 +13,7 @@ import { GameMap, isPassable } from './map';
 import type { StoragePriority } from './zones';
 import { ALERT_KINDS, GameSpeed, LogEntry, TICKS_PER_DAY, World } from './world';
 import { initialSchedule, makeDifficulty, WANDERER_GAP } from './storyteller';
+import { vehicleDef } from '../data/vehicles';
 import { isWeapon } from '../data/weapons';
 import { ARMORS, isArmor } from '../data/armor';
 
@@ -65,6 +66,9 @@ export interface SaveData {
   offer?: { pawn: SavedColonist; until: number } | null;
   schedule?: { nextWanderer: number; nextRaid: number; nextTrader: number; nextRadio?: number };
   nextPawnId?: number;
+  /** Vehículos (desde el buggy, 2026-10-19). Se guardan parados. */
+  vehicles?: { id: number; def: string; x: number; y: number; fuel: number; hp: number; facing?: number }[];
+  nextVehicleId?: number;
   /** Raids, caravanas y supervivientes activados (por defecto, sí). */
   events?: boolean;
   /** Dureza y días sin raids (desde que existe; las anteriores, Normal). */
@@ -93,6 +97,8 @@ interface SavedColonist {
   downed?: boolean;
   /** Guarda cama malherido tras un combate (desde 2026-10-19). */
   resting?: boolean;
+  /** Asiento en un vehículo (desde el buggy). */
+  vehicle?: { id: number; seat: string; boarded: boolean };
   role?: string;
   prisoner?: { resistance: number; mode: string; lastTalk: number };
   raider?: { fleeing: boolean; leaveAt: number; group?: number; leader?: boolean; finish?: boolean };
@@ -140,6 +146,7 @@ function savePawn(c: Colonist): SavedColonist {
     infection: c.infection ? { ...c.infection } : undefined,
     downed: c.downed,
     ...(c.resting ? { resting: true } : {}),
+    ...(c.vehicle ? { vehicle: { ...c.vehicle } } : {}),
     role: c.role,
     prisoner: c.prisoner ? { ...c.prisoner } : undefined,
     raider: c.raider ? { ...c.raider } : undefined,
@@ -201,6 +208,8 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     offer: world.offer ? { pawn: savePawn(world.offer.pawn), until: world.offer.until } : null,
     schedule: { ...world.schedule },
     nextPawnId: world.nextPawnId,
+    vehicles: world.vehicles.map((v) => ({ id: v.id, def: v.def, x: v.x, y: v.y, fuel: v.fuel, hp: v.hp, facing: v.facing })),
+    nextVehicleId: world.nextVehicleId,
     events: world.eventsEnabled,
     difficulty: { ...world.difficulty },
     items: world.items.list().map((s) => ({ x: s.x, y: s.y, resource: s.resource, amount: s.amount })),
@@ -341,6 +350,9 @@ function restoreColonist(s: SavedColonist): Colonist {
       : undefined,
     downed: !!s.downed,
     ...(s.resting ? { resting: true } : {}),
+    ...(s.vehicle && (s.vehicle.seat === 'conductor' || s.vehicle.seat === 'tirador')
+      ? { vehicle: { id: num(s.vehicle.id, 0), seat: s.vehicle.seat, boarded: !!s.vehicle.boarded } }
+      : {}),
     role: (['colono', 'saqueador', 'prisionero', 'comerciante'] as const).find((r) => r === s.role) ?? 'colono',
     prisoner: s.prisoner
       ? {
@@ -483,6 +495,19 @@ export function loadWorld(input: string | unknown): World {
   world.bringHomeStranded(); // #12: supervivientes que se quedaron en la esquina (0, 0)
   world.difficulty = makeDifficulty(d.difficulty);
   world.nextPawnId = Math.max(num(d.nextPawnId, 1), ...ids.map((i) => i + 1), 1);
+  for (const v of d.vehicles ?? []) {
+    const def = vehicleDef(String(v.def));
+    if (!def) continue;
+    const x = Math.round(num(v.x, 0));
+    const y = Math.round(num(v.y, 0));
+    world.vehicles.push({
+      id: num(v.id, 0), def: def.id, x, y, pos: { x, y }, path: [],
+      fuel: Math.max(0, Math.min(def.fuelCapacity, num(v.fuel, 0))), hp: Math.max(1, Math.min(def.hp, num(v.hp, def.hp))), facing: v.facing === -1 ? -1 : 1,
+    });
+  }
+  world.nextVehicleId = Math.max(num(d.nextVehicleId, 1), ...world.vehicles.map((v) => v.id + 1), 1);
+  // Asientos de vehículos que ya no existen: fuera.
+  for (const c of world.colonists) if (c.vehicle && !world.vehicle(c.vehicle.id)) delete c.vehicle;
   for (const it of d.items ?? []) {
     if (!isResource(it.resource)) continue;
     // En su casilla; si ya no cabe ahí (p. ej. ahora hay un muro), al lado.

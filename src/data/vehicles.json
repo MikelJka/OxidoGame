@@ -1,0 +1,16 @@
+[
+  {
+    "id": "buggy",
+    "name": "Buggy blindado",
+    "_": "Elegido por Mikel el 2026-10-18: conductor y tirador, armadura −40 %, el doble de rápido que un colono, 1 ⛽ cada hora en marcha y atropella. El depósito (10), la vida (600) y el daño del atropello los ha puesto la sesión.",
+    "speed": 2,
+    "fuelPerHour": 1,
+    "fuelCapacity": 10,
+    "armor": 0.4,
+    "hp": 600,
+    "runOverDamage": 0.35,
+    "wreck": {
+      "chatarra": 20
+    }
+  }
+]

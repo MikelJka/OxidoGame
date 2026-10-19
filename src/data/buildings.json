@@ -1126,5 +1126,29 @@
       "face": "#4a4a42",
       "dark": "#22221e"
     }
+  },
+  {
+    "id": "buggy",
+    "name": "Buggy blindado",
+    "category": "vehiculo",
+    "vehicle": "buggy",
+    "cost": {
+      "chatarra": 40,
+      "metal": 10,
+      "componentes": 6
+    },
+    "work": 1200,
+    "hp": 600,
+    "blocks": true,
+    "height": 1,
+    "colors": {
+      "top": "#7a6a4a",
+      "face": "#4a4032",
+      "dark": "#22201a"
+    },
+    "size": [
+      2,
+      2
+    ]
   }
 ]

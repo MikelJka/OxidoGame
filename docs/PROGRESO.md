@@ -2,7 +2,7 @@
 
 Diario de sesiones, la más reciente arriba.
 
-## 2026-10-19 (9) — Medicina cerrada, curarse solo, guardar cama y radio de llamada
+## 2026-10-19 (9) — Medicina cerrada, radio de llamada y buggy blindado
 
 - Sesión larga pedida por Mikel, que me pidió tomar la decisión más lógica para cerrar la medicina. Decidido: **curarse uno mismo, opción A**; **el herido en pie, opción C**.
 - **Curarse uno mismo**: tras el combate, si nadie libre puede atender a un colono que sangra y sigue en pie, se cura él mismo («🩹 Nadie puede atender a …: se cura él mismo»). Sus heridas se cierran a la mitad de velocidad y se infectan más (12 %; 4 % con 💊). El que está en el suelo no puede.
@@ -11,8 +11,11 @@ Diario de sesiones, la más reciente arriba.
 - **📻 Radio de llamada** (#21 C; 🏗 → Electricidad, 🔩20 ⚙️4, 100 W): con corriente, un superviviente más cada 3 días; si se queda sin corriente, el plazo empieza de nuevo.
 - Lo que he puesto yo: la mesa tarda 500 en construirse y aguanta 150; la radio, 500 y 120; la hierba vale 3; trabajo de curarse solo, el mismo que si te cura otro (120).
 - Qué probar: con 🪄 lanzar un raid con un solo colono y ver que se cura él mismo; dejar a uno por debajo del 50 % y ver que se acuesta. Sembrar 🌿, construir la mesa y darle una orden de 💊. Construir la radio con un generador y esperar 3 días. En el móvil, que el menú 🏗 y las fichas se lean en 380 px.
-- Sin npm en el entorno: tests con Bun (347, 17 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
-- Siguiente: el buggy de los colonos (vehículos, segunda parte).
+- Sin npm en el entorno: tests con Bun (359, 29 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- **🚙 Buggy blindado de los colonos** (vehículos, segunda parte; 🏗 → Vehículos, 🔩40 🔗10 ⚙️6, 2×2): al terminarlo sale a rodar. Al tocarlo se abre su panel: se elige **conductor** y **tirador** (van andando y se suben); con el panel abierto, tocar el suelo lo lleva allí (con ratón, clic derecho). Corre el doble que un colono, gasta 1 ⛽ por hora en marcha, **atropella** a los saqueadores (los derriba, no los mata), el tirador dispara desde dentro y los de dentro reciben un 40 % menos de daño. Sale sin combustible: **reposta solo** aparcado a 2 casillas o menos de un montón de ⛽. Quien va dentro se baja para comer o beber, si cae o si se le manda a pie.
+- Lo que he puesto yo en el buggy: depósito de 10 ⛽, 600 de vida (aún no se usa), daño del atropello (35 % de salud), 1200 de trabajo para construirlo, repostar solo junto a un montón de ⛽. En la vista 3D todavía no se dibuja.
+- Qué probar (buggy): con 🪄 dar 🔩🔗⚙️, construirlo, elegir conductor y tirador en su panel, destilar ⛽ y dejarlo al lado, llevarlo por el mapa y lanzar un raid para atropellar. En el móvil, que el panel y los desplegables se usen bien en 380 px.
+- Siguiente: el buggy de los saqueadores (vehículos, tercera parte).
 
 ## 2026-10-19 (8) — Más supervivientes: el primero el día 2 y luego cada 2-4 días (#21, primera parte)
 

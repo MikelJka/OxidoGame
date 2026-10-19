@@ -2,8 +2,9 @@
 import raw from './buildings.json';
 import { RESOURCES, ResourceId } from './resources';
 import { SKILLS, type Skill } from './colonists';
+import { vehicleDef } from './vehicles';
 
-export type BuildingCategory = 'muro' | 'puerta' | 'porton' | 'torre' | 'suelo' | 'defensa' | 'mueble' | 'taller' | 'agua' | 'electricidad';
+export type BuildingCategory = 'muro' | 'puerta' | 'porton' | 'torre' | 'suelo' | 'defensa' | 'mueble' | 'taller' | 'agua' | 'electricidad' | 'vehiculo';
 
 export const BUILDING_CATEGORY_NAMES: Record<BuildingCategory, string> = {
   muro: 'Muros',
@@ -16,6 +17,7 @@ export const BUILDING_CATEGORY_NAMES: Record<BuildingCategory, string> = {
   taller: 'Talleres',
   agua: 'Agua',
   electricidad: 'Electricidad',
+  vehiculo: 'Vehículos',
 };
 
 export interface BuildingDef {
@@ -70,6 +72,8 @@ export interface BuildingDef {
   light?: number;
   /** Casillas de vista desde lo alto (torres; servirá para ver venir a los enemigos). */
   sight?: number;
+  /** Vehículo: al terminarlo deja de ser una construcción y pasa a ser este vehículo (de `vehicles.json`). */
+  vehicle?: string;
   /** Taller cuyo trabajo acelera otra habilidad que la de fabricar (mesa de boticario: Medicina). */
   workSkill?: Skill;
   /** Colores del dibujo: cara de arriba, frente y sombra. */
@@ -111,6 +115,7 @@ export function validateBuilding(d: unknown): BuildingDef {
     if (!(t.damage > 0) || !(t.cooldown > 0) || !Number.isInteger(t.reach) || t.reach < 2 || t.reach > 20) fail('torreta: daño, ritmo o alcance no válidos');
   }
   if (b.movable !== undefined && (typeof b.movable !== 'boolean' || !['mueble', 'taller', 'electricidad'].includes(b.category))) fail('solo se mueven muebles, talleres y lámparas');
+  if ((b.category === 'vehiculo') !== (b.vehicle !== undefined) || (b.vehicle !== undefined && !vehicleDef(b.vehicle))) fail('un vehículo necesita su definición en vehicles.json');
   if (b.workSkill !== undefined && (b.category !== 'taller' || !SKILLS.includes(b.workSkill))) fail(`habilidad de taller desconocida ${b.workSkill}`);
   if (!b.colors?.top || !b.colors.face || !b.colors.dark) fail('faltan colores');
   return b;

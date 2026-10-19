@@ -732,6 +732,10 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 .ps-seg .prio-4.active { border-color: #d9534f; color: #e8826a; }
 .ps-seg button.active { background: #3a2216; font-weight: bold; }
 .ps-quick { display: flex; gap: 6px; }
+/* Vehículo: un desplegable por asiento. */
+.vh-seat { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.vh-seat select { font: inherit; font-size: 13px; color: var(--text); background: var(--btn); border: 1px solid var(--border); border-radius: 3px; min-height: 40px; padding: 2px 6px; width: 100%; }
+#vh-hint { margin-top: 8px; }
 .ps-quick button { flex: 1; min-height: 40px; font-size: 12px; border-radius: 14px; }
 .ps-quick button:disabled { opacity: 0.4; }
 /* Filtro: una baldosa por recurso, marcada o no. */

@@ -19,6 +19,8 @@ import { AMMO_CARRY, AMMO_LOW, isGear, isWeapon, WEAPON_IDS, WEAPONS, weaponScor
 import { ARMOR_IDS, ARMORS, isArmor } from '../data/armor';
 import { FINISH_MOOD } from '../data/morale';
 import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
+import { anchorFor, besideTiles, defOf, nextTo, occupant, updateVehicle, Vehicle, vehicleCenter, vehiclePath, VehicleSeat, covers } from './vehicles';
+import { vehicleDef } from '../data/vehicles';
 import { TRAPPED_TILES } from './diagnostics';
 import {
   BAD_WATER_TICKS_DAYS, DEHYDRATED, DRINK_TICKS, EAT_TICKS, EXHAUSTED, foodDecay, foodPreference, HUNGRY, isFood, isRawFood, NUTRITION, restDecay,
@@ -123,6 +125,12 @@ export class World implements JobContext {
   difficulty: Difficulty;
   /** Siguiente id para una persona nueva. */
   nextPawnId = 1;
+  /** Vehículos de la colonia (el buggy…). */
+  readonly vehicles: Vehicle[] = [];
+  /** Siguiente id para un vehículo nuevo. */
+  nextVehicleId = 1;
+  /** Último tick en que un vehículo atropelló a cada saqueador (para no golpearle en cada paso). */
+  readonly runOverAt = new Map<number, number>();
   /** Montones de recursos en el suelo. */
   readonly items: GroundItems;
   /** Casillas marcadas para talar, picar o saquear. */
@@ -320,6 +328,7 @@ export class World implements JobContext {
     // Zonas por despejar: lo que ya está libre se suma a su almacén o huerto.
     if (this.tick % TICKS_PER_SECOND === 0 && this.clearing.count > 0) this.updateClearing();
     for (const c of this.colonists) this.updateColonist(c);
+    for (const v of this.vehicles) updateVehicle(this, v, TICKS_PER_SECOND, TICKS_PER_HOUR, BASE_WALK_SPEED);
     updateOthers(this);
     updateTurrets(this);
   }
@@ -511,6 +520,8 @@ export class World implements JobContext {
   orderMove(colonistId: number, target: Point): boolean {
     const c = this.colonists.find((k) => k.id === colonistId);
     if (!c || c.panic) return false; // en pánico no obedece
+    // Mandarlo a pie a un sitio le hace bajarse del vehículo.
+    if (c.vehicle) this.leaveVehicle(c);
     const path = findPath(this.map, c.tile, target);
     if (!path) return false;
     this.dropJob(c); // la orden directa manda sobre el trabajo
@@ -589,6 +600,7 @@ export class World implements JobContext {
   }
 
   private updateColonist(c: Colonist): void {
+    if (c.vehicle && this.updateVehicleSeat(c)) return;
     if (c.downed) {
       // En el suelo: no hace nada hasta recuperarse (o hasta que lo curen).
       c.gearTask = undefined;
@@ -1331,7 +1343,7 @@ export class World implements JobContext {
       let best: Colonist | undefined;
       let bestD = Infinity;
       for (const k of this.colonists) {
-        if (k === p || k.drafted || k.downed || k.panic || k.need || k.job?.kind === 'curar') continue;
+        if (k === p || k.drafted || k.downed || k.panic || k.need || k.vehicle || k.job?.kind === 'curar') continue;
         const d = Math.abs(k.tile.x - p.tile.x) + Math.abs(k.tile.y - p.tile.y);
         if (d < bestD) {
           bestD = d;
@@ -1357,7 +1369,7 @@ export class World implements JobContext {
     }
     // Sin nadie libre que le atienda, el herido que sigue en pie se cura él mismo (peor que si le cura otro).
     for (const p of this.colonists) {
-      if (!needsUrgentCare(p) || tending.has(p.id) || p.downed || p.drafted || p.panic || p.need) continue;
+      if (!needsUrgentCare(p) || tending.has(p.id) || p.downed || p.drafted || p.panic || p.need || p.vehicle) continue;
       if (p.job) this.dropJob(p);
       p.gearTask = undefined;
       p.job = { kind: 'curar', x: p.tile.x, y: p.tile.y, pid: p.id, stand: { ...p.tile }, progress: 0, work: SELF_CARE_WORK };
@@ -1938,7 +1950,140 @@ export class World implements JobContext {
   /** Termina una construcción y aparta lo que quede debajo (montones, colonos). */
   completeStructure(s: Structure): void {
     this.structures.complete(s);
+    // Un vehículo terminado deja de ser una construcción: sale a rodar desde su sitio.
+    if (s.def.vehicle && vehicleDef(s.def.vehicle)) {
+      this.structures.demolish(s);
+      this.addVehicle(s.def.vehicle, s.x, s.y);
+      this.addLog(`🚙 ${s.def.name} terminado. Tócalo para elegir conductor y tirador.`, 'bueno');
+      return;
+    }
     this.settleStructure(s);
+  }
+
+  // --- Vehículos ----------------------------------------------------------------
+
+  /** Pone un vehículo nuevo con la esquina en (x, y) (sin combustible). */
+  addVehicle(def: string, x: number, y: number): Vehicle {
+    const d = vehicleDef(def)!;
+    const v: Vehicle = { id: this.nextVehicleId++, def, x, y, pos: { x, y }, path: [], fuel: 0, hp: d.hp, facing: 1 };
+    this.vehicles.push(v);
+    return v;
+  }
+
+  vehicle(id: number): Vehicle | undefined {
+    return this.vehicles.find((v) => v.id === id);
+  }
+
+  /** Vehículo que ocupa la casilla (x, y). */
+  vehicleAt(x: number, y: number): Vehicle | undefined {
+    return this.vehicles.find((v) => covers(v, x, y));
+  }
+
+  /** Coste de pasar por una casilla (1 normal; más en barro, agua poco profunda…). */
+  moveCostAt(x: number, y: number): number {
+    return this.terrainCost({ x, y });
+  }
+
+  /**
+   * Un colono va a un asiento de un vehículo (conductor o tirador). Si había otro, se baja; si él iba
+   * en otro sitio, lo deja. Va andando hasta el vehículo y se sube al llegar.
+   */
+  boardVehicle(vehicleId: number, colonistId: number, seat: VehicleSeat): boolean {
+    const v = this.vehicle(vehicleId);
+    const c = this.colonists.find((k) => k.id === colonistId);
+    if (!v || !c || c.downed || c.panic) return false;
+    if (c.vehicle?.id === v.id && c.vehicle.seat === seat) return true;
+    const other = occupant(this, v, seat);
+    if (other) this.leaveVehicle(other);
+    if (c.vehicle) this.leaveVehicle(c);
+    this.dropJob(c);
+    c.gearTask = undefined;
+    if (c.need) this.endNeed(c);
+    c.path = [];
+    c.vehicle = { id: v.id, seat, boarded: false };
+    return true;
+  }
+
+  /** Se baja (o deja de ir hacia) el vehículo; si iba dentro, queda en una casilla libre pegada a él. */
+  leaveVehicle(c: Colonist): void {
+    const seat = c.vehicle;
+    if (!seat) return;
+    delete c.vehicle;
+    const v = this.vehicle(seat.id);
+    if (!seat.boarded || !v) return;
+    const at = vehicleCenter(v);
+    const spots = besideTiles(this, v).sort((a, b) => Math.hypot(a.x + 0.5 - at.x, a.y + 0.5 - at.y) - Math.hypot(b.x + 0.5 - at.x, b.y + 0.5 - at.y));
+    const t = spots[0] ?? { x: v.x, y: v.y };
+    c.tile = { x: t.x, y: t.y };
+    c.pos = { x: t.x + 0.5, y: t.y + 0.5 };
+    c.path = [];
+    c.activity = 'idle';
+    c.waitTicks = 10;
+    // Sin conductor, el vehículo se para.
+    if (seat.seat === 'conductor') v.path = [];
+  }
+
+  /** Se bajan todos los del vehículo. */
+  emptyVehicle(vehicleId: number): void {
+    for (const c of [...this.colonists]) if (c.vehicle?.id === vehicleId) this.leaveVehicle(c);
+  }
+
+  /**
+   * Manda el vehículo a la casilla tocada (lo deja encima). Hace falta conductor sentado y ⛽.
+   * Devuelve qué ha pasado, para el aviso en pantalla.
+   */
+  orderVehicleMove(vehicleId: number, target: Point): 'ok' | 'sin-conductor' | 'sin-combustible' | 'sin-camino' {
+    const v = this.vehicle(vehicleId);
+    if (!v) return 'sin-camino';
+    const driver = occupant(this, v, 'conductor');
+    if (!driver?.vehicle?.boarded) return 'sin-conductor';
+    if (v.fuel <= 0) return 'sin-combustible';
+    const anchor = anchorFor(this, target);
+    const path = anchor ? vehiclePath(this, { x: v.x, y: v.y }, anchor) : null;
+    if (!path) return 'sin-camino';
+    v.path = path;
+    return 'ok';
+  }
+
+  /**
+   * El colono que tiene asiento en un vehículo: va hacia él y se sube, o va dentro. Devuelve true si
+   * esto ocupa su turno. Se baja si cae, entra en pánico o tiene que ir a comer o beber ya.
+   */
+  private updateVehicleSeat(c: Colonist): boolean {
+    const seat = c.vehicle!;
+    const v = this.vehicle(seat.id);
+    if (!v || c.downed || c.panic) {
+      this.leaveVehicle(c);
+      return false;
+    }
+    if (seat.boarded) {
+      if (!this.needsEnabled) return true;
+      this.decayNeeds(c);
+      if (c.needs.food < STARVING || c.needs.water < DEHYDRATED) {
+        this.addLog(`🚙 ${c.name} se baja del ${defOf(v).name.toLowerCase()} para ${c.needs.food < STARVING ? 'comer' : 'beber'}.`, 'info');
+        this.leaveVehicle(c);
+        return false;
+      }
+      return true;
+    }
+    if (nextTo(v, c.tile)) {
+      seat.boarded = true;
+      c.path = [];
+      this.addLog(`🚙 ${c.name} se sube al ${defOf(v).name.toLowerCase()} de ${seat.seat}.`, 'info');
+      return true;
+    }
+    if (c.path.length === 0) {
+      const route = this.routeTo(c, besideTiles(this, v).slice(0, 6));
+      if (!route || route.path.length === 0) {
+        this.addLog(`🚙 ${c.name} no puede llegar al ${defOf(v).name.toLowerCase()}.`, 'malo');
+        delete c.vehicle;
+        return false;
+      }
+      c.path = route.path;
+    }
+    c.activity = 'moving';
+    this.moveAlongPath(c);
+    return true;
   }
 
   /**

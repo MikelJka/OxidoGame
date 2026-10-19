@@ -156,6 +156,8 @@ export interface Colonist {
   gearTask?: { x: number; y: number; resource: ResourceId };
   /** En pánico hasta ese tick: corre a refugiarse y no obedece ni trabaja. */
   panic?: { until: number };
+  /** Sitio en un vehículo: conductor o tirador (`boarded`: ya va dentro; si no, va hacia él). */
+  vehicle?: { id: number; seat: 'conductor' | 'tirador'; boarded: boolean };
   /** Postura de combate del reclutado (sin ella, va a por los enemigos cercanos). */
   stance?: Stance;
   /** Con la postura «atacar»: id del saqueador al que va. */
@@ -262,6 +264,10 @@ export function walkSpeedMultiplier(c: Colonist): number {
 }
 
 export function activityLabel(c: Colonist): string {
+  if (c.vehicle && !c.downed) {
+    const seat = c.vehicle.seat === 'conductor' ? 'conductor' : 'tirador';
+    return c.vehicle.boarded ? `🚙 En el vehículo, de ${seat}` : `🚙 Yendo al vehículo (${seat})`;
+  }
   if (c.downed) return c.carriedBy !== undefined ? 'Malherido, le llevan a una cama' : c.activity === 'sleeping' ? 'Malherido, recuperándose en la cama' : 'En el suelo, malherido';
   if (c.panic) return c.path.length > 0 ? '😱 En pánico, huyendo a refugiarse' : '😱 En pánico, escondido';
   if (c.need) {

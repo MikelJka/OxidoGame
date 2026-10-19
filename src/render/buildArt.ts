@@ -1,6 +1,7 @@
 // Dibujo pixel art de construcciones (muros y puertas) sobre un lienzo 2D.
 // La pieza tiene la cara de arriba (TILE × tileH) y debajo el frente (TILE × wallH).
 import type { BuildingDef } from '../data/buildings';
+import { paintVehicle } from './vehicleArt';
 
 /** Altura del frente de un muro para una elevación de nivel dada (px). */
 export function wallHeight(lift: number): number {
@@ -17,6 +18,11 @@ export function faceHeight(def: BuildingDef, lift: number): number {
  * de un piso de muro (la construcción mide `def.height` pisos).
  */
 export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, unitH: number): void {
+  // Vehículos (el plano del buggy): su propio dibujo.
+  if (def.vehicle) {
+    paintVehicle(ctx, def.vehicle, tile, tileH + unitH * def.height);
+    return;
+  }
   const { top, face, dark } = def.colors;
   const wallH = unitH * def.height;
   const px = (x: number, y: number, w: number, h: number, color: string) => {

@@ -17,6 +17,8 @@ import { fertilityAt, plantStage } from '../sim/farming';
 import { TERRAIN_JOB_NAMES, terrainBlocker, TerrainJob } from '../sim/terrain';
 import { CropDef } from '../data/crops';
 import { drawBuilding, faceHeight, wallHeight } from './buildArt';
+import { paintVehicle, VEHICLE_H, VEHICLE_W } from './vehicleArt';
+import { defOf, Vehicle } from '../sim/vehicles';
 import { colonistLookKey, COLONIST_SIZE, CROP_SIZE, ITEM_H, ITEM_W, paintColonist, paintCrop, paintItem } from './spriteArt';
 import { canvasPropRasterizer, paintGround, PropRasterizer, TILE } from './mapArt';
 import { LIFT, liftOf, occludedFraction, pickTile, rowY, setTilt, TILE_H, tiltIndex, TILTS, TOP_MARGIN } from './projection';
@@ -155,6 +157,10 @@ export class WorldScene extends Phaser.Scene {
   private structSprites: Phaser.GameObjects.Image[] = [];
   private structVersion = -1;
   private carrySprites = new Map<number, Phaser.GameObjects.Image>();
+  /** Dibujo de cada vehículo, por id. */
+  private vehicleSprites = new Map<number, Phaser.GameObjects.Image>();
+  /** Vehículo cuyo panel está abierto: tocar el suelo lo manda allí. */
+  selectedVehicleId: number | null = null;
   /** Almacén cuyo panel está abierto (se resalta). */
   selectedZoneId: number | null = null;
   /** Huerto cuyo panel está abierto. */
@@ -195,6 +201,8 @@ export class WorldScene extends Phaser.Scene {
     this.structVersion = -1;
     this.structSprites = [];
     this.carrySprites.clear();
+    this.vehicleSprites.clear();
+    this.selectedVehicleId = null;
     this.extraIds.clear();
     // Los paneles abiertos eran del mapa anterior: se cierran.
     this.selectedZoneId = null;
@@ -240,6 +248,7 @@ export class WorldScene extends Phaser.Scene {
     this.world.update(delta);
     this.repaintChangedTiles();
     this.syncColonists();
+    this.syncVehicles();
     this.drawTurretShots();
     this.syncItems();
     this.syncDesignations();
@@ -253,6 +262,11 @@ export class WorldScene extends Phaser.Scene {
       this.emitClock();
       if (this.selectedId !== null) this.emitSelection();
       if (this.selectedStation) this.game.events.emit('station-tick', this.selectedStation);
+      if (this.selectedVehicleId !== null) {
+        const v = this.world.vehicle(this.selectedVehicleId);
+        if (v) this.game.events.emit('vehicle-select', v);
+        else this.selectVehicle(null);
+      }
       if (this.selectedPiece) {
         // Demolido mientras se miraba: se cierra el panel.
         if (this.world.structures.get(this.selectedPiece.id) !== this.selectedPiece) this.selectPiece(null);
@@ -700,6 +714,7 @@ export class WorldScene extends Phaser.Scene {
       this.selectFarm(null);
       this.selectStation(null);
       this.selectPiece(null);
+      this.selectVehicle(null);
     }
     this.selectedId = id;
     this.extraIds.clear();
@@ -908,6 +923,19 @@ export class WorldScene extends Phaser.Scene {
       else this.select(hit.id);
       return;
     }
+    // Un vehículo: tocarlo abre su panel; con el panel abierto, tocar el suelo lo manda allí.
+    const veh = t && !opts.right ? this.world.vehicleAt(t.x, t.y) : undefined;
+    if (veh) {
+      this.selectVehicle(veh.id);
+      return;
+    }
+    if (this.selectedVehicleId !== null && t) {
+      if (opts.mouse && !opts.right) this.selectVehicle(null);
+      else {
+        this.orderSelectedVehicle(t);
+        return;
+      }
+    }
     if (t) this.reportTileAt(t);
     // Con ratón, el clic izquierdo en el suelo deselecciona; las órdenes van con el derecho.
     // Con el dedo no hay botón derecho: tocar el suelo sigue mandando a los elegidos.
@@ -1016,10 +1044,44 @@ export class WorldScene extends Phaser.Scene {
       if (hidden > 0) img.setTint(0xb8c4d0);
       else img.clearTint();
       img.setDepth(COLONIST_DEPTH + v.y / 1000 + (c.carriedBy !== undefined ? 0.01 : 0));
+      // Dentro de un vehículo no se ve (se ve el vehículo).
+      img.setVisible(!c.vehicle?.boarded);
       // Durmiendo o caído: tumbado. A cuestas: un poco más arriba.
       img.setAngle(c.activity === 'sleeping' || c.downed || c.carriedBy !== undefined ? -90 : 0);
       if (c.carriedBy !== undefined) img.y -= 7;
       this.syncCarried(c, img);
+    }
+  }
+
+  /** Dibuja cada vehículo donde está (centrado en sus 2×2 casillas) y quita los que ya no existen. */
+  private syncVehicles(): void {
+    const alive = new Set(this.world.vehicles.map((v) => v.id));
+    for (const [id, img] of this.vehicleSprites) {
+      if (alive.has(id)) continue;
+      img.destroy();
+      this.vehicleSprites.delete(id);
+    }
+    for (const v of this.world.vehicles) {
+      let img = this.vehicleSprites.get(v.id);
+      if (!img) {
+        const key = `vehicle-${v.def}`;
+        if (!this.textures.exists(key)) {
+          const tex = this.textures.createCanvas(key, VEHICLE_W, VEHICLE_H);
+          if (tex) {
+            paintVehicle(tex.getContext(), v.def);
+            tex.refresh();
+          }
+        }
+        img = this.add.image(0, 0, key).setOrigin(0.5, 0.8);
+        this.vehicleSprites.set(v.id, img);
+      }
+      const c = this.toViewPoint(v.pos.x + 1, v.pos.y + 1);
+      const lift = Math.max(this.liftAt(v.x, v.y), this.liftAt(v.x + 1, v.y), this.liftAt(v.x, v.y + 1), this.liftAt(v.x + 1, v.y + 1));
+      const moving = v.path.length > 0 && this.world.speed > 0;
+      const bob = moving ? Math.abs(Math.sin(this.time.now / 60 + v.id)) * -1 : 0;
+      img.setPosition(c.x * TILE, rowY(c.y + 0.9) - lift + bob);
+      if (this.rotation === 0) img.setFlipX(v.facing < 0);
+      img.setDepth(COLONIST_DEPTH + (c.y + 0.9) / 1000);
     }
   }
 
@@ -1077,6 +1139,33 @@ export class WorldScene extends Phaser.Scene {
     if (this.selectedPiece === s) return;
     this.selectedPiece = s;
     this.game.events.emit('piece-select', s);
+  }
+
+  /** Abre (o cierra con null) el panel de un vehículo. Mientras está abierto, tocar el suelo lo manda allí. */
+  selectVehicle(id: number | null): void {
+    if (id !== null) {
+      if (this.selectedId !== null) this.select(null);
+      this.selectZone(null);
+      this.selectFarm(null);
+      this.selectStation(null);
+      this.selectPiece(null);
+      if (this.designMode) this.setDesignMode(null);
+    }
+    if (this.selectedVehicleId === id) return;
+    this.selectedVehicleId = id;
+    this.game.events.emit('vehicle-select', id !== null ? this.world.vehicle(id) ?? null : null);
+  }
+
+  /** Manda el vehículo elegido a la casilla tocada (avisa si no puede). */
+  private orderSelectedVehicle(t: { x: number; y: number }): void {
+    const v = this.selectedVehicleId !== null ? this.world.vehicle(this.selectedVehicleId) : undefined;
+    if (!v) return;
+    const r = this.world.orderVehicleMove(v.id, t);
+    const name = defOf(v).name;
+    if (r === 'ok') this.flashTarget(t.x, t.y);
+    else if (r === 'sin-conductor') this.game.events.emit('toast', `🚙 ${name}: falta un conductor (elígelo en su panel)`);
+    else if (r === 'sin-combustible') this.game.events.emit('toast', `⛽ ${name}: sin combustible (apárcalo junto a un montón de ⛽)`);
+    else this.game.events.emit('toast', `🚙 ${name}: no cabe o no llega ahí`);
   }
 
   /** Vista 3D: empieza, sigue y termina un arrastre de órdenes en casillas reales. */
@@ -1645,6 +1734,8 @@ export class WorldScene extends Phaser.Scene {
       g.lineStyle(2, 0xd96c2c, 0.8);
       g.strokeEllipse(v.x * TILE, rowY(v.y) - this.colonistLift(k) + 2, TILE * 0.95, TILE_H * 0.45);
     }
+    const sv = this.selectedVehicleId !== null ? this.world.vehicle(this.selectedVehicleId) : undefined;
+    if (sv) this.drawVehicleSelection(g, sv);
     const c = this.selected();
     if (!c) return;
     const lift = this.colonistLift(c);
@@ -1725,11 +1816,29 @@ export class WorldScene extends Phaser.Scene {
     return this.spriteLift.get(c.id) ?? this.liftAt(c.tile.x, c.tile.y);
   }
 
+  /** Marco del vehículo elegido y la ruta que le queda. */
+  private drawVehicleSelection(g: Phaser.GameObjects.Graphics, v: Vehicle): void {
+    const c = this.toViewPoint(v.pos.x + 1, v.pos.y + 1);
+    const lift = this.liftAt(v.x, v.y);
+    g.lineStyle(2, 0xf0d7b0, 0.9);
+    g.strokeEllipse(c.x * TILE, rowY(c.y + 0.6) - lift, TILE * 2.3, TILE_H * 1.3);
+    if (v.path.length === 0) return;
+    g.lineStyle(1.5, 0xf0d7b0, 0.6);
+    g.beginPath();
+    g.moveTo(c.x * TILE, rowY(c.y) - lift);
+    for (const p of v.path) {
+      const q = this.toViewPoint(p.x + 1, p.y + 1);
+      g.lineTo(q.x * TILE, rowY(q.y) - this.liftAt(p.x, p.y));
+    }
+    g.strokePath();
+  }
+
   /** Colono dibujado bajo un punto del mundo (en píxeles), el de más delante si hay varios. */
   private colonistAtScreen(wx: number, wy: number): Colonist | undefined {
     let best: Colonist | undefined;
     let bestDist = TILE * 0.9;
     for (const c of this.world.pawns()) {
+      if (c.vehicle?.boarded) continue; // dentro de un vehículo: se toca el vehículo
       // Centro del cuerpo: el sprite se ancla en los pies.
       const v = this.toViewPoint(c.pos.x, c.pos.y);
       const d = Math.hypot(v.x * TILE - wx, rowY(v.y) - this.colonistLift(c) - 4 - wy);

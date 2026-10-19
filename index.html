@@ -381,6 +381,23 @@
       </div>
     </section>
 
+    <section id="vehicle-panel" class="panel sheet place-sheet" hidden role="dialog" aria-label="Vehículo">
+      <div class="sheet-head">
+        <div class="ps-title">
+          <div id="vh-name" class="ps-name"></div>
+          <div id="vh-status" class="ps-sub"></div>
+        </div>
+        <button id="vh-close" class="ps-close" type="button" title="Cerrar (Esc)" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="sheet-body">
+        <label class="vh-seat"><span class="ps-label">Conductor</span><select id="vh-conductor" aria-label="Conductor"></select></label>
+        <label class="vh-seat"><span class="ps-label">Tirador</span><select id="vh-tirador" aria-label="Tirador"></select></label>
+        <div class="ps-quick">
+          <button id="vh-empty" type="button" title="Se bajan todos">⏏ Bajar todos</button>
+        </div>
+        <div id="vh-hint" class="ps-sub"></div>
+      </div>
+    </section>
     <section id="piece-panel" class="panel sheet place-sheet" hidden role="dialog" aria-label="Mueble">
       <div class="sheet-head">
         <div class="ps-title">

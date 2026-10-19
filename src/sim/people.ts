@@ -11,6 +11,7 @@ import type { Structure } from './structures';
 import { BODY_PARTS, healthLabel, hurt } from './health';
 import { findPath, Point } from './pathfinding';
 import { inBounds, isPassable, Prop, Terrain } from './map';
+import { vehicleArmorFor } from './vehicles';
 import { DIFFICULTIES, RADIO_GAP_DAYS, raidGap, raidSize, TRADER_GAP, WANDERER_GAP } from './storyteller';
 import type { World } from './world';
 import { maybePanic, witnessFall } from './panic';
@@ -303,7 +304,8 @@ function applyHit(w: World, a: Colonist, b: Colonist, weapon: WeaponDef | null |
   const tough = b.traits.some((t) => t.id === 'duro') ? 0.75 : 1;
   // La dureza de la partida solo cambia los golpes de los saqueadores.
   const hard = a.role === 'saqueador' ? DIFFICULTIES[w.difficulty.level].enemyDamage : 1;
-  const armor = 1 - armorProtection([b.vest, b.helmet]);
+  // Dentro de un vehículo blindado se ahorra parte del daño (el buggy, −40 %).
+  const armor = (1 - armorProtection([b.vest, b.helmet])) * (1 - vehicleArmorFor(w, b));
   const dmg = (0.08 + w.rng.next() * 0.1) * (1 + a.skills.combate * 0.03) * tough * hard * (weapon?.damage ?? 1) * armor;
   const part = BODY_PARTS[w.rng.int(0, BODY_PARTS.length - 1)];
   const wasDown = b.downed;
@@ -385,7 +387,8 @@ function turretShot(w: World, s: Structure, b: Colonist, from: Point, dist: numb
   hitChance *= 1 - Math.min(FULL_COVER, coverAt(w, from, b.tile));
   if (!w.rng.chance(hitChance)) return false;
   const tough = b.traits.some((k) => k.id === 'duro') ? 0.75 : 1;
-  const armor = 1 - armorProtection([b.vest, b.helmet]);
+  // Dentro de un vehículo blindado se ahorra parte del daño (el buggy, −40 %).
+  const armor = (1 - armorProtection([b.vest, b.helmet])) * (1 - vehicleArmorFor(w, b));
   const dmg = (0.08 + w.rng.next() * 0.1) * (1 + TURRET_AIM_SKILL * 0.03) * tough * t.damage * armor;
   const part = BODY_PARTS[w.rng.int(0, BODY_PARTS.length - 1)];
   const wasDown = b.downed;
