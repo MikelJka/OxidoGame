@@ -66,7 +66,7 @@ Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed 
 
 - [x] Hambre, sed, sueño, ánimo; colonos que comen, beben y duermen solos
 - [x] Cultivos (patatas, maíz, setas y cáñamo) y cocina
-- [ ] Salud: heridas localizadas, tratamiento, infecciones (hechas heridas y curas; faltan infecciones)
+- [ ] Salud: heridas localizadas, tratamiento, infecciones (hechas heridas, curas, infecciones y 💊 Medicina; faltan la mesa de boticario y la hierba curativa)
 - [x] Dificultad configurable al empezar (días sin raids, dureza)
 - [ ] Raids de saqueadores y mutantes que escalan con la riqueza (hechos los saqueadores; faltan los mutantes)
 - [ ] Combate: armas cuerpo a cuerpo y a distancia, cobertura con bonificaciones, control directo (hecho: control con 🎖, armas cuerpo a cuerpo y arco, cobertura y alcance, armadura, la moral de los raids con su líder ★ y el pánico de los colonos y el fuego amigo y las posturas; faltan las armas de fuego, con la investigación)

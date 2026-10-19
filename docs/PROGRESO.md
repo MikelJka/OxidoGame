@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-19 (3) — Heridas que se infectan y 💊 Medicina
+
+- Sin incidencias nuevas en 🐞. Lo siguiente en «Pendiente» era el ⛽ y la destilería, pero faltan números (cuánto da un barril, qué cuesta la destilería): propuesta con opciones en «Propuestas para Mikel». Esta sesión, la primera parte del bloque 1 del catálogo (infecciones y medicinas, fase 4, la fase actual).
+- Una herida que sigue abierta a las 12 h puede infectarse: 20 % sin curar, 8 % curada sin medicina, 2 % curada con medicina. Infectado: −15 % de ánimo («Herida infectada») y de velocidad de trabajo. Cada día sin su dosis empeora (aviso en pantalla); al tercero seguido, muere. Con una 💊 al día durante 2 días, se cura. La ficha dice la infección y las dosis.
+- Nuevo recurso **💊 Medicina** (valor 20). El médico la usa solo: da la dosis del día a los infectados (colonos y prisioneros) y, al curar heridas, si hay 💊, gasta una y las cierra el doble de rápido.
+- De dónde sale, por ahora: al saquear escombros, un 15 % de las veces 1–2 💊; y las caravanas que traen medicina, 2–8. Estos números los he puesto yo (en `src/data/medicine.json`); la mesa de boticario y la hierba curativa, la próxima parte.
+- Las heridas de partidas guardadas antiguas no se infectan.
+- Qué probar: con 🪄 lanzar un raid, dejar a un colono herido sin médico 12 h y ver si se infecta; con 🪄 aparecer 💊 y ver que el médico la usa.
+- Sin npm en el entorno: tests con Bun (308, 8 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Esperan la respuesta de Mikel: más colonos (#21), segunda parte de #22 y ⛽ y destilería.
+- Siguiente: mesa de boticario y hierba curativa (segunda parte del bloque 1).
+
 ## 2026-10-19 (2) — Derribar en vez de matar; capturar o rematar (#22, primera parte)
 
 - Sin incidencias nuevas en 🐞. Esta sesión, la primera parte de **#22**.

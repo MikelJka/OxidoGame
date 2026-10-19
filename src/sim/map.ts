@@ -1,6 +1,7 @@
 import { Rng } from './rng';
 import { ValueNoise } from './noise';
 import { AmountRange, HarvestJob, ResourceId } from '../data/resources';
+import { RUBBLE_MEDICINE } from '../data/medicine';
 
 /**
  * Suelo de cada casilla. Es la capa base: pocos tipos, con transiciones suaves al dibujar.
@@ -67,6 +68,8 @@ export interface HarvestInfo {
   leaves: Prop;
   /** Recurso extra que puede salir (p. ej. componentes al desguazar un coche). */
   bonus?: { resource: ResourceId; amount: AmountRange };
+  /** Hallazgo que sale solo a veces (p. ej. 💊 entre los escombros). */
+  find?: { resource: ResourceId; chance: number; amount: AmountRange };
 }
 
 export interface PropInfo {
@@ -121,7 +124,10 @@ export const PROP_INFO: Record<Prop, PropInfo> = {
   },
   [Prop.Rubble]: {
     name: 'Escombros', blocks: false, moveCost: 1.5,
-    harvest: { job: 'saquear', resource: 'chatarra', amount: [3, 8], work: 120, leaves: Prop.None },
+    harvest: {
+      job: 'saquear', resource: 'chatarra', amount: [3, 8], work: 120, leaves: Prop.None,
+      find: { resource: 'medicina', chance: RUBBLE_MEDICINE.chance, amount: RUBBLE_MEDICINE.amount },
+    },
   },
   [Prop.ToxicBarrel]: { name: 'Barril tóxico', blocks: true, moveCost: 1 },
   [Prop.GlowPuddle]: { name: 'Charco radiactivo', blocks: false, moveCost: 1.2 },

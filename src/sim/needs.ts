@@ -2,6 +2,7 @@
 // Funciones puras (sin azar): la decisión de ir a comer o a dormir la toma `World`.
 import { FOOD_RESOURCES, RAW_FOOD, ResourceId } from '../data/resources';
 import type { Colonist } from './colonist';
+import { INFECTION } from '../data/medicine';
 
 /** Días de juego que tarda un colono en pasar de lleno a vacío. */
 export const FOOD_DAYS = 1.5;
@@ -110,6 +111,7 @@ export function moodOf(c: Colonist, tick = 0): { mood: number; reasons: MoodReas
   else if (n.sleptIn === 'habitacion') reasons.push({ text: 'Durmió en una cama bajo techo', value: 0.08 });
   else if (n.sleptIn === 'cama') reasons.push({ text: 'Durmió en una cama', value: 0.04 });
   if (n.inLight) reasons.push({ text: 'Habitación con luz', value: LIGHT_MOOD });
+  if (c.infection) reasons.push({ text: 'Herida infectada', value: -INFECTION.moodPenalty });
   if (c.traits.some((t) => t.id === 'optimista')) reasons.push({ text: 'Optimista', value: 0.1 });
   if (c.traits.some((t) => t.id === 'pesimista')) reasons.push({ text: 'Pesimista', value: -0.1 });
   const mood = Math.max(0, Math.min(1, 0.55 + reasons.reduce((a, r) => a + r.value, 0)));
@@ -122,6 +124,7 @@ export function needsWorkFactor(c: Colonist): number {
   let f = 1;
   if (mood < 0.25) f *= 0.8;
   if (c.needs.rest < EXHAUSTED) f *= 0.7;
+  if (c.infection) f *= INFECTION.workFactor;
   if (c.traits.some((t) => t.id === 'trabajador')) f *= 1.15;
   if (c.traits.some((t) => t.id === 'perezoso')) f *= 0.85;
   return f;

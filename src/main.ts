@@ -16,7 +16,7 @@ import { mountPeople } from './ui/people';
 import { mountMainMenu } from './ui/mainMenu';
 import { mountGodMode } from './ui/godMode';
 import { makePrisoner, offerWanderer, startRaid, startTrader } from './sim/people';
-import { healthLabel } from './sim/health';
+import { healthLabel, infectionLabel } from './sim/health';
 import { downloadWorld, pickSaveFile, readBackupSave, readStoredSave, storeWorld } from './ui/saveGame';
 import { mountCloudSync } from './ui/cloudSync';
 import { parseSave } from './sim/save';
@@ -1519,7 +1519,7 @@ game.events.on('selection', (c: Colonist | null, group: Colonist[] = c ? [c] : [
   lastGroupKey = groupKey;
   $('cp-activity').textContent = activityLabel(c);
   $('cp-health').textContent = c.wounds.length || c.health < 0.999
-    ? `❤ ${healthLabel(c)} (${Math.round(c.health * 100)} %)${c.wounds.length ? ` · heridas: ${c.wounds.map((w) => `${w.part}${w.bleeding ? ' 🩸' : ''}`).join(', ')}` : ''}`
+    ? `❤ ${healthLabel(c)} (${Math.round(c.health * 100)} %)${c.wounds.length ? ` · heridas: ${c.wounds.map((w) => `${w.part}${w.bleeding ? ' 🩸' : ''}`).join(', ')}` : ''}${c.infection ? ` · ${infectionLabel(c)}` : ''}`
     : '';
   renderNeeds(c);
   renderWeapon(c);

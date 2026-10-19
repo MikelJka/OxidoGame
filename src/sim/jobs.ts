@@ -10,6 +10,7 @@ import { GameMap, index, isPassable, PROP_INFO, Prop } from './map';
 import { findPath, Point } from './pathfinding';
 import { harvestAt, Stockpile } from './resources';
 import { isFood, needsWorkFactor } from './needs';
+import { needsDose } from './health';
 import { lacksPower } from './power';
 import { TICKS_PER_HOUR } from './time';
 
@@ -388,12 +389,13 @@ function pawnJob(ctx: JobContext, c: Colonist, o: Colonist, kind: 'curar' | 'car
 const reservedByOther = (ctx: JobContext, c: Colonist, o: Colonist) =>
   ctx.colonists.some((k) => k !== c && k.job?.pid === o.id);
 
-/** Médico: cura las heridas que sangran (de colonos y prisioneros). */
+/** Médico: cura las heridas que sangran y da su 💊 a los infectados (colonos y prisioneros). */
 function doctorCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   if (c.priorities.curar === 0) return [];
   const patients = [...ctx.colonists.filter((k) => k !== c), ...ctx.others.filter((k) => k.role === 'prisionero')];
+  const pills = ctx.inventory().medicina > 0;
   return patients
-    .filter((p) => p.wounds.some((w) => w.bleeding) && !reservedByOther(ctx, c, p))
+    .filter((p) => (p.wounds.some((w) => w.bleeding) || (pills && needsDose(p))) && !reservedByOther(ctx, c, p))
     .map((p) => ({ kind: 'curar' as const, x: p.tile.x, y: p.tile.y, dist: manhattan(c.tile, p.tile.x, p.tile.y), make: () => pawnJob(ctx, c, p, 'curar', 120) }));
 }
 

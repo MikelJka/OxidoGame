@@ -87,7 +87,9 @@ interface SavedColonist {
   drafted?: boolean;
   needs?: { food: number; rest: number; sleptIn: string | null; water?: number; badWaterUntil?: number; lastMeal?: string | null; inLight?: boolean };
   health?: number;
-  wounds?: { part: string; severity: number; bleeding: boolean; treated: boolean }[];
+  wounds?: { part: string; severity: number; bleeding: boolean; treated: boolean; medicine?: boolean; age?: number; infectRolled?: boolean }[];
+  /** Infección (desde las medicinas). */
+  infection?: { part: string; dayTicks: number; untreatedDays: number; doses: number; dosedToday: boolean };
   downed?: boolean;
   role?: string;
   prisoner?: { resistance: number; mode: string; lastTalk: number };
@@ -133,6 +135,7 @@ function savePawn(c: Colonist): SavedColonist {
     needs: { ...c.needs },
     health: c.health,
     wounds: c.wounds.map((w) => ({ ...w })),
+    infection: c.infection ? { ...c.infection } : undefined,
     downed: c.downed,
     role: c.role,
     prisoner: c.prisoner ? { ...c.prisoner } : undefined,
@@ -321,7 +324,18 @@ function restoreColonist(s: SavedColonist): Colonist {
     health: Math.max(0.01, Math.min(1, num(s.health, 1))),
     wounds: (s.wounds ?? []).map((w) => ({
       part: String(w.part ?? 'el cuerpo'), severity: Math.max(0, Math.min(1, num(w.severity, 0))), bleeding: !!w.bleeding, treated: !!w.treated,
+      // Las heridas de partidas antiguas ya no se infectan (no se sabe cuánto llevan abiertas).
+      ...(w.medicine ? { medicine: true } : {}), age: Math.max(0, num(w.age, 0)), infectRolled: w.age === undefined ? true : !!w.infectRolled,
     })),
+    infection: s.infection
+      ? {
+          part: String(s.infection.part ?? 'el cuerpo'),
+          dayTicks: Math.max(0, num(s.infection.dayTicks, 0)),
+          untreatedDays: Math.max(0, Math.round(num(s.infection.untreatedDays, 0))),
+          doses: Math.max(0, Math.round(num(s.infection.doses, 0))),
+          dosedToday: !!s.infection.dosedToday,
+        }
+      : undefined,
     downed: !!s.downed,
     role: (['colono', 'saqueador', 'prisionero', 'comerciante'] as const).find((r) => r === s.role) ?? 'colono',
     prisoner: s.prisoner

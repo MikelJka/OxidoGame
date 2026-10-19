@@ -1,0 +1,25 @@
+{
+  "infection": {
+    "checkHours": 12,
+    "chanceUntreated": 0.2,
+    "chanceTreated": 0.08,
+    "chanceMedicine": 0.02,
+    "moodPenalty": 0.15,
+    "workFactor": 0.85,
+    "dosesToCure": 2,
+    "deadlyDays": 3,
+    "medicineHealFactor": 2
+  },
+  "find": {
+    "_": "💊 en las ruinas: probabilidad de encontrar al saquear escombros y unidades; y lo que traen las caravanas que venden medicina",
+    "rubbleChance": 0.15,
+    "rubbleAmount": [
+      1,
+      2
+    ],
+    "caravanStock": [
+      2,
+      8
+    ]
+  }
+}

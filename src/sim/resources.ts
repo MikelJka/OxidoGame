@@ -38,6 +38,9 @@ export function harvestTile(map: GameMap, x: number, y: number, rng: Rng): Parti
     const extra = rng.int(h.bonus.amount[0], h.bonus.amount[1]);
     if (extra > 0) gains[h.bonus.resource] = (gains[h.bonus.resource] ?? 0) + extra;
   }
+  if (h.find && rng.chance(h.find.chance)) {
+    gains[h.find.resource] = (gains[h.find.resource] ?? 0) + rng.int(h.find.amount[0], h.find.amount[1]);
+  }
   map.props[i] = h.leaves;
   map.stock[i] = rollStock(h.leaves, rng);
   return gains;

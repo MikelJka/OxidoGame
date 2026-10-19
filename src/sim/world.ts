@@ -11,7 +11,7 @@ import { ZoneClearing } from './clearing';
 import { fertilityAt, GrowZones } from './farming';
 import { regrowNature } from './nature';
 import { Rooms } from './rooms';
-import { tickHealth, treatWounds } from './health';
+import { giveDose, needsDose, tickHealth, tickInfection, treatWounds } from './health';
 import { Difficulty, initialSchedule, makeDifficulty, scaledSupplies, StorySchedule } from './storyteller';
 import { findRefuge, updatePanic } from './panic';
 import { canTalk, colonistFight, dropGear, makePrisoner, runStoryteller, talkToPrisoner, TurretShot, updateOthers, updateTurrets, validAttackTarget } from './people';
@@ -283,7 +283,15 @@ export class World implements JobContext {
     if (this.tick % TICKS_PER_SECOND === 0) {
       for (const c of [...this.colonists, ...this.others]) {
         const r = tickHealth(c, TICKS_PER_SECOND, TICKS_PER_DAY, c.activity === 'sleeping');
-        if (r.died) this.killPawn(c, r.cause ?? 'heridas');
+        if (r.died) {
+          this.killPawn(c, r.cause ?? 'heridas');
+          continue;
+        }
+        const inf = tickInfection(c, TICKS_PER_SECOND, TICKS_PER_DAY, this.rng);
+        const mine = c.role === 'colono';
+        if (inf.died) this.killPawn(c, 'infección');
+        else if (inf.infected && mine) this.addLog(`🦠 Se le infecta la herida de ${inf.infected} a ${c.name}. Necesita 💊 Medicina: una al día durante 2 días.`, 'malo', 'herido', c.tile);
+        else if (inf.worse && mine) this.addLog(`🦠 Empeora la infección de ${c.name}${c.infection!.untreatedDays >= 2 ? ': si mañana no toma 💊, morirá' : ''}.`, 'malo', 'herido', c.tile);
       }
     }
     if (this.eventsEnabled && this.tick % TICKS_PER_HOUR === 0) runStoryteller(this);
@@ -988,7 +996,7 @@ export class World implements JobContext {
 
   /** Busca trabajo (si toca) y lo empieza. true si ahora tiene uno. */
   private tryStartJob(c: Colonist): boolean {
-    const people = this.others.length > 0 || this.colonists.some((k) => k.wounds.some((w) => w.bleeding));
+    const people = this.others.length > 0 || this.colonists.some((k) => k.wounds.some((w) => w.bleeding) || needsDose(k));
     if (!people && this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.structures.toMove().length === 0 && this.structures.stations().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0 && !this.structures.all().some((s) => s.built && !!s.def.fuel)) return false;
     if (this.tick < (this.nextJobScan.get(c.id) ?? 0)) return false;
     const plan = findJob(this, c);
@@ -1038,7 +1046,7 @@ export class World implements JobContext {
     if (j.kind === 'curar' || j.kind === 'carcelero') {
       const o = this.pawns().find((k) => k.id === j.pid);
       if (!o) return false;
-      if (j.kind === 'curar') return o.wounds.some((w) => w.bleeding);
+      if (j.kind === 'curar') return o.wounds.some((w) => w.bleeding) || (needsDose(o) && this.medicineStack() !== null);
       if (j.escorting) return o.role === 'prisionero';
       if (j.warden === 'capturar') return o.role === 'saqueador' && o.downed && !o.raider?.finish;
       if (j.warden === 'rematar') return o.role === 'saqueador' && o.downed && !!o.raider?.finish;
@@ -1188,6 +1196,17 @@ export class World implements JobContext {
     }
   }
 
+  /** Primer montón de 💊 Medicina que haya. */
+  private medicineStack(): { x: number; y: number } | null {
+    return this.items.list().find((s) => s.resource === 'medicina') ?? null;
+  }
+
+  /** Gasta 1 💊 de la colonia. true si había. */
+  private takeMedicine(): boolean {
+    const st = this.medicineStack();
+    return !!st && !!this.items.take(st.x, st.y, 1);
+  }
+
   /** Primer montón de comida que haya (para dar de comer a los prisioneros). */
   private foodStack(): { x: number; y: number } | null {
     return this.items.list().find((s) => isFood(s.resource)) ?? null;
@@ -1234,8 +1253,16 @@ export class World implements JobContext {
     j.progress += workSpeed(c, j.kind) * this.lightFactor(c.tile);
     if (j.progress < j.work) return;
     if (j.kind === 'curar') {
-      const n = treatWounds(o);
-      this.addLog(`🩹 ${c.name} cura ${n === 1 ? 'una herida' : `${n} heridas`} de ${o.name}.`, 'bueno');
+      // Con 💊 en la colonia, la usa: cierra las heridas el doble de rápido y trata la infección.
+      const bleeding = o.wounds.some((w) => w.bleeding);
+      const dose = needsDose(o);
+      const pill = (bleeding || dose) && this.takeMedicine();
+      const n = treatWounds(o, pill);
+      if (n) this.addLog(`🩹 ${c.name} cura ${n === 1 ? 'una herida' : `${n} heridas`} de ${o.name}${pill ? ' con 💊 Medicina' : ''}.`, 'bueno');
+      if (pill && dose) {
+        const cured = giveDose(o);
+        this.addLog(cured ? `💊 ${c.name} trata a ${o.name}: se cura de la infección.` : `💊 ${c.name} da a ${o.name} su medicina contra la infección (falta otra mañana).`, 'bueno');
+      }
       this.dropJob(c);
       return;
     }

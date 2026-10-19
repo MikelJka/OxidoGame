@@ -70,6 +70,7 @@ export function godFinishWork(w: World): number {
 export function godHealAll(w: World): void {
   for (const c of w.pawns()) {
     c.health = 1;
+    delete c.infection;
     c.wounds = [];
     c.downed = false;
     c.needs.food = 1;

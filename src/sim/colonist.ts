@@ -8,7 +8,7 @@ import { WORK_NAMES, WORK_TYPES, WORK_VERBS, WorkType } from '../data/work';
 import { Point } from './pathfinding';
 import type { TerrainJob } from './terrain';
 import { defaultNeeds, Needs } from './needs';
-import type { Wound } from './health';
+import type { Infection, Wound } from './health';
 import { Rng } from './rng';
 
 export type ColonistActivity = 'idle' | 'wandering' | 'moving' | 'toJob' | 'working' | 'toNeed' | 'eating' | 'sleeping';
@@ -123,6 +123,8 @@ export interface Colonist {
   health: number;
   /** Heridas abiertas. */
   wounds: Wound[];
+  /** Infección de una herida, si tiene (se trata con 💊). */
+  infection?: Infection;
   /** En el suelo, sin poder moverse (salud muy baja). */
   downed: boolean;
   /** Quién es: de la colonia, saqueador, prisionero o comerciante. */

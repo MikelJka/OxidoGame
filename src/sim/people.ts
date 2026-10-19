@@ -5,6 +5,7 @@ import { RESOURCES, ResourceId } from '../data/resources';
 import { personValue, RESOURCE_VALUES } from '../data/values';
 import { isGear, raiderWeaponPool, WEAPONS, WeaponDef } from '../data/weapons';
 import { armorProtection, isArmor, raiderVestPool } from '../data/armor';
+import { MEDICINE_STOCK } from '../data/medicine';
 import type { Colonist } from './colonist';
 import type { Structure } from './structures';
 import { BODY_PARTS, healthLabel, hurt } from './health';
@@ -107,6 +108,8 @@ export function startTrader(w: World): Colonist | null {
   // Las caravanas todavía no venden armas.
   for (const r of RESOURCES) if (!isGear(r) && !isArmor(r) && w.rng.chance(0.5)) stock[r] = w.rng.int(10, 60);
   stock.componentes = w.rng.int(2, 10);
+  // La medicina, en poca cantidad (si la trae).
+  if (stock.medicina !== undefined) stock.medicina = w.rng.int(MEDICINE_STOCK[0], MEDICINE_STOCK[1]);
   const slaves: Colonist[] = [];
   const nSlaves = w.rng.int(0, 2);
   for (let i = 0; i < nSlaves; i++) slaves.push(w.makePawn('prisionero'));
