@@ -84,6 +84,24 @@ export function paintVehicle(ctx: CanvasRenderingContext2D, id: string, w = VEHI
     px(3, 0, 1, 10, '#4a3a2a');
     px(4, 0, 4, 3, '#1a1410');
     px(4, 1, 3, 1, '#b02a1a');
+  } else if (id === 'balsa') {
+    // Balsa: troncos atados con cuerda, un remo y ondas en el agua alrededor.
+    ctx.fillStyle = 'rgba(200,230,240,0.35)';
+    ctx.fillRect(0, 20, 32, 2);
+    ctx.fillRect(2, 23, 28, 1);
+    for (let i = 0; i < 5; i++) {
+      const y = 8 + i * 3;
+      px(2, y, 28, 3, '#1a1410');
+      px(3, y, 26, 2, i % 2 ? '#8a6a3e' : '#9a7a4a');
+      px(3, y, 26, 1, '#b08e5a');
+      px(2, y + 1, 1, 1, '#5e4630'); // corte del tronco
+      px(29, y + 1, 1, 1, '#5e4630');
+    }
+    // Cuerdas.
+    for (const x of [7, 24]) px(x, 8, 2, 15, '#c8b88a');
+    // Remo cruzado.
+    px(12, 3, 2, 10, '#5e4630');
+    px(11, 1, 4, 3, '#7a5a38');
   } else {
     px(2, 4, VEHICLE_W - 4, VEHICLE_H - 8, '#7a6a4a');
   }

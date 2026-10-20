@@ -31,7 +31,7 @@ import { missingResearch, researchFraction } from './sim/research';
 import type { ResourceId } from './data/resources';
 import { billPending, type Structure } from './sim/structures';
 import { occupant, VEHICLE_SEATS, type Vehicle, type VehicleSeat } from './sim/vehicles';
-import { vehicleDef } from './data/vehicles';
+import { usesFuel, vehicleDef } from './data/vehicles';
 import type { GrowZone } from './sim/farming';
 import { BUILDING_CATEGORY_NAMES, BuildingCategory, BUILDINGS, buildingDef } from './data/buildings';
 import { STORAGE_PRIORITIES, STORAGE_PRIORITY_NAMES, StorageZone } from './sim/zones';
@@ -446,7 +446,8 @@ for (const def of BUILDINGS) {
   if (def.research) b.title += ` · pide investigar ${researchNeeds(def).map((q) => `«${researchDef(q)?.name}»`).join(' y ')}`;
   if (def.turret) b.title += ` · gasta ${-(def.power ?? 0)} W · con corriente dispara sola a ${def.turret.reach} casillas, sin munición`;
   if (def.platform) b.title += ` · solo sobre el agua${def.platform.deepWater ? ' (también la profunda)' : ' poco profunda o normal'}; encima se construye como en tierra (menos huertos)`;
-  if (def.onWater) b.title += ` · solo en un río (agua poco profunda o normal); da ${def.power ?? 0} W fijos, de día y de noche`;
+  if (def.onWater && def.vehicle) b.title += ` · se construye en el agua (poco profunda o normal); va solo por el agua, ${(vehicleDef(def.vehicle)?.speed ?? 1) < 1 ? 'más despacio que andando' : 'rápido'}, con 2 colonos: uno rema y el otro dispara`;
+  else if (def.onWater) b.title += ` · solo en un río (agua poco profunda o normal); da ${def.power ?? 0} W fijos, de día y de noche`;
   if (def.drawbridge) b.title += ` · ${def.size?.[0] ?? 1}×${def.size?.[1] ?? 1} sobre el agua (puede apoyarse en la orilla) · gasta ${-(def.power ?? 0)} W · bajado se cruza andando; alzado no pasa nadie · con corriente se alza solo ante un raid; tócalo para alzarlo o bajarlo a mano`;
   if (def.bridge) b.title += ` · solo sobre el agua (se cruza andando); en el agua profunda cuesta ×${def.bridge.deepCostMultiplier}`;
   if (def.stunSeconds) b.title += ` · gasta ${-(def.power ?? 0)} W · con corriente aturde ${def.stunSeconds} s a quien la pisa`;
@@ -815,9 +816,14 @@ function renderVehicle(): void {
   const w = scene().world;
   const def = vehicleDef(v.def)!;
   const driver = occupant(w, v, 'conductor');
-  $('vh-name').textContent = `🚙 ${def.name}`;
-  const state = v.path.length > 0 ? 'en marcha' : v.fuel <= 0 ? 'sin combustible' : 'parado';
-  $('vh-status').textContent = `⛽ ${Math.floor(v.fuel)}/${def.fuelCapacity} · ${state} · vida ${Math.max(0, Math.ceil(v.hp))}/${def.hp} · blindaje −${Math.round(def.armor * 100)} %`;
+  const fuel = usesFuel(def);
+  $('vh-name').textContent = `${def.water ? '🛶' : '🚙'} ${def.name}`;
+  $('vh-conductor-label').textContent = def.water ? 'Remero' : 'Conductor';
+  const state = v.path.length > 0 ? 'en marcha' : fuel && v.fuel <= 0 ? 'sin combustible' : 'parado';
+  const parts = [state, `vida ${Math.max(0, Math.ceil(v.hp))}/${def.hp}`];
+  if (fuel) parts.unshift(`⛽ ${Math.floor(v.fuel)}/${def.fuelCapacity}`);
+  if (def.armor > 0) parts.push(`blindaje −${Math.round(def.armor * 100)} %`);
+  $('vh-status').textContent = parts.join(' · ');
   // Un desplegable por asiento: nadie o un colono (los que pueden).
   const people = w.colonists.filter((c) => !c.downed);
   const key = people.map((c) => `${c.id}:${c.name}`).join('|');
@@ -836,9 +842,11 @@ function renderVehicle(): void {
     ? 'Elige un conductor: irá andando y se subirá.'
     : !driver.vehicle?.boarded
       ? `${driver.name} va hacia el vehículo…`
-      : v.fuel <= 0
+      : fuel && v.fuel <= 0
         ? 'Sin ⛽: apárcalo junto a un montón de ⛽ (a 2 casillas) y repostará solo.'
-        : 'Toca el suelo para llevarlo allí. Atropella a los saqueadores que pilla.';
+        : def.water
+          ? 'Toca el agua para llevarla allí (solo por el agua, sin pasar bajo puentes). Para bajarse, acércala a la orilla.'
+          : 'Toca el suelo para llevarlo allí. Atropella a los saqueadores que pilla.';
 }
 game.events.on('vehicle-select', (v: Vehicle | null) => {
   selectedVehicle = v;

@@ -9,11 +9,11 @@
 // Puro y determinista: sin Phaser ni DOM.
 import type { Colonist } from './colonist';
 import type { World } from './world';
-import { isPassable } from './map';
+import { index, inBounds, isPassable, isWater, PROP_INFO, Prop, Terrain } from './map';
 import { Point } from './pathfinding';
 import { attack, canHit, foeLabel, hurtFoe, leaveMap } from './people';
 import { hurt } from './health';
-import { VehicleDef, vehicleDef } from '../data/vehicles';
+import { usesFuel, VehicleDef, vehicleDef } from '../data/vehicles';
 
 /** Lado del vehículo en casillas (todos son de 2×2 por ahora). */
 export const VEHICLE_SIZE = 2;
@@ -60,9 +60,29 @@ export function footprint(x: number, y: number): Point[] {
   return out;
 }
 
-/** Cabe con la esquina en (x, y): todas sus casillas se pueden pisar. */
-export function fits(w: World, x: number, y: number): boolean {
+/**
+ * Un barco puede estar en la casilla: agua (cualquiera) sin puente, plataforma, construcción ni
+ * objeto que corte el paso.
+ */
+export function canFloat(w: World, x: number, y: number): boolean {
+  const m = w.map;
+  if (!inBounds(m, x, y)) return false;
+  const i = index(m, x, y);
+  return isWater(m.terrain[i] as Terrain) && m.bridge[i] === 0 && m.blocked[i] === 0 && !PROP_INFO[m.props[i] as Prop].blocks && !w.structures.at(x, y);
+}
+
+/**
+ * Cabe con la esquina en (x, y): todas sus casillas se pueden pisar (un barco, todas de agua
+ * libre). Sin `def`, como un vehículo de tierra.
+ */
+export function fits(w: World, x: number, y: number, def?: VehicleDef): boolean {
+  if (def?.water) return footprint(x, y).every((t) => canFloat(w, t.x, t.y));
   return footprint(x, y).every((t) => isPassable(w.map, t.x, t.y));
+}
+
+/** Coste de pasar por una casilla para el vehículo (un barco, igual en cualquier agua). */
+function costFor(w: World, x: number, y: number, def?: VehicleDef): number {
+  return def?.water ? 1 : w.moveCostAt(x, y);
 }
 
 /** Centro del vehículo (donde se ven los que van dentro). */
@@ -100,9 +120,9 @@ export function seated(w: World, v: Vehicle, seat: VehicleSeat): Colonist | unde
  * Camino para la esquina del vehículo, de casilla en casilla (sin diagonales), por donde quepa
  * entero. Dijkstra con el coste de paso de cada casilla. null si no hay.
  */
-export function vehiclePath(w: World, from: Point, to: Point): Point[] | null {
+export function vehiclePath(w: World, from: Point, to: Point, def?: VehicleDef): Point[] | null {
   if (from.x === to.x && from.y === to.y) return [];
-  if (!fits(w, to.x, to.y)) return null;
+  if (!fits(w, to.x, to.y, def)) return null;
   const W = w.map.width;
   const key = (x: number, y: number) => y * W + x;
   const dist = new Map<number, number>([[key(from.x, from.y), 0]]);
@@ -150,9 +170,9 @@ export function vehiclePath(w: World, from: Point, to: Point): Point[] | null {
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const nx = x + dx;
       const ny = y + dy;
-      if (!fits(w, nx, ny)) continue;
+      if (!fits(w, nx, ny, def)) continue;
       const nk = key(nx, ny);
-      const nd = d + w.moveCostAt(nx, ny);
+      const nd = d + costFor(w, nx, ny, def);
       if (nd >= (dist.get(nk) ?? Infinity)) continue;
       dist.set(nk, nd);
       prev.set(nk, k);
@@ -172,10 +192,10 @@ export function vehiclePath(w: World, from: Point, to: Point): Point[] | null {
  * Esquina a la que ir para que el vehículo quede sobre la casilla tocada: primero con la casilla
  * arriba a la izquierda, si no cabe, en las otras tres posiciones.
  */
-export function anchorFor(w: World, t: Point): Point | null {
+export function anchorFor(w: World, t: Point, def?: VehicleDef): Point | null {
   for (const [dx, dy] of [[0, 0], [-1, 0], [0, -1], [-1, -1]]) {
     const a = { x: t.x + dx, y: t.y + dy };
-    if (fits(w, a.x, a.y)) return a;
+    if (fits(w, a.x, a.y, def)) return a;
   }
   return null;
 }
@@ -205,13 +225,14 @@ export function updateVehicle(w: World, v: Vehicle, ticksPerSecond: number, tick
   const def = defOf(v);
   if (def.hostile && !driveRaider(w, v)) return;
   const driver = seated(w, v, 'conductor');
-  if (v.path.length > 0 && driver && v.fuel > 0) {
+  const fueled = !usesFuel(def) || v.fuel > 0;
+  if (v.path.length > 0 && driver && fueled) {
     const next = v.path[0];
-    if (!fits(w, next.x, next.y)) {
+    if (!fits(w, next.x, next.y, def)) {
       // Algo se ha puesto en medio (un muro nuevo): se para.
       v.path = [];
     } else {
-      let budget = (baseWalk * def.speed) / ticksPerSecond / w.moveCostAt(next.x, next.y);
+      let budget = (baseWalk * def.speed) / ticksPerSecond / costFor(w, next.x, next.y, def);
       while (budget > 0 && v.path.length > 0) {
         const t = v.path[0];
         const dx = t.x - v.pos.x;
@@ -233,7 +254,7 @@ export function updateVehicle(w: World, v: Vehicle, ticksPerSecond: number, tick
       v.x = Math.round(v.pos.x);
       v.y = Math.round(v.pos.y);
       v.fuel = Math.max(0, v.fuel - def.fuelPerHour / ticksPerHour);
-      if (v.fuel <= 0) {
+      if (usesFuel(def) && v.fuel <= 0) {
         v.path = [];
         v.pos = { x: v.x, y: v.y };
         w.addLog(`⛽ El ${def.name.toLowerCase()} se ha quedado sin combustible.`, 'malo');
@@ -264,6 +285,8 @@ export function updateVehicle(w: World, v: Vehicle, ticksPerSecond: number, tick
  * perro mutante, lo mata. El de los saqueadores atropella a los colonos.
  */
 function runOver(w: World, v: Vehicle, def: VehicleDef): void {
+  // La balsa no atropella a nadie.
+  if (!(def.runOverDamage > 0)) return;
   if (def.hostile) {
     runOverColonists(w, v, def);
     return;
@@ -376,8 +399,8 @@ function edgePath(w: World, v: Vehicle): Point[] | null {
     for (let k = 0; k < 30; k++) {
       const off = k % 2 ? (k + 1) / 2 : -k / 2;
       const p = alongX ? { x: Math.max(0, Math.min(maxX, e.x + off)), y: e.y } : { x: e.x, y: Math.max(0, Math.min(maxY, e.y + off)) };
-      if (!fits(w, p.x, p.y)) continue;
-      const path = vehiclePath(w, { x: v.x, y: v.y }, p);
+      if (!fits(w, p.x, p.y, defOf(v))) continue;
+      const path = vehiclePath(w, { x: v.x, y: v.y }, p, defOf(v));
       if (path) return path;
       break; // ese borde no se alcanza: prueba otro
     }
@@ -435,9 +458,9 @@ function driveRaider(w: World, v: Vehicle): boolean {
     const at = vehicleCenter(v);
     targets.sort((a, b) => Math.hypot(a.pos.x - at.x, a.pos.y - at.y) - Math.hypot(b.pos.x - at.x, b.pos.y - at.y));
     const target = targets[0];
-    const anchor = target ? anchorFor(w, target.tile) : null;
+    const anchor = target ? anchorFor(w, target.tile, def) : null;
     // Sin camino (muros): espera donde está y su tirador dispara a lo que tenga a tiro.
-    v.path = anchor ? vehiclePath(w, { x: v.x, y: v.y }, anchor) ?? [] : [];
+    v.path = anchor ? vehiclePath(w, { x: v.x, y: v.y }, anchor, def) ?? [] : [];
   }
   return true;
 }

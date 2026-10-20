@@ -24,6 +24,11 @@ export interface VehicleDef {
    * para un 30 % le quita 30).
    */
   damageScale: number;
+  /**
+   * Barco (update del agua): solo va por el agua (cualquiera, sin puente ni plataforma encima) y
+   * se sube y se baja desde la orilla o el agua poco profunda.
+   */
+  water?: boolean;
   /** Es de los saqueadores (no lo maneja el jugador). */
   hostile?: boolean;
   /** De los saqueadores: día desde el que llega con los raids y probabilidad de que traigan uno. */
@@ -37,7 +42,10 @@ export function validateVehicle(d: unknown): VehicleDef {
     throw new Error(`Vehículo «${v?.id ?? '?'}» no válido: ${why}`);
   };
   if (!v || !v.id || !v.name) fail('falta id o nombre');
-  if (!(v.speed > 0) || !(v.fuelPerHour >= 0) || !(v.fuelCapacity > 0) || !(v.hp > 0)) fail('números');
+  if (!(v.speed > 0) || !(v.fuelPerHour >= 0) || !(v.fuelCapacity >= 0) || !(v.hp > 0)) fail('números');
+  // Sin depósito solo si no gasta ⛽ (la balsa se rema).
+  if (v.fuelCapacity === 0 && v.fuelPerHour > 0) fail('gasta ⛽ y no tiene depósito');
+  if (v.water !== undefined && v.water !== true) fail('«water» no válido');
   if (!(v.armor >= 0 && v.armor < 1) || !(v.runOverDamage >= 0)) fail('armadura o atropello');
   if (!(v.damageScale >= 0)) fail('damageScale');
   if (v.hostile && !(v.fromDay! >= 0 && v.raidChance! >= 0 && v.raidChance! <= 1)) fail('día o probabilidad del raid');
@@ -49,6 +57,11 @@ export const VEHICLES: readonly VehicleDef[] = (raw as unknown[]).map(validateVe
 
 /** El buggy con el que llegan los saqueadores (si hay). */
 export const RAIDER_VEHICLE: VehicleDef | undefined = VEHICLES.find((v) => v.hostile);
+
+/** Gasta ⛽ (si no, anda siempre: la balsa se rema). */
+export function usesFuel(d: VehicleDef): boolean {
+  return d.fuelPerHour > 0;
+}
 
 export function vehicleDef(id: string): VehicleDef | undefined {
   return VEHICLES.find((v) => v.id === id);

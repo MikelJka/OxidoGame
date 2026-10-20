@@ -1233,10 +1233,12 @@ export class WorldScene extends Phaser.Scene {
     if (!v) return;
     const r = this.world.orderVehicleMove(v.id, t);
     const name = defOf(v).name;
+    const boat = !!defOf(v).water;
+    const icon = boat ? '🛶' : '🚙';
     if (r === 'ok') this.flashTarget(t.x, t.y);
-    else if (r === 'sin-conductor') this.game.events.emit('toast', `🚙 ${name}: falta un conductor (elígelo en su panel)`);
+    else if (r === 'sin-conductor') this.game.events.emit('toast', `${icon} ${name}: falta ${boat ? 'quien reme' : 'un conductor'} (elígelo en su panel)`);
     else if (r === 'sin-combustible') this.game.events.emit('toast', `⛽ ${name}: sin combustible (apárcalo junto a un montón de ⛽)`);
-    else this.game.events.emit('toast', `🚙 ${name}: no cabe o no llega ahí`);
+    else this.game.events.emit('toast', boat ? `🛶 ${name}: solo va por el agua libre (sin puentes) y ahí no cabe o no llega` : `🚙 ${name}: no cabe o no llega ahí`);
   }
 
   /** Vista 3D: empieza, sigue y termina un arrastre de órdenes en casillas reales. */

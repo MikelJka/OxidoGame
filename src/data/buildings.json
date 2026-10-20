@@ -1530,5 +1530,29 @@
       2,
       2
     ]
+  },
+  {
+    "id": "balsa",
+    "research": "navegacion",
+    "name": "Balsa",
+    "category": "vehiculo",
+    "vehicle": "balsa",
+    "cost": {
+      "madera": 20
+    },
+    "work": 500,
+    "hp": 150,
+    "blocks": true,
+    "height": 1,
+    "onWater": true,
+    "colors": {
+      "top": "#9a7a4a",
+      "face": "#6a5232",
+      "dark": "#2a2014"
+    },
+    "size": [
+      2,
+      2
+    ]
   }
 ]

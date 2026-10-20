@@ -15,6 +15,22 @@
     "damageScale": 1000
   },
   {
+    "id": "balsa",
+    "name": "Balsa",
+    "_": "Update del agua (elegido por Mikel el 2026-10-18): 🪵20, 2 colonos, la mitad de rápida que un colono andando, con «Navegación». Va solo por el agua (cualquiera), sin ⛽ (se rema). Sin blindaje. La vida y lo que deja al romperse los ha puesto la sesión del 2026-10-20.",
+    "water": true,
+    "speed": 0.5,
+    "fuelPerHour": 0,
+    "fuelCapacity": 0,
+    "armor": 0,
+    "hp": 150,
+    "runOverDamage": 0,
+    "wreck": {
+      "madera": 8
+    },
+    "damageScale": 1000
+  },
+  {
     "id": "buggy_saqueador",
     "name": "Buggy saqueador",
     "_": "Vehículos, tercera parte (aprobado por Mikel el 2026-10-18: los saqueadores llegan en buggy desde el día 20 y, si se rompe, queda como chatarra 🔩20). Más flojo y algo más lento que el de los colonos; no gasta ⛽ (lo traen lleno). Los números los ha puesto la sesión del 2026-10-19.",

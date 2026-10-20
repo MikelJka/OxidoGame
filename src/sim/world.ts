@@ -26,7 +26,7 @@ import { CREATURES, flies, MACHINES } from '../data/creatures';
 import { addResearch, batteryMultiplier, infectionChanceFactor, machinePartsMultiplier, woundHealTimeFactor, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
 import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
 import { absorbHit, anchorFor, besideTiles, defOf, nextTo, occupant, updateVehicle, Vehicle, vehicleCenter, vehiclePath, VehicleSeat, covers } from './vehicles';
-import { vehicleDef } from '../data/vehicles';
+import { usesFuel, vehicleDef } from '../data/vehicles';
 import { TRAPPED_TILES } from './diagnostics';
 import {
   BAD_WATER_TICKS_DAYS, DEHYDRATED, DRINK_TICKS, EAT_TICKS, EXHAUSTED, foodDecay, foodPreference, HUNGRY, isFood, isRawFood, NUTRITION, restDecay,
@@ -2151,7 +2151,8 @@ export class World implements JobContext {
     if (s.def.vehicle && vehicleDef(s.def.vehicle)) {
       this.structures.demolish(s);
       this.addVehicle(s.def.vehicle, s.x, s.y);
-      this.addLog(`🚙 ${s.def.name} terminado. Tócalo para elegir conductor y tirador.`, 'bueno');
+      const boat = !!vehicleDef(s.def.vehicle)!.water;
+      this.addLog(`${boat ? '🛶' : '🚙'} ${s.def.name}: terminado. Tócalo para elegir ${boat ? 'quién rema y quién va de tirador' : 'conductor y tirador'}.`, 'bueno');
       return;
     }
     this.settleStructure(s);
@@ -2210,7 +2211,9 @@ export class World implements JobContext {
     if (!seat.boarded || !v) return;
     const at = vehicleCenter(v);
     const spots = besideTiles(this, v).sort((a, b) => Math.hypot(a.x + 0.5 - at.x, a.y + 0.5 - at.y) - Math.hypot(b.x + 0.5 - at.x, b.y + 0.5 - at.y));
-    const t = spots[0] ?? { x: v.x, y: v.y };
+    // En medio de un lago (la balsa) no hay dónde poner el pie al lado: va nadando a la orilla más cercana.
+    const t = spots[0] ?? this.nearestDryTile(v.x, v.y) ?? { x: v.x, y: v.y };
+    if (!spots[0] && defOf(v).water) this.addLog(`🛶 ${c.name} se baja de la ${defOf(v).name.toLowerCase()} y nada hasta la orilla.`, 'info', undefined, t);
     c.tile = { x: t.x, y: t.y };
     c.pos = { x: t.x + 0.5, y: t.y + 0.5 };
     c.path = [];
@@ -2218,6 +2221,26 @@ export class World implements JobContext {
     c.waitTicks = 10;
     // Sin conductor, el vehículo se para.
     if (seat.seat === 'conductor') v.path = [];
+  }
+
+  /** Casilla que se pisa más cercana a (x, y), en anillos de hasta 40 casillas. */
+  private nearestDryTile(x: number, y: number): Point | null {
+    for (let r = 1; r <= 40; r++) {
+      let best: Point | null = null;
+      let bestD = Infinity;
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r || !isPassable(this.map, x + dx, y + dy)) continue;
+          const d = Math.hypot(dx, dy);
+          if (d < bestD) {
+            bestD = d;
+            best = { x: x + dx, y: y + dy };
+          }
+        }
+      }
+      if (best) return best;
+    }
+    return null;
   }
 
   /** Se bajan todos los del vehículo. */
@@ -2234,9 +2257,10 @@ export class World implements JobContext {
     if (!v || defOf(v).hostile) return 'sin-camino';
     const driver = occupant(this, v, 'conductor');
     if (!driver?.vehicle?.boarded) return 'sin-conductor';
-    if (v.fuel <= 0) return 'sin-combustible';
-    const anchor = anchorFor(this, target);
-    const path = anchor ? vehiclePath(this, { x: v.x, y: v.y }, anchor) : null;
+    const def = defOf(v);
+    if (usesFuel(def) && v.fuel <= 0) return 'sin-combustible';
+    const anchor = anchorFor(this, target, def);
+    const path = anchor ? vehiclePath(this, { x: v.x, y: v.y }, anchor, def) : null;
     if (!path) return 'sin-camino';
     v.path = path;
     return 'ok';

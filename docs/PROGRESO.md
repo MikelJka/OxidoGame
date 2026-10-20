@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (25) — La balsa: el primer barco
+
+- Sin incidencias nuevas en 🐞. El muelle sigue esperando la respuesta de Mikel (en «Propuestas para Mikel»); se hace la siguiente parte aprobada de la update del agua: la **balsa**.
+- Tras investigar **«Navegación»** (pide «Puentes»), en 🏗 → Vehículos: **balsa** (🪵20, 2×2). Se construye **en el agua poco profunda o normal** (pegada a la orilla) y al terminarla pasa a ser un vehículo, como el buggy.
+- Lleva **2 colonos**: uno **rema** (el «conductor») y el otro va de **tirador** y dispara con su arma. Va **solo por el agua** (también la profunda), **a la mitad de lo que anda un colono** y **sin ⛽**. No atropella ni tiene blindaje.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): **no pasa por debajo de los puentes ni de las plataformas**; vida 150 y, si se rompe, deja 🪵8; trabajo 500. Si alguien se baja en medio del agua, **va nadando a la orilla más cercana**. Números en `vehicles.json` y `buildings.json` (`balsa`).
+- Qué probar: investigar «Puentes» y «Navegación» en 📜 → 🔬 Investigación (🪄 acelera), poner una balsa en la orilla de un río o lago, tocarla y elegir quién rema; luego tocar el agua para llevarla. Probar que no va a tierra.
+- Sin npm en el entorno: tests con Bun (561, 9 nuevos) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguiente: la **lancha armada** (🔩30 ⚙️4 ⛽, con «Motores», conductor y tirador, blindaje −30 %), y luego los saqueadores en balsa desde el día 15; o el muelle si Mikel ya ha contestado.
+
 ## 2026-10-20 (24) — Puente levadizo: se alza solo ante un raid
 
 - Sin incidencias nuevas en 🐞. El muelle sigue esperando la respuesta de Mikel (en «Propuestas para Mikel»); se hace la siguiente parte aprobada de la update del agua: el **puente levadizo**.
