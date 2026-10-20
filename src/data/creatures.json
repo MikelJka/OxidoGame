@@ -36,7 +36,7 @@
     "dogsPerBrute": 3
   },
   "corpses": {
-    "_": "Cadáveres (bloque 2 del catálogo): al morir, perros y brutos dejan un cadáver que se pudre. Quien lo ve a `viewRadius` casillas o menos pierde `moodPenalty` de ánimo, que le dura `moodHours` horas después de dejar de verlo. A los `rotDays` días se ha podrido del todo y desaparece. La hoguera para quemarlos llega en la parte siguiente.",
+    "_": "Cadáveres (bloque 2 del catálogo): al morir, perros y brutos dejan un cadáver que se pudre. Quien lo ve a `viewRadius` casillas o menos pierde `moodPenalty` de ánimo, que le dura `moodHours` horas después de dejar de verlo. A los `rotDays` días se ha podrido del todo y desaparece. Con una hoguera encendida (en `buildings.json`), los colonos los llevan a ella y los queman.",
     "rotDays": 4,
     "moodPenalty": 0.05,
     "viewRadius": 5,

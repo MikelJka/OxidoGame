@@ -222,7 +222,11 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     nextPawnId: world.nextPawnId,
     vehicles: world.vehicles.map((v) => ({ id: v.id, def: v.def, x: v.x, y: v.y, fuel: v.fuel, hp: v.hp, facing: v.facing })),
     nextVehicleId: world.nextVehicleId,
-    corpses: world.corpses.map((c) => ({ ...c })),
+    // También los que alguien lleva a la hoguera: se guardan donde está quien los lleva.
+    corpses: [
+      ...world.corpses.map((c) => ({ ...c })),
+      ...world.colonists.flatMap((k) => (k.job?.corpse?.body ? [{ ...k.job.corpse.body, x: k.tile.x, y: k.tile.y }] : [])),
+    ],
     nextCorpseId: world.nextCorpseId,
     research: { current: world.research.current, progress: { ...world.research.progress }, done: [...world.research.done] },
     events: world.eventsEnabled,

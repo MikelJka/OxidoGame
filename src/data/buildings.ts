@@ -97,6 +97,11 @@ export interface BuildingDef {
    * (no se mueve ni ataca). No se gasta. A los colonos, nada (saben dónde está).
    */
   stunSeconds?: number;
+  /**
+   * Hoguera: mientras le queda combustible está encendida (lo gasta aunque no queme nada) y un colono
+   * con «Transportar» le lleva cada cadáver de criatura para quemarlo. Sin combustible, apagada.
+   */
+  burnsCorpses?: boolean;
   /** Colores del dibujo: cara de arriba, frente y sombra. */
   colors: { top: string; face: string; dark: string };
 }
@@ -144,6 +149,7 @@ export function validateBuilding(d: unknown): BuildingDef {
   if (b.stunSeconds !== undefined && (b.blocks || b.mine !== undefined || !((b.power ?? 0) < 0) || !(b.stunSeconds > 0 && b.stunSeconds <= 30))) fail('trampa eléctrica no válida');
   if (b.fullRefund !== undefined && typeof b.fullRefund !== 'boolean') fail('«fullRefund» no válido');
   if (b.stepDamage !== undefined && (b.blocks || !(b.stepDamage > 0 && b.stepDamage <= 0.5))) fail('«stepDamage» no válido');
+  if (b.burnsCorpses !== undefined && (b.burnsCorpses !== true || !b.fuel || b.power !== undefined)) fail('una hoguera necesita combustible y no da corriente');
   if (!b.colors?.top || !b.colors.face || !b.colors.dark) fail('faltan colores');
   return b;
 }

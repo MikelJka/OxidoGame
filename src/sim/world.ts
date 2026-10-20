@@ -19,6 +19,8 @@ import { AMMO_CARRY, AMMO_LOW, ammoFor, isAmmo, isGear, isWeapon, WEAPON_IDS, WE
 import { ARMOR_IDS, ARMORS, armorProtection, isArmor } from '../data/armor';
 import { FINISH_MOOD } from '../data/morale';
 import { Corpse, updateCorpses } from './corpses';
+import { isLitBonfire, updateBonfires } from './bonfire';
+import { CREATURES } from '../data/creatures';
 import { addResearch, batteryMultiplier, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
 import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
 import { absorbHit, anchorFor, besideTiles, defOf, nextTo, occupant, updateVehicle, Vehicle, vehicleCenter, vehiclePath, VehicleSeat, covers } from './vehicles';
@@ -324,6 +326,7 @@ export class World implements JobContext {
     // Electricidad: cada segundo se reparte la corriente y se encienden o apagan las lámparas.
     if (this.tick % TICKS_PER_SECOND === 0) {
       this.powerNets = updatePower(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR, { hour: this.hour, wind: this.wind, batteryMultiplier: batteryMultiplier(this.research) });
+      updateBonfires(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR);
       this.lit = litTiles(this.structures);
       // Puertas automáticas: con corriente, se cierran a los saqueadores mientras dura el raid.
       const raid = this.others.some((o) => o.role === 'saqueador' && !o.downed && !o.raider?.fleeing);
@@ -1083,7 +1086,7 @@ export class World implements JobContext {
   /** Busca trabajo (si toca) y lo empieza. true si ahora tiene uno. */
   private tryStartJob(c: Colonist): boolean {
     const people = this.others.length > 0 || this.colonists.some((k) => k.wounds.some((w) => w.bleeding) || needsDose(k) || k.downed);
-    if (!people && this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.structures.toMove().length === 0 && this.structures.stations().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0 && !this.structures.all().some((s) => s.built && !!s.def.fuel)) return false;
+    if (!people && this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.structures.toMove().length === 0 && this.structures.stations().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0 && this.corpses.length === 0 && !this.structures.all().some((s) => s.built && !!s.def.fuel)) return false;
     if (this.tick < (this.nextJobScan.get(c.id) ?? 0)) return false;
     const plan = findJob(this, c);
     if (!plan || !reservePlan(this.reservations, c, plan.job)) {
@@ -1105,6 +1108,11 @@ export class World implements JobContext {
       c.carrying = null;
     }
     if (!c.job) return;
+    if (c.job.corpse?.body) {
+      // Suelta el cadáver donde esté (se sigue pudriendo; otro lo llevará si la hoguera sigue encendida).
+      this.corpses.push({ ...c.job.corpse.body, x: c.tile.x, y: c.tile.y });
+      c.job.corpse.body = undefined;
+    }
     if (c.job.move === 'montar') {
       // Se deja a medio camino: el mueble vuelve a su sitio (la orden sigue, otro lo intentará).
       const s = this.jobStructure(c.job);
@@ -1176,6 +1184,12 @@ export class World implements JobContext {
       const z = this.farms.at(j.x, j.y);
       return !!z && !this.farms.plantAt(j.x, j.y) && this.farms.canSow(j.x, j.y, z.crop) && !this.structures.at(j.x, j.y);
     }
+    if (j.corpse) {
+      // Llevar un cadáver a la hoguera: tiene que seguir encendida (y el cadáver, en el suelo hasta recogerlo).
+      const s = this.structures.get(j.sid ?? -1);
+      if (!s || !isLitBonfire(s)) return false;
+      return !!j.corpse.body || this.corpses.some((k) => k.id === j.corpse!.id);
+    }
     if (j.kind === 'transportar' && j.sid !== undefined) {
       // Llevar combustible a un generador.
       const s = this.structures.get(j.sid);
@@ -1206,6 +1220,10 @@ export class World implements JobContext {
     if (c.path.length > 0) {
       c.activity = 'toJob';
       this.moveAlongPath(c);
+      return;
+    }
+    if (j.corpse) {
+      this.updateCorpseJob(c);
       return;
     }
     if (j.haul) {
@@ -1452,6 +1470,43 @@ export class World implements JobContext {
       if (Math.max(Math.abs(k.tile.x - at.x), Math.abs(k.tile.y - at.y)) > FINISH_MOOD.witnessRadius) continue;
       k.needs.sawFinishUntil = until;
     }
+  }
+
+  /** Llevar un cadáver a la hoguera: lo recoge, va hasta ella y lo quema. */
+  private updateCorpseJob(c: Colonist): void {
+    const j = c.job!;
+    const fire = this.structures.get(j.sid!)!;
+    const cj = j.corpse!;
+    if (!cj.body) {
+      const i = this.corpses.findIndex((k) => k.id === cj.id);
+      const body = this.corpses[i];
+      if (c.tile.x !== body.x || c.tile.y !== body.y) {
+        // No ha llegado a la casilla del cadáver: vuelve a buscar el camino.
+        const route = this.routeTo(c, [{ x: body.x, y: body.y }]);
+        if (!route || route.path.length === 0) {
+          this.dropJob(c);
+          this.nextJobScan.set(c.id, this.tick + JOB_RETRY_TICKS);
+        } else c.path = route.path;
+        return;
+      }
+      this.corpses.splice(i, 1);
+      cj.body = body;
+    }
+    if (!this.structures.isBesideStructure(c.tile, fire)) {
+      const route = this.routeTo(c, this.structures.sidesOf(fire));
+      if (!route || route.path.length === 0) {
+        this.dropJob(c);
+        this.nextJobScan.set(c.id, this.tick + JOB_RETRY_TICKS);
+        return;
+      }
+      c.path = route.path;
+      c.activity = 'toJob';
+      return;
+    }
+    const name = CREATURES[cj.body.creature].name.toLowerCase();
+    cj.body = undefined;
+    this.addLog(`🔥 ${c.name} quema el cadáver de un ${name} en la hoguera.`, 'info');
+    this.dropJob(c);
   }
 
   /** Trabajos con personas: curar, capturar, dar de comer, convencer y llevar a la celda. */

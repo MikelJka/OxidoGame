@@ -865,6 +865,29 @@
     }
   },
   {
+    "id": "hoguera",
+    "name": "Hoguera",
+    "category": "mueble",
+    "cost": {
+      "madera": 5
+    },
+    "work": 120,
+    "hp": 60,
+    "blocks": true,
+    "height": 0,
+    "fuel": {
+      "resource": "madera",
+      "hoursPerUnit": 2.4,
+      "capacity": 20
+    },
+    "burnsCorpses": true,
+    "colors": {
+      "top": "#7a7068",
+      "face": "#4e4640",
+      "dark": "#241e1a"
+    }
+  },
+  {
     "id": "cocina",
     "movable": true,
     "name": "Cocina",

@@ -15,6 +15,8 @@ import { harvestAt, Stockpile } from './resources';
 import { isFood, needsWorkFactor } from './needs';
 import { needsDose } from './health';
 import { lacksPower } from './power';
+import { isLitBonfire } from './bonfire';
+import type { Corpse } from './corpses';
 import { TICKS_PER_HOUR } from './time';
 
 /** Horas entre charlas con un prisionero. */
@@ -107,6 +109,8 @@ export interface JobContext {
   colonists: Colonist[];
   /** Saqueadores, prisioneros y comerciantes. */
   others: Colonist[];
+  /** Cadáveres de criaturas en el suelo (se llevan a una hoguera encendida). */
+  corpses: readonly Corpse[];
   tick: number;
   /** Camas de prisionero libres que no tiene ya apalabradas otro carcelero (para capturar hace falta una, #22). */
   prisonBedsFree(): number;
@@ -420,6 +424,37 @@ function refuelCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   return out;
 }
 
+/**
+ * Cadáveres en el suelo con una hoguera encendida: alguien con «Transportar» va a por uno (que no
+ * lleve ya otro colono) y lo lleva a la hoguera más cercana a la que se pueda llegar desde él.
+ */
+function corpseCandidates(ctx: JobContext, c: Colonist): Candidate[] {
+  if (c.priorities.transportar === 0 || ctx.corpses.length === 0) return [];
+  const fires = ctx.structures.all().filter(isLitBonfire);
+  if (fires.length === 0) return [];
+  const out: Candidate[] = [];
+  for (const body of ctx.corpses) {
+    if (ctx.colonists.some((k) => k !== c && k.job?.corpse?.id === body.id)) continue;
+    out.push({
+      kind: 'transportar', x: body.x, y: body.y, dist: manhattan(c.tile, body.x, body.y),
+      make: () => {
+        const route = pathToNearest(ctx.map, c.tile, [{ x: body.x, y: body.y }]);
+        if (!route) return null;
+        const from = { x: body.x, y: body.y };
+        const fire = [...fires]
+          .sort((a, b) => manhattan(from, a.x, a.y) - manhattan(from, b.x, b.y) || a.id - b.id)
+          .find((s) => pathToNearest(ctx.map, from, ctx.structures.sidesOf(s)));
+        if (!fire) return null;
+        return {
+          job: { kind: 'transportar', sid: fire.id, x: body.x, y: body.y, stand: route.stand, progress: 0, work: 0, corpse: { id: body.id } },
+          path: route.path,
+        };
+      },
+    });
+  }
+  return out;
+}
+
 /** Trabajo junto a una persona: el médico o el carcelero va hasta ella. */
 function pawnJob(ctx: JobContext, c: Colonist, o: Colonist, kind: 'curar' | 'carcelero', work: number, warden?: NonNullable<ColonistJob['warden']>): JobPlan | null {
   const near = Math.max(Math.abs(c.tile.x - o.tile.x), Math.abs(c.tile.y - o.tile.y)) <= 1;
@@ -632,7 +667,7 @@ export function findJob(ctx: JobContext, c: Colonist): JobPlan | null {
   const all = [
     ...doctorCandidates(ctx, c), ...wardenCandidates(ctx, c),
     ...buildCandidates(ctx, c), ...farmCandidates(ctx, c), ...fabricateCandidates(ctx, c), ...researchCandidates(ctx, c), ...terrainCandidates(ctx, c),
-    ...harvestCandidates(ctx, c), ...refuelCandidates(ctx, c), ...haulCandidates(ctx, c),
+    ...harvestCandidates(ctx, c), ...refuelCandidates(ctx, c), ...corpseCandidates(ctx, c), ...haulCandidates(ctx, c),
   ];
   const byPriority = new Map<number, Candidate[]>();
   for (const cand of all) {

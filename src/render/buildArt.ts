@@ -396,6 +396,24 @@ function drawFlat(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number,
     }
     return;
   }
+  if (def.id === 'hoguera') {
+    // Hoguera: un corro de piedras con dos troncos cruzados y brasas en medio.
+    const cx = Math.floor(tile / 2);
+    const cy = Math.floor(tileH / 2);
+    const r = Math.max(3, Math.floor(Math.min(tile, tileH) / 2) - 1);
+    for (let a = 0; a < 8; a++) {
+      const ang = (a / 8) * Math.PI * 2;
+      const x = cx + Math.round(Math.cos(ang) * r) - 1;
+      const y = cy + Math.round(Math.sin(ang) * r * 0.8) - 1;
+      px(x, y, 2, 2, a % 2 ? top : face);
+    }
+    px(cx - r + 2, cy, (r - 2) * 2, 1, '#6a4a2a');
+    px(cx - 1, cy - r + 2, 2, (r - 2) * 2, '#5a3a1e');
+    px(cx - 1, cy - 1, 3, 2, '#e67e22');
+    px(cx, cy - 2, 1, 1, '#f1c40f');
+    px(cx - 1, cy + 1, 3, 1, dark);
+    return;
+  }
   if (def.category === 'defensa') {
     // Pinchos: estacas afiladas en dos filas.
     for (let row = 0; row < 2; row++) {

@@ -68,7 +68,7 @@ Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed 
 - [x] Cultivos (patatas, maíz, setas y cáñamo) y cocina
 - [x] Salud: heridas localizadas, tratamiento, infecciones, 💊 Medicina, mesa de boticario y hierba curativa
 - [x] Dificultad configurable al empezar (días sin raids, dureza)
-- [ ] Raids de saqueadores y mutantes que escalan con la riqueza (hechos los saqueadores, los perros mutantes, el bruto mutante y sus cadáveres; falta la hoguera para quemarlos)
+- [x] Raids de saqueadores y mutantes que escalan con la riqueza (hechos los saqueadores, los perros mutantes, el bruto mutante, sus cadáveres y la hoguera para quemarlos)
 - [x] Combate: armas cuerpo a cuerpo y a distancia, cobertura con bonificaciones, control directo (hecho: control con 🎖, armas cuerpo a cuerpo y arco, cobertura y alcance, armadura, la moral de los raids con su líder ★ y el pánico de los colonos y el fuego amigo y las posturas; hecha la pistola casera con balas, que pide «Pólvora», y la escopeta y el rifle, con «Armas largas»)
 - [x] Muerte permanente y fin de partida
 - [x] Avisos en pantalla de raids, peleas, heridos, caídos, muertes, pánico, visitas y caravanas (#17, #18)

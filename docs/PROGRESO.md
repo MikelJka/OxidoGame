@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (8) — Hoguera para quemar los cadáveres (mutantes terminados)
+
+- Sin incidencias nuevas en 🐞. Mikel eligió la hoguera esta mañana; es lo primero sin hacer del orden (fase 4, mutantes), así que va antes que lo del árbol.
+- **Hoguera** (🏗 → Muebles, 🪵5, 1×1): tiene un **depósito de 🪵20** que los colonos con «Transportar» rellenan como el del generador de leña (cuando baja de la mitad). Mientras le queda leña está **encendida** y la gasta aunque no queme nada: el depósito lleno dura **2 días**. Sin leña se apaga.
+- Con la hoguera encendida, un colono con «Transportar» va a por cada cadáver de perro o bruto mutante, se lo carga («Llevando un cadáver a la hoguera») y lo **quema**: el diario dice «🔥 … quema el cadáver de un perro mutante en la hoguera». Si la hoguera se apaga o se quita por el camino, suelta el cadáver donde esté (se sigue pudriendo). El cadáver que lleva a cuestas se guarda con la partida.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): 60 de vida y 120 de trabajo; bloquea el paso; quemar es instantáneo al llegar; la hoguera no da luz ni ánimo (eso iría con «ocio», bloque 12).
+- Por dentro: los números van en `buildings.json` (`hoguera`, con `burnsCorpses` y `fuel`); la regla, en `src/sim/bonfire.ts`.
+- Qué probar: construir una hoguera con madera en un almacén y ver en su información «apagada: hace falta leña» y luego «encendida… leña n/20»; lanzar con 🪄 una manada de perros mutantes, matarlos y ver que un colono lleva cada cadáver a la hoguera. En el móvil, que el dibujo (corro de piedras con troncos y brasas) se vea.
+- Sin npm en el entorno: tests con Bun (475, 8 nuevos) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguiente: las **granadas** (elegidas por Mikel, opción B + saqueadores), primera parte; después «Medicina de campo» y el muro con aspilleras.
+
 ## 2026-10-20 (7) — «Baterías mejoradas»: las baterías guardan el doble
 
 - Sin incidencias nuevas en 🐞 ni respuestas de Mikel a las propuestas. Siguiente del orden del árbol (las granadas y el muro con aspilleras esperan a Mikel): «Baterías mejoradas».

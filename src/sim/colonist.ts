@@ -10,6 +10,7 @@ import { Point } from './pathfinding';
 import type { TerrainJob } from './terrain';
 import { defaultNeeds, Needs } from './needs';
 import type { Infection, Wound } from './health';
+import type { Corpse } from './corpses';
 import { Rng } from './rng';
 
 export type ColonistActivity = 'idle' | 'wandering' | 'moving' | 'toJob' | 'working' | 'toNeed' | 'eating' | 'sleeping';
@@ -64,6 +65,8 @@ export interface ColonistJob {
   warden?: 'capturar' | 'alimentar' | 'convencer' | 'rematar';
   /** Capturar: ya lo lleva a cuestas hacia una cama de prisionero. */
   escorting?: boolean;
+  /** Llevar un cadáver a la hoguera (`sid`): cuál y, una vez recogido, el cadáver que lleva a cuestas. */
+  corpse?: { id: number; body?: Corpse };
 }
 
 export interface HaulInfo {
@@ -295,6 +298,7 @@ export function activityLabel(c: Colonist): string {
     case 'moving': return 'Yendo a una orden';
     case 'toJob':
       if (!c.job) return 'Yendo a trabajar';
+      if (c.job.corpse) return c.job.corpse.body ? 'Llevando un cadáver a la hoguera' : 'Yendo a por un cadáver';
       if (c.job.escorting) return c.job.kind === 'curar' ? 'Llevando al herido a una cama' : 'Llevando al prisionero a su cama';
       if (c.job.haul) return c.job.haul.picked ? (c.job.haul.toBlueprint ? 'Llevando material a un plano' : 'Llevando al almacén') : 'Yendo a recoger';
       return `Yendo a ${WORK_NAMES[c.job.kind].toLowerCase()}`;
