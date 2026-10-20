@@ -842,6 +842,51 @@
     }
   },
   {
+    "id": "plataforma_madera",
+    "research": "puentes",
+    "name": "Plataforma de madera",
+    "category": "suelo",
+    "cost": {
+      "madera": 12
+    },
+    "work": 200,
+    "hp": 200,
+    "blocks": false,
+    "moveCost": 1,
+    "height": 0,
+    "platform": {
+      "deepWater": false
+    },
+    "colors": {
+      "top": "#9c7446",
+      "face": "#6a4c2e",
+      "dark": "#3a2716"
+    }
+  },
+  {
+    "id": "plataforma_metal",
+    "research": "puentes",
+    "name": "Plataforma de metal",
+    "category": "suelo",
+    "cost": {
+      "chatarra": 10,
+      "componentes": 1
+    },
+    "work": 300,
+    "hp": 600,
+    "blocks": false,
+    "moveCost": 1,
+    "height": 0,
+    "platform": {
+      "deepWater": true
+    },
+    "colors": {
+      "top": "#868b8f",
+      "face": "#575c60",
+      "dark": "#2f3235"
+    }
+  },
+  {
     "id": "cama",
     "movable": true,
     "name": "Cama",

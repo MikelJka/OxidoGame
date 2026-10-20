@@ -373,6 +373,13 @@ function drawFlat(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number,
       for (let y = 1; y < tileH; y += 3) for (let x = (y % 2) * 2; x < tile; x += 4) px(x, y, 2, 1, face);
     }
     px(0, tileH - 1, tile, 1, dark);
+    if (def.platform) {
+      // Plataforma: un marco oscuro y un pilote en cada esquina, para no confundirla con un suelo.
+      px(0, 0, tile, 1, dark);
+      px(0, 0, 1, tileH, dark);
+      px(tile - 1, 0, 1, tileH, dark);
+      for (const [cx, cy] of [[1, 1], [tile - 3, 1], [1, tileH - 3], [tile - 3, tileH - 3]]) px(cx, cy, 2, 2, dark);
+    }
     return;
   }
   if (def.id === 'mina_casera') {

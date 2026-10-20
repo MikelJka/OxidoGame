@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (19) — Plataformas de madera y de metal sobre el agua
+
+- Sin incidencias nuevas en 🐞. Segunda parte de la **update del agua**: las plataformas (opción B elegida por Mikel).
+- Tras investigar **«Puentes»**, en 🏗 → Suelos: **plataforma de madera** (🪵12 por casilla, en agua poco profunda o normal) y **plataforma de metal** (🔩10 ⚙️1, también en la profunda). Terminadas, se pisan como suelo y **encima se construye como en tierra** (muros, muebles, talleres, cables…), menos huertos y otros suelos. Una construcción de varias casillas puede quedar mitad en la orilla y mitad en la plataforma.
+- Si se derriba una plataforma, lo que tenía encima sobre el agua se viene abajo y se recupera como al demolerlo (primero hay que demoler lo de encima: «Demoler» elige antes la construcción que el suelo).
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): **el mismo precio en el agua profunda** (lo de «el doble» era de los puentes); vida 200 (madera) y 600 (metal), como los puentes; trabajo 200 y 300; hasta que la plataforma no está terminada no se pueden poner planos encima; los almacenes siguen sin poder marcarse sobre el agua.
+- Por dentro: `platform` en `buildings.json` (`plataforma_madera`, `plataforma_metal`); usa la misma marca `map.bridge` que los puentes para que se pise, y `Structures.onPlatform` deja construir encima. Las partidas guardadas no cambian.
+- Qué probar: investigar «Puentes» en 📜 → 🔬 Investigación (🪄 acelera), tender plataformas desde la orilla de un lago y, ya terminadas, poner encima un muro, una cama o un banco de trabajo.
+- Sin npm en el entorno: tests con Bun (524, 8 nuevos) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguiente: el **muelle** de madera (🪵10 por casilla, pegado a la orilla) con la **pesca** (1 🐟 cada 1–2 h según Supervivencia) y la **trampa de pesca** (🪵6 🧵2, 1 🐟 al día). Puede que haga falta que Mikel decida cómo se come el 🐟 (crudo o en la cocina).
+
 ## 2026-10-20 (18) — Puentes de madera y de metal, con «Puentes»
 
 - Sin incidencias nuevas en 🐞. Con los bloques 3, 4 y 5 terminados, se empieza la **update del agua** (primera parte, como pidió Mikel: puentes).

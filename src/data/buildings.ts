@@ -134,6 +134,12 @@ export interface BuildingDef {
    * (cualquiera) y deja cruzarla andando. En el agua profunda cuesta `deepCostMultiplier` veces más.
    */
   bridge?: { deepCostMultiplier: number };
+  /**
+   * Plataforma (update del agua, opción B elegida por Mikel el 2026-10-18): un suelo sobre el agua
+   * que se pisa y encima del que se construye como sobre tierra (menos huertos). La de madera va en
+   * agua poco profunda o normal; con `deepWater`, también en la profunda.
+   */
+  platform?: { deepWater: boolean };
   /** Colores del dibujo: cara de arriba, frente y sombra. */
   colors: { top: string; face: string; dark: string };
 }
@@ -192,6 +198,7 @@ export function validateBuilding(d: unknown): BuildingDef {
   }
   if (b.cheer !== undefined && (!b.burnsCorpses || !Number.isInteger(b.cheer.radius) || b.cheer.radius < 1 || b.cheer.radius > 10 || !(b.cheer.mood > 0 && b.cheer.mood <= 0.3) || !(b.cheer.hours > 0))) fail('«cheer» no válido');
   if (b.bridge !== undefined && (b.category !== 'suelo' || b.blocks || !(b.bridge.deepCostMultiplier >= 1 && b.bridge.deepCostMultiplier <= 5))) fail('puente no válido');
+  if (b.platform !== undefined && (b.category !== 'suelo' || b.blocks || b.bridge !== undefined || typeof b.platform.deepWater !== 'boolean')) fail('plataforma no válida');
   if (!b.colors?.top || !b.colors.face || !b.colors.dark) fail('faltan colores');
   return b;
 }

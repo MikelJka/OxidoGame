@@ -135,6 +135,12 @@ export function canBridge(map: GameMap, x: number, y: number): boolean {
   return isWater(map.terrain[i] as Terrain) && map.props[i] === Prop.None && !map.cliff[i];
 }
 
+/** Se puede poner esa plataforma en la casilla: agua sin objeto; la de madera, no en la profunda. */
+export function canPlatform(map: GameMap, def: BuildingDef, x: number, y: number): boolean {
+  if (!def.platform || !canBridge(map, x, y)) return false;
+  return def.platform.deepWater || map.terrain[index(map, x, y)] !== Terrain.DeepWater;
+}
+
 /** Material que pide una construcción puesta en (x, y): el de su definición o, en un puente sobre agua profunda, más. */
 export function structureCost(map: GameMap, def: BuildingDef, x: number, y: number): Partial<Record<ResourceId, number>> {
   if (!def.bridge || def.bridge.deepCostMultiplier === 1 || !inBounds(map, x, y)) return def.cost;
@@ -295,7 +301,8 @@ export class Structures {
     const floor = this.floorByTile.get(i);
     const top = main?.built ? main : floor?.built ? floor : undefined;
     this.map.blocked[i] = !top ? 0 : top.def.blocks ? BLOCK_SOLID : walkableStructureCode(top.def.moveCost ?? 1);
-    this.map.bridge[i] = floor?.built && floor.def.bridge ? 1 : 0;
+    // Puentes y plataformas terminados: el agua de debajo se anda como suelo.
+    this.map.bridge[i] = floor?.built && (floor.def.bridge || floor.def.platform) ? 1 : 0;
   }
 
   /**
@@ -396,14 +403,37 @@ export class Structures {
   /** Quita una construcción terminada (demolida). Devuelve el material que se recupera. */
   demolish(s: Structure): Partial<Stockpile> {
     if (this.byId.get(s.id) !== s) return {};
+    const tiles = this.tilesOf(s);
     this.byId.delete(s.id);
-    for (const t of this.tilesOf(s)) {
+    for (const t of tiles) {
       const i = index(this.map, t.x, t.y);
       this.layer(s).delete(i);
       this.refreshBlocked(i);
     }
     this.version++;
-    return this.demolishRefund(s);
+    const back = this.demolishRefund(s);
+    // Sin la plataforma, lo que había encima sobre el agua se viene abajo: se recupera como al demolerlo.
+    if (s.def.platform) {
+      for (const t of tiles) {
+        const i = index(this.map, t.x, t.y);
+        if (!isWater(this.map.terrain[i] as Terrain)) continue;
+        for (const top of [this.byTile.get(i), this.cableByTile.get(i)]) {
+          if (!top) continue;
+          const got = top.built ? this.demolish(top) : this.dropPlan(top);
+          for (const [r, n] of Object.entries(got) as [ResourceId, number][]) back[r] = (back[r] ?? 0) + n;
+        }
+      }
+    }
+    return back;
+  }
+
+  /** Quita un plano sin terminar y devuelve lo que ya se le había llevado. */
+  private dropPlan(s: Structure): Partial<Stockpile> {
+    if (this.byId.get(s.id) !== s) return {};
+    this.byId.delete(s.id);
+    for (const t of this.tilesOf(s)) this.layer(s).delete(index(this.map, t.x, t.y));
+    this.version++;
+    return { ...s.delivered };
   }
 
   /** Material que se recupera al demoler una construcción. */
@@ -428,7 +458,10 @@ export class Structures {
   canPlace(x: number, y: number, def?: BuildingDef, ignore?: Structure): boolean {
     // Un puente solo va sobre el agua (cualquiera) sin nada encima.
     if (def?.bridge) return canBridge(this.map, x, y) && !this.floorAt(x, y) && !this.mainAt(x, y);
-    const blocker = buildBlocker(this.map, x, y);
+    if (def?.platform) return canPlatform(this.map, def, x, y) && !this.floorAt(x, y) && !this.mainAt(x, y);
+    let blocker = buildBlocker(this.map, x, y);
+    // Sobre una plataforma terminada se construye como en tierra (los suelos y lo del agua, no).
+    if (blocker === 'agua' && this.onPlatform(x, y)) blocker = null;
     if (blocker !== null && !(def && slopeOrCliffOk(def, blocker))) return false;
     if (!def) return !this.at(x, y);
     if (isCable(def)) return !this.cableAt(x, y);
@@ -436,6 +469,12 @@ export class Structures {
     if (def.category === 'agua' && this.floorAt(x, y)) return false;
     const main = this.mainAt(x, y);
     return !main || (!!ignore && main === ignore);
+  }
+
+  /** Hay una plataforma terminada en la casilla. */
+  onPlatform(x: number, y: number): boolean {
+    const f = this.floorAt(x, y);
+    return !!f && f.built && !!f.def.platform;
   }
 
   /** Cabe una construcción (de varias casillas) en (x, y): todas libres y a la misma altura. */
