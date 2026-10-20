@@ -37,6 +37,7 @@ import { batteryCapacity, isDaylight, lacksPower, litTiles, PowerNet, shutDoorTi
 import type { TileRect } from './designations';
 import { BUILDINGS, buildingDef } from '../data/buildings';
 import { RECIPES, RecipeDef } from '../data/recipes';
+import { CROPS, CropDef } from '../data/crops';
 import { RESOURCES, ResourceId, STARTING_SUPPLIES } from '../data/resources';
 
 import { TICKS_PER_DAY, TICKS_PER_HOUR, TICKS_PER_SECOND } from './time';
@@ -1281,7 +1282,8 @@ export class World implements JobContext {
       if (finished) {
         const build = unlockedBy(BUILDINGS, finished.id, this.research).map((b) => b.name);
         const craft = unlockedBy(RECIPES, finished.id, this.research).map((r) => r.name);
-        const extra = (build.length ? ` Ya se puede construir: ${build.join(', ')}.` : '') + (craft.length ? ` Ya se puede fabricar: ${craft.join(', ')}.` : '');
+        const plant = unlockedBy(CROPS, finished.id, this.research).map((cr) => cr.name);
+        const extra = (build.length ? ` Ya se puede construir: ${build.join(', ')}.` : '') + (craft.length ? ` Ya se puede fabricar: ${craft.join(', ')}.` : '') + (plant.length ? ` Ya se puede plantar: ${plant.join(', ')}.` : '');
         this.addLog(`🔬 Investigación terminada: ${finished.name}. Desbloquea: ${finished.unlocks}.${extra}`, 'bueno');
       }
       if (finished || j.progress >= j.work) this.dropJob(c);
@@ -1984,6 +1986,21 @@ export class World implements JobContext {
   /** Ya se puede encargar esta receta (las armas de fuego y las balas piden «Pólvora»). */
   canCraft(recipe: RecipeDef): boolean {
     return unlocked(this.research, recipe);
+  }
+
+  /** Ya se puede elegir este cultivo para un huerto (la hierba curativa pide «Medicina de campo»). */
+  canPlant(crop: CropDef): boolean {
+    return unlocked(this.research, crop);
+  }
+
+  /**
+   * Elige qué se planta en un huerto. false si el cultivo aún pide investigación (en las partidas
+   * empezadas, los huertos que ya estaban con él lo siguen plantando).
+   */
+  setFarmCrop(zoneId: number, crop: CropDef): boolean {
+    if (!this.canPlant(crop)) return false;
+    this.farms.setCrop(zoneId, crop);
+    return true;
   }
 
   /** Pone (o quita, con null) la orden de un taller. false si la receta aún pide investigación. */

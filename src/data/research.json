@@ -4,7 +4,7 @@
   "chunkHours": 2,
   "projects": [
     { "id": "puentes", "name": "Puentes", "hours": 4, "requires": [], "unlocks": "Puente de madera y de metal, plataformas y muelle" },
-    { "id": "medicina_campo", "name": "Medicina de campo", "hours": 6, "requires": [], "unlocks": "Mesa de boticario, 💊 Medicina y la hierba curativa" },
+    { "id": "medicina_campo", "name": "Medicina de campo", "hours": 6, "requires": [], "unlocks": "Mesa de boticario (prepara 💊 Medicina) y la hierba curativa" },
     { "id": "agricultura", "name": "Agricultura mejorada", "hours": 8, "requires": [], "unlocks": "Abono (🍄2 + 🪨1 → 3 de abono; huerto abonado, +25 % de cosecha)" },
     { "id": "polvora", "name": "Pólvora", "hours": 8, "requires": [], "unlocks": "Balas y pistola casera" },
     { "id": "sastreria", "name": "Sastrería", "hours": 6, "requires": [], "unlocks": "Abrigo y chaleco de cuero con cuero" },

@@ -81,6 +81,7 @@
   },
   {
     "id": "hierba",
+    "research": "medicina_campo",
     "name": "Hierba curativa",
     "resource": "hierba",
     "growDays": 5,

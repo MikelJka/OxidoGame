@@ -18,6 +18,8 @@ export interface CropDef {
   growsInDark: boolean;
   description: string;
   colors: { leaf: string; dark: string; fruit: string };
+  /** Investigación que pide para elegirlo en un huerto (la hierba curativa, «Medicina de campo»). */
+  research?: string;
 }
 
 export function validateCrop(d: unknown): CropDef {

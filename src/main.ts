@@ -994,16 +994,24 @@ game.events.on('farm-select', (f: GrowZone | null) => {
   $('fp-crops').replaceChildren(
     ...CROPS.map((crop) => {
       const on = f.crop.id === crop.id;
+      const w = scene().world;
+      // Lo que aún pide investigación sale con 🔒 (si el huerto ya lo tenía, lo sigue plantando).
+      const need = w.canPlant(crop) ? undefined : missingResearch(w.research, crop);
       const b = mk('button', 'ps-card');
       b.type = 'button';
       b.classList.toggle('active', on);
+      b.classList.toggle('locked', !!need);
       b.setAttribute('aria-pressed', String(on));
       const top = mk('span', 'ps-card-top');
-      top.append(mk('strong', '', `${RESOURCE_ICONS[crop.resource]} ${crop.name}`), mk('span', 'ps-check', on ? '✔ Plantando' : ''));
+      top.append(mk('strong', '', `${need ? '🔒 ' : ''}${RESOURCE_ICONS[crop.resource]} ${crop.name}`), mk('span', 'ps-check', on ? '✔ Plantando' : ''));
       const facts = `⏱ ${crop.growDays} días · ${crop.yield[0]}–${crop.yield[1]} por casilla${crop.growsInDark ? ' · 🌙 crece de noche' : ''}`;
-      b.append(top, mk('span', 'ps-formula', facts), mk('span', 'ps-desc', crop.description));
+      b.append(top, mk('span', 'ps-formula', facts), mk('span', 'ps-desc', need ? `Pide investigar «${need.name}» (📜 → 🔬 Investigación). ${crop.description}` : crop.description));
       b.addEventListener('click', () => {
-        scene().world.farms.setCrop(f.id, crop);
+        if (on) return;
+        if (!scene().world.setFarmCrop(f.id, crop)) {
+          showToast(`🔒 ${crop.name}: antes hay que investigar «${need?.name ?? crop.research}» en 📜 → 🔬 Investigación`, 3500);
+          return;
+        }
         scene().refreshFarm();
       });
       return b;

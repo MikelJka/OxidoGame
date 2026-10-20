@@ -1096,6 +1096,7 @@
   {
     "id": "mesa_boticario",
     "movable": true,
+    "research": "medicina_campo",
     "name": "Mesa de boticario",
     "category": "taller",
     "workSkill": "medicina",

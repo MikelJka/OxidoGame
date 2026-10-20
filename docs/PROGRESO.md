@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (14) — La mesa de boticario y la hierba curativa piden «Medicina de campo»
+
+- Sin incidencias nuevas en 🐞. Siguiente del orden: «Medicina de campo» (opción A, elegida por Mikel).
+- La **mesa de boticario** (🏗 → Talleres) sale con 🔒 hasta investigar **«Medicina de campo»** (6 h, sin requisitos), y en el panel del huerto la **🌿 Hierba curativa** también sale con 🔒 y dice qué falta. Al terminar el proyecto, el diario dice «Ya se puede construir: Mesa de boticario. Ya se puede plantar: Hierba curativa».
+- En las partidas empezadas, las mesas ya construidas o planeadas y los huertos que ya tenían hierba se quedan y siguen plantándola. La 💊 de las ruinas y las caravanas sigue saliendo igual.
+- Por dentro: `research` en `mesa_boticario` (`buildings.json`) y en `hierba` (`crops.json`); `World.canPlant` y `World.setFarmCrop` en la simulación.
+- Qué probar: en una partida nueva, ver el 🔒 en la mesa de boticario y en la hierba del huerto; investigar «Medicina de campo» en 📜 → 🔬 Investigación (🪄 acelera) y ver que ya se pueden poner las dos.
+- Sin npm en el entorno: tests con Bun (498, 4 nuevos) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguiente: «Medicina avanzada» (las heridas se curan un 25 % antes y la infección sale la mitad de veces).
+
 ## 2026-10-20 (13) — Saqueadores con subfusil y francotirador desde el día 35
 
 - Sin incidencias nuevas en 🐞. Siguiente del orden: los **saqueadores con subfusil y rifle de francotirador** (opción A, elegida por Mikel).
