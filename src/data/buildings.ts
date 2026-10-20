@@ -135,6 +135,12 @@ export interface BuildingDef {
    */
   bridge?: { deepCostMultiplier: number };
   /**
+   * Puente levadizo (update del agua, elegido por Mikel el 2026-10-18): bajado se cruza andando como un
+   * puente; alzado no deja pasar a nadie. Con corriente se alza solo al empezar un raid y baja al
+   * acabar; con el botón se alza o se baja a mano.
+   */
+  drawbridge?: boolean;
+  /**
    * Plataforma (update del agua, opción B elegida por Mikel el 2026-10-18): un suelo sobre el agua
    * que se pisa y encima del que se construye como sobre tierra (menos huertos). La de madera va en
    * agua poco profunda o normal; con `deepWater`, también en la profunda.
@@ -204,6 +210,7 @@ export function validateBuilding(d: unknown): BuildingDef {
   if (b.cheer !== undefined && (!b.burnsCorpses || !Number.isInteger(b.cheer.radius) || b.cheer.radius < 1 || b.cheer.radius > 10 || !(b.cheer.mood > 0 && b.cheer.mood <= 0.3) || !(b.cheer.hours > 0))) fail('«cheer» no válido');
   if (b.bridge !== undefined && (b.category !== 'suelo' || b.blocks || !(b.bridge.deepCostMultiplier >= 1 && b.bridge.deepCostMultiplier <= 5))) fail('puente no válido');
   if (b.platform !== undefined && (b.category !== 'suelo' || b.blocks || b.bridge !== undefined || typeof b.platform.deepWater !== 'boolean')) fail('plataforma no válida');
+  if (b.drawbridge !== undefined && (b.drawbridge !== true || b.category !== 'defensa' || b.blocks || b.height !== 0 || !((b.power ?? 0) < 0) || b.bridge !== undefined || b.onWater !== undefined)) fail('puente levadizo no válido');
   if (b.onWater !== undefined && (b.onWater !== true || b.category === 'suelo' || b.nearWater)) fail('«onWater» no válido');
   if (!b.colors?.top || !b.colors.face || !b.colors.dark) fail('faltan colores');
   return b;

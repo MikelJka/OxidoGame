@@ -34,6 +34,7 @@ import {
 } from './needs';
 import { applyTerrainJob, LOWER_STONE, terrainBlocker, TerrainJob, TerrainOrders } from './terrain';
 import { Bill, PlaceShape, Structure, Structures } from './structures';
+import { toggleDrawbridge, updateDrawbridges } from './drawbridge';
 import { batteryCapacity, isDaylight, lacksPower, litTiles, PowerNet, shutDoorTiles, stationSpeed, updatePower, windStrength } from './power';
 import type { TileRect } from './designations';
 import { BUILDINGS, buildingDef, depositOf } from '../data/buildings';
@@ -345,6 +346,8 @@ export class World implements JobContext {
       this.shutDoors = shutDoorTiles(this.structures, raid);
       if (!before && this.shutDoors.size) this.addLog('🚪 Las puertas automáticas se cierran: los saqueadores no pueden pasar.', 'bueno');
       else if (before && !this.shutDoors.size && !raid) this.addLog('🚪 Las puertas automáticas se abren.', 'info');
+      // Puentes levadizos: con corriente se alzan solos ante un raid y bajan al acabar.
+      updateDrawbridges(this, raid);
       // Ánimo: de noche, quien duerme o trabaja junto a una lámpara encendida está más a gusto.
       const night = !isDaylight(this.hour);
       updateBonfireCheer(this.structures, this.colonists, this.tick, TICKS_PER_HOUR, night);
@@ -2489,6 +2492,11 @@ export class World implements JobContext {
     if (!hurtFoe(this, c, dmg, 'las piernas')) return false;
     c.path = [];
     return true;
+  }
+
+  /** Botón del puente levadizo: lo alza (en cuanto no hay nadie encima) o lo baja. */
+  toggleDrawbridge(s: Structure): boolean {
+    return toggleDrawbridge(this, s);
   }
 
   /**

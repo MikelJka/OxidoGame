@@ -17,7 +17,12 @@ export function faceHeight(def: BuildingDef, lift: number): number {
  * Dibuja una construcción. `tile` = ancho, `tileH` = alto de la cara de arriba, `wallH` = alto
  * de un piso de muro (la construcción mide `def.height` pisos).
  */
-export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, unitH: number): void {
+export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, unitH: number, raised = false): void {
+  // Puente levadizo: bajado o alzado.
+  if (def.drawbridge) {
+    drawDrawbridge(ctx, def, tile, tileH, raised);
+    return;
+  }
   // Vehículos (el plano del buggy): su propio dibujo.
   if (def.vehicle) {
     paintVehicle(ctx, def.vehicle, tile, tileH + unitH * def.height);
@@ -333,6 +338,41 @@ function painter(ctx: CanvasRenderingContext2D): Px {
     ctx.fillStyle = color;
     ctx.fillRect(x, y, w, h);
   };
+}
+
+/**
+ * Puente levadizo visto desde arriba: bajado, un tablero de chapa de lado a lado con franjas de aviso
+ * en los extremos y la junta en medio; alzado, las dos hojas levantadas en los extremos y el agua en medio.
+ */
+function drawDrawbridge(ctx: CanvasRenderingContext2D, def: BuildingDef, w: number, h: number, raised: boolean): void {
+  const { top, face, dark } = def.colors;
+  const px = painter(ctx);
+  ctx.clearRect(0, 0, w, h);
+  const along = w >= h; // el tablero va a lo largo del lado más largo
+  const len = along ? w : h;
+  const wid = along ? h : w;
+  // r(a, b, la, lb): rectángulo en coordenadas «a lo largo» (a) y «a lo ancho» (b).
+  const r = (a: number, b: number, la: number, lb: number, color: string) => (along ? px(a, b, la, lb, color) : px(b, a, lb, la, color));
+  const leaf = Math.max(4, Math.floor(len * (raised ? 0.16 : 0.5)));
+  for (const start of [0, len - leaf]) {
+    r(start, 0, leaf, wid, dark);
+    r(start + 1, 1, leaf - 2, wid - 2, raised ? face : top);
+    if (!raised) for (let b = 3; b < wid - 2; b += 3) r(start + 2, b, leaf - 4, 1, face);
+  }
+  // Franjas de aviso amarillas y negras en los dos extremos.
+  for (let b = 1; b < wid - 1; b += 4) {
+    r(1, b, 2, 2, '#e0c040');
+    r(len - 3, b, 2, 2, '#e0c040');
+    r(1, b + 2, 2, 2, '#1a1410');
+    r(len - 3, b + 2, 2, 2, '#1a1410');
+  }
+  if (raised) {
+    // Hojas alzadas: un borde claro y una franja roja; entre ellas, el agua se ve.
+    r(leaf - 2, 1, 2, wid - 2, '#c0392b');
+    r(len - leaf, 1, 2, wid - 2, '#c0392b');
+  } else {
+    r(Math.floor(len / 2) - 1, 0, 2, wid, '#1a1410'); // junta de las dos hojas
+  }
 }
 
 /** Cosas a ras de suelo: suelos, pinchos y muebles (solo la cara de arriba). */

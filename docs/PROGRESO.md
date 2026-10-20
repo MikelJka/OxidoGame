@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (24) — Puente levadizo: se alza solo ante un raid
+
+- Sin incidencias nuevas en 🐞. El muelle sigue esperando la respuesta de Mikel (en «Propuestas para Mikel»); se hace la siguiente parte aprobada de la update del agua: el **puente levadizo**.
+- Tras investigar **«Hidráulica»**, en 🏗 → Defensas: **puente levadizo** (🔗12 ⚙️3, 4×2, se puede girar, gasta 20 W). **Bajado** se cruza andando como un puente; **alzado** no pasa nadie (ni colonos ni enemigos).
+- Con corriente **se alza solo al empezar un raid** y **baja solo al acabar**. Tocándolo sale su panel con **⬆️ Alzar / ⬇️ Bajar**: a mano manda (si lo bajas en un raid, se queda bajado hasta el siguiente; si lo alzas tú, no baja solo).
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): va sobre cualquier agua y **puede apoyarse en la orilla** (al menos una casilla de agua), para que quepa en los ríos estrechos; el botón funciona **también sin corriente** (a mano), lo automático solo con ella; **no se alza con alguien encima**: espera a que quede libre; trabajo 500 y vida 600, como el puente de metal. Números en `buildings.json` (`puente_levadizo`).
+- Qué probar: investigar «Puentes» e «Hidráulica» en 📜 → 🔬 Investigación (🪄 acelera), poner un puente levadizo sobre el río con un cable desde la orilla a un generador; tocarlo y alzarlo (nadie cruza), bajarlo, y lanzar ☰ → 🪄 Modo Dios → «⚔️ Raid»: debe alzarse solo y bajar al acabar.
+- Sin npm en el entorno: tests con Bun (552, 7 nuevos) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguiente: los barcos (balsa 🪵20, y lancha armada) y los saqueadores en balsa desde el día 15, por partes; o el muelle si Mikel ya ha contestado.
+
 ## 2026-10-20 (23) — Molino de agua: 500 W fijos en el río
 
 - Sin incidencias nuevas en 🐞. El muelle sigue esperando la respuesta de Mikel (en «Propuestas para Mikel»); se hace la siguiente parte aprobada de la update del agua con todos sus números: el **molino de agua**.

@@ -47,6 +47,14 @@ export interface Structure {
   lifted?: boolean;
   /** Mientras se lleva: dónde estaba (por si hay que devolverla). */
   moveFrom?: { x: number; y: number; rot: 0 | 1 };
+  /** Puente levadizo: está alzado (no se pasa). */
+  raised?: boolean;
+  /** Puente levadizo: se quiere alzar (se alza en cuanto no hay nadie encima). */
+  wantUp?: boolean;
+  /** Puente levadizo: lo alzó solo el raid (al acabar, baja solo). */
+  autoRaised?: boolean;
+  /** Puente levadizo: ya se ha decidido qué hacer en el raid de ahora (no se guarda). */
+  raidHandled?: boolean;
 }
 
 /**
@@ -305,9 +313,12 @@ export class Structures {
     const main = this.byTile.get(i);
     const floor = this.floorByTile.get(i);
     const top = main?.built ? main : floor?.built ? floor : undefined;
-    this.map.blocked[i] = !top ? 0 : top.def.blocks ? BLOCK_SOLID : walkableStructureCode(top.def.moveCost ?? 1);
-    // Puentes y plataformas terminados: el agua de debajo se anda como suelo.
-    this.map.bridge[i] = floor?.built && (floor.def.bridge || floor.def.platform) ? 1 : 0;
+    // Un puente levadizo alzado no deja pasar a nadie.
+    const up = !!top?.def.drawbridge && !!top.raised;
+    this.map.blocked[i] = !top ? 0 : top.def.blocks || up ? BLOCK_SOLID : walkableStructureCode(top.def.moveCost ?? 1);
+    // Puentes, plataformas y puentes levadizos bajados: el agua de debajo se anda como suelo.
+    const down = !!main?.built && !!main.def.drawbridge && !main.raised;
+    this.map.bridge[i] = (floor?.built && (floor.def.bridge || floor.def.platform)) || down ? 1 : 0;
   }
 
   /**
@@ -464,6 +475,12 @@ export class Structures {
     // Un puente solo va sobre el agua (cualquiera) sin nada encima.
     if (def?.bridge) return canBridge(this.map, x, y) && !this.floorAt(x, y) && !this.mainAt(x, y);
     if (def?.platform) return canPlatform(this.map, def, x, y) && !this.floorAt(x, y) && !this.mainAt(x, y);
+    // El puente levadizo va sobre el agua (cualquiera) o en la orilla, sin nada debajo ni encima.
+    if (def?.drawbridge) {
+      const main = this.mainAt(x, y);
+      if (this.floorAt(x, y) || (main && main !== ignore)) return false;
+      return canBridge(this.map, x, y) || buildBlocker(this.map, x, y) === null;
+    }
     // El molino de agua va en el río mismo: ni en tierra ni sobre un puente o una plataforma.
     if (def?.onWater) {
       const main = this.mainAt(x, y);
@@ -492,7 +509,10 @@ export class Structures {
     const tiles = footprintTiles(def, x, y, rot);
     if (!inBounds(this.map, x, y)) return false;
     const level = this.map.level[index(this.map, x, y)];
-    if (!tiles.every((t) => this.canPlace(t.x, t.y, def, ignore) && this.map.level[index(this.map, t.x, t.y)] === level)) return false;
+    // El puente levadizo va de una orilla a otra por encima del agua: no hace falta que todo esté a la misma altura.
+    if (!tiles.every((t) => this.canPlace(t.x, t.y, def, ignore) && (def.drawbridge || this.map.level[index(this.map, t.x, t.y)] === level))) return false;
+    // El puente levadizo tiene que tener agua debajo (al menos una casilla).
+    if (def.drawbridge && !tiles.some((t) => canBridge(this.map, t.x, t.y))) return false;
     // La depuradora tiene que tocar agua.
     if (def.nearWater && !tiles.some((t) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
       const nx = t.x + dx;
@@ -659,6 +679,14 @@ export class Structures {
     s.progress = progress;
     this.version++;
     return s;
+  }
+
+  /** Alza o baja un puente levadizo terminado (cambia el paso por sus casillas). */
+  setRaised(s: Structure, up: boolean): void {
+    if (!s.def.drawbridge || !!s.raised === up) return;
+    s.raised = up;
+    for (const t of this.tilesOf(s)) this.refreshBlocked(index(this.map, t.x, t.y));
+    this.version++;
   }
 
   /** Termina una construcción: deja de ser plano y bloquea o frena el paso. */

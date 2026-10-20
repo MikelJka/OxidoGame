@@ -447,6 +447,7 @@ for (const def of BUILDINGS) {
   if (def.turret) b.title += ` · gasta ${-(def.power ?? 0)} W · con corriente dispara sola a ${def.turret.reach} casillas, sin munición`;
   if (def.platform) b.title += ` · solo sobre el agua${def.platform.deepWater ? ' (también la profunda)' : ' poco profunda o normal'}; encima se construye como en tierra (menos huertos)`;
   if (def.onWater) b.title += ` · solo en un río (agua poco profunda o normal); da ${def.power ?? 0} W fijos, de día y de noche`;
+  if (def.drawbridge) b.title += ` · ${def.size?.[0] ?? 1}×${def.size?.[1] ?? 1} sobre el agua (puede apoyarse en la orilla) · gasta ${-(def.power ?? 0)} W · bajado se cruza andando; alzado no pasa nadie · con corriente se alza solo ante un raid; tócalo para alzarlo o bajarlo a mano`;
   if (def.bridge) b.title += ` · solo sobre el agua (se cruza andando); en el agua profunda cuesta ×${def.bridge.deepCostMultiplier}`;
   if (def.stunSeconds) b.title += ` · gasta ${-(def.power ?? 0)} W · con corriente aturde ${def.stunSeconds} s a quien la pisa`;
   buildList.append(b);
@@ -770,6 +771,16 @@ function renderPiece(): void {
   piecePanel.hidden = !s;
   if (!s) return;
   $('pc-name').textContent = s.def.name;
+  const raise = $('pc-raise');
+  raise.hidden = !s.def.drawbridge;
+  if (s.def.drawbridge) {
+    // Puente levadizo: su estado y el botón de alzar o bajar (no se mueve).
+    $('pc-status').textContent = `${s.raised ? '⬆️ Alzado: no pasa nadie' : s.wantUp ? '⏳ Se alza en cuanto no haya nadie encima' : '⬇️ Bajado: se cruza andando'} · ${s.powered ? 'con corriente se alza solo ante un raid' : 'sin corriente: solo a mano'}`;
+    raise.textContent = s.wantUp ? '⬇️ Bajar' : '⬆️ Alzar';
+    $('pc-move').hidden = true;
+    $('pc-unmove').hidden = true;
+    return;
+  }
   $('pc-status').textContent = s.lifted ? '✋ Un colono lo está llevando' : s.moveTo ? '✋ Esperando a que un colono lo lleve' : 'Se puede llevar a otro sitio sin gastar nada';
   $('pc-move').hidden = !!s.moveTo;
   $('pc-unmove').hidden = !s.moveTo || !!s.lifted;
@@ -781,6 +792,10 @@ game.events.on('piece-select', (s: Structure | null) => {
 $('pc-close').addEventListener('click', () => scene().selectPiece(null));
 $('pc-move').addEventListener('click', () => {
   if (selectedPiece) scene().startMove(selectedPiece);
+});
+$('pc-raise').addEventListener('click', () => {
+  if (selectedPiece) scene().world.toggleDrawbridge(selectedPiece);
+  renderPiece();
 });
 $('pc-unmove').addEventListener('click', () => {
   if (selectedPiece) scene().world.cancelMoveStructure(selectedPiece.id);

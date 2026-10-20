@@ -842,6 +842,32 @@
     }
   },
   {
+    "id": "puente_levadizo",
+    "research": "hidraulica",
+    "name": "Puente levadizo",
+    "category": "defensa",
+    "cost": {
+      "metal": 12,
+      "componentes": 3
+    },
+    "work": 500,
+    "hp": 600,
+    "blocks": false,
+    "moveCost": 1,
+    "height": 0,
+    "size": [
+      4,
+      2
+    ],
+    "power": -20,
+    "drawbridge": true,
+    "colors": {
+      "top": "#8e949a",
+      "face": "#5e6469",
+      "dark": "#33373b"
+    }
+  },
+  {
     "id": "plataforma_madera",
     "research": "puentes",
     "name": "Plataforma de madera",

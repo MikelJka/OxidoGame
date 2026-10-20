@@ -989,7 +989,7 @@ export class WorldScene extends Phaser.Scene {
       this.selectZone(z ? z.id : null);
       this.selectFarm(f ? f.id : null);
       this.selectStation(st && st.built && st.def.category === 'taller' ? st : null);
-      this.selectPiece(st && st.built && st.def.movable && st.def.category !== 'taller' ? st : null);
+      this.selectPiece(st && st.built && (st.def.movable || st.def.drawbridge) && st.def.category !== 'taller' ? st : null);
       return;
     }
     const tile = t;
@@ -1696,7 +1696,7 @@ export class WorldScene extends Phaser.Scene {
     for (const img of this.structSprites) img.destroy();
     this.structSprites = [];
     for (const s of st.all()) {
-      const img = this.buildingImage(s.def, st.tilesOf(s));
+      const img = this.buildingImage(s.def, st.tilesOf(s), !!s.raised);
       if (!s.built) img.setAlpha(0.45).setTint(0x8fc0ff); // plano: translúcido y azulado
       else if (s.demolish) img.setTint(0xff8a7a); // marcada para demoler: rojiza
       this.structSprites.push(img);
@@ -1713,15 +1713,15 @@ export class WorldScene extends Phaser.Scene {
   }
 
   /** Imagen de una construcción que ocupa esas casillas reales (vista con el giro actual). */
-  private buildingImage(def: BuildingDef, tiles: { x: number; y: number }[]): Phaser.GameObjects.Image {
+  private buildingImage(def: BuildingDef, tiles: { x: number; y: number }[], raised = false): Phaser.GameObjects.Image {
     const unitH = wallHeight(LIFT);
     const vt = tiles.map((t) => this.viewTile(t.x, t.y));
     const vx0 = Math.min(...vt.map((t) => t.x));
     const vy0 = Math.min(...vt.map((t) => t.y));
     const vw = Math.max(...vt.map((t) => t.x)) - vx0 + 1;
     const vh = Math.max(...vt.map((t) => t.y)) - vy0 + 1;
-    const key = `build-${def.id}-${TILE_H}-${unitH}-${vw}x${vh}`;
-    if (!this.textures.exists(key)) drawBuildingTexture(this, key, def, unitH, vw, vh);
+    const key = `build-${def.id}${raised ? '-alzado' : ''}-${TILE_H}-${unitH}-${vw}x${vh}`;
+    if (!this.textures.exists(key)) drawBuildingTexture(this, key, def, unitH, vw, vh, raised);
     const top = vy0 * TILE_H - liftOf(this.view, vx0, vy0);
     const img = this.add.image(vx0 * TILE, top - faceHeight(def, LIFT), key).setOrigin(0, 0);
     // Delante de lo que está en su fila y en las de detrás; detrás de lo que está más al sur.
@@ -1964,6 +1964,7 @@ function powerLabel(w: World, s: Structure): string {
   else if (s.def.source === 'wind') parts.push(s.sheltered ? 'tapado: necesita las casillas de alrededor libres' : `${s.output ?? 0} W, viento ${Math.round(w.wind * 100)} %`);
   else if (s.electric) parts.push(s.powered ? 'eléctrico: el doble de rápido' : 'eléctrico, sin corriente: velocidad normal');
   else if (s.upgrade) parts.push('electrificando');
+  else if (s.def.drawbridge) parts.push(s.raised ? 'alzado: no pasa nadie' : s.wantUp ? 'se alza en cuanto no haya nadie encima' : 'bajado: se cruza andando', s.powered ? 'con corriente: se alza solo ante un raid' : 'sin corriente: solo a mano');
   else if (s.def.autoDoor) parts.push(!s.powered ? 'sin corriente: se queda abierta' : w.shutDoors.has(s.y * w.map.width + s.x) ? 'cerrada a los saqueadores' : 'con corriente: se cierra ante un raid');
   else if ((s.def.power ?? 0) < 0) parts.push(s.powered ? (s.def.light ? 'encendida' : 'en marcha') : s.def.light ? 'sin corriente' : 'sin corriente: parada');
   if (s.def.power || s.electric || s.def.battery || s.def.conduit) {
@@ -1974,10 +1975,10 @@ function powerLabel(w: World, s: Structure): string {
   return parts.length ? ` (${parts.join(' · ')})` : '';
 }
 
-function drawBuildingTexture(scene: Phaser.Scene, key: string, def: BuildingDef, unitH: number, vw = 1, vh = 1): void {
+function drawBuildingTexture(scene: Phaser.Scene, key: string, def: BuildingDef, unitH: number, vw = 1, vh = 1, raised = false): void {
   const tex = scene.textures.createCanvas(key, TILE * vw, TILE_H * vh + unitH * def.height);
   if (!tex) return;
-  drawBuilding(tex.getContext(), def, TILE * vw, TILE_H * vh, unitH);
+  drawBuilding(tex.getContext(), def, TILE * vw, TILE_H * vh, unitH, raised);
   tex.refresh();
 }
 
