@@ -14,7 +14,7 @@ import { Rooms } from './rooms';
 import { giveDose, needsDose, tickHealth, tickInfection, treatWounds } from './health';
 import { Difficulty, initialSchedule, makeDifficulty, scaledSupplies, StorySchedule } from './storyteller';
 import { findRefuge, updatePanic } from './panic';
-import { canTalk, colonistFight, dropGear, makePrisoner, runStoryteller, talkToPrisoner, TurretShot, updateOthers, updateTurrets, validAttackTarget } from './people';
+import { canTalk, colonistFight, dropGear, hurtFoe, makePrisoner, runStoryteller, talkToPrisoner, TurretShot, updateOthers, updateTurrets, validAttackTarget } from './people';
 import { AMMO_CARRY, AMMO_LOW, ammoFor, isAmmo, isGear, isWeapon, WEAPON_IDS, WEAPONS, weaponScore } from '../data/weapons';
 import { ARMOR_IDS, ARMORS, isArmor } from '../data/armor';
 import { FINISH_MOOD } from '../data/morale';
@@ -2351,12 +2351,27 @@ export class World implements JobContext {
         c.tile = { x: target.x, y: target.y };
         c.path.shift();
         budget -= dist;
+        if (this.stepHazard(c)) return;
       } else {
         c.pos.x += (dx / dist) * budget;
         c.pos.y += (dy / dist) * budget;
         budget = 0;
       }
     }
+  }
+
+  /**
+   * Al entrar en una casilla con alambre de espino, un saqueador o una criatura se hace un poco de daño
+   * (a los colonos, no: saben dónde está). Devuelve true si ha caído (o muerto) y deja de andar.
+   */
+  private stepHazard(c: Colonist): boolean {
+    if (c.role !== 'saqueador' || c.downed) return false;
+    const s = this.structures.mainAt(c.tile.x, c.tile.y);
+    const dmg = s?.built ? s.def.stepDamage : undefined;
+    if (!dmg) return false;
+    if (!hurtFoe(this, c, dmg, 'las piernas')) return false;
+    c.path = [];
+    return true;
   }
 
   private terrainCost(p: Point): number {

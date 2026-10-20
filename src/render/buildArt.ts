@@ -348,6 +348,26 @@ function drawFlat(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number,
     px(0, tileH - 1, tile, 1, dark);
     return;
   }
+  if (def.id === 'alambre_espino') {
+    // Alambre de espino: dos postes y dos hilos en zigzag con púas.
+    const posts = [2, tile - 3];
+    for (const x of posts) {
+      px(x, 1, 1, tileH - 2, dark);
+      px(x + 1, 1, 1, tileH - 2, face);
+    }
+    for (let row = 0; row < 2; row++) {
+      const yBase = Math.floor((tileH * (row + 1)) / 3);
+      for (let x = 0; x < tile; x++) {
+        const y = yBase + (Math.floor(x / 2) % 2 === 0 ? 0 : -1);
+        px(x, y, 1, 1, top);
+        if (x % 4 === 1) {
+          px(x, y - 1, 1, 1, dark);
+          px(x, y + 1, 1, 1, dark);
+        }
+      }
+    }
+    return;
+  }
   if (def.category === 'defensa') {
     // Pinchos: estacas afiladas en dos filas.
     for (let row = 0; row < 2; row++) {

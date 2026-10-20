@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (3) — Alambre de espino con «Fortificación» (fortificación, segunda parte)
+
+- Sin incidencias nuevas en 🐞. Las granadas siguen esperando a Mikel; se sigue con «sacos de arena, alambre de espino y aspilleras»: segunda parte, el alambre de espino.
+- **Alambre de espino** (🏗 → Defensas, 🔩2 por casilla): pide investigar **«Fortificación»** (8 h, sin requisitos); hasta entonces sale con 🔒. Va a ras de suelo, no tapa (sin cobertura), se cruza **3 veces más despacio** y cada saqueador o mutante que entra en la casilla se hace **un poco de daño** (5 % de salud, una herida en las piernas que sangra; los puños quitan de media un 13 %). A un saqueador muy herido lo deja en el suelo (sin matarlo, como los golpes); un perro mutante sí puede morir.
+- Decidido en esta sesión porque el catálogo no lo concreta (Mikel puede cambiarlo): el daño de un 5 % por casilla, que a los **colonos no les hace daño** (saben dónde está; solo les frena), 60 de vida y 60 de trabajo (la mitad que unos pinchos).
+- Qué probar: investigar Fortificación en 📜 → 🔬 Investigación (🪄 acelera), ver que ya no lleva el aviso 🕒, poner una fila de alambre delante de la entrada y lanzar un raid con 🪄: los saqueadores que lo cruzan van despacio y salen heridos. En el móvil, que el dibujo (postes y alambre con púas) se distinga de los pinchos.
+- Sin npm en el entorno: tests con Bun (450, 4 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Siguen esperando la respuesta de Mikel: la hoguera (A-D), «Medicina de campo» (A-C), los saqueadores con las armas nuevas (A-C) y las granadas (A-D).
+- Siguiente: el muro con aspilleras (o las granadas, si Mikel ya ha elegido).
+
 ## 2026-10-20 (2) — Sacos de arena (fortificación, primera parte)
 
 - Sin incidencias nuevas en 🐞. Las granadas siguen esperando a Mikel; se pasa a lo siguiente del orden: sacos de arena, alambre de espino y aspilleras. Se hace la primera parte, los sacos de arena.

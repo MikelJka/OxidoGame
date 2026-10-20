@@ -510,6 +510,26 @@
     }
   },
   {
+    "id": "alambre_espino",
+    "name": "Alambre de espino",
+    "category": "defensa",
+    "cost": {
+      "chatarra": 2
+    },
+    "research": "fortificacion",
+    "work": 60,
+    "hp": 60,
+    "blocks": false,
+    "moveCost": 3,
+    "height": 0,
+    "stepDamage": 0.05,
+    "colors": {
+      "top": "#b7b3a8",
+      "face": "#7d786c",
+      "dark": "#4a463f"
+    }
+  },
+  {
     "id": "torreta_ligera",
     "name": "Torreta ligera",
     "category": "defensa",

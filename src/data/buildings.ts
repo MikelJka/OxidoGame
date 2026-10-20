@@ -83,6 +83,8 @@ export interface BuildingDef {
   research?: string;
   /** Al demolerla se recupera todo el material, no la mitad (sacos de arena). */
   fullRefund?: boolean;
+  /** Daño (salud, 0-1) a cada enemigo que entra en la casilla (alambre de espino); a los colonos, no. */
+  stepDamage?: number;
   /** Colores del dibujo: cara de arriba, frente y sombra. */
   colors: { top: string; face: string; dark: string };
 }
@@ -126,6 +128,7 @@ export function validateBuilding(d: unknown): BuildingDef {
   if (b.workSkill !== undefined && (b.category !== 'taller' || !SKILLS.includes(b.workSkill))) fail(`habilidad de taller desconocida ${b.workSkill}`);
   if (b.research !== undefined && (typeof b.research !== 'string' || !b.research)) fail('investigación no válida');
   if (b.fullRefund !== undefined && typeof b.fullRefund !== 'boolean') fail('«fullRefund» no válido');
+  if (b.stepDamage !== undefined && (b.blocks || !(b.stepDamage > 0 && b.stepDamage <= 0.5))) fail('«stepDamage» no válido');
   if (!b.colors?.top || !b.colors.face || !b.colors.dark) fail('faltan colores');
   return b;
 }
