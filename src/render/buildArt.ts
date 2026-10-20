@@ -591,10 +591,18 @@ function drawTurret(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: numbe
   px(cx - 1, cy - 1, cw + 2, ch + 2, '#1a1410');
   px(cx, cy, cw, ch, top);
   px(cx, cy + ch - 2, cw, 2, dark);
-  // Cañón (dos en la pesada).
-  const barrel = big ? 3 : 2;
-  px(cx + cw, cy + 2, Math.max(3, tile - cx - cw - 1), barrel, '#2a2a2a');
-  if (big) px(cx + cw, cy + 6, Math.max(3, tile - cx - cw - 1), 2, '#2a2a2a');
+  const barrelLen = Math.max(3, tile - cx - cw - 1);
+  if (def.id === 'torreta_rotativa') {
+    // Haz de tres cañones finos con un anillo, para distinguirla de la ligera.
+    for (let i = 0; i < 3; i++) px(cx + cw, cy + 1 + i * 2, barrelLen, 1, i === 1 ? '#3a3a3a' : '#222222');
+    px(cx + cw + Math.floor(barrelLen / 2), cy, 1, 6, dark);
+    px(cx + cw - 1, cy, 1, 6, '#1a1410');
+  } else {
+    // Cañón (dos en la pesada).
+    const barrel = big ? 3 : 2;
+    px(cx + cw, cy + 2, barrelLen, barrel, '#2a2a2a');
+    if (big) px(cx + cw, cy + 6, barrelLen, 2, '#2a2a2a');
+  }
   // Piloto (se ve si hay corriente; el dibujo es el mismo, la luz ayuda a reconocerla).
   px(cx + 1, cy + 1, 2, 1, '#7fe07a');
 }

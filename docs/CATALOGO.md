@@ -146,7 +146,7 @@ Pedido y elegido por Mikel en el chat el 2026-10-19. Junta en un solo árbol los
 | --- | --- | --- | --- |
 | Torretas | 14 | Pólvora | Torreta ligera ✔ hecho |
 | Artillería | 20 | Torretas | Torreta pesada ✔ hecho y mortero |
-| **Ametralladoras** | 16 | Artillería | Torreta rotativa (🔗25 ⚙️8, 1×1, 400 W, sin munición): ×1,2 por disparo, 3 veces más rápida que la ligera, 10 casillas |
+| **Ametralladoras** | 16 | Artillería | Torreta rotativa ✔ hecho (🔗25 ⚙️8, 1×1, 400 W, sin munición): ×1,2 por disparo, 3 veces más rápida que la ligera, 10 casillas |
 | **Trampas** | 8 | — | Mina casera (🔩6 ⚙️1, pide también Pólvora: explota en 3×3, daño ×4, se gasta) y trampa eléctrica (🔩6 ⚙️2, 50 W, pide también Baterías mejoradas: aturde 5 s a quien la pisa mientras tiene corriente) |
 | **Fortificación** | 8 | — | Alambre de espino (🔩2 por casilla: frena ×3 y hace un poco de daño a quien lo cruza) y muro con aspilleras (de piedra o metal: se dispara desde detrás con cobertura del 75 %) |
 | **Desguace de máquinas** | 10 | Torretas | Los drones y arañas destruidos dejan el doble de ⚙️ |

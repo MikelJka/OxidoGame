@@ -630,6 +630,31 @@
     ]
   },
   {
+    "id": "torreta_rotativa",
+    "name": "Torreta rotativa",
+    "category": "defensa",
+    "cost": {
+      "metal": 25,
+      "componentes": 8
+    },
+    "research": "ametralladoras",
+    "work": 800,
+    "hp": 300,
+    "blocks": true,
+    "height": 1,
+    "power": -400,
+    "turret": {
+      "damage": 1.2,
+      "cooldown": 0.3333,
+      "reach": 10
+    },
+    "colors": {
+      "top": "#868a7c",
+      "face": "#585c50",
+      "dark": "#2e302a"
+    }
+  },
+  {
     "id": "suelo_madera",
     "name": "Suelo de madera",
     "category": "suelo",

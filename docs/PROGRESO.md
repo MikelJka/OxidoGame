@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (6) — Torreta rotativa con «Ametralladoras»
+
+- Sin incidencias nuevas en 🐞 ni respuestas de Mikel a las propuestas. Siguiente del orden del árbol (las granadas y el muro con aspilleras esperan a Mikel): la torreta rotativa.
+- **Torreta rotativa** (🏗 → Defensas, 🔗25 ⚙️8, 1×1, 400 W): pide investigar **«Ametralladoras»** (16 h, que pide «Artillería»); hasta entonces sale con 🔒. Con corriente dispara sola, sin munición, **3 veces más seguido que la ligera**, a **10 casillas**, con ×1,2 de daño por disparo (más flojo que la ligera, ×2,2, pero en total hace más daño por segundo). Sin corriente, apagada. Dibujo propio: un haz de tres cañones finos.
+- Decidido en esta sesión porque el catálogo no lo concreta (Mikel puede cambiarlo): 300 de vida y 800 de trabajo (entre la ligera y la pesada), altura 1.
+- Qué probar: investigar Pólvora → Torretas → Artillería → Ametralladoras en 📜 → 🔬 Investigación (🪄 acelera), poner la torreta con un cable hasta un generador (400 W: quizá haga falta más de uno) y lanzar un raid con 🪄: dispara ráfagas rápidas a 10 casillas. En el móvil, que se distinga de la ligera.
+- Sin npm en el entorno: tests con Bun (463, 4 nuevos) y tipos con `tsc` (sin Phaser, sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguen esperando la respuesta de Mikel: la hoguera (A-D), «Medicina de campo» (A-C), los saqueadores con las armas nuevas (A-C), las granadas (A-D) y el muro con aspilleras (A-C).
+- Siguiente: «Baterías mejoradas» (que doble lo que guardan las baterías), o las granadas o el muro con aspilleras si Mikel ya ha elegido.
+
 ## 2026-10-20 (5) — Trampa eléctrica con «Trampas» y «Baterías mejoradas» (trampas, segunda parte)
 
 - Sin incidencias nuevas en 🐞 ni respuestas de Mikel a las propuestas. Se sigue con las trampas: segunda parte, la trampa eléctrica. Con ella, las trampas quedan hechas.
