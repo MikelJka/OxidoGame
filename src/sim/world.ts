@@ -2371,10 +2371,24 @@ export class World implements JobContext {
     if (c.role !== 'saqueador' || c.downed) return false;
     const s = this.structures.mainAt(c.tile.x, c.tile.y);
     if (s?.built && s.def.mine) return this.explodeMine(s, c);
+    if (s?.built && s.def.stunSeconds) return this.shockTrap(s, c);
     const dmg = s?.built ? s.def.stepDamage : undefined;
     if (!dmg) return false;
     if (!hurtFoe(this, c, dmg, 'las piernas')) return false;
     c.path = [];
+    return true;
+  }
+
+  /**
+   * Trampa eléctrica: si tiene corriente, aturde a `by` (no se mueve ni ataca) unos segundos y le para
+   * en la casilla. No se gasta. Devuelve true si le ha aturdido.
+   */
+  shockTrap(s: Structure, by: Colonist): boolean {
+    if (!s.powered) return false;
+    by.stunnedUntil = this.tick + Math.round(s.def.stunSeconds! * TICKS_PER_SECOND);
+    by.path = [];
+    by.activity = 'idle';
+    this.addLog(`⚡ ${by.name} pisa una ${s.def.name.toLowerCase()} y se queda aturdido.`, 'bueno', 'combate', { x: s.x, y: s.y });
     return true;
   }
 

@@ -120,6 +120,7 @@ interface SavedColonist {
   helmet?: string | null;
   armorChoice?: string;
   panic?: { until: number };
+  stunnedUntil?: number;
   /** Postura del reclutado (desde las posturas). */
   stance?: string;
   attackTarget?: number;
@@ -170,6 +171,7 @@ function savePawn(c: Colonist): SavedColonist {
     helmet: c.helmet,
     armorChoice: c.armorChoice,
     panic: c.panic ? { ...c.panic } : undefined,
+    stunnedUntil: c.stunnedUntil,
     stance: c.stance,
     attackTarget: c.attackTarget,
   };
@@ -418,6 +420,8 @@ function restoreColonist(s: SavedColonist): Colonist {
     armorChoice: s.armorChoice === 'ninguna' ? 'ninguna' : 'auto',
     // Partidas de antes del pánico: nadie en pánico (al cargar, sin camino: se queda quieto hasta que se le pasa).
     ...(s.panic && typeof s.panic === 'object' ? { panic: { until: num(s.panic.until, 0) } } : {}),
+    // Partidas de antes de la trampa eléctrica: nadie aturdido.
+    ...(typeof s.stunnedUntil === 'number' && Number.isFinite(s.stunnedUntil) ? { stunnedUntil: s.stunnedUntil } : {}),
     ...loadStance(s),
   };
 }

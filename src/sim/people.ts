@@ -772,6 +772,14 @@ export function updateOthers(w: World): void {
       dropGear(w, o);
       continue;
     }
+    // Aturdido por una trampa eléctrica: se queda quieto, sin moverse ni atacar.
+    if (o.stunnedUntil !== undefined) {
+      if (w.tick < o.stunnedUntil) {
+        o.activity = 'idle';
+        continue;
+      }
+      o.stunnedUntil = undefined;
+    }
     if (o.role === 'saqueador') updateRaider(w, o);
     else if (o.role === 'comerciante') updateTrader(w, o);
     else if (o.role === 'prisionero') updatePrisoner(w, o);

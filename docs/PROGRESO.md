@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (5) — Trampa eléctrica con «Trampas» y «Baterías mejoradas» (trampas, segunda parte)
+
+- Sin incidencias nuevas en 🐞 ni respuestas de Mikel a las propuestas. Se sigue con las trampas: segunda parte, la trampa eléctrica. Con ella, las trampas quedan hechas.
+- **Trampa eléctrica** (🏗 → Defensas, 🔩6 ⚙️2, 50 W): pide investigar **«Trampas» y «Baterías mejoradas»**; hasta tener las dos sale con 🔒 y el aviso dice cuál falta. Va a ras de suelo, no frena y se conecta con un cable como cualquier aparato. **Con corriente**, al saqueador o mutante que entra en su casilla lo **aturde 5 s**: se queda quieto, sin andar ni atacar. No hace daño y **no se gasta**; sin corriente no hace nada.
+- Decidido en esta sesión porque el catálogo no lo concreta (Mikel puede cambiarlo): a los colonos no les afecta (como la mina y el alambre), 60 de vida y 60 de trabajo, y quien vuelve a pisarla tras pasársele vuelve a quedar aturdido (no hay tiempo de recarga).
+- «Baterías mejoradas» aún no dobla lo que guardan las baterías: eso es su propio punto del orden (después de la torreta rotativa).
+- Qué probar: investigar Trampas y Baterías mejoradas en 📜 → 🔬 Investigación (🪄 acelera), poner una trampa delante de la entrada con un cable hasta un generador y lanzar un raid con 🪄: el diario dice «⚡ … pisa una trampa eléctrica y se queda aturdido» y el saqueador se para 5 s. Sin corriente, pasan sin pararse. En el móvil, que el dibujo (placa de chapa con un rayo amarillo) se distinga de la mina.
+- Sin npm en el entorno: tests con Bun (459, 5 nuevos) y tipos con `tsc` (sin Phaser, sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguen esperando la respuesta de Mikel: la hoguera (A-D), «Medicina de campo» (A-C), los saqueadores con las armas nuevas (A-C), las granadas (A-D) y el muro con aspilleras (A-C).
+- Siguiente: la torreta rotativa (o el muro con aspilleras o las granadas, si Mikel ya ha elegido).
+
 ## 2026-10-20 (4) — Mina casera con «Trampas» y «Pólvora» (trampas, primera parte)
 
 - Sin incidencias nuevas en 🐞 ni respuestas de Mikel a las propuestas. El muro con aspilleras y las granadas esperan su elección; se pasa a lo siguiente del orden, las trampas. Se hace la primera parte, la mina casera.

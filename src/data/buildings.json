@@ -554,6 +554,28 @@
     }
   },
   {
+    "id": "trampa_electrica",
+    "name": "Trampa eléctrica",
+    "category": "defensa",
+    "cost": {
+      "chatarra": 6,
+      "componentes": 2
+    },
+    "research": "trampas",
+    "researchAlso": "baterias",
+    "work": 60,
+    "hp": 60,
+    "blocks": false,
+    "height": 0,
+    "power": -50,
+    "stunSeconds": 5,
+    "colors": {
+      "top": "#7a8088",
+      "face": "#4e545c",
+      "dark": "#2c3036"
+    }
+  },
+  {
     "id": "torreta_ligera",
     "name": "Torreta ligera",
     "category": "defensa",

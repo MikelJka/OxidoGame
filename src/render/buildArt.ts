@@ -361,6 +361,21 @@ function drawFlat(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number,
     px(cx, cy - 1, 1, 2, '#c0392b');
     return;
   }
+  if (def.id === 'trampa_electrica') {
+    // Trampa eléctrica: una placa de chapa con dos bornes y un rayo amarillo en medio.
+    const m = Math.max(1, Math.floor(tile / 6));
+    px(m, m, tile - 2 * m, tileH - 2 * m, face);
+    px(m, m, tile - 2 * m, 1, top);
+    px(m, tileH - m - 1, tile - 2 * m, 1, dark);
+    px(m + 1, m + 1, 2, 2, '#c0392b');
+    px(tile - m - 3, tileH - m - 3, 2, 2, '#2c3e50');
+    const cx = Math.floor(tile / 2);
+    const cy = Math.floor(tileH / 2);
+    px(cx, cy - 2, 2, 2, '#f1c40f');
+    px(cx - 1, cy, 2, 1, '#f1c40f');
+    px(cx - 2, cy + 1, 2, 2, '#f1c40f');
+    return;
+  }
   if (def.id === 'alambre_espino') {
     // Alambre de espino: dos postes y dos hilos en zigzag con púas.
     const posts = [2, tile - 3];

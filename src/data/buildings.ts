@@ -92,6 +92,11 @@ export interface BuildingDef {
    * Daño (× el de los puños) a cada enemigo a `radius` casillas o menos (1 = el 3×3).
    */
   mine?: { damage: number; radius: number };
+  /**
+   * Trampa eléctrica: con corriente, aturde estos segundos a cada enemigo que entra en la casilla
+   * (no se mueve ni ataca). No se gasta. A los colonos, nada (saben dónde está).
+   */
+  stunSeconds?: number;
   /** Colores del dibujo: cara de arriba, frente y sombra. */
   colors: { top: string; face: string; dark: string };
 }
@@ -136,6 +141,7 @@ export function validateBuilding(d: unknown): BuildingDef {
   if (b.research !== undefined && (typeof b.research !== 'string' || !b.research)) fail('investigación no válida');
   if (b.researchAlso !== undefined && (typeof b.researchAlso !== 'string' || !b.researchAlso || !b.research || b.researchAlso === b.research)) fail('segunda investigación no válida');
   if (b.mine !== undefined && (b.blocks || b.stepDamage !== undefined || !(b.mine.damage > 0) || !Number.isInteger(b.mine.radius) || b.mine.radius < 0 || b.mine.radius > 3)) fail('mina no válida');
+  if (b.stunSeconds !== undefined && (b.blocks || b.mine !== undefined || !((b.power ?? 0) < 0) || !(b.stunSeconds > 0 && b.stunSeconds <= 30))) fail('trampa eléctrica no válida');
   if (b.fullRefund !== undefined && typeof b.fullRefund !== 'boolean') fail('«fullRefund» no válido');
   if (b.stepDamage !== undefined && (b.blocks || !(b.stepDamage > 0 && b.stepDamage <= 0.5))) fail('«stepDamage» no válido');
   if (!b.colors?.top || !b.colors.face || !b.colors.dark) fail('faltan colores');

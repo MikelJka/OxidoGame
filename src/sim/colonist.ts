@@ -159,6 +159,8 @@ export interface Colonist {
   gearTask?: { x: number; y: number; resource: ResourceId };
   /** En pánico hasta ese tick: corre a refugiarse y no obedece ni trabaja. */
   panic?: { until: number };
+  /** Aturdido hasta ese tick (trampa eléctrica): no se mueve ni ataca. */
+  stunnedUntil?: number;
   /** Sitio en un vehículo: conductor o tirador (`boarded`: ya va dentro; si no, va hacia él). */
   vehicle?: { id: number; seat: 'conductor' | 'tirador'; boarded: boolean };
   /** Postura de combate del reclutado (sin ella, va a por los enemigos cercanos). */
