@@ -9,8 +9,9 @@ Diario de sesiones, la más reciente arriba.
 - Decidido en esta sesión porque el catálogo no lo concreta (Mikel puede cambiarlo): el daño de un 5 % por casilla, que a los **colonos no les hace daño** (saben dónde está; solo les frena), 60 de vida y 60 de trabajo (la mitad que unos pinchos).
 - Qué probar: investigar Fortificación en 📜 → 🔬 Investigación (🪄 acelera), ver que ya no lleva el aviso 🕒, poner una fila de alambre delante de la entrada y lanzar un raid con 🪄: los saqueadores que lo cruzan van despacio y salen heridos. En el móvil, que el dibujo (postes y alambre con púas) se distinga de los pinchos.
 - Sin npm en el entorno: tests con Bun (450, 4 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
-- Siguen esperando la respuesta de Mikel: la hoguera (A-D), «Medicina de campo» (A-C), los saqueadores con las armas nuevas (A-C) y las granadas (A-D).
-- Siguiente: el muro con aspilleras (o las granadas, si Mikel ya ha elegido).
+- Siguen esperando la respuesta de Mikel: la hoguera (A-D), «Medicina de campo» (A-C), los saqueadores con las armas nuevas (A-C), las granadas (A-D) y ahora el muro con aspilleras (A-C).
+- El muro con aspilleras deja sin decidir su coste y desde qué lado se dispara: propuesta A-C en «Propuestas para Mikel».
+- Siguiente: el muro con aspilleras o las granadas, según lo que elija Mikel; si no ha contestado, las trampas (mina casera y eléctrica).
 
 ## 2026-10-20 (2) — Sacos de arena (fortificación, primera parte)
 
@@ -19,7 +20,7 @@ Diario de sesiones, la más reciente arriba.
 - Arreglado de paso: el diario decía «ha roto el pinchos de madera»; ahora dice «los pinchos» (y «los sacos de arena»).
 - Qué probar: en 🏗 → Defensas, poner una fila de sacos de arena con fibra y piedra en el almacén y ver que se levantan enseguida; demoler uno y ver que deja 🧵2 🪨3. Poner un arquero reclutado detrás y lanzar un raid con 🪄: se le acierta menos. En el móvil, que el dibujo de los sacos se distinga de las barricadas.
 - Sin npm en el entorno: tests con Bun (446, 3 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
-- Siguen esperando la respuesta de Mikel: la hoguera (A-D), «Medicina de campo» (A-C), los saqueadores con las armas nuevas (A-C) y las granadas (A-D).
+- Siguen esperando la respuesta de Mikel: la hoguera (A-D), «Medicina de campo» (A-C), los saqueadores con las armas nuevas (A-C), las granadas (A-D) y ahora el muro con aspilleras (A-C).
 - Siguiente: el alambre de espino con «Fortificación» (o las granadas, si Mikel ya ha elegido).
 
 ## 2026-10-20 — Ballesta con «Ballesta» y lanza de metal con «Forja»
@@ -30,7 +31,7 @@ Diario de sesiones, la más reciente arriba.
 - Hasta investigarlas salen con 🔒 en el banco. Al elegir arma solos, los colonos prefieren la ballesta al arco (si hay flechas) y la lanza de metal a la de madera y al machete. Los saqueadores no las traen (el catálogo no lo dice).
 - Qué probar: investigar Ballesta y Forja en 📜 → 🔬 Investigación (🪄 acelera), ver en el diario «Ya se puede fabricar: Ballesta», fabricarlas y ver que un arquero cambia el arco por la ballesta y sigue con sus flechas. En la ficha, «🏹 Ballesta (×2,4, lento, alcance 10)». En 📜 → 🔬, Ballesta y Forja ya no llevan el aviso 🕒.
 - Sin npm en el entorno: tests con Bun (443, 5 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
-- Siguen esperando la respuesta de Mikel: la hoguera (A-D), «Medicina de campo» (A-C), los saqueadores con las armas nuevas (A-C) y las granadas (A-D).
+- Siguen esperando la respuesta de Mikel: la hoguera (A-D), «Medicina de campo» (A-C), los saqueadores con las armas nuevas (A-C), las granadas (A-D) y ahora el muro con aspilleras (A-C).
 - Siguiente: sacos de arena, alambre de espino y aspilleras con «Fortificación» (o las granadas, si Mikel ya ha elegido).
 
 ## 2026-10-19 (19) — Subfusil y rifle de francotirador con «Armas automáticas»
