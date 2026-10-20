@@ -37,6 +37,20 @@ export function batteryMultiplier(r: ResearchState): number {
   return m;
 }
 
+/** Por cuánto se multiplica el tiempo que tardan en cerrarse las heridas («Medicina avanzada»: ×0,75). */
+export function woundHealTimeFactor(r: ResearchState): number {
+  let m = 1;
+  for (const id of r.done) m *= researchDef(id)?.woundHealTime ?? 1;
+  return m;
+}
+
+/** Por cuánto se multiplica la probabilidad de que una herida se infecte («Medicina avanzada»: ×0,5). */
+export function infectionChanceFactor(r: ResearchState): number {
+  let m = 1;
+  for (const id of r.done) m *= researchDef(id)?.infectionChance ?? 1;
+  return m;
+}
+
 /** Ya se puede usar: no pide investigación, o ya está hecha toda la que pide (planos nuevos, recetas…). */
 export function unlocked(r: ResearchState, thing: Researchable): boolean {
   return researchNeeds(thing).every((q) => isResearched(r, q));

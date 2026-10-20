@@ -22,7 +22,7 @@ import { Corpse, updateCorpses } from './corpses';
 import { Blast, Grenade, grenadesOf, updateGrenades } from './grenades';
 import { isLitBonfire, updateBonfireCheer, updateBonfires } from './bonfire';
 import { CREATURES } from '../data/creatures';
-import { addResearch, batteryMultiplier, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
+import { addResearch, batteryMultiplier, infectionChanceFactor, woundHealTimeFactor, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
 import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
 import { absorbHit, anchorFor, besideTiles, defOf, nextTo, occupant, updateVehicle, Vehicle, vehicleCenter, vehiclePath, VehicleSeat, covers } from './vehicles';
 import { vehicleDef } from '../data/vehicles';
@@ -311,13 +311,17 @@ export class World implements JobContext {
     }
     // Salud: cada segundo (hambre, sed, heridas y recuperación).
     if (this.tick % TICKS_PER_SECOND === 0) {
+      // «Medicina avanzada» vale para los que cuida la colonia: sus colonos y sus prisioneros.
+      const healTime = woundHealTimeFactor(this.research);
+      const infChance = infectionChanceFactor(this.research);
       for (const c of [...this.colonists, ...this.others]) {
-        const r = tickHealth(c, TICKS_PER_SECOND, TICKS_PER_DAY, c.activity === 'sleeping');
+        const ours = c.role === 'colono' || c.role === 'prisionero';
+        const r = tickHealth(c, TICKS_PER_SECOND, TICKS_PER_DAY, c.activity === 'sleeping', ours ? healTime : 1);
         if (r.died) {
           this.killPawn(c, r.cause ?? 'heridas');
           continue;
         }
-        const inf = tickInfection(c, TICKS_PER_SECOND, TICKS_PER_DAY, this.rng);
+        const inf = tickInfection(c, TICKS_PER_SECOND, TICKS_PER_DAY, this.rng, ours ? infChance : 1);
         const mine = c.role === 'colono';
         if (inf.died) this.killPawn(c, 'infección');
         else if (inf.infected && mine) this.addLog(`🦠 Se le infecta la herida de ${inf.infected} a ${c.name}. Necesita 💊 Medicina: una al día durante 2 días.`, 'malo', 'herido', c.tile);

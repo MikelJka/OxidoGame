@@ -6,6 +6,8 @@
  * - chunkHours: horas seguidas que investiga un colono antes de volver a mirar qué hacer.
  * - projects: el árbol; `requires` son los proyectos que tienen que estar terminados antes.
  *   `batteryMultiplier` (opcional): al terminarlo, lo que guarda cada batería se multiplica por él.
+ *   `woundHealTime` (opcional): al terminarlo, el tiempo que tardan en cerrarse las heridas se multiplica por él.
+ *   `infectionChance` (opcional): al terminarlo, la probabilidad de que una herida se infecte se multiplica por él.
  */
 import data from './research.json';
 import { BUILDINGS } from './buildings';
@@ -21,6 +23,10 @@ export interface ResearchDef {
   unlocks: string;
   /** Al terminarlo, lo que guarda cada batería se multiplica por esto («Baterías mejoradas»: ×2). */
   batteryMultiplier?: number;
+  /** Al terminarlo, el tiempo que tardan en cerrarse las heridas se multiplica por esto («Medicina avanzada»: ×0,75). */
+  woundHealTime?: number;
+  /** Al terminarlo, la probabilidad de que una herida se infecte se multiplica por esto («Medicina avanzada»: ×0,5). */
+  infectionChance?: number;
 }
 
 /** Lo que puede pedir investigaciones: una (`research`) y a veces una segunda (`researchAlso`). */
@@ -46,6 +52,10 @@ function validate(): ResearchDef[] {
     if (!p.name || !(p.hours > 0) || typeof p.unlocks !== 'string') fail(`proyecto ${p.id} no válido`);
     const bm = (p as { batteryMultiplier?: number }).batteryMultiplier;
     if (bm !== undefined && !(bm >= 1)) fail(`${p.id}: batteryMultiplier no válido`);
+    for (const k of ['woundHealTime', 'infectionChance'] as const) {
+      const v = (p as { woundHealTime?: number; infectionChance?: number })[k];
+      if (v !== undefined && !(v > 0 && v <= 1)) fail(`${p.id}: ${k} no válido`);
+    }
     // Lo que pide antes tiene que ir antes en la lista (así no hay ciclos).
     for (const r of p.requires) if (!ids.has(r)) fail(`${p.id} pide ${r}, que no existe o va después`);
     ids.add(p.id);

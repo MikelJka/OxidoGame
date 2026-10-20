@@ -60,8 +60,10 @@ export function bleedRate(c: Colonist): number {
 /**
  * Avanza la salud `ticks` ticks. Hambre y sed a cero dañan; las heridas que sangran, también;
  * bien comido y bebido, se recupera (más deprisa durmiendo) y las heridas se cierran.
+ *
+ * `healTime` multiplica el tiempo que tardan en cerrarse las heridas («Medicina avanzada»: 0,75).
  */
-export function tickHealth(c: Colonist, ticks: number, ticksPerDay: number, asleep: boolean): HealthTickResult {
+export function tickHealth(c: Colonist, ticks: number, ticksPerDay: number, asleep: boolean, healTime = 1): HealthTickResult {
   const day = ticksPerDay;
   let loss = 0;
   let cause = '';
@@ -82,7 +84,7 @@ export function tickHealth(c: Colonist, ticks: number, ticksPerDay: number, asle
   if (fed && bleed === 0) {
     const regen = ((asleep ? 0.6 : 0.2) * ticks) / day;
     c.health = Math.min(1, c.health + regen);
-    for (const w of c.wounds) w.severity -= (w.medicine ? INFECTION.medicineHealFactor * 2 : w.treated ? 2 : 1) * (w.self ? SELF_CARE_HEAL : 1) * regen;
+    for (const w of c.wounds) w.severity -= (w.medicine ? INFECTION.medicineHealFactor * 2 : w.treated ? 2 : 1) * (w.self ? SELF_CARE_HEAL : 1) * regen / healTime;
     c.wounds = c.wounds.filter((w) => w.severity > 0);
   }
   c.health = Math.max(0, c.health - loss);
@@ -133,9 +135,10 @@ export interface InfectionTickResult {
 /**
  * Avanza `ticks` las heridas y la infección: una herida que sigue abierta a las 12 h puede
  * infectarse (20 %; 8 % si la curaron sin medicina; 2 % con medicina). Cada día sin su dosis
- * de 💊 la infección empeora; al tercero seguido, muere.
+ * de 💊 la infección empeora; al tercero seguido, muere. `chanceFactor` multiplica esas
+ * probabilidades («Medicina avanzada»: la mitad).
  */
-export function tickInfection(c: Colonist, ticks: number, ticksPerDay: number, rng: Rng): InfectionTickResult {
+export function tickInfection(c: Colonist, ticks: number, ticksPerDay: number, rng: Rng, chanceFactor = 1): InfectionTickResult {
   const out: InfectionTickResult = {};
   const limit = (INFECTION.checkHours / 24) * ticksPerDay;
   for (const w of c.wounds) {
@@ -145,7 +148,7 @@ export function tickInfection(c: Colonist, ticks: number, ticksPerDay: number, r
     const p = w.self
       ? (w.medicine ? INFECTION.chanceSelfMedicine : INFECTION.chanceSelf)
       : w.medicine ? INFECTION.chanceMedicine : w.treated ? INFECTION.chanceTreated : INFECTION.chanceUntreated;
-    if (!c.infection && rng.chance(p)) {
+    if (!c.infection && rng.chance(p * chanceFactor)) {
       c.infection = { part: w.part, dayTicks: 0, untreatedDays: 0, doses: 0, dosedToday: false };
       out.infected = w.part;
     }

@@ -13,7 +13,7 @@
     { "id": "forja", "name": "Forja", "hours": 8, "requires": [], "unlocks": "Lanza de metal" },
     { "id": "trampas", "name": "Trampas", "hours": 8, "requires": [], "unlocks": "Mina casera (con Pólvora) y trampa eléctrica (con Baterías mejoradas)" },
     { "id": "fortificacion", "name": "Fortificación", "hours": 8, "requires": [], "unlocks": "Alambre de espino y muro con aspilleras" },
-    { "id": "medicina_avanzada", "name": "Medicina avanzada", "hours": 12, "requires": ["medicina_campo"], "unlocks": "Las heridas se curan un 25 % antes y la infección sale la mitad de veces" },
+    { "id": "medicina_avanzada", "name": "Medicina avanzada", "hours": 12, "requires": ["medicina_campo"], "unlocks": "Las heridas se curan un 25 % antes y la infección sale la mitad de veces", "woundHealTime": 0.75, "infectionChance": 0.5 },
     { "id": "hidroponica", "name": "Hidropónica", "hours": 10, "requires": ["agricultura"], "unlocks": "Bandeja hidropónica" },
     { "id": "calefaccion", "name": "Calefacción", "hours": 8, "requires": ["sastreria"], "unlocks": "Estufa" },
     { "id": "armas_largas", "name": "Armas largas", "hours": 12, "requires": ["polvora"], "unlocks": "Escopeta y rifle" },

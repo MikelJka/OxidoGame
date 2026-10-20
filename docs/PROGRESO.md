@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (15) — «Medicina avanzada»: heridas un 25 % más rápidas y la mitad de infecciones
+
+- Sin incidencias nuevas en 🐞. Siguiente del orden: «Medicina avanzada» (bloque 13, con sus números en el catálogo).
+- Al terminar **«Medicina avanzada»** (12 h, pide «Medicina de campo»), las heridas de los colonos **tardan un 25 % menos en cerrarse** y la probabilidad de que **se infecten es la mitad** (sin curar 10 %, curada sin 💊 4 %, con 💊 1 %; curándose uno mismo, 6 % y 2 %).
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): vale para los colonos y los **prisioneros** (los cuida la colonia), no para saqueadores ni comerciantes; solo acelera el cierre de las heridas, no la recuperación general de salud.
+- Por dentro: `woundHealTime: 0.75` e `infectionChance: 0.5` en `research.json`; `woundHealTimeFactor` e `infectionChanceFactor` en `src/sim/research.ts`.
+- Qué probar: herir a un colono (🪄 o un raid), investigar «Medicina de campo» y «Medicina avanzada» en 📜 → 🔬 Investigación (🪄 acelera) y ver que sus heridas desaparecen antes.
+- Sin npm en el entorno: tests con Bun (502, 4 nuevos) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguiente: «Desguace de máquinas» (los drones y arañas destruidos dejan el doble de ⚙️); como aún no hay drones ni arañas (bloque 6), habrá que ver si se deja para cuando existan.
+
 ## 2026-10-20 (14) — La mesa de boticario y la hierba curativa piden «Medicina de campo»
 
 - Sin incidencias nuevas en 🐞. Siguiente del orden: «Medicina de campo» (opción A, elegida por Mikel).
