@@ -96,7 +96,7 @@ interface SavedColonist {
   priorities: Record<string, number>;
   carrying: { resource: string; amount: number } | null;
   drafted?: boolean;
-  needs?: { food: number; rest: number; sleptIn: string | null; water?: number; badWaterUntil?: number; lastMeal?: string | null; inLight?: boolean; finishedUntil?: number; sawFinishUntil?: number; sawCorpseUntil?: number };
+  needs?: { food: number; rest: number; sleptIn: string | null; water?: number; badWaterUntil?: number; lastMeal?: string | null; inLight?: boolean; finishedUntil?: number; sawFinishUntil?: number; sawCorpseUntil?: number; fireUntil?: number };
   health?: number;
   wounds?: { part: string; severity: number; bleeding: boolean; treated: boolean; medicine?: boolean; self?: boolean; age?: number; infectRolled?: boolean }[];
   /** Infección (desde las medicinas). */
@@ -412,6 +412,7 @@ function restoreColonist(s: SavedColonist): Colonist {
       ...(num(s.needs?.sawFinishUntil, 0) > 0 ? { sawFinishUntil: num(s.needs?.sawFinishUntil, 0) } : {}),
       // Partidas de antes de los cadáveres: no han visto ninguno.
       ...(num(s.needs?.sawCorpseUntil, 0) > 0 ? { sawCorpseUntil: num(s.needs?.sawCorpseUntil, 0) } : {}),
+      ...(num(s.needs?.fireUntil, 0) > 0 ? { fireUntil: num(s.needs?.fireUntil, 0) } : {}),
     },
     need: null,
     // Partidas de antes de las armas: sin arma, eligiendo sola la mejor.

@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { flatWorld } from './helpers';
 import { buildingDef } from '../src/data/buildings';
 import type { Colonist } from '../src/sim/colonist';
-import { isLitBonfire, updateBonfires } from '../src/sim/bonfire';
+import { isLitBonfire, updateBonfireCheer, updateBonfires } from '../src/sim/bonfire';
+import { moodOf } from '../src/sim/needs';
+import { litTiles } from '../src/sim/power';
+import { TICKS_PER_HOUR } from '../src/sim/time';
 import { makeCreature } from '../src/sim/people';
 import { loadWorld, serializeWorld } from '../src/sim/save';
 
@@ -128,5 +131,56 @@ describe('🔥 hoguera', () => {
     s.fuel = 12.5;
     const t = loadWorld(serializeWorld(w)).structures.at(10, 10)!;
     expect(t.fuel).toBeCloseTo(12.5);
+  });
+
+  it('se apaga y, con 🪵 en el almacén, los colonos la vuelven a llenar', () => {
+    const w = flatWorld(1);
+    const z = w.zones.create({ x0: 2, y0: 12, x1: 4, y1: 14 })!;
+    expect(z).toBeTruthy();
+    w.items.drop(3, 13, 'madera', 25);
+    const s = buildNow(w, 12, 12, 'hoguera');
+    s.fuel = 0;
+    updateBonfires(w.structures, 1);
+    expect(isLitBonfire(s)).toBe(false);
+    expect(until(w, () => (s.fuel ?? 0) >= 15)).toBe(true);
+    expect(isLitBonfire(s)).toBe(true);
+  });
+
+  it('encendida da luz como una lámpara (3 casillas); apagada, no', () => {
+    const w = flatWorld(1);
+    const s = buildNow(w, 10, 10, 'hoguera');
+    const at = (x: number, y: number) => y * w.map.width + x;
+    expect(litTiles(w.structures).has(at(10, 10))).toBe(false);
+    s.fuel = 10;
+    updateBonfires(w.structures, 0.01);
+    const lit = litTiles(w.structures);
+    expect(lit.has(at(13, 10))).toBe(true);
+    expect(lit.has(at(14, 10))).toBe(false);
+  });
+
+  it('de noche, quien está a 3 casillas o menos gana un 5 % de ánimo que le dura 2 horas', () => {
+    const w = flatWorld(2);
+    const [near, far] = w.colonists;
+    const s = buildNow(w, 10, 10, 'hoguera');
+    s.fuel = 10;
+    near.tile = { x: 13, y: 12 };
+    far.tile = { x: 14, y: 10 };
+    const warm = (c: Colonist, t: number) => moodOf(c, t).reasons.find((r) => r.text === 'Junto a la hoguera');
+    updateBonfireCheer(w.structures, w.colonists, w.tick, TICKS_PER_HOUR, false);
+    expect(warm(near, w.tick)).toBeUndefined();
+    updateBonfireCheer(w.structures, w.colonists, w.tick, TICKS_PER_HOUR, true);
+    expect(warm(near, w.tick)?.value).toBe(0.05);
+    expect(warm(far, w.tick)).toBeUndefined();
+    expect(warm(near, w.tick + 2 * TICKS_PER_HOUR - 1)).toBeTruthy();
+    expect(warm(near, w.tick + 2 * TICKS_PER_HOUR)).toBeUndefined();
+    // Se guarda con la partida.
+    const t = loadWorld(serializeWorld(w)).colonists.find((k) => k.id === near.id)!;
+    expect(t.needs.fireUntil).toBe(near.needs.fireUntil);
+    // Apagada, nada.
+    far.tile = { x: 11, y: 10 };
+    s.fuel = 0;
+    updateBonfires(w.structures, 0.01);
+    updateBonfireCheer(w.structures, w.colonists, w.tick, TICKS_PER_HOUR, true);
+    expect(warm(far, w.tick)).toBeUndefined();
   });
 });

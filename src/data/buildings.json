@@ -885,6 +885,12 @@
       "top": "#7a7068",
       "face": "#4e4640",
       "dark": "#241e1a"
+    },
+    "light": 3,
+    "cheer": {
+      "radius": 3,
+      "mood": 0.05,
+      "hours": 2
     }
   },
   {

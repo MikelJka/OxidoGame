@@ -102,6 +102,11 @@ export interface BuildingDef {
    * con «Transportar» le lleva cada cadáver de criatura para quemarlo. Sin combustible, apagada.
    */
   burnsCorpses?: boolean;
+  /**
+   * Ánimo de estar cerca de noche (hoguera, elegido por Mikel el 2026-10-20): a quien está despierto
+   * a `radius` casillas o menos mientras arde le suma `mood`, que le dura `hours` horas tras alejarse.
+   */
+  cheer?: { radius: number; mood: number; hours: number };
   /** Colores del dibujo: cara de arriba, frente y sombra. */
   colors: { top: string; face: string; dark: string };
 }
@@ -150,11 +155,15 @@ export function validateBuilding(d: unknown): BuildingDef {
   if (b.fullRefund !== undefined && typeof b.fullRefund !== 'boolean') fail('«fullRefund» no válido');
   if (b.stepDamage !== undefined && (b.blocks || !(b.stepDamage > 0 && b.stepDamage <= 0.5))) fail('«stepDamage» no válido');
   if (b.burnsCorpses !== undefined && (b.burnsCorpses !== true || !b.fuel || b.power !== undefined)) fail('una hoguera necesita combustible y no da corriente');
+  if (b.cheer !== undefined && (!b.burnsCorpses || !Number.isInteger(b.cheer.radius) || b.cheer.radius < 1 || b.cheer.radius > 10 || !(b.cheer.mood > 0 && b.cheer.mood <= 0.3) || !(b.cheer.hours > 0))) fail('«cheer» no válido');
   if (!b.colors?.top || !b.colors.face || !b.colors.dark) fail('faltan colores');
   return b;
 }
 
 export const BUILDINGS: readonly BuildingDef[] = (raw as unknown[]).map(validateBuilding);
+
+/** Ánimo de la hoguera encendida de noche (de su definición en `buildings.json`). */
+export const BONFIRE_CHEER = BUILDINGS.find((b) => b.cheer)?.cheer ?? { radius: 0, mood: 0, hours: 0 };
 
 const BY_ID = new Map(BUILDINGS.map((b) => [b.id, b]));
 

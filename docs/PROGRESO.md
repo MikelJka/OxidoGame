@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (9) — La hoguera da luz y ánimo
+
+- Pedido por Mikel en el chat: la hoguera debe dar luz y ánimo, y rellenarse si se apaga. Números elegidos por él: luz como una lámpara y +5 % de ánimo cerca, de noche.
+- Encendida, la hoguera **ilumina 3 casillas** alrededor sin corriente (como una lámpara: de noche se trabaja con luz y cuenta para «Habitación con luz»).
+- De noche, quien está despierto a **3 casillas o menos** de una hoguera encendida gana **+5 % de ánimo** («Junto a la hoguera»), que le dura **2 horas** después de alejarse. Se guarda con la partida.
+- Relleno: los colonos con «Transportar» le llevan madera del almacén en cuanto baja de la mitad del depósito, y también si se ha apagado del todo (ahora hay un test que lo comprueba).
+- Por dentro: los números van en `buildings.json` (`light` y `cheer` de `hoguera`).
+- Qué probar: de noche, poner una hoguera con leña, ver la luz alrededor y, en la ficha de un colono que esté cerca, «Junto a la hoguera +5 %». Dejar que se apague con madera en el almacén y ver que alguien la rellena.
+- Sin npm en el entorno: tests con Bun (478, 3 nuevos) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguiente: las granadas, primera parte.
+
 ## 2026-10-20 (8) — Hoguera para quemar los cadáveres (mutantes terminados)
 
 - Sin incidencias nuevas en 🐞. Mikel eligió la hoguera esta mañana; es lo primero sin hacer del orden (fase 4, mutantes), así que va antes que lo del árbol.

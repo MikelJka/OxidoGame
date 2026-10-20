@@ -19,7 +19,7 @@ import { AMMO_CARRY, AMMO_LOW, ammoFor, isAmmo, isGear, isWeapon, WEAPON_IDS, WE
 import { ARMOR_IDS, ARMORS, armorProtection, isArmor } from '../data/armor';
 import { FINISH_MOOD } from '../data/morale';
 import { Corpse, updateCorpses } from './corpses';
-import { isLitBonfire, updateBonfires } from './bonfire';
+import { isLitBonfire, updateBonfireCheer, updateBonfires } from './bonfire';
 import { CREATURES } from '../data/creatures';
 import { addResearch, batteryMultiplier, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
 import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
@@ -336,6 +336,7 @@ export class World implements JobContext {
       else if (before && !this.shutDoors.size && !raid) this.addLog('🚪 Las puertas automáticas se abren.', 'info');
       // Ánimo: de noche, quien duerme o trabaja junto a una lámpara encendida está más a gusto.
       const night = !isDaylight(this.hour);
+      updateBonfireCheer(this.structures, this.colonists, this.tick, TICKS_PER_HOUR, night);
       for (const c of this.colonists) {
         const on = night && (c.activity === 'sleeping' || c.activity === 'working') && this.lit.has(c.tile.y * this.map.width + c.tile.x);
         if (on) c.needs.inLight = true;

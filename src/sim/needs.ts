@@ -5,6 +5,7 @@ import type { Colonist } from './colonist';
 import { INFECTION } from '../data/medicine';
 import { FINISH_MOOD } from '../data/morale';
 import { CORPSES } from '../data/creatures';
+import { BONFIRE_CHEER } from '../data/buildings';
 
 /** Días de juego que tarda un colono en pasar de lleno a vacío. */
 export const FOOD_DAYS = 1.5;
@@ -56,6 +57,8 @@ export interface Needs {
   sawFinishUntil?: number;
   /** Tick hasta el que le pesa haber visto un cadáver pudriéndose (bloque 2). */
   sawCorpseUntil?: number;
+  /** Estuvo de noche junto a una hoguera encendida: el ánimo de más le dura hasta este tick. */
+  fireUntil?: number;
 }
 
 export function defaultNeeds(): Needs {
@@ -121,6 +124,7 @@ export function moodOf(c: Colonist, tick = 0): { mood: number; reasons: MoodReas
   if (n.inLight) reasons.push({ text: 'Habitación con luz', value: LIGHT_MOOD });
   if ((n.finishedUntil ?? 0) > tick) reasons.push({ text: 'Remató a un saqueador', value: -FINISH_MOOD.killer });
   else if ((n.sawFinishUntil ?? 0) > tick) reasons.push({ text: 'Vio rematar a un saqueador', value: -FINISH_MOOD.witness });
+  if ((n.fireUntil ?? 0) > tick) reasons.push({ text: 'Junto a la hoguera', value: BONFIRE_CHEER.mood });
   if ((n.sawCorpseUntil ?? 0) > tick) reasons.push({ text: 'Vio un cadáver pudriéndose', value: -CORPSES.moodPenalty });
   if (c.infection) reasons.push({ text: 'Herida infectada', value: -INFECTION.moodPenalty });
   if (c.traits.some((t) => t.id === 'optimista')) reasons.push({ text: 'Optimista', value: 0.1 });
