@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (20) — Ataques de máquinas: la araña de chatarra
+
+- Sin incidencias nuevas en 🐞. Lo siguiente del agua (el muelle con la pesca) **necesita que Mikel decida**: lo aprobado habla de la habilidad «Supervivencia», que no existe, y no dice cómo se come el 🐟. Va en «Propuestas para Mikel» con opciones; mientras, se empieza el bloque 6 (máquinas y drones), aprobado y con sus números.
+- Desde el **día 30**, **1 de cada 4 ataques es de máquinas**: llegan **1–2 arañas de chatarra** (🕷️). Tienen el **cuádruple de vida** de un colono, **golpe ×3** y **blindaje −40 %**, **rompen muros y puertas** como el bruto y **no huyen** (ni al caer la mitad, ni malheridas, ni al pasar el día).
+- Al destruirlas no dejan cadáver: sueltan **🔩10–20 y ⚙️2–4**. Las **armas de fuego** (pistola, escopeta, rifle, subfusil, francotirador) les hacen **+25 %**.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): andan a 0,8 de un colono; cada golpe a un muro le quita 30 (como el bruto); el +25 % es solo de las armas de fuego de los colonos, no de las torretas; el ataque de máquinas va en lugar de los saqueadores o mutantes de ese día. Números en `creatures.json` (`arana_chatarra` y `machines`).
+- Qué probar: ☰ → 🪄 Modo Dios → «🕷️ Máquinas» (llegan 2 arañas); reclutar colonos, ver que aguantan mucho, que rompen muros y que al destruirlas dejan chatarra y componentes. Comparar el daño con un rifle frente a un arco.
+- Sin npm en el entorno: tests con Bun (530, 6 nuevos) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguiente: el **dron de vigilancia** (vuela, poca vida, dispara como una pistola, 2–4 por ataque), o el muelle si Mikel ya ha contestado.
+
 ## 2026-10-20 (19) — Plataformas de madera y de metal sobre el agua
 
 - Sin incidencias nuevas en 🐞. Segunda parte de la **update del agua**: las plataformas (opción B elegida por Mikel).

@@ -14,7 +14,7 @@ import { Rooms } from './rooms';
 import { giveDose, needsDose, tickHealth, tickInfection, treatWounds } from './health';
 import { Difficulty, initialSchedule, makeDifficulty, scaledSupplies, StorySchedule } from './storyteller';
 import { findRefuge, updatePanic } from './panic';
-import { canTalk, colonistFight, dropGear, hurtFoe, makePrisoner, runStoryteller, talkToPrisoner, TurretShot, updateOthers, updateTurrets, validAttackTarget } from './people';
+import { canTalk, colonistFight, creatureFallText, dropGear, hurtFoe, makePrisoner, runStoryteller, talkToPrisoner, TurretShot, updateOthers, updateTurrets, validAttackTarget } from './people';
 import { AMMO_CARRY, AMMO_LOW, ammoFor, GRENADE, isAmmo, isGear, isWeapon, WEAPON_IDS, WEAPONS, weaponScore } from '../data/weapons';
 import { ARMOR_IDS, ARMORS, armorProtection, isArmor } from '../data/armor';
 import { FINISH_MOOD } from '../data/morale';
@@ -22,7 +22,7 @@ import { Corpse, updateCorpses } from './corpses';
 import { Blast, Grenade, grenadesOf, updateGrenades } from './grenades';
 import { updateMortars } from './mortar';
 import { isLitBonfire, updateBonfireCheer, updateBonfires } from './bonfire';
-import { CREATURES } from '../data/creatures';
+import { CREATURES, MACHINES } from '../data/creatures';
 import { addResearch, batteryMultiplier, infectionChanceFactor, woundHealTimeFactor, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
 import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
 import { absorbHit, anchorFor, besideTiles, defOf, nextTo, occupant, updateVehicle, Vehicle, vehicleCenter, vehiclePath, VehicleSeat, covers } from './vehicles';
@@ -411,11 +411,17 @@ export class World implements JobContext {
       const i = this.others.indexOf(c);
       if (i >= 0) this.others.splice(i, 1);
       if (c.carrying) this.items.drop(c.tile.x, c.tile.y, c.carrying.resource, c.carrying.amount);
-      // Las criaturas dejan su cadáver donde caen.
-      if (c.creature) this.corpses.push({ id: this.nextCorpseId++, creature: c.creature, x: c.tile.x, y: c.tile.y, diedAt: this.tick });
+      // Las máquinas (bloque 6) sueltan chatarra y componentes; las demás criaturas dejan su cadáver.
+      if (c.creature && CREATURES[c.creature].machine) {
+        const scrap = this.rng.int(MACHINES.scrap[0], MACHINES.scrap[1]);
+        const parts = this.rng.int(MACHINES.parts[0], MACHINES.parts[1]);
+        this.items.drop(c.tile.x, c.tile.y, 'chatarra', scrap);
+        this.items.drop(c.tile.x, c.tile.y, 'componentes', parts);
+        this.addLog(`🔩 Los restos de ${c.name} dejan 🔩${scrap} y ⚙️${parts}.`, 'bueno', undefined, c.tile);
+      } else if (c.creature) this.corpses.push({ id: this.nextCorpseId++, creature: c.creature, x: c.tile.x, y: c.tile.y, diedAt: this.tick });
       if (quiet) return;
       if (c.creature) {
-        this.addLog(`${c.name} muere (${cause}).`, 'info');
+        this.addLog(CREATURES[c.creature].machine ? `${c.name} queda destrozada (${cause}).` : `${c.name} muere (${cause}).`, 'info');
         return;
       }
       const who = c.role === 'saqueador' ? 'Un saqueador' : c.role === 'prisionero' ? 'El prisionero' : 'Alguien';
@@ -2508,7 +2514,7 @@ export class World implements JobContext {
       const armor = 1 - armorProtection([o.vest, o.helmet]);
       const fell = hurtFoe(this, o, absorbHit(this, o, MINE_FIST_DAMAGE * m.damage * armor), 'las piernas');
       if (fell) {
-        if (o.creature) this.addLog(`${o.name} cae muerto.`, 'bueno');
+        if (o.creature) this.addLog(creatureFallText(o), 'bueno');
         else this.addLog(`${o.name} (saqueador) cae al suelo.`, 'bueno');
       }
       if (o === by && (fell || o.downed)) fellBy = true;

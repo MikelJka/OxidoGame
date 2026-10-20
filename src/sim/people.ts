@@ -6,7 +6,7 @@ import { personValue, RESOURCE_VALUES } from '../data/values';
 import { ammoFor, damageAt, GRENADE, isGear, RAIDER_AMMO, raiderWeaponPool, WEAPONS, WeaponDef } from '../data/weapons';
 import { armorProtection, isArmor, raiderVestPool } from '../data/armor';
 import { MEDICINE_STOCK } from '../data/medicine';
-import { CREATURES, CreatureId, PACKS } from '../data/creatures';
+import { CREATURES, CreatureId, isMachine, MACHINES, PACKS } from '../data/creatures';
 import type { Colonist } from './colonist';
 import type { Structure } from './structures';
 import { BODY_PARTS, healthLabel, hurt } from './health';
@@ -42,7 +42,9 @@ export function foeLabel(c: Colonist): string {
 export function hurtFoe(w: World, b: Colonist, dmg: number, part: string): boolean {
   const wasDown = b.downed;
   if (b.creature) {
-    hurt(b, dmg / CREATURES[b.creature].health, part);
+    // La armadura de una máquina (la araña de chatarra, −40 %) le quita parte de cualquier daño.
+    const def = CREATURES[b.creature];
+    hurt(b, (dmg * (1 - (def.armor ?? 0))) / def.health, part);
     if (b.downed && w.others.includes(b)) w.killPawn(b, 'abatido', true);
     return !wasDown && b.downed;
   }
@@ -86,9 +88,11 @@ export function runStoryteller(w: World): void {
   } else sch.nextRadio = undefined;
   if (w.tick >= sch.nextRaid) {
     sch.nextRaid = w.tick + days(raidGap(w.difficulty.level));
+    // Máquinas (bloque 6 del catálogo): desde el día 30, 1 de cada 4 ataques es de máquinas.
     // Mutantes (bloque 2 del catálogo): desde el día 8, 1 de cada 3 raids es una manada de perros
     // (1 de cada 2 si la colonia está cerca de una zona irradiada).
-    if (w.day >= CREATURES.perro_mutante.fromDay && w.rng.chance(1 / packOdds(w))) startPack(w, packSize(w));
+    if (w.day >= MACHINES.fromDay && w.rng.chance(1 / MACHINES.every)) startMachines(w, w.rng.int(MACHINES.spiders[0], MACHINES.spiders[1]));
+    else if (w.day >= CREATURES.perro_mutante.fromDay && w.rng.chance(1 / packOdds(w))) startPack(w, packSize(w));
     else startRaid(w, raidSize(w.day, colonyWealth(w), w.colonists.length, diff.raidScale));
   }
   if (w.tick >= sch.nextTrader) {
@@ -260,6 +264,38 @@ export function startPack(w: World, n: number, brutes = packBrutes(w, n)): Colon
     w.addLog(`${dog.emoji} ¡Una manada de ${n} ${dogs}! Son rápidos pero frágiles; no rompen muros ni puertas. Recluta a los colonos (🎖).`, 'malo', 'raid', first.tile);
   }
   return out;
+}
+
+/**
+ * Llega un ataque de máquinas por un mismo borde: `spiders` arañas de chatarra (los drones llegarán
+ * en la parte siguiente). Sin moral: no huyen aunque caigan casi todas.
+ */
+export function startMachines(w: World, spiders: number): Colonist[] {
+  const out: Colonist[] = [];
+  const first = w.makePawn('saqueador');
+  if (!w.placeAtEdge(first)) return out;
+  for (let i = 0; i < spiders; i++) {
+    const c = i === 0 ? first : w.makePawn('saqueador');
+    makeCreature(w, c, 'arana_chatarra', i + 1);
+    if (i > 0) {
+      const spot = nearFree(w, first.tile) ?? first.tile;
+      c.tile = { ...spot };
+      c.pos = { x: spot.x + 0.5, y: spot.y + 0.5 };
+    }
+    c.raider!.group = first.id;
+    out.push(c);
+    w.others.push(c);
+  }
+  w.raidGroups.push({ id: first.id, size: out.length, leaderId: -1, escaped: [], routed: false });
+  const def = CREATURES.arana_chatarra;
+  const who = spiders === 1 ? `una ${def.name.toLowerCase()}` : `${spiders} ${def.plural}`;
+  w.addLog(`${def.emoji} ¡Ataque de máquinas: ${who}! Muy duras y blindadas, rompen muros y no huyen; las armas de fuego les hacen más daño. Recluta a los colonos (🎖).`, 'malo', 'raid', first.tile);
+  return out;
+}
+
+/** Cómo cae una criatura: la máquina queda destrozada; el mutante, muerto. */
+export function creatureFallText(c: Colonist): string {
+  return isMachine(c.creature) ? `${c.name} queda destrozada.` : `${c.name} cae muerto.`;
 }
 
 /**
@@ -512,13 +548,15 @@ function applyHit(w: World, a: Colonist, b: Colonist, weapon: WeaponDef | null |
   const blow = a.creature ? CREATURES[a.creature].damage : weapon ? damageAt(weapon, tileDistance(a, b)) : 1;
   // Dentro de un vehículo blindado, el blindaje se lleva parte del golpe (el buggy, −40 %; el de los
   // saqueadores, −30 %) y pierde esa vida.
-  const dmg = absorbHit(w, b, (0.08 + w.rng.next() * 0.1) * (1 + a.skills.combate * 0.03) * tough * hard * blow * armor);
+  // Las armas de fuego hacen más daño a las máquinas (+25 %).
+  const vsMachine = weapon?.firearm && !a.creature && isMachine(b.creature) ? 1 + MACHINES.firearmBonus : 1;
+  const dmg = absorbHit(w, b, (0.08 + w.rng.next() * 0.1) * (1 + a.skills.combate * 0.03) * tough * hard * blow * armor * vsMachine);
   const part = BODY_PARTS[w.rng.int(0, BODY_PARTS.length - 1)];
   const wasDown = b.downed;
   const fell = b.role === 'colono' ? (hurt(b, dmg, part), !wasDown && b.downed) : hurtFoe(w, b, dmg, part);
   if (fell) {
     if (b.role === 'colono') w.addLog(`🩸 ${b.name} cae herido (${part}).`, 'malo', 'caido', b.tile);
-    else if (b.creature) w.addLog(`${b.name} cae muerto.`, 'bueno');
+    else if (b.creature) w.addLog(creatureFallText(b), 'bueno');
     else w.addLog(`${b.name} (saqueador) cae al suelo.`, 'bueno');
     // Quienes lo ven caer pueden entrar en pánico.
     if (b.role === 'colono') witnessFall(w, b);
@@ -747,6 +785,8 @@ export function checkRaidMorale(w: World): void {
     }
     if (g.routed) continue;
     const standing = members.filter((o) => !o.downed);
+    // Las máquinas no tienen moral: no huyen.
+    if (standing.length > 0 && standing.every((o) => isMachine(o.creature))) continue;
     const fallen = g.size - g.escaped.length - standing.length;
     const leader = members.find((o) => o.id === g.leaderId);
     // Las manadas no tienen líder (leaderId < 0): solo huyen al caer la mitad.
@@ -875,7 +915,8 @@ function dropShutPath(w: World, o: Colonist): void {
 
 function updateRaider(w: World, o: Colonist): void {
   const r = (o.raider ??= { fleeing: false, leaveAt: w.tick + TICKS_PER_DAY });
-  if (!r.fleeing && (o.health < 0.45 || w.tick > r.leaveAt)) {
+  // Las máquinas no tienen moral: ni heridas ni cansadas de esperar se van.
+  if (!r.fleeing && !isMachine(o.creature) && (o.health < 0.45 || w.tick > r.leaveAt)) {
     r.fleeing = true;
     o.path = [];
     w.addLog(`${foeLabel(o)} huye.`, 'bueno');

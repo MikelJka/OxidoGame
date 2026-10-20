@@ -1,5 +1,5 @@
 {
-  "_": "Bloque 2 del catálogo (aprobado por Mikel el 2026-10-18). walkSpeed: velocidad al andar respecto a un colono; health: vida respecto a un colono; damage: daño del golpe (×1 = puños); breaksWalls: rompe muros y puertas; wallDamage: vida que quita cada golpe a un muro o una puerta (el muro de madera tiene 150).",
+  "_": "Bloque 2 del catálogo (aprobado por Mikel el 2026-10-18). walkSpeed: velocidad al andar respecto a un colono; health: vida respecto a un colono; damage: daño del golpe (×1 = puños); breaksWalls: rompe muros y puertas; wallDamage: vida que quita cada golpe a un muro o una puerta (el muro de madera tiene 150). La araña de chatarra es del bloque 6 (máquinas).",
   "creatures": {
     "perro_mutante": {
       "name": "Perro mutante",
@@ -22,7 +22,29 @@
       "damage": 3,
       "breaksWalls": true,
       "wallDamage": 30
+    },
+    "arana_chatarra": {
+      "name": "Araña de chatarra",
+      "plural": "arañas de chatarra",
+      "emoji": "🕷️",
+      "fromDay": 30,
+      "walkSpeed": 0.8,
+      "health": 4,
+      "damage": 3,
+      "breaksWalls": true,
+      "wallDamage": 30,
+      "armor": 0.4,
+      "machine": true
     }
+  },
+  "machines": {
+    "_": "Máquinas (bloque 6 del catálogo, aprobado por Mikel el 2026-10-18): desde `fromDay`, 1 de cada `every` ataques es de máquinas en lugar de saqueadores o mutantes. Trae entre spiders[0] y spiders[1] arañas. Las máquinas no tienen moral (no huyen), no dejan cadáver y al destruirlas sueltan entre scrap[0] y scrap[1] 🔩 y entre parts[0] y parts[1] ⚙️. Las armas de fuego les hacen `firearmBonus` más de daño. `armor` en cada máquina: parte del daño que se quita.",
+    "fromDay": 30,
+    "every": 4,
+    "spiders": [1, 2],
+    "scrap": [10, 20],
+    "parts": [2, 4],
+    "firearmBonus": 0.25
   },
   "packs": {
     "_": "Una manada llega en lugar de un raid de saqueadores 1 de cada `every` veces (1 de cada `everyNearRadiation` si la colonia está a menos de `radiationRange` casillas de una zona irradiada). Tamaño de la manada: entre size[0] y size[1] perros (por la dureza de la partida). Desde el día de `bruto_mutante.fromDay`, la manada trae además 1 bruto por cada `dogsPerBrute` perros.",

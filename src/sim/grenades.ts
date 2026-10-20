@@ -12,7 +12,7 @@ import { GRENADE } from '../data/weapons';
 import type { Colonist } from './colonist';
 import { BODY_PARTS, hurt } from './health';
 import type { Point } from './pathfinding';
-import { foeLabel, hurtFoe } from './people';
+import { creatureFallText, foeLabel, hurtFoe } from './people';
 import { witnessFall } from './panic';
 import { absorbHit } from './vehicles';
 import { TICKS_PER_SECOND } from './time';
@@ -127,7 +127,7 @@ export function explodeGrenade(w: World, g: Grenade): void {
         witnessFall(w, p);
       } else w.combatAlert(p, 'herido', `🩸 ${p.name} está herido por una granada (${part}).`);
     } else if (p.role === 'saqueador' && hurtFoe(w, p, dmg, part)) {
-      w.addLog(p.creature ? `${p.name} cae muerto.` : `${foeLabel(p)} cae al suelo.`, 'bueno');
+      w.addLog(p.creature ? creatureFallText(p) : `${foeLabel(p)} cae al suelo.`, 'bueno');
     }
     if (p.downed) p.path = [];
   }

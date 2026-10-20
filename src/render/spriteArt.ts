@@ -137,6 +137,35 @@ function paintCreature(px: (x: number, y: number, w: number, h: number, color: s
       px(10, 4, 3, 1, '#e8e0c8'); // dientes
       break;
     }
+    case 'arana_chatarra': {
+      // Araña de chatarra: cuerpo de chapa remachada y oxidada sobre ocho patas de tubo, con un ojo rojo.
+      const plate = '#7a7f86';
+      const dark = '#4a4e54';
+      const rust = '#8a4a24';
+      px(1, 14, 14, 1, 'rgba(0,0,0,0.4)'); // sombra
+      // Patas: cuatro a cada lado, dobladas hacia arriba y bajando al suelo
+      for (const [x, k] of [[1, 0], [3, 1], [11, 1], [13, 0]] as const) {
+        px(x, 8 - k, 2, 1, outline);
+        px(x + (x < 8 ? 0 : 1), 9 - k, 1, 5 + k, outline);
+      }
+      px(0, 10, 2, 1, dark);
+      px(14, 10, 2, 1, dark);
+      // Cuerpo: abdomen trasero y cabeza delante
+      px(3, 5, 7, 6, outline);
+      px(4, 6, 5, 4, plate);
+      px(4, 9, 5, 1, dark);
+      px(5, 6, 2, 1, rust); // óxido
+      px(7, 8, 1, 1, '#c9ced4'); // remache
+      px(5, 8, 1, 1, '#c9ced4');
+      px(9, 6, 5, 5, outline);
+      px(10, 7, 3, 3, dark);
+      px(12, 7, 1, 1, '#ff2a1a'); // ojo
+      px(13, 10, 2, 1, '#c9ced4'); // pinzas
+      // Antena
+      px(10, 4, 1, 2, outline);
+      px(10, 3, 1, 1, '#ff2a1a');
+      break;
+    }
   }
 }
 

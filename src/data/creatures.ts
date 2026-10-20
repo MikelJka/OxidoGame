@@ -1,11 +1,11 @@
 /**
  * Mutantes y criaturas (bloque 2 del catálogo, aprobado por Mikel el 2026-10-18).
- * Los números están en `creatures.json`: perros mutantes, brutos mutantes y sus cadáveres (la hoguera
- * para quemarlos llega en la parte siguiente).
+ * Los números están en `creatures.json`: perros mutantes, brutos mutantes y sus cadáveres, y las
+ * máquinas del bloque 6 (la araña de chatarra).
  */
 import data from './creatures.json';
 
-export type CreatureId = 'perro_mutante' | 'bruto_mutante';
+export type CreatureId = 'perro_mutante' | 'bruto_mutante' | 'arana_chatarra';
 
 export interface CreatureDef {
   id: CreatureId;
@@ -24,6 +24,10 @@ export interface CreatureDef {
   breaksWalls: boolean;
   /** Vida que quita cada golpe a un muro o una puerta (0 si no los rompe). */
   wallDamage: number;
+  /** Parte del daño que se quita (la araña de chatarra, 0,4 = −40 %). */
+  armor?: number;
+  /** Máquina (bloque 6): sin moral, no deja cadáver y suelta chatarra y componentes. */
+  machine?: boolean;
 }
 
 export const CREATURES: Record<CreatureId, CreatureDef> = Object.fromEntries(
@@ -45,6 +49,23 @@ export const PACKS = {
   /** Desde el día del bruto, 1 bruto por cada tantos perros de la manada. */
   dogsPerBrute: data.packs.dogsPerBrute,
 };
+
+/** Ataques de máquinas (bloque 6 del catálogo): cuándo llegan, cuántas y qué sueltan. */
+export const MACHINES = {
+  fromDay: data.machines.fromDay,
+  /** 1 de cada tantos ataques es de máquinas. */
+  every: data.machines.every,
+  spiders: [data.machines.spiders[0], data.machines.spiders[1]] as const,
+  scrap: [data.machines.scrap[0], data.machines.scrap[1]] as const,
+  parts: [data.machines.parts[0], data.machines.parts[1]] as const,
+  /** Daño de más que les hacen las armas de fuego (0,25 = +25 %). */
+  firearmBonus: data.machines.firearmBonus,
+};
+
+/** Si es una máquina (araña de chatarra…). */
+export function isMachine(id: CreatureId | undefined): boolean {
+  return !!id && !!CREATURES[id].machine;
+}
 
 /** Cadáveres de las criaturas: cuánto tardan en pudrirse y cuánto ánimo quitan a quien los ve. */
 export const CORPSES = {
