@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (11) — Los saqueadores traen granadas desde el día 30 (granadas terminadas)
+
+- Sin incidencias nuevas en 🐞. Siguiente del orden: la segunda parte de las **granadas** (opción B + saqueadores, elegida por Mikel).
+- Desde el **día 30**, cada saqueador tiene **1 de cada 3** probabilidades de llegar con **1 granada** (las criaturas no).
+- La lanza con las mismas reglas que los colonos, pero al revés: a **2 o más colonos en pie** en un 3×3, a 6 casillas o menos, y **nunca si hay otro saqueador en pie** en ese 3×3 (ni él mismo). Desde dentro del buggy no lanza.
+- Aviso en rojo «💣 ¡… (saqueador) lanza una granada! Apartaos.» que lleva al sitio; tarda 1,5 s en estallar, así que da tiempo a mover a los reclutados. Al caer, la suelta en el suelo y los colonos la recogen.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): «alguna» = 1 de cada 3 saqueadores, con 1 granada cada uno. Los números van en `weapons.json` (`grenade.raiderFromDay`, `raiderChance`, `raiderCarry`).
+- Qué probar: con 🪄 adelantar al día 30 y lanzar varios raids; poner a dos colonos juntos y ver en el diario «💣 ¡… lanza una granada!» y luego «💥 Estalla…»; apartar a un colono a tiempo y ver que no le daña. Tras el combate, recoger la granada que suelta el caído.
+- Sin npm en el entorno: tests con Bun (488, 3 nuevos) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguiente: el **muro con aspilleras** (opción A, elegida por Mikel); después los saqueadores con subfusil y francotirador (día 35) y «Medicina de campo».
+
 ## 2026-10-20 (10) — Granadas caseras con «Explosivos» (primera parte)
 
 - Sin incidencias nuevas en 🐞. Siguiente del orden: las **granadas** que eligió Mikel (opción B + saqueadores). Primera parte: las de los colonos.

@@ -3,7 +3,7 @@
 // prisioneros (retener, convencer, liberar) y caravanas de comerciantes (con esclavos).
 import { RESOURCES, ResourceId } from '../data/resources';
 import { personValue, RESOURCE_VALUES } from '../data/values';
-import { ammoFor, damageAt, isGear, RAIDER_AMMO, raiderWeaponPool, WEAPONS, WeaponDef } from '../data/weapons';
+import { ammoFor, damageAt, GRENADE, isGear, RAIDER_AMMO, raiderWeaponPool, WEAPONS, WeaponDef } from '../data/weapons';
 import { armorProtection, isArmor, raiderVestPool } from '../data/armor';
 import { MEDICINE_STOCK } from '../data/medicine';
 import { CREATURES, CreatureId, PACKS } from '../data/creatures';
@@ -158,6 +158,8 @@ export function startRaid(w: World, n: number, withBuggy?: boolean): Colonist[] 
     r.ammo = ammoFor(r.weapon) ? RAIDER_AMMO : 0;
     const vests = raiderVestPool(w.day);
     if (vests.some((v) => v)) r.vest = vests[w.rng.int(0, vests.length - 1)];
+    // Desde el día 30, alguno trae granadas (elegido por Mikel el 2026-10-20).
+    if (w.day >= GRENADE.raiderFromDay && w.rng.chance(GRENADE.raiderChance)) r.grenades = GRENADE.raiderCarry;
     w.others.push(r);
   }
   // El de más Combate dirige el raid (★). Si cae él o la mitad del grupo, huyen todos.
@@ -893,6 +895,13 @@ function updateRaider(w: World, o: Colonist): void {
     return;
   }
   const target = targets.sort((a, b) => Math.abs(a.tile.x - o.tile.x) + Math.abs(a.tile.y - o.tile.y) - (Math.abs(b.tile.x - o.tile.x) + Math.abs(b.tile.y - o.tile.y)))[0];
+  // Granadas: si hay un grupo de colonos a tiro sin saqueadores cerca, lanza una en vez de golpear.
+  if (!o.attackCooldown && !o.vehicle && tryThrowGrenade(w, o)) {
+    o.attackCooldown = ATTACK_COOLDOWN;
+    o.path = [];
+    o.activity = 'working';
+    return;
+  }
   if (canHit(w, o, target)) {
     o.path = [];
     o.activity = 'working';

@@ -5,7 +5,8 @@ import { GRENADE, isGear } from '../src/data/weapons';
 import { buildingDef } from '../src/data/buildings';
 import { addResearch, chooseResearch } from '../src/sim/research';
 import { BLAST_TICKS, grenadeTarget, tryThrowGrenade, updateGrenades } from '../src/sim/grenades';
-import { dropGear } from '../src/sim/people';
+import { dropGear, startRaid } from '../src/sim/people';
+import { TICKS_PER_DAY } from '../src/sim/time';
 import { loadWorld, serializeWorld } from '../src/sim/save';
 import type { World } from '../src/sim/world';
 import type { Colonist } from '../src/sim/colonist';
@@ -161,5 +162,78 @@ describe('granadas caseras', () => {
     dropGear(back, bc);
     expect(bc.grenades).toBe(0);
     expect(back.items.at(10, 10)?.resource).toBe('granadas');
+  });
+
+  it('los saqueadores traen alguna desde el día 30 (1 cada uno, no todos)', () => {
+    const w = flatWorld(1);
+    const count = () => {
+      let with1 = 0;
+      let total = 0;
+      for (let i = 0; i < 12; i++) {
+        for (const r of startRaid(w, 3, false)) {
+          total++;
+          if ((r.grenades ?? 0) > 0) {
+            expect(r.grenades).toBe(GRENADE.raiderCarry);
+            with1++;
+          }
+        }
+        w.others.splice(0);
+      }
+      return { with1, total };
+    };
+    w.tick = (GRENADE.raiderFromDay - 2) * TICKS_PER_DAY;
+    expect(w.day).toBeLessThan(GRENADE.raiderFromDay);
+    expect(count().with1).toBe(0);
+    w.tick = GRENADE.raiderFromDay * TICKS_PER_DAY;
+    expect(w.day).toBeGreaterThanOrEqual(GRENADE.raiderFromDay);
+    const { with1, total } = count();
+    expect(total).toBeGreaterThan(20);
+    expect(with1).toBeGreaterThan(0);
+    expect(with1).toBeLessThan(total);
+  });
+
+  it('un saqueador la lanza a 2 colonos juntos, nunca si hay otro saqueador en pie en el 3×3', () => {
+    const w = flatWorld(2);
+    const [a, b] = w.colonists;
+    place(a, 15, 10);
+    place(b, 15, 11);
+    const r = raider(w, 10, 10);
+    r.grenades = 1;
+    expect(grenadeTarget(w, r)).not.toBeNull();
+    // Un compañero suyo en pie junto a los colonos: no.
+    const mate = raider(w, 16, 10);
+    expect(grenadeTarget(w, r)).toBeNull();
+    // Caído, ya no le importa.
+    mate.downed = true;
+    expect(grenadeTarget(w, r)).not.toBeNull();
+    // Un colono caído no cuenta como objetivo.
+    b.downed = true;
+    expect(grenadeTarget(w, r)).toBeNull();
+    b.downed = false;
+    expect(tryThrowGrenade(w, r)).toBe(true);
+    expect(r.grenades).toBe(0);
+    expect(w.grenades[0].foe).toBe(true);
+    const back = loadWorld(serializeWorld(w));
+    expect(back.grenades[0].foe).toBe(true);
+    fuse(w);
+    expect(a.health).toBeLessThan(1);
+    expect(b.health).toBeLessThan(1);
+    expect(r.health).toBe(1);
+  });
+
+  it('en el raid, el saqueador con granada la lanza solo', () => {
+    const w = flatWorld(2);
+    const [a, b] = w.colonists;
+    place(a, 15, 10);
+    place(b, 15, 11);
+    a.drafted = b.drafted = true;
+    a.stance = b.stance = 'mantener';
+    const r = raider(w, 10, 10);
+    r.raider = { fleeing: false, leaveAt: w.tick + TICKS_PER_DAY };
+    r.weapon = null;
+    r.grenades = 1;
+    for (let i = 0; i < 5 && w.grenades.length === 0; i++) w.step();
+    expect(r.grenades).toBe(0);
+    expect(w.grenades).toHaveLength(1);
   });
 });

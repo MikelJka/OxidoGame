@@ -53,6 +53,12 @@ export interface GrenadeDef {
   cooldownSeconds: number;
   fuseTicks: number;
   structureDamage: number;
+  /** Desde qué día traen granadas los saqueadores. */
+  raiderFromDay: number;
+  /** Probabilidad de que un saqueador (no una criatura) llegue con granadas. */
+  raiderChance: number;
+  /** Cuántas trae el que llega con ellas. */
+  raiderCarry: number;
 }
 
 function validate(): Record<WeaponId, WeaponDef> {
@@ -80,7 +86,7 @@ function validate(): Record<WeaponId, WeaponDef> {
   if (data.raiderPools[0]?.fromDay !== 0) fail('armas de los saqueadores: la primera, desde el día 0');
   const g = data.grenade as GrenadeDef;
   const int = (n: number, min: number) => Number.isInteger(n) && n >= min;
-  if (!int(g.carry, 1) || !int(g.reach, 2) || !int(g.radius, 0) || !(g.damage > 0) || !int(g.minTargets, 1) || !(g.cooldownSeconds > 0) || !int(g.fuseTicks, 1) || !(g.structureDamage >= 0 && g.structureDamage <= 1)) fail('granadas: números no válidos');
+  if (!int(g.carry, 1) || !int(g.reach, 2) || !int(g.radius, 0) || !(g.damage > 0) || !int(g.minTargets, 1) || !(g.cooldownSeconds > 0) || !int(g.fuseTicks, 1) || !(g.structureDamage >= 0 && g.structureDamage <= 1) || !int(g.raiderFromDay, 0) || !(g.raiderChance >= 0 && g.raiderChance <= 1) || !int(g.raiderCarry, 1) || g.raiderCarry > g.carry) fail('granadas: números no válidos');
   if (!(data.ammoCarry > data.ammoLow && data.ammoLow >= 0 && data.raiderAmmo > 0)) fail('munición: números no válidos');
   return out;
 }

@@ -5,6 +5,7 @@
  * 2 o más enemigos en un 3×3 sin ningún colono dentro. Tarda un momento en estallar: hace daño ×3 a
  * todos los que estén entonces en el 3×3, también a un colono que haya entrado en el último momento,
  * y quita un poco de vida a muros y puertas. Los números están en `src/data/weapons.json` (`grenade`).
+ * Desde el día 30 algunos saqueadores traen una y la lanzan igual, a un grupo de colonos.
  */
 import { armorProtection } from '../data/armor';
 import { GRENADE } from '../data/weapons';
@@ -28,6 +29,8 @@ export interface Grenade {
   explodeAt: number;
   /** Quién la lanzó (para el diario). */
   by: string;
+  /** La lanzó un saqueador (contra los colonos). */
+  foe?: boolean;
 }
 
 /** Explosión reciente (solo para el dibujado; no se guarda). */
@@ -41,6 +44,8 @@ export interface Blast {
 export const BLAST_TICKS = 18;
 
 const hostile = (c: Colonist) => c.role === 'saqueador' && !c.downed && !c.raider?.fleeing;
+/** Saqueador en pie (los suyos: no lanza si hay alguno en el 3×3). */
+const raiderUp = (c: Colonist) => c.role === 'saqueador' && !c.downed;
 
 const within = (p: Point, q: Point, r: number) => Math.max(Math.abs(p.x - q.x), Math.abs(p.y - q.y)) <= r;
 
@@ -51,18 +56,22 @@ export function grenadesOf(c: Colonist): number {
 
 /**
  * Dónde lanzaría ahora una granada: la casilla de un enemigo a su alcance con más enemigos en pie en
- * su 3×3 (al menos 2) y ningún colono (ni en el suelo). A igualdad, la más cercana. null si no hay.
+ * su 3×3 (al menos 2) y ninguno de los suyos. Un colono no la lanza si hay un colono (ni en el suelo);
+ * un saqueador apunta a colonos en pie y no la lanza si hay un saqueador en pie. A igualdad, la más
+ * cercana. null si no hay.
  */
 export function grenadeTarget(w: World, c: Colonist): Point | null {
   const r = GRENADE.radius;
-  const enemies = w.others.filter(hostile);
+  const foe = c.role === 'saqueador';
+  const enemies = foe ? w.colonists.filter((m) => !m.downed) : w.others.filter(hostile);
   if (enemies.length < GRENADE.minTargets) return null;
-  const mates = w.colonists;
+  const mates = foe ? w.others.filter((o) => o !== c && raiderUp(o)) : w.colonists;
   let best: { p: Point; n: number; d: number } | null = null;
   for (const e of enemies) {
     const d = Math.max(Math.abs(e.tile.x - c.tile.x), Math.abs(e.tile.y - c.tile.y));
     if (d > GRENADE.reach) continue;
     if (mates.some((m) => within(m.tile, e.tile, r))) continue;
+    if (foe && within(c.tile, e.tile, r)) continue;
     const n = enemies.filter((o) => within(o.tile, e.tile, r)).length;
     if (n < GRENADE.minTargets) continue;
     if (!best || n > best.n || (n === best.n && d < best.d)) best = { p: { x: e.tile.x, y: e.tile.y }, n, d };
@@ -79,8 +88,11 @@ export function tryThrowGrenade(w: World, c: Colonist): boolean {
   c.grenadeReadyAt = w.tick + Math.round(GRENADE.cooldownSeconds * TICKS_PER_SECOND);
   const dx = to.x - c.tile.x;
   if (dx !== 0) c.facing = dx > 0 ? 1 : -1;
-  w.grenades.push({ from: { x: c.tile.x, y: c.tile.y }, to, thrownAt: w.tick, explodeAt: w.tick + GRENADE.fuseTicks, by: c.name });
-  w.combatAlert(c, 'combate', `💣 ${c.name} lanza una granada.`);
+  const foe = c.role === 'saqueador';
+  const by = foe ? foeLabel(c) : c.name;
+  w.grenades.push({ from: { x: c.tile.x, y: c.tile.y }, to, thrownAt: w.tick, explodeAt: w.tick + GRENADE.fuseTicks, by, ...(foe ? { foe } : {}) });
+  if (foe) w.addLog(`💣 ¡${by} lanza una granada! Apartaos.`, 'malo', 'combate', to);
+  else w.combatAlert(c, 'combate', `💣 ${c.name} lanza una granada.`);
   return true;
 }
 
@@ -99,7 +111,7 @@ export function updateGrenades(w: World): void {
 export function explodeGrenade(w: World, g: Grenade): void {
   const r = GRENADE.radius;
   w.blasts.push({ x: g.to.x, y: g.to.y, tick: w.tick });
-  w.addLog(`💥 Estalla la granada de ${g.by}.`, 'bueno', 'combate', g.to);
+  w.addLog(`💥 Estalla la granada de ${g.by}.`, g.foe ? 'malo' : 'bueno', 'combate', g.to);
   for (const p of w.pawns()) {
     if (p.downed || !within(p.tile, g.to, r)) continue;
     const tough = p.traits.some((t) => t.id === 'duro') ? 0.75 : 1;
