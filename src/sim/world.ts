@@ -23,7 +23,7 @@ import { Blast, Grenade, grenadesOf, updateGrenades } from './grenades';
 import { updateMortars } from './mortar';
 import { isLitBonfire, updateBonfireCheer, updateBonfires } from './bonfire';
 import { CREATURES, flies, MACHINES } from '../data/creatures';
-import { addResearch, batteryMultiplier, infectionChanceFactor, woundHealTimeFactor, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
+import { addResearch, batteryMultiplier, infectionChanceFactor, machinePartsMultiplier, woundHealTimeFactor, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
 import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
 import { absorbHit, anchorFor, besideTiles, defOf, nextTo, occupant, updateVehicle, Vehicle, vehicleCenter, vehiclePath, VehicleSeat, covers } from './vehicles';
 import { vehicleDef } from '../data/vehicles';
@@ -414,7 +414,8 @@ export class World implements JobContext {
       // Las máquinas (bloque 6) sueltan chatarra y componentes; las demás criaturas dejan su cadáver.
       if (c.creature && CREATURES[c.creature].machine) {
         const scrap = this.rng.int(MACHINES.scrap[0], MACHINES.scrap[1]);
-        const parts = this.rng.int(MACHINES.parts[0], MACHINES.parts[1]);
+        // «Desguace de máquinas» dobla los componentes.
+        const parts = Math.round(this.rng.int(MACHINES.parts[0], MACHINES.parts[1]) * machinePartsMultiplier(this.research));
         this.items.drop(c.tile.x, c.tile.y, 'chatarra', scrap);
         this.items.drop(c.tile.x, c.tile.y, 'componentes', parts);
         this.addLog(`🔩 Los restos de ${c.name} dejan 🔩${scrap} y ⚙️${parts}.`, 'bueno', undefined, c.tile);

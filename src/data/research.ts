@@ -8,6 +8,7 @@
  *   `batteryMultiplier` (opcional): al terminarlo, lo que guarda cada batería se multiplica por él.
  *   `woundHealTime` (opcional): al terminarlo, el tiempo que tardan en cerrarse las heridas se multiplica por él.
  *   `infectionChance` (opcional): al terminarlo, la probabilidad de que una herida se infecte se multiplica por él.
+ *   `machineParts` (opcional): al terminarlo, los ⚙️ que sueltan las máquinas destruidas se multiplican por él.
  */
 import data from './research.json';
 import { BUILDINGS } from './buildings';
@@ -27,6 +28,8 @@ export interface ResearchDef {
   woundHealTime?: number;
   /** Al terminarlo, la probabilidad de que una herida se infecte se multiplica por esto («Medicina avanzada»: ×0,5). */
   infectionChance?: number;
+  /** Al terminarlo, los ⚙️ que sueltan las máquinas destruidas se multiplican por esto («Desguace de máquinas»: ×2). */
+  machineParts?: number;
 }
 
 /** Lo que puede pedir investigaciones: una (`research`) y a veces una segunda (`researchAlso`). */
@@ -52,6 +55,8 @@ function validate(): ResearchDef[] {
     if (!p.name || !(p.hours > 0) || typeof p.unlocks !== 'string') fail(`proyecto ${p.id} no válido`);
     const bm = (p as { batteryMultiplier?: number }).batteryMultiplier;
     if (bm !== undefined && !(bm >= 1)) fail(`${p.id}: batteryMultiplier no válido`);
+    const mp = (p as { machineParts?: number }).machineParts;
+    if (mp !== undefined && !(mp >= 1)) fail(`${p.id}: machineParts no válido`);
     for (const k of ['woundHealTime', 'infectionChance'] as const) {
       const v = (p as { woundHealTime?: number; infectionChance?: number })[k];
       if (v !== undefined && !(v > 0 && v <= 1)) fail(`${p.id}: ${k} no válido`);

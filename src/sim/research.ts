@@ -51,6 +51,13 @@ export function infectionChanceFactor(r: ResearchState): number {
   return m;
 }
 
+/** Por cuánto se multiplican los ⚙️ que sueltan las máquinas destruidas («Desguace de máquinas»: ×2). */
+export function machinePartsMultiplier(r: ResearchState): number {
+  let m = 1;
+  for (const id of r.done) m *= researchDef(id)?.machineParts ?? 1;
+  return m;
+}
+
 /** Ya se puede usar: no pide investigación, o ya está hecha toda la que pide (planos nuevos, recetas…). */
 export function unlocked(r: ResearchState, thing: Researchable): boolean {
   return researchNeeds(thing).every((q) => isResearched(r, q));

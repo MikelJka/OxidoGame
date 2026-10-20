@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (22) — «Desguace de máquinas»: el doble de componentes
+
+- Sin incidencias nuevas en 🐞. El muelle sigue esperando la respuesta de Mikel (en «Propuestas para Mikel»); con los drones y las arañas ya en el juego, se hace «Desguace de máquinas» (bloque 13).
+- Tras investigar **«Desguace de máquinas»** (10 h, pide «Torretas»), las **arañas de chatarra** y los **drones de vigilancia** destruidos dejan **el doble de ⚙️** (4–8 en vez de 2–4). La 🔩 no cambia.
+- Por dentro: `machineParts` en `research.json` y `machinePartsMultiplier` en `src/sim/research.ts`. Las partidas guardadas no cambian.
+- Qué probar: investigar «Torretas» y «Desguace de máquinas» en 📜 → 🔬 Investigación (🪄 acelera), lanzar ☰ → 🪄 Modo Dios → «🕷️ Máquinas» y ver en el diario que los restos dejan ⚙️4–8.
+- Sin npm en el entorno: tests con Bun (540, 3 nuevos) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguiente: el muelle y la pesca si Mikel ha contestado. Lo que queda del árbol de investigación espera a la update del agua (muelle, pendiente de Mikel), a las estaciones, al mercado o al fuego (aparcado); si Mikel no ha contestado, la próxima sesión solo podrá dejar propuestas o empezar la fase 6 (facciones, bloque 7) cuando se dé por terminada la fase 5.
+
 ## 2026-10-20 (21) — Drones de vigilancia en los ataques de máquinas
 
 - Sin incidencias nuevas en 🐞. El muelle sigue esperando la respuesta de Mikel (en «Propuestas para Mikel»); se termina el bloque 6 (máquinas y drones) con el **dron de vigilancia**.
