@@ -566,7 +566,7 @@ function lighten(hex: string): string {
   return `rgb(${c((n >> 16) & 255)},${c((n >> 8) & 255)},${c(n & 255)})`;
 }
 
-/** Electricidad: cable a ras de suelo, generador, placa solar, molino, batería y lámpara. */
+/** Electricidad: cable a ras de suelo, generador, placa solar, molinos, batería y lámpara. */
 function drawElectric(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, wallH: number): void {
   const { top, face, dark } = def.colors;
   const px = painter(ctx);
@@ -611,6 +611,25 @@ function drawElectric(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: num
     px(cx - r, 5, r * 2, 1, top);
     px(cx, 5 - Math.min(5, r), 1, Math.min(5, r) * 2 + 1, top);
     px(cx - 1, 4, 3, 3, dark);
+    return;
+  }
+  if (def.id === 'molino_agua') {
+    // Molino de agua: una caseta de madera con una rueda de paletas que entra en el agua.
+    const wy = Math.floor(h * 0.45);
+    px(2, 2, tile - 4, wy, '#1a1410');
+    px(3, 3, tile - 6, wy - 3, top);
+    px(3, wy - 2, tile - 6, 2, face);
+    const cx = Math.floor(tile / 2);
+    const r = Math.max(3, Math.min(Math.floor(tile / 2) - 2, Math.floor((h - wy) / 2) - 1));
+    const cy = Math.min(h - r - 1, wy + r + 1);
+    px(cx - r, cy - 1, r * 2, 2, dark);
+    px(cx - 1, cy - r, 2, r * 2, dark);
+    for (let k = 0; k < 8; k++) {
+      const a = (k * Math.PI) / 4;
+      px(Math.round(cx + Math.cos(a) * r) - 1, Math.round(cy + Math.sin(a) * r) - 1, 3, 3, face);
+    }
+    px(cx - 1, cy - 1, 3, 3, top);
+    px(1, h - 2, tile - 2, 1, '#8fb4e0'); // espuma del agua
     return;
   }
   if (def.id === 'radio') {

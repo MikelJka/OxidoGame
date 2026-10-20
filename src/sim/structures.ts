@@ -141,6 +141,11 @@ export function canPlatform(map: GameMap, def: BuildingDef, x: number, y: number
   return def.platform.deepWater || map.terrain[index(map, x, y)] !== Terrain.DeepWater;
 }
 
+/** Se puede poner en la casilla algo que va en un río (molino de agua): agua poco profunda o normal, sin objeto. */
+export function canRiver(map: GameMap, x: number, y: number): boolean {
+  return canBridge(map, x, y) && map.terrain[index(map, x, y)] !== Terrain.DeepWater;
+}
+
 /** Material que pide una construcción puesta en (x, y): el de su definición o, en un puente sobre agua profunda, más. */
 export function structureCost(map: GameMap, def: BuildingDef, x: number, y: number): Partial<Record<ResourceId, number>> {
   if (!def.bridge || def.bridge.deepCostMultiplier === 1 || !inBounds(map, x, y)) return def.cost;
@@ -459,6 +464,11 @@ export class Structures {
     // Un puente solo va sobre el agua (cualquiera) sin nada encima.
     if (def?.bridge) return canBridge(this.map, x, y) && !this.floorAt(x, y) && !this.mainAt(x, y);
     if (def?.platform) return canPlatform(this.map, def, x, y) && !this.floorAt(x, y) && !this.mainAt(x, y);
+    // El molino de agua va en el río mismo: ni en tierra ni sobre un puente o una plataforma.
+    if (def?.onWater) {
+      const main = this.mainAt(x, y);
+      return canRiver(this.map, x, y) && !this.floorAt(x, y) && (!main || (!!ignore && main === ignore));
+    }
     let blocker = buildBlocker(this.map, x, y);
     // Sobre una plataforma terminada se construye como en tierra (los suelos y lo del agua, no).
     if (blocker === 'agua' && this.onPlatform(x, y)) blocker = null;

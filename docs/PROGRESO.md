@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (23) — Molino de agua: 500 W fijos en el río
+
+- Sin incidencias nuevas en 🐞. El muelle sigue esperando la respuesta de Mikel (en «Propuestas para Mikel»); se hace la siguiente parte aprobada de la update del agua con todos sus números: el **molino de agua**.
+- Tras investigar **«Hidráulica»** (pide «Puentes»), en 🏗 → Electricidad: **molino de agua** (🪵25 🔩10 ⚙️3, 1×2, se puede girar). Va **en el río**: sus dos casillas sobre agua poco profunda o normal, sin puente ni plataforma. Da **500 W fijos**, de día y de noche y con o sin viento; se conecta con un cable en la orilla pegado a él.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): **en el agua profunda no va** (los ríos del mapa son de agua poco profunda y normal; la profunda es de los lagos); trabajo 600 y vida 200, como el generador de leña. Números en `buildings.json` (`molino_agua`).
+- Qué probar: investigar «Puentes» e «Hidráulica» en 📜 → 🔬 Investigación (🪄 acelera), poner un molino de agua en un río y un cable desde la orilla hasta una lámpara: debe encenderse también de noche.
+- Sin npm en el entorno: tests con Bun (545, 5 nuevos) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguiente: el **puente levadizo** (4×2, 🔗12 ⚙️3, 20 W, con «Hidráulica»), o el muelle si Mikel ya ha contestado.
+
 ## 2026-10-20 (22) — «Desguace de máquinas»: el doble de componentes
 
 - Sin incidencias nuevas en 🐞. El muelle sigue esperando la respuesta de Mikel (en «Propuestas para Mikel»); con los drones y las arañas ya en el juego, se hace «Desguace de máquinas» (bloque 13).

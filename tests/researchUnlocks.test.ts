@@ -14,7 +14,7 @@ describe('la investigación desbloquea construcciones', () => {
     expect(buildingDef('torreta_pesada').research).toBe('artilleria');
     expect(unlockedBy(BUILDINGS, 'torretas').map((b) => b.id)).toEqual(['torreta_ligera']);
     // Lo demás se sigue construyendo sin investigar.
-    expect(BUILDINGS.filter((b) => b.research).map((b) => b.id).sort()).toEqual(['alambre_espino', 'mesa_boticario', 'mina_casera', 'mortero', 'muro_aspilleras_metal', 'muro_aspilleras_piedra', 'plataforma_madera', 'plataforma_metal', 'puente_madera', 'puente_metal', 'torreta_ligera', 'torreta_pesada', 'torreta_rotativa', 'trampa_electrica']);
+    expect(BUILDINGS.filter((b) => b.research).map((b) => b.id).sort()).toEqual(['alambre_espino', 'mesa_boticario', 'mina_casera', 'molino_agua', 'mortero', 'muro_aspilleras_metal', 'muro_aspilleras_piedra', 'plataforma_madera', 'plataforma_metal', 'puente_madera', 'puente_metal', 'torreta_ligera', 'torreta_pesada', 'torreta_rotativa', 'trampa_electrica']);
   });
 
   it('sin investigar no se ponen planos de torreta; investigada, sí', () => {

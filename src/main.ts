@@ -446,6 +446,7 @@ for (const def of BUILDINGS) {
   if (def.research) b.title += ` · pide investigar ${researchNeeds(def).map((q) => `«${researchDef(q)?.name}»`).join(' y ')}`;
   if (def.turret) b.title += ` · gasta ${-(def.power ?? 0)} W · con corriente dispara sola a ${def.turret.reach} casillas, sin munición`;
   if (def.platform) b.title += ` · solo sobre el agua${def.platform.deepWater ? ' (también la profunda)' : ' poco profunda o normal'}; encima se construye como en tierra (menos huertos)`;
+  if (def.onWater) b.title += ` · solo en un río (agua poco profunda o normal); da ${def.power ?? 0} W fijos, de día y de noche`;
   if (def.bridge) b.title += ` · solo sobre el agua (se cruza andando); en el agua profunda cuesta ×${def.bridge.deepCostMultiplier}`;
   if (def.stunSeconds) b.title += ` · gasta ${-(def.power ?? 0)} W · con corriente aturde ${def.stunSeconds} s a quien la pisa`;
   buildList.append(b);

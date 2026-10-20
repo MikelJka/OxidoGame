@@ -1395,6 +1395,32 @@
     }
   },
   {
+    "id": "molino_agua",
+    "research": "hidraulica",
+    "name": "Molino de agua",
+    "category": "electricidad",
+    "cost": {
+      "madera": 25,
+      "chatarra": 10,
+      "componentes": 3
+    },
+    "work": 600,
+    "hp": 200,
+    "blocks": true,
+    "height": 1,
+    "size": [
+      1,
+      2
+    ],
+    "power": 500,
+    "onWater": true,
+    "colors": {
+      "top": "#8a6a44",
+      "face": "#5e4630",
+      "dark": "#2a1e14"
+    }
+  },
+  {
     "id": "bateria",
     "name": "Batería",
     "category": "electricidad",
