@@ -490,6 +490,26 @@
     }
   },
   {
+    "id": "sacos_arena",
+    "name": "Sacos de arena",
+    "category": "defensa",
+    "cost": {
+      "fibra": 2,
+      "piedra": 3
+    },
+    "work": 40,
+    "hp": 100,
+    "blocks": false,
+    "moveCost": 2.5,
+    "height": 1,
+    "fullRefund": true,
+    "colors": {
+      "top": "#c9b27e",
+      "face": "#a38a58",
+      "dark": "#6b5836"
+    }
+  },
+  {
     "id": "torreta_ligera",
     "name": "Torreta ligera",
     "category": "defensa",

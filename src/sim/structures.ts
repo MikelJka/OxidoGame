@@ -384,11 +384,13 @@ export class Structures {
   /** Material que se recupera al demoler una construcción. */
   private demolishRefund(s: Structure): Partial<Stockpile> {
     const back: Partial<Stockpile> = {};
+    // Lo que se desmonta sin romperse (sacos de arena) devuelve todo.
+    const share = s.def.fullRefund ? 1 : DEMOLISH_REFUND;
     for (const r of RESOURCES) {
       // La mitad del material y, en un taller, todo lo que tenía dentro.
       // Electrificado, también la mitad de la mejora; a medio electrificar, lo que se había traído.
       const extra = s.electric ? (s.def.electrify?.cost[r] ?? 0) : 0;
-      const n = Math.floor(((s.def.cost[r] ?? 0) + extra) * DEMOLISH_REFUND) + (s.delivered[r] ?? 0) + (s.upgrade?.delivered[r] ?? 0);
+      const n = Math.floor(((s.def.cost[r] ?? 0) + extra) * share) + (s.delivered[r] ?? 0) + (s.upgrade?.delivered[r] ?? 0);
       if (n > 0) back[r] = n;
     }
     return back;

@@ -410,7 +410,24 @@ function drawBarricade(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: nu
   const h = tileH + wallH;
   ctx.clearRect(0, 0, tile, h);
   const y0 = Math.floor(tileH / 2);
-  if (def.id.includes('madera')) {
+  if (def.id === 'sacos_arena') {
+    // Dos hileras de sacos abultados, la de arriba desplazada medio saco.
+    const rows = 2;
+    const rowH = Math.max(3, Math.floor((h - y0 - 1) / rows));
+    for (let r = 0; r < rows; r++) {
+      const y = h - 1 - (r + 1) * rowH;
+      const off = r % 2 === 0 ? 0 : 3;
+      for (let x = off - 3; x < tile; x += 6) {
+        const x0 = Math.max(0, x);
+        const w = Math.min(tile, x + 6) - x0;
+        if (w <= 1) continue;
+        px(x0, y, w, rowH, '#1a1410');
+        px(x0 + 1, y + 1, w - 2, rowH - 2, face);
+        px(x0 + 1, y + 1, w - 2, 1, top);
+        px(x0 + 1, y + rowH - 2, w - 2, 1, dark);
+      }
+    }
+  } else if (def.id.includes('madera')) {
     px(0, y0 + 2, tile, 3, '#1a1410');
     px(0, y0 + 3, tile, 1, top);
     for (let k = 0; k < tile; k++) {

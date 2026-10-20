@@ -81,6 +81,8 @@ export interface BuildingDef {
    * Lo ya construido o planeado en partidas empezadas se queda.
    */
   research?: string;
+  /** Al demolerla se recupera todo el material, no la mitad (sacos de arena). */
+  fullRefund?: boolean;
   /** Colores del dibujo: cara de arriba, frente y sombra. */
   colors: { top: string; face: string; dark: string };
 }
@@ -123,6 +125,7 @@ export function validateBuilding(d: unknown): BuildingDef {
   if ((b.category === 'vehiculo') !== (b.vehicle !== undefined) || (b.vehicle !== undefined && !vehicleDef(b.vehicle))) fail('un vehículo necesita su definición en vehicles.json');
   if (b.workSkill !== undefined && (b.category !== 'taller' || !SKILLS.includes(b.workSkill))) fail(`habilidad de taller desconocida ${b.workSkill}`);
   if (b.research !== undefined && (typeof b.research !== 'string' || !b.research)) fail('investigación no válida');
+  if (b.fullRefund !== undefined && typeof b.fullRefund !== 'boolean') fail('«fullRefund» no válido');
   if (!b.colors?.top || !b.colors.face || !b.colors.dark) fail('faltan colores');
   return b;
 }

@@ -292,9 +292,10 @@ export function smashStructure(w: World, o: Colonist, s: Structure): void {
   }
 }
 
-/** «el muro de madera», «la puerta de chapa». */
+/** «el muro de madera», «la puerta de chapa», «los sacos de arena». */
 function articled(name: string): string {
   const low = name.charAt(0).toLowerCase() + name.slice(1);
+  if (/^(pinchos|sacos)/i.test(name)) return `los ${low}`;
   return /^(puerta|empalizada|muralla|torre|barricada)/i.test(name) ? `la ${low}` : `el ${low}`;
 }
 

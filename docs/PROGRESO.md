@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (2) — Sacos de arena (fortificación, primera parte)
+
+- Sin incidencias nuevas en 🐞. Las granadas siguen esperando a Mikel; se pasa a lo siguiente del orden: sacos de arena, alambre de espino y aspilleras. Se hace la primera parte, los sacos de arena.
+- **Sacos de arena** (🏗 → Defensas, 🧵2 🪨3 por casilla): **libres**, sin investigar. Se ponen en un momento (40 de trabajo, frente a 150 de una barricada de madera), aguantan 100 de vida, dan un **50 % de cobertura** a quien está detrás y se cruzan despacio, como una barricada. Al demolerlos **devuelven todo** el material (lo demás, la mitad).
+- Arreglado de paso: el diario decía «ha roto el pinchos de madera»; ahora dice «los pinchos» (y «los sacos de arena»).
+- Qué probar: en 🏗 → Defensas, poner una fila de sacos de arena con fibra y piedra en el almacén y ver que se levantan enseguida; demoler uno y ver que deja 🧵2 🪨3. Poner un arquero reclutado detrás y lanzar un raid con 🪄: se le acierta menos. En el móvil, que el dibujo de los sacos se distinga de las barricadas.
+- Sin npm en el entorno: tests con Bun (446, 3 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Siguen esperando la respuesta de Mikel: la hoguera (A-D), «Medicina de campo» (A-C), los saqueadores con las armas nuevas (A-C) y las granadas (A-D).
+- Siguiente: el alambre de espino con «Fortificación» (o las granadas, si Mikel ya ha elegido).
+
 ## 2026-10-20 — Ballesta con «Ballesta» y lanza de metal con «Forja»
 
 - Sin incidencias nuevas en 🐞. Lo siguiente del orden, las granadas, deja sin decidir cómo se usan (quién las lanza, cuándo y a quién dañan): propuesta con opciones A-D en «Propuestas para Mikel». Se pasa a lo siguiente aprobado: la ballesta y la lanza de metal.
