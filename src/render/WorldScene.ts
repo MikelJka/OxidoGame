@@ -1945,8 +1945,9 @@ function itemTextureKey(r: ResourceId): string {
 function structureLabel(st: Structures, s: Structure): string {
   if (s.built) return s.def.name;
   const needs = st.needs(s);
-  const parts = RESOURCES.filter((r) => (s.def.cost[r] ?? 0) > 0).map(
-    (r) => `${RESOURCE_NAMES[r].toLowerCase()} ${(s.def.cost[r] ?? 0) - (needs[r] ?? 0)}/${s.def.cost[r]}`,
+  const cost = st.costOf(s);
+  const parts = RESOURCES.filter((r) => (cost[r] ?? 0) > 0).map(
+    (r) => `${RESOURCE_NAMES[r].toLowerCase()} ${(cost[r] ?? 0) - (needs[r] ?? 0)}/${cost[r]}`,
   );
   return `Plano: ${s.def.name} (${parts.join(', ')})`;
 }

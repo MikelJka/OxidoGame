@@ -169,6 +169,8 @@ export interface GameMap {
   stock: Uint8Array;
   /** Construcción en la casilla: 0 nada, 1 impide el paso (muro…), ≥2 se pisa con otro coste (ver `walkableStructureCode`). Lo mantiene `Structures`. */
   blocked: Uint8Array;
+  /** 1 si hay un puente terminado: el agua se cruza andando, como suelo normal. Lo mantiene `Structures`. */
+  bridge: Uint8Array;
   /** 1 si hay una zanja: se cruza muy despacio (frena a los enemigos). */
   trench: Uint8Array;
   /** Casilla sugerida para empezar la colonia. */
@@ -223,7 +225,7 @@ export function isWater(t: Terrain): boolean {
 export function isPassable(map: GameMap, x: number, y: number): boolean {
   if (!inBounds(map, x, y)) return false;
   const i = index(map, x, y);
-  return TERRAIN_INFO[map.terrain[i] as Terrain].walkable && !PROP_INFO[map.props[i] as Prop].blocks && !map.cliff[i] && map.blocked[i] !== BLOCK_SOLID;
+  return (TERRAIN_INFO[map.terrain[i] as Terrain].walkable || map.bridge[i] === 1) && !PROP_INFO[map.props[i] as Prop].blocks && !map.cliff[i] && map.blocked[i] !== BLOCK_SOLID;
 }
 
 /** Coste de pisar la casilla (suelo × objeto). Infinity si no se puede. */
@@ -233,7 +235,9 @@ export function tileMoveCost(map: GameMap, x: number, y: number): number {
   if (prop.blocks || map.cliff[i] || map.blocked[i] === BLOCK_SOLID) return Infinity;
   const built = structureMoveCost(map.blocked[i]);
   const trench = map.trench[i] ? TRENCH_COST : 1;
-  return TERRAIN_INFO[map.terrain[i] as Terrain].moveCost * prop.moveCost * (map.slope[i] ? SLOPE_COST : 1) * built * trench;
+  // Sobre un puente el agua se anda como suelo normal.
+  const ground = map.bridge[i] ? 1 : TERRAIN_INFO[map.terrain[i] as Terrain].moveCost;
+  return ground * prop.moveCost * (map.slope[i] ? SLOPE_COST : 1) * built * trench;
 }
 
 /** Texto descriptivo de una casilla para la interfaz. */
@@ -281,6 +285,7 @@ export function generateMap(opts: MapOptions): GameMap {
     slope: new Uint8Array(size),
     stock: new Uint8Array(size),
     blocked: new Uint8Array(size),
+    bridge: new Uint8Array(size),
     trench: new Uint8Array(size),
     start: { x: 0, y: 0 },
   };

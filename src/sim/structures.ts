@@ -128,6 +128,22 @@ export function footprintTiles(def: BuildingDef, x: number, y: number, rot: 0 | 
   return out;
 }
 
+/** Se puede tender un puente en la casilla: es agua (de cualquier tipo) y no hay ningún objeto. */
+export function canBridge(map: GameMap, x: number, y: number): boolean {
+  if (!inBounds(map, x, y)) return false;
+  const i = index(map, x, y);
+  return isWater(map.terrain[i] as Terrain) && map.props[i] === Prop.None && !map.cliff[i];
+}
+
+/** Material que pide una construcción puesta en (x, y): el de su definición o, en un puente sobre agua profunda, más. */
+export function structureCost(map: GameMap, def: BuildingDef, x: number, y: number): Partial<Record<ResourceId, number>> {
+  if (!def.bridge || def.bridge.deepCostMultiplier === 1 || !inBounds(map, x, y)) return def.cost;
+  if (map.terrain[index(map, x, y)] !== Terrain.DeepWater) return def.cost;
+  const out: Partial<Record<ResourceId, number>> = {};
+  for (const [r, n] of Object.entries(def.cost) as [ResourceId, number][]) out[r] = Math.ceil(n * def.bridge.deepCostMultiplier);
+  return out;
+}
+
 /** Los suelos van en su propia capa: encima se puede construir casi todo. */
 export function isFloor(def: BuildingDef): boolean {
   return def.category === 'suelo';
@@ -279,6 +295,15 @@ export class Structures {
     const floor = this.floorByTile.get(i);
     const top = main?.built ? main : floor?.built ? floor : undefined;
     this.map.blocked[i] = !top ? 0 : top.def.blocks ? BLOCK_SOLID : walkableStructureCode(top.def.moveCost ?? 1);
+    this.map.bridge[i] = floor?.built && floor.def.bridge ? 1 : 0;
+  }
+
+  /**
+   * Material que pide una construcción. Lo de su definición salvo en un puente sobre agua
+   * profunda, que cuesta `bridge.deepCostMultiplier` veces más (elegido por Mikel el 2026-10-18).
+   */
+  costOf(s: Structure): Partial<Record<ResourceId, number>> {
+    return structureCost(this.map, s.def, s.x, s.y);
   }
 
   /** Casillas que ocupa. */
@@ -390,7 +415,7 @@ export class Structures {
       // La mitad del material y, en un taller, todo lo que tenía dentro.
       // Electrificado, también la mitad de la mejora; a medio electrificar, lo que se había traído.
       const extra = s.electric ? (s.def.electrify?.cost[r] ?? 0) : 0;
-      const n = Math.floor(((s.def.cost[r] ?? 0) + extra) * share) + (s.delivered[r] ?? 0) + (s.upgrade?.delivered[r] ?? 0);
+      const n = Math.floor(((this.costOf(s)[r] ?? 0) + extra) * share) + (s.delivered[r] ?? 0) + (s.upgrade?.delivered[r] ?? 0);
       if (n > 0) back[r] = n;
     }
     return back;
@@ -401,6 +426,8 @@ export class Structures {
    * Sobre un suelo se puede construir de todo menos lo del agua; un suelo va donde no haya otro.
    */
   canPlace(x: number, y: number, def?: BuildingDef, ignore?: Structure): boolean {
+    // Un puente solo va sobre el agua (cualquiera) sin nada encima.
+    if (def?.bridge) return canBridge(this.map, x, y) && !this.floorAt(x, y) && !this.mainAt(x, y);
     const blocker = buildBlocker(this.map, x, y);
     if (blocker !== null && !(def && slopeOrCliffOk(def, blocker))) return false;
     if (!def) return !this.at(x, y);
@@ -501,7 +528,7 @@ export class Structures {
     }
     // Una orden «fabricar N» ya terminada no pide más material.
     const active = s.bill && !s.bill.paused && !(s.bill.mode === 'count' && s.bill.target <= 0);
-    const wanted = s.built ? (active ? s.bill!.recipe.inputs : {}) : s.def.cost;
+    const wanted = s.built ? (active ? s.bill!.recipe.inputs : {}) : this.costOf(s);
     for (const r of RESOURCES) {
       const want = (wanted[r] ?? 0) - (s.delivered[r] ?? 0);
       if (want > 0) out[r] = want;

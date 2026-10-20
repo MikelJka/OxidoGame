@@ -12,6 +12,7 @@ import { RESOURCES, ResourceId } from '../data/resources';
 import { WORK_TYPES, WorkType } from '../data/work';
 import { Colonist, DEFAULT_PRIORITY, STANCES, WorkPriority } from './colonist';
 import { GameMap, inBounds, isPassable } from './map';
+import { structureCost } from './structures';
 import type { StoragePriority } from './zones';
 import { ALERT_KINDS, GameSpeed, LogEntry, TICKS_PER_DAY, World } from './world';
 import { initialSchedule, makeDifficulty, WANDERER_GAP } from './storyteller';
@@ -321,6 +322,7 @@ function restoreMap(d: SaveData): GameMap {
     slope: u8('slope'),
     stock: u8('stock'),
     blocked: new Uint8Array(size), // lo rehacen las construcciones al cargarse
+    bridge: new Uint8Array(size), // también (los puentes)
     trench: u8('trench'), // las partidas de antes de las zanjas no lo tienen: vacío
     start: { x: num(d.map.start?.x, 0), y: num(d.map.start?.y, 0) },
   };
@@ -465,7 +467,7 @@ export function loadWorld(input: string | unknown): World {
     const restored = world.structures.restore(def, s.x, s.y, !!s.built, keep, num(s.progress, 0), num(s.hp, def.hp), s.rot === 1 ? 1 : 0);
     if (!restored) {
       // Ya no cabe (p. ej. ahora ocupa más casillas): se devuelve su material.
-      const back: Partial<Record<ResourceId, number>> = s.built ? { ...def.cost } : { ...delivered };
+      const back: Partial<Record<ResourceId, number>> = s.built ? { ...structureCost(world.map, def, s.x, s.y) } : { ...delivered };
       for (const [r, n] of Object.entries(back) as [ResourceId, number][]) world.items.drop(s.x, s.y, r, n);
       continue;
     }

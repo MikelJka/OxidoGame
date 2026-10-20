@@ -340,6 +340,23 @@ function drawFlat(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number,
   const { top, face, dark } = def.colors;
   const px = painter(ctx);
   ctx.clearRect(0, 0, tile, tileH);
+  if (def.bridge) {
+    // Puente: tablones (o chapa) de lado a lado con huecos al agua, y una barandilla a cada lado.
+    if (def.id.includes('madera')) {
+      for (let y = 1; y < tileH - 1; y += 3) {
+        px(1, y, tile - 2, 2, top);
+        px(1, y + 1, tile - 2, 1, face);
+      }
+    } else {
+      px(1, 1, tile - 2, tileH - 2, top);
+      for (let y = 2; y < tileH - 1; y += 2) for (let x = 2 + (y % 4 === 0 ? 1 : 0); x < tile - 2; x += 3) px(x, y, 1, 1, dark);
+    }
+    px(0, 0, 1, tileH, dark);
+    px(tile - 1, 0, 1, tileH, dark);
+    px(0, 0, tile, 1, face);
+    px(0, tileH - 1, tile, 1, dark);
+    return;
+  }
   if (def.category === 'suelo') {
     px(0, 0, tile, tileH, top);
     if (def.id.includes('madera')) {

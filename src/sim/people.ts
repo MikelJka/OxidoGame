@@ -56,7 +56,7 @@ export function colonyWealth(w: World): number {
   let v = RESOURCES.reduce((a, r) => a + inv[r] * RESOURCE_VALUES[r], 0);
   for (const s of w.structures.all()) {
     if (!s.built) continue;
-    for (const [r, n] of Object.entries(s.def.cost) as [ResourceId, number][]) v += n * RESOURCE_VALUES[r];
+    for (const [r, n] of Object.entries(w.structures.costOf(s)) as [ResourceId, number][]) v += n * RESOURCE_VALUES[r];
   }
   return v;
 }

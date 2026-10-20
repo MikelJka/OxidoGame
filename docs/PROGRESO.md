@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (18) — Puentes de madera y de metal, con «Puentes»
+
+- Sin incidencias nuevas en 🐞. Con los bloques 3, 4 y 5 terminados, se empieza la **update del agua** (primera parte, como pidió Mikel: puentes).
+- Tras investigar **«Puentes»** (4 h, sin requisitos; antes salen con 🔒), en 🏗 → Suelos: **puente de madera** (🪵8 por casilla) y **puente de metal** (🔗4). Solo se ponen **sobre el agua, de cualquier tipo**; en el **agua profunda cuestan el doble** (🪵16 / 🔗8). Terminados, el agua se cruza andando como suelo normal (colonos, saqueadores y animales).
+- La madera **no se pudre** y aguanta **un tercio** que el metal (vida 200 y 600). Se construyen casilla a casilla desde la orilla: el colono trabaja desde la orilla o desde el tramo ya hecho.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): **sin límite de ancho** (el catálogo decía «hasta 4 casillas», pero Mikel luego pidió puentes en cualquier agua; las plataformas vendrán aparte); trabajo de construcción 150 (madera) y 250 (metal); encima de un puente no se construye nada más (eso será con las plataformas).
+- Por dentro: `bridge` en `buildings.json` (`puente_madera`, `puente_metal`), `map.bridge` (lo rehacen las construcciones al cargar; las partidas guardadas no cambian) y `Structures.costOf`.
+- Qué probar: investigar «Puentes» en 📜 → 🔬 Investigación (🪄 acelera), poner puentes sobre un río desde la orilla y ver que los colonos lo cruzan; mirar en la información de un plano sobre agua profunda que pide el doble.
+- Sin npm en el entorno: tests con Bun (516, 6 nuevos) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguiente: las **plataformas** (de madera 🪵12 en agua poco profunda o normal, de metal 🔩10 ⚙️1 también en profunda) y el **muelle** de madera (🪵10).
+
 ## 2026-10-20 (17) — El mortero, con «Artillería»
 
 - Sin incidencias nuevas en 🐞. Siguiente aprobado con sus números: el mortero (bloque 5).

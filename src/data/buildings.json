@@ -709,7 +709,10 @@
     "mortar": {
       "minReach": 6,
       "reach": 20,
-      "ammo": { "resource": "chatarra", "capacity": 20 },
+      "ammo": {
+        "resource": "chatarra",
+        "capacity": 20
+      },
       "ammoPerShot": 2,
       "missChance": 0.4,
       "missSpread": 2,
@@ -792,6 +795,50 @@
       "top": "#9a978f",
       "face": "#85827a",
       "dark": "#6a675f"
+    }
+  },
+  {
+    "id": "puente_madera",
+    "research": "puentes",
+    "name": "Puente de madera",
+    "category": "suelo",
+    "cost": {
+      "madera": 8
+    },
+    "work": 150,
+    "hp": 200,
+    "blocks": false,
+    "moveCost": 1,
+    "height": 0,
+    "bridge": {
+      "deepCostMultiplier": 2
+    },
+    "colors": {
+      "top": "#a07a4c",
+      "face": "#6e5032",
+      "dark": "#3e2a18"
+    }
+  },
+  {
+    "id": "puente_metal",
+    "research": "puentes",
+    "name": "Puente de metal",
+    "category": "suelo",
+    "cost": {
+      "metal": 4
+    },
+    "work": 250,
+    "hp": 600,
+    "blocks": false,
+    "moveCost": 1,
+    "height": 0,
+    "bridge": {
+      "deepCostMultiplier": 2
+    },
+    "colors": {
+      "top": "#8e949a",
+      "face": "#5e6469",
+      "dark": "#33373b"
     }
   },
   {

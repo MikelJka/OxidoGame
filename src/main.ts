@@ -445,6 +445,7 @@ for (const def of BUILDINGS) {
   b.title = `${BUILDING_CATEGORY_NAMES[def.category]} · ${def.name} · coste ${cost}`;
   if (def.research) b.title += ` · pide investigar ${researchNeeds(def).map((q) => `«${researchDef(q)?.name}»`).join(' y ')}`;
   if (def.turret) b.title += ` · gasta ${-(def.power ?? 0)} W · con corriente dispara sola a ${def.turret.reach} casillas, sin munición`;
+  if (def.bridge) b.title += ` · solo sobre el agua (se cruza andando); en el agua profunda cuesta ×${def.bridge.deepCostMultiplier}`;
   if (def.stunSeconds) b.title += ` · gasta ${-(def.power ?? 0)} W · con corriente aturde ${def.stunSeconds} s a quien la pisa`;
   buildList.append(b);
 }

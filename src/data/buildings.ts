@@ -129,6 +129,11 @@ export interface BuildingDef {
    * a `radius` casillas o menos mientras arde le suma `mood`, que le dura `hours` horas tras alejarse.
    */
   cheer?: { radius: number; mood: number; hours: number };
+  /**
+   * Puente (update del agua, elegido por Mikel el 2026-10-18): un suelo que solo va sobre el agua
+   * (cualquiera) y deja cruzarla andando. En el agua profunda cuesta `deepCostMultiplier` veces más.
+   */
+  bridge?: { deepCostMultiplier: number };
   /** Colores del dibujo: cara de arriba, frente y sombra. */
   colors: { top: string; face: string; dark: string };
 }
@@ -186,6 +191,7 @@ export function validateBuilding(d: unknown): BuildingDef {
     if (!(m.missChance >= 0 && m.missChance < 1) || !Number.isInteger(m.missSpread) || m.missSpread < 1 || !(m.cooldownSeconds > 0) || !Number.isInteger(m.flightTicks) || m.flightTicks < 1) fail('mortero: números no válidos');
   }
   if (b.cheer !== undefined && (!b.burnsCorpses || !Number.isInteger(b.cheer.radius) || b.cheer.radius < 1 || b.cheer.radius > 10 || !(b.cheer.mood > 0 && b.cheer.mood <= 0.3) || !(b.cheer.hours > 0))) fail('«cheer» no válido');
+  if (b.bridge !== undefined && (b.category !== 'suelo' || b.blocks || !(b.bridge.deepCostMultiplier >= 1 && b.bridge.deepCostMultiplier <= 5))) fail('puente no válido');
   if (!b.colors?.top || !b.colors.face || !b.colors.dark) fail('faltan colores');
   return b;
 }
