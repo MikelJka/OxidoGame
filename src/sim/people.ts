@@ -18,6 +18,7 @@ import { DIFFICULTIES, RADIO_GAP_DAYS, raidGap, raidSize, TRADER_GAP, WANDERER_G
 import type { World } from './world';
 import { maybePanic, witnessFall } from './panic';
 import { tryThrowGrenade } from './grenades';
+import { mortarManned, mortarShots } from './mortar';
 import { TICKS_PER_DAY } from './time';
 export { canTalk, TALK_HOURS } from './jobs';
 
@@ -676,6 +677,8 @@ export function colonistFight(w: World, c: Colonist): boolean {
     return false;
   }
   if (!c.drafted || c.path.length > 0 || c.stance === 'mantener') return false;
+  // Manejando un mortero cargado: se queda a su lado en vez de ir a por el enemigo.
+  if (mortarManned(w, c) && mortarShots(mortarManned(w, c)!) > 0) return false;
   // Reclutado y quieto: va a por el más cercano a su alcance.
   const target = enemies
     .map((e) => ({ e, d: Math.abs(e.tile.x - c.tile.x) + Math.abs(e.tile.y - c.tile.y) }))

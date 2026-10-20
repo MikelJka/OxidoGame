@@ -371,6 +371,22 @@ function drawFlat(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number,
     px(cx, cy - 1, 1, 2, '#c0392b');
     return;
   }
+  if (def.id === 'mortero') {
+    // Mortero: placa base redonda, dos patas en V y el tubo inclinado con la boca oscura.
+    const cx = Math.floor(tile / 2);
+    const cy = Math.floor(tileH / 2) + 1;
+    const r = Math.max(3, Math.floor(tile / 3));
+    for (let y = -Math.floor(r / 2); y <= Math.floor(r / 2); y++) {
+      const half = Math.floor(Math.sqrt(r * r - 4 * y * y));
+      px(cx - half, cy + y, half * 2 + 1, 1, y < 0 ? top : face);
+    }
+    px(cx - r + 1, cy + Math.floor(r / 2), r * 2 - 1, 1, dark);
+    px(cx - 3, cy - 1, 1, 3, dark); // patas
+    px(cx + 3, cy - 1, 1, 3, dark);
+    for (let k = 0; k < 5; k++) px(cx - 1 + k, cy - 1 - k, 3, 2, k === 4 ? '#1a1410' : face); // tubo
+    px(cx + 3, cy - 5, 2, 1, '#1a1410'); // boca
+    return;
+  }
   if (def.id === 'trampa_electrica') {
     // Trampa eléctrica: una placa de chapa con dos bornes y un rayo amarillo en medio.
     const m = Math.max(1, Math.floor(tile / 6));

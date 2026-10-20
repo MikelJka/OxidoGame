@@ -2,6 +2,7 @@
 // las reserva para un colono y elige la siguiente según sus prioridades y la distancia.
 // Determinista: sin azar.
 import type { Skill } from '../data/colonists';
+import { depositOf } from '../data/buildings';
 import { MAX_STACK, RESOURCES, ResourceId } from '../data/resources';
 import { BLUEPRINT_SHARE_RADIUS, FINISH_WORK, WORK_SKILL, WORK_TYPES, WorkType } from '../data/work';
 import { Colonist, ColonistJob } from './colonist';
@@ -401,7 +402,7 @@ function refuelCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   if (c.priorities.transportar === 0) return [];
   const out: Candidate[] = [];
   for (const s of ctx.structures.all()) {
-    const f = s.def.fuel;
+    const f = depositOf(s.def);
     if (!f || !s.built || s.demolish) continue;
     if ((s.fuel ?? 0) + (s.delivered[f.resource] ?? 0) >= f.capacity / 2) continue;
     out.push({

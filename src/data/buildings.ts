@@ -68,6 +68,23 @@ export interface BuildingDef {
    * Daño (× el de los puños), ritmo (× el tiempo entre disparos) y alcance en casillas.
    */
   turret?: { damage: number; cooldown: number; reach: number };
+  /**
+   * Mortero: lo maneja un colono reclutado pegado a él. Tira a un enemigo a `minReach`–`reach`
+   * casillas (por encima de los muros); cada disparo gasta `ammoPerShot` del depósito (`ammo`, que los
+   * colonos rellenan como el combustible), falla con `missChance` cayendo hasta `missSpread` casillas
+   * al lado, y estalla como una granada (3×3). Un disparo cada `cooldownSeconds`; el proyectil tarda
+   * `flightTicks` en caer.
+   */
+  mortar?: {
+    minReach: number;
+    reach: number;
+    ammo: { resource: ResourceId; capacity: number };
+    ammoPerShot: number;
+    missChance: number;
+    missSpread: number;
+    cooldownSeconds: number;
+    flightTicks: number;
+  };
   /** Lámpara: casillas que ilumina alrededor. */
   light?: number;
   /** Casillas de vista desde lo alto (torres; servirá para ver venir a los enemigos). */
@@ -161,6 +178,13 @@ export function validateBuilding(d: unknown): BuildingDef {
   if (b.loophole !== undefined && (b.category !== 'muro' || typeof b.loophole !== 'number' || !(b.loophole > 0 && b.loophole < 1))) fail('«loophole» no válido');
   if (b.stepDamage !== undefined && (b.blocks || !(b.stepDamage > 0 && b.stepDamage <= 0.5))) fail('«stepDamage» no válido');
   if (b.burnsCorpses !== undefined && (b.burnsCorpses !== true || !b.fuel || b.power !== undefined)) fail('una hoguera necesita combustible y no da corriente');
+  if (b.mortar !== undefined) {
+    const m = b.mortar;
+    if (b.category !== 'defensa' || b.fuel !== undefined || b.turret !== undefined) fail('un mortero es una defensa sin combustible ni torreta');
+    if (!Number.isInteger(m.minReach) || !Number.isInteger(m.reach) || m.minReach < 1 || m.reach <= m.minReach || m.reach > 40) fail('mortero: alcance no válido');
+    if (!RESOURCES.includes(m.ammo?.resource) || !Number.isInteger(m.ammoPerShot) || m.ammoPerShot < 1 || !Number.isInteger(m.ammo.capacity) || m.ammo.capacity < m.ammoPerShot) fail('mortero: munición no válida');
+    if (!(m.missChance >= 0 && m.missChance < 1) || !Number.isInteger(m.missSpread) || m.missSpread < 1 || !(m.cooldownSeconds > 0) || !Number.isInteger(m.flightTicks) || m.flightTicks < 1) fail('mortero: números no válidos');
+  }
   if (b.cheer !== undefined && (!b.burnsCorpses || !Number.isInteger(b.cheer.radius) || b.cheer.radius < 1 || b.cheer.radius > 10 || !(b.cheer.mood > 0 && b.cheer.mood <= 0.3) || !(b.cheer.hours > 0))) fail('«cheer» no válido');
   if (!b.colors?.top || !b.colors.face || !b.colors.dark) fail('faltan colores');
   return b;
@@ -170,6 +194,14 @@ export const BUILDINGS: readonly BuildingDef[] = (raw as unknown[]).map(validate
 
 /** Ánimo de la hoguera encendida de noche (de su definición en `buildings.json`). */
 export const BONFIRE_CHEER = BUILDINGS.find((b) => b.cheer)?.cheer ?? { radius: 0, mood: 0, hours: 0 };
+
+/**
+ * Depósito interior que los colonos rellenan desde el almacén: el combustible de un generador o una
+ * hoguera, o la munición de un mortero. Lo que hay dentro va en `Structure.fuel`.
+ */
+export function depositOf(def: BuildingDef): { resource: ResourceId; capacity: number } | undefined {
+  return def.fuel ?? def.mortar?.ammo;
+}
 
 const BY_ID = new Map(BUILDINGS.map((b) => [b.id, b]));
 

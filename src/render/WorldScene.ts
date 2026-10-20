@@ -3,6 +3,7 @@ import { GameMap, describeTile, inBounds } from '../sim/map';
 import { activityLabel, Colonist, groupSummary, type Stance } from '../sim/colonist';
 import { TURRET_SHOT_TICKS } from '../sim/people';
 import { BLAST_TICKS } from '../sim/grenades';
+import { mortarShots } from '../sim/mortar';
 import { isWalkable } from '../sim/pathfinding';
 import { GameSpeed, World } from '../sim/world';
 import { loadWorld } from '../sim/save';
@@ -1955,6 +1956,7 @@ function powerLabel(w: World, s: Structure): string {
   const parts: string[] = [];
   const f = s.def.fuel;
   if (f && s.def.burnsCorpses) parts.push(s.powered ? 'encendida: quema los cadáveres' : 'apagada: hace falta leña', `${RESOURCE_NAMES[f.resource].toLowerCase()} ${Math.ceil(s.fuel ?? 0)}/${f.capacity}`);
+  else if (s.def.mortar) parts.push(mortarShots(s) > 0 ? `${mortarShots(s)} disparos: lo maneja un colono reclutado pegado a él` : 'sin munición: hace falta chatarra', `${RESOURCE_NAMES[s.def.mortar.ammo.resource].toLowerCase()} ${Math.floor(s.fuel ?? 0)}/${s.def.mortar.ammo.capacity}`);
   else if (f) parts.push(s.powered ? 'en marcha' : `sin ${RESOURCE_NAMES[f.resource].toLowerCase()}`, `${RESOURCE_NAMES[f.resource].toLowerCase()} ${Math.ceil(s.fuel ?? 0)}/${f.capacity}`);
   else if (s.def.battery) parts.push(`${Math.round(s.stored ?? 0)}/${w.batteryCapacity(s)} Wh`);
   else if (s.def.source === 'solar') parts.push(s.powered ? `${s.output ?? 0} W` : 'de noche no produce');

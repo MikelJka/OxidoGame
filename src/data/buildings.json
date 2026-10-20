@@ -693,6 +693,36 @@
     }
   },
   {
+    "id": "mortero",
+    "name": "Mortero",
+    "category": "defensa",
+    "cost": {
+      "metal": 20,
+      "componentes": 4,
+      "chatarra": 10
+    },
+    "research": "artilleria",
+    "work": 700,
+    "hp": 200,
+    "blocks": true,
+    "height": 0,
+    "mortar": {
+      "minReach": 6,
+      "reach": 20,
+      "ammo": { "resource": "chatarra", "capacity": 20 },
+      "ammoPerShot": 2,
+      "missChance": 0.4,
+      "missSpread": 2,
+      "cooldownSeconds": 8,
+      "flightTicks": 60
+    },
+    "colors": {
+      "top": "#6e7468",
+      "face": "#4a4f46",
+      "dark": "#262a24"
+    }
+  },
+  {
     "id": "suelo_madera",
     "name": "Suelo de madera",
     "category": "suelo",

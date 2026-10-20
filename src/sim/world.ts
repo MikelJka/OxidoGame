@@ -20,6 +20,7 @@ import { ARMOR_IDS, ARMORS, armorProtection, isArmor } from '../data/armor';
 import { FINISH_MOOD } from '../data/morale';
 import { Corpse, updateCorpses } from './corpses';
 import { Blast, Grenade, grenadesOf, updateGrenades } from './grenades';
+import { updateMortars } from './mortar';
 import { isLitBonfire, updateBonfireCheer, updateBonfires } from './bonfire';
 import { CREATURES } from '../data/creatures';
 import { addResearch, batteryMultiplier, infectionChanceFactor, woundHealTimeFactor, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
@@ -35,7 +36,7 @@ import { applyTerrainJob, LOWER_STONE, terrainBlocker, TerrainJob, TerrainOrders
 import { Bill, PlaceShape, Structure, Structures } from './structures';
 import { batteryCapacity, isDaylight, lacksPower, litTiles, PowerNet, shutDoorTiles, stationSpeed, updatePower, windStrength } from './power';
 import type { TileRect } from './designations';
-import { BUILDINGS, buildingDef } from '../data/buildings';
+import { BUILDINGS, buildingDef, depositOf } from '../data/buildings';
 import { RECIPES, RecipeDef } from '../data/recipes';
 import { CROPS, CropDef } from '../data/crops';
 import { RESOURCES, ResourceId, STARTING_SUPPLIES } from '../data/resources';
@@ -359,6 +360,7 @@ export class World implements JobContext {
     for (const v of this.vehicles) updateVehicle(this, v, TICKS_PER_SECOND, TICKS_PER_HOUR, BASE_WALK_SPEED);
     updateOthers(this);
     updateTurrets(this);
+    updateMortars(this);
     updateGrenades(this);
   }
 
@@ -1110,7 +1112,7 @@ export class World implements JobContext {
   /** Busca trabajo (si toca) y lo empieza. true si ahora tiene uno. */
   private tryStartJob(c: Colonist): boolean {
     const people = this.others.length > 0 || this.colonists.some((k) => k.wounds.some((w) => w.bleeding) || needsDose(k) || k.downed);
-    if (!people && this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.structures.toMove().length === 0 && this.structures.stations().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0 && this.corpses.length === 0 && !this.structures.all().some((s) => s.built && !!s.def.fuel)) return false;
+    if (!people && this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.structures.toMove().length === 0 && this.structures.stations().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0 && this.corpses.length === 0 && !this.structures.all().some((s) => s.built && !!depositOf(s.def))) return false;
     if (this.tick < (this.nextJobScan.get(c.id) ?? 0)) return false;
     const plan = findJob(this, c);
     if (!plan || !reservePlan(this.reservations, c, plan.job)) {

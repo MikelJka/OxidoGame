@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (17) — El mortero, con «Artillería»
+
+- Sin incidencias nuevas en 🐞. Siguiente aprobado con sus números: el mortero (bloque 5).
+- Tras investigar **«Artillería»** (antes sale con 🔒), en 🏗 → Defensa: **mortero** (🔗20 ⚙️4 🔩10, 1×1). Lo maneja un **colono reclutado que esté pegado a él** (en una de las 8 casillas de alrededor, sin retirarse); mientras le quede munición se queda a su lado en vez de ir a por el enemigo.
+- Tira **por encima de los muros** a un enemigo a **6–20 casillas**, al sitio con más enemigos juntos y nunca donde haya un colono. Cada disparo gasta **🔩2** de su depósito (caben 🔩20, 10 disparos), que los colonos con «Transportar» rellenan solos desde el almacén. **Falla un 40 %**: entonces cae hasta 2 casillas al lado. El proyectil estalla como una granada: daño a todos los del 3×3 (también a un colono que se meta), y un poco a muros y puertas.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): un disparo cada 8 s, el proyectil tarda 2 s en caer, el depósito es de 🔩20, vida 200 y trabajo de construcción 700. Va en `buildings.json` (`mortero`).
+- Qué probar: investigar «Torretas» y «Artillería» en 📜 → 🔬 Investigación (🪄 acelera), construir el mortero y esperar a que le lleven chatarra (la información de la casilla dice cuántos disparos tiene). En un raid, reclutar a un colono, ponerlo pegado al mortero y ver los proyectiles caer sobre los saqueadores lejanos.
+- Sin npm en el entorno: tests con Bun (510, 5 nuevos) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguiente: con los bloques 3, 4 y 5 terminados, toca la **update del agua** (primera parte: puentes y plataformas) o las **máquinas y drones** (bloque 6), según el orden de «Pendiente».
+
 ## 2026-10-20 (16) — Chaleco y casco tácticos con «Blindaje avanzado»
 
 - Sin incidencias nuevas en 🐞. «Desguace de máquinas» se deja para cuando existan los drones y las arañas (bloque 6), porque hoy no haría nada. Siguiente aprobado con todos sus números: el blindaje táctico (bloque 5).

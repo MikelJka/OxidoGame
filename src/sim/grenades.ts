@@ -31,6 +31,8 @@ export interface Grenade {
   by: string;
   /** La lanzó un saqueador (contra los colonos). */
   foe?: boolean;
+  /** Es un proyectil de mortero (`by` es quien lo maneja). */
+  shell?: boolean;
 }
 
 /** Explosión reciente (solo para el dibujado; no se guarda). */
@@ -111,7 +113,7 @@ export function updateGrenades(w: World): void {
 export function explodeGrenade(w: World, g: Grenade): void {
   const r = GRENADE.radius;
   w.blasts.push({ x: g.to.x, y: g.to.y, tick: w.tick });
-  w.addLog(`💥 Estalla la granada de ${g.by}.`, g.foe ? 'malo' : 'bueno', 'combate', g.to);
+  w.addLog(g.shell ? `💥 Cae el proyectil del mortero de ${g.by}.` : `💥 Estalla la granada de ${g.by}.`, g.foe ? 'malo' : 'bueno', 'combate', g.to);
   for (const p of w.pawns()) {
     if (p.downed || !within(p.tile, g.to, r)) continue;
     const tough = p.traits.some((t) => t.id === 'duro') ? 0.75 : 1;
@@ -141,7 +143,7 @@ export function explodeGrenade(w: World, g: Grenade): void {
       s.hp -= Math.max(1, Math.round(s.def.hp * GRENADE.structureDamage));
       if (s.hp <= 0) {
         w.breakStructure(s);
-        w.addLog(`💥 La granada derriba: ${s.def.name.toLowerCase()}.`, 'malo', 'combate', { x: s.x, y: s.y });
+        w.addLog(`💥 ${g.shell ? 'El mortero' : 'La granada'} derriba: ${s.def.name.toLowerCase()}.`, 'malo', 'combate', { x: s.x, y: s.y });
       }
     }
   }

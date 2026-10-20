@@ -77,7 +77,7 @@ export interface SaveData {
   research?: { current: string | null; progress: Record<string, number>; done: string[] };
   nextCorpseId?: number;
   /** Granadas en el aire (desde el 2026-10-20; las partidas de antes, ninguna). */
-  grenades?: { from: { x: number; y: number }; to: { x: number; y: number }; thrownAt: number; explodeAt: number; by: string; foe?: boolean }[];
+  grenades?: { from: { x: number; y: number }; to: { x: number; y: number }; thrownAt: number; explodeAt: number; by: string; foe?: boolean; shell?: boolean }[];
   /** Raids, caravanas y supervivientes activados (por defecto, sí). */
   events?: boolean;
   /** Dureza y días sin raids (desde que existe; las anteriores, Normal). */
@@ -235,7 +235,7 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
       ...world.colonists.flatMap((k) => (k.job?.corpse?.body ? [{ ...k.job.corpse.body, x: k.tile.x, y: k.tile.y }] : [])),
     ],
     nextCorpseId: world.nextCorpseId,
-    grenades: world.grenades.map((g) => ({ from: { ...g.from }, to: { ...g.to }, thrownAt: g.thrownAt, explodeAt: g.explodeAt, by: g.by, ...(g.foe ? { foe: true } : {}) })),
+    grenades: world.grenades.map((g) => ({ from: { ...g.from }, to: { ...g.to }, thrownAt: g.thrownAt, explodeAt: g.explodeAt, by: g.by, ...(g.foe ? { foe: true } : {}), ...(g.shell ? { shell: true } : {}) })),
     research: { current: world.research.current, progress: { ...world.research.progress }, done: [...world.research.done] },
     events: world.eventsEnabled,
     difficulty: { ...world.difficulty },
@@ -475,6 +475,8 @@ export function loadWorld(input: string | unknown): World {
     // Electricidad (desde que existe): carga de las baterías y combustible de los generadores.
     if (def.battery) restored.stored = Math.max(0, Math.min(def.battery * batteryMult, num(s.stored, 0)));
     if (def.fuel) restored.fuel = Math.max(0, Math.min(def.fuel.capacity, num(s.fuel, 0)));
+    // Munición del mortero (desde el 2026-10-20), en el mismo campo.
+    if (def.mortar) restored.fuel = Math.max(0, Math.min(def.mortar.ammo.capacity, num(s.fuel, 0)));
     // Talleres electrificados o a medio electrificar (desde 2026-10-18; antes, ninguno).
     if (def.electrify && s.built) {
       if (s.electric) restored.electric = true;
@@ -558,7 +560,7 @@ export function loadWorld(input: string | unknown): World {
     const from = pt(g.from);
     const to = pt(g.to);
     if (!inBounds(world.map, to.x, to.y) || !inBounds(world.map, from.x, from.y)) continue;
-    world.grenades.push({ from, to, thrownAt: num(g.thrownAt, world.tick), explodeAt: num(g.explodeAt, world.tick), by: typeof g.by === 'string' ? g.by : '?', ...(g.foe === true ? { foe: true } : {}) });
+    world.grenades.push({ from, to, thrownAt: num(g.thrownAt, world.tick), explodeAt: num(g.explodeAt, world.tick), by: typeof g.by === 'string' ? g.by : '?', ...(g.foe === true ? { foe: true } : {}), ...(g.shell === true ? { shell: true } : {}) });
   }
   // Asientos de vehículos que ya no existen: fuera.
   for (const c of world.pawns()) if (c.vehicle && !world.vehicle(c.vehicle.id)) delete c.vehicle;

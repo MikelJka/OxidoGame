@@ -1,6 +1,6 @@
 // Construcciones: planos que colocan el jugador y que los colonos completan llevando
 // materiales y trabajando. Al terminarse, los muros bloquean el paso y las puertas lo frenan.
-import { BuildingDef, buildingDef } from '../data/buildings';
+import { BuildingDef, buildingDef, depositOf } from '../data/buildings';
 import { RESOURCES, ResourceId } from '../data/resources';
 import type { RecipeDef } from '../data/recipes';
 import { BLOCK_SOLID, walkableStructureCode, GameMap, inBounds, index, isPassable, isWater, Prop, TERRAIN_INFO, Terrain } from './map';
@@ -485,8 +485,8 @@ export class Structures {
   needs(s: Structure): Partial<Stockpile> {
     const out: Partial<Stockpile> = {};
     // Generador: el combustible que le falta para llenarse.
-    if (s.built && s.def.fuel) {
-      const f = s.def.fuel;
+    const f = depositOf(s.def);
+    if (s.built && f) {
       const want = f.capacity - Math.ceil(s.fuel ?? 0) - (s.delivered[f.resource] ?? 0);
       if (want > 0) out[f.resource] = want;
       return out;
