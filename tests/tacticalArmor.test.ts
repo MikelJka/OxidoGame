@@ -44,7 +44,7 @@ describe('chaleco y casco tácticos («Blindaje avanzado»)', () => {
     c.helmet = 'casco_metal';
     w.items.drop(8, 8, 'chaleco_tactico', 1);
     w.items.drop(6, 9, 'casco_tactico', 1);
-    for (let i = 0; i < 4000 && !(c.vest === 'chaleco_tactico' && c.helmet === 'casco_tactico'); i++) w.step();
+    for (let i = 0; i < 4000 && !((c.vest as string) === 'chaleco_tactico' && (c.helmet as string) === 'casco_tactico'); i++) w.step();
     expect([c.vest, c.helmet]).toEqual(['chaleco_tactico', 'casco_tactico']);
     expect(walkSpeedMultiplier(c)).toBeCloseTo(0.95 * c.traits.reduce((m, t) => m * (t.walkSpeed ?? 1), 1));
     const l = loadWorld(serializeWorld(w)).colonists[0];
