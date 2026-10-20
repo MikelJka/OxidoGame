@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { flatWorld } from './helpers';
 import { researchCost } from '../src/sim/research';
 import { loadWorld, serializeWorld } from '../src/sim/save';
-import { TICKS_PER_HOUR } from '../src/sim/world';
+import { TICKS_PER_DAY, TICKS_PER_HOUR } from '../src/sim/world';
 import { recipeDef } from '../src/data/recipes';
 import { researchDef } from '../src/data/research';
 import { raiderWeaponPool, WEAPONS, weaponScore } from '../src/data/weapons';
-import { attack } from '../src/sim/people';
+import { attack, dropGear, startRaid } from '../src/sim/people';
 
 describe('subfusil y rifle de francotirador («Armas automáticas»)', () => {
   it('tienen los números del catálogo', () => {
@@ -70,11 +70,38 @@ describe('subfusil y rifle de francotirador («Armas automáticas»)', () => {
     expect(c.ammo).toBeGreaterThan(0);
   });
 
-  it('los saqueadores no los traen (el catálogo no lo dice)', () => {
-    for (const d of [0, 15, 25, 60]) {
+  it('los saqueadores los traen desde el día 35 (elegido por Mikel), no antes', () => {
+    for (const d of [0, 15, 25, 34]) {
       expect(raiderWeaponPool(d)).not.toContain('subfusil');
       expect(raiderWeaponPool(d)).not.toContain('francotirador');
     }
+    for (const d of [35, 60]) {
+      expect(raiderWeaponPool(d)).toContain('subfusil');
+      expect(raiderWeaponPool(d)).toContain('francotirador');
+    }
+  });
+
+  it('el saqueador llega con 15 balas y, al caer, suelta el arma y las balas', () => {
+    const w = flatWorld(1);
+    w.tick = 35 * TICKS_PER_DAY;
+    const found = new Set<string>();
+    let gunner: ReturnType<typeof startRaid>[number] | null = null;
+    for (let i = 0; i < 40 && found.size < 2; i++) {
+      for (const r of startRaid(w, 6, false)) {
+        if (r.weapon === 'subfusil' || r.weapon === 'francotirador') {
+          found.add(r.weapon);
+          expect(r.ammo).toBe(15);
+          gunner = r;
+        }
+      }
+    }
+    expect([...found].sort()).toEqual(['francotirador', 'subfusil']);
+    const weapon = gunner!.weapon!;
+    const before = w.items.totals();
+    dropGear(w, gunner!);
+    const after = w.items.totals();
+    expect((after[weapon] ?? 0) - (before[weapon] ?? 0)).toBe(1);
+    expect((after.balas ?? 0) - (before.balas ?? 0)).toBe(15);
   });
 
   it('se guardan', () => {

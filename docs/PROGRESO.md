@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (13) — Saqueadores con subfusil y francotirador desde el día 35
+
+- Sin incidencias nuevas en 🐞. Siguiente del orden: los **saqueadores con subfusil y rifle de francotirador** (opción A, elegida por Mikel).
+- Desde el **día 35**, los saqueadores pueden llegar con **subfusil** o **rifle de francotirador**, con **15 balas**, como los de pistola, escopeta y rifle. Al caer sueltan el arma y las balas, y los colonos las recogen.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): desde el día 35, el reparto de armas de los saqueadores es tubería, lanza, arco, pistola, escopeta, rifle, subfusil y francotirador, a partes iguales (1 de cada 4 con un arma automática). Va en `weapons.json` (`raiderPools`).
+- Qué probar: con 🪄 adelantar al día 35 y lanzar varios raids; ver saqueadores que disparan muy seguido (subfusil) o desde muy lejos (francotirador, 18 casillas). Tras el combate, recoger el arma y las balas que sueltan.
+- Sin npm en el entorno: tests con Bun (494, 1 nuevo) y tipos con `tsc`; la prueba completa, en GitHub Actions.
+- Siguiente: «Medicina de campo» (la mesa de boticario y la hierba curativa pasan a pedirla).
+
 ## 2026-10-20 (12) — Muro con aspilleras, de piedra y de metal
 
 - Sin incidencias nuevas en 🐞. Siguiente del orden: el **muro con aspilleras** (opción A, elegida por Mikel). Con él quedan terminados los sacos de arena, el alambre de espino y las aspilleras.

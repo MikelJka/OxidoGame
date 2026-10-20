@@ -150,7 +150,7 @@ export function startRaid(w: World, n: number, withBuggy?: boolean): Colonist[] 
     out.push(r);
   }
   // Armados según el día: palos y cuchillos al principio; tuberías, lanzas, arcos y pistolas más adelante;
-  // escopetas y rifles desde el día 25.
+  // escopetas y rifles desde el día 25; subfusiles y rifles de francotirador desde el día 35.
   const pool = raiderWeaponPool(w.day);
   for (const r of out) {
     r.skills.combate = Math.max(r.skills.combate, w.rng.int(3, 10));

@@ -23,6 +23,7 @@
     { "fromDay": 8, "weapons": ["palo", "cuchillo", "tuberia", "lanza"] },
     { "fromDay": 12, "weapons": ["cuchillo", "tuberia", "lanza", "arco", "arco"] },
     { "fromDay": 15, "weapons": ["cuchillo", "tuberia", "lanza", "arco", "arco", "pistola"] },
-    { "fromDay": 25, "weapons": ["tuberia", "lanza", "arco", "pistola", "pistola", "escopeta", "rifle"] }
+    { "fromDay": 25, "weapons": ["tuberia", "lanza", "arco", "pistola", "pistola", "escopeta", "rifle"] },
+    { "fromDay": 35, "weapons": ["tuberia", "lanza", "arco", "pistola", "escopeta", "rifle", "subfusil", "francotirador"] }
   ]
 }
