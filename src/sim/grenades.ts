@@ -1,0 +1,136 @@
+/**
+ * Granadas caseras (bloque 13 del catálogo; elegido por Mikel el 2026-10-20, opción B). Se fabrican
+ * en el banco de trabajo tras investigar «Explosivos». Cada colono coge 2 del almacén y las lleva
+ * aparte de su arma. En combate lanza una (como mucho una cada 10 s, a 6 casillas o menos) cuando hay
+ * 2 o más enemigos en un 3×3 sin ningún colono dentro. Tarda un momento en estallar: hace daño ×3 a
+ * todos los que estén entonces en el 3×3, también a un colono que haya entrado en el último momento,
+ * y quita un poco de vida a muros y puertas. Los números están en `src/data/weapons.json` (`grenade`).
+ */
+import { armorProtection } from '../data/armor';
+import { GRENADE } from '../data/weapons';
+import type { Colonist } from './colonist';
+import { BODY_PARTS, hurt } from './health';
+import type { Point } from './pathfinding';
+import { foeLabel, hurtFoe } from './people';
+import { witnessFall } from './panic';
+import { absorbHit } from './vehicles';
+import { TICKS_PER_SECOND } from './time';
+import type { World } from './world';
+
+/** Daño medio de un puñetazo (los golpes quitan de 0,08 a 0,18 de salud): la granada pega ×3. */
+export const GRENADE_FIST_DAMAGE = 0.13;
+
+/** Una granada en el aire: sale de `from` y estalla en `to` en el tick `explodeAt`. */
+export interface Grenade {
+  from: Point;
+  to: Point;
+  thrownAt: number;
+  explodeAt: number;
+  /** Quién la lanzó (para el diario). */
+  by: string;
+}
+
+/** Explosión reciente (solo para el dibujado; no se guarda). */
+export interface Blast {
+  x: number;
+  y: number;
+  tick: number;
+}
+
+/** Ticks que se ve el fogonazo de una explosión. */
+export const BLAST_TICKS = 18;
+
+const hostile = (c: Colonist) => c.role === 'saqueador' && !c.downed && !c.raider?.fleeing;
+
+const within = (p: Point, q: Point, r: number) => Math.max(Math.abs(p.x - q.x), Math.abs(p.y - q.y)) <= r;
+
+/** Granadas que lleva encima. */
+export function grenadesOf(c: Colonist): number {
+  return c.grenades ?? 0;
+}
+
+/**
+ * Dónde lanzaría ahora una granada: la casilla de un enemigo a su alcance con más enemigos en pie en
+ * su 3×3 (al menos 2) y ningún colono (ni en el suelo). A igualdad, la más cercana. null si no hay.
+ */
+export function grenadeTarget(w: World, c: Colonist): Point | null {
+  const r = GRENADE.radius;
+  const enemies = w.others.filter(hostile);
+  if (enemies.length < GRENADE.minTargets) return null;
+  const mates = w.colonists;
+  let best: { p: Point; n: number; d: number } | null = null;
+  for (const e of enemies) {
+    const d = Math.max(Math.abs(e.tile.x - c.tile.x), Math.abs(e.tile.y - c.tile.y));
+    if (d > GRENADE.reach) continue;
+    if (mates.some((m) => within(m.tile, e.tile, r))) continue;
+    const n = enemies.filter((o) => within(o.tile, e.tile, r)).length;
+    if (n < GRENADE.minTargets) continue;
+    if (!best || n > best.n || (n === best.n && d < best.d)) best = { p: { x: e.tile.x, y: e.tile.y }, n, d };
+  }
+  return best?.p ?? null;
+}
+
+/** Si puede y le conviene, lanza una granada. true si la ha lanzado. */
+export function tryThrowGrenade(w: World, c: Colonist): boolean {
+  if (grenadesOf(c) <= 0 || c.downed || w.tick < (c.grenadeReadyAt ?? 0)) return false;
+  const to = grenadeTarget(w, c);
+  if (!to) return false;
+  c.grenades = grenadesOf(c) - 1;
+  c.grenadeReadyAt = w.tick + Math.round(GRENADE.cooldownSeconds * TICKS_PER_SECOND);
+  const dx = to.x - c.tile.x;
+  if (dx !== 0) c.facing = dx > 0 ? 1 : -1;
+  w.grenades.push({ from: { x: c.tile.x, y: c.tile.y }, to, thrownAt: w.tick, explodeAt: w.tick + GRENADE.fuseTicks, by: c.name });
+  w.combatAlert(c, 'combate', `💣 ${c.name} lanza una granada.`);
+  return true;
+}
+
+/** Cada tick: estallan las granadas a las que les toca y se olvidan los fogonazos viejos. */
+export function updateGrenades(w: World): void {
+  const old = w.blasts.findIndex((b) => w.tick - b.tick <= BLAST_TICKS);
+  w.blasts.splice(0, old < 0 ? w.blasts.length : old);
+  if (w.grenades.length === 0) return;
+  const due = w.grenades.filter((g) => g.explodeAt <= w.tick);
+  if (due.length === 0) return;
+  w.grenades.splice(0, w.grenades.length, ...w.grenades.filter((g) => g.explodeAt > w.tick));
+  for (const g of due) explodeGrenade(w, g);
+}
+
+/** Estalla: daño a todos los que están en pie en el 3×3 (enemigos y colonos) y a muros y puertas. */
+export function explodeGrenade(w: World, g: Grenade): void {
+  const r = GRENADE.radius;
+  w.blasts.push({ x: g.to.x, y: g.to.y, tick: w.tick });
+  w.addLog(`💥 Estalla la granada de ${g.by}.`, 'bueno', 'combate', g.to);
+  for (const p of w.pawns()) {
+    if (p.downed || !within(p.tile, g.to, r)) continue;
+    const tough = p.traits.some((t) => t.id === 'duro') ? 0.75 : 1;
+    const armor = 1 - armorProtection([p.vest, p.helmet]);
+    const dmg = absorbHit(w, p, GRENADE_FIST_DAMAGE * GRENADE.damage * tough * armor);
+    const part = BODY_PARTS[w.rng.int(0, BODY_PARTS.length - 1)];
+    if (p.role === 'colono') {
+      hurt(p, dmg, part);
+      if (p.downed) {
+        w.addLog(`🩸 ${p.name} cae herido por la granada (${part}).`, 'malo', 'caido', p.tile);
+        witnessFall(w, p);
+      } else w.combatAlert(p, 'herido', `🩸 ${p.name} está herido por una granada (${part}).`);
+    } else if (p.role === 'saqueador' && hurtFoe(w, p, dmg, part)) {
+      w.addLog(p.creature ? `${p.name} cae muerto.` : `${foeLabel(p)} cae al suelo.`, 'bueno');
+    }
+    if (p.downed) p.path = [];
+  }
+  // Muros, puertas y portones: un poco de daño a cada uno (una vez aunque ocupe varias casillas).
+  const hit = new Set<number>();
+  for (let y = g.to.y - r; y <= g.to.y + r; y++) {
+    for (let x = g.to.x - r; x <= g.to.x + r; x++) {
+      const s = w.structures.mainAt(x, y);
+      if (!s?.built || hit.has(s.id)) continue;
+      const cat = s.def.category;
+      if (cat !== 'muro' && cat !== 'puerta' && cat !== 'porton') continue;
+      hit.add(s.id);
+      s.hp -= Math.max(1, Math.round(s.def.hp * GRENADE.structureDamage));
+      if (s.hp <= 0) {
+        w.breakStructure(s);
+        w.addLog(`💥 La granada derriba: ${s.def.name.toLowerCase()}.`, 'malo', 'combate', { x: s.x, y: s.y });
+      }
+    }
+  }
+}

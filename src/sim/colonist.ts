@@ -153,6 +153,10 @@ export interface Colonist {
   weaponChoice: WeaponChoice;
   /** Munición que lleva encima (la de su arma: flechas o balas). */
   ammo: number;
+  /** Granadas caseras que lleva encima, aparte de su arma (como mucho 2). */
+  grenades?: number;
+  /** Tick desde el que puede volver a lanzar una granada. */
+  grenadeReadyAt?: number;
   /** Chaleco y casco puestos. */
   vest: ArmorId | null;
   helmet: ArmorId | null;

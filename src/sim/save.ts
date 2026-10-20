@@ -16,7 +16,7 @@ import type { StoragePriority } from './zones';
 import { ALERT_KINDS, GameSpeed, LogEntry, TICKS_PER_DAY, World } from './world';
 import { initialSchedule, makeDifficulty, WANDERER_GAP } from './storyteller';
 import { vehicleDef } from '../data/vehicles';
-import { isWeapon } from '../data/weapons';
+import { GRENADE, isWeapon } from '../data/weapons';
 import { ARMORS, isArmor } from '../data/armor';
 
 /** Versión del formato. Súbela solo si un cambio no se puede leer de forma tolerante, y añade la migración. */
@@ -76,6 +76,8 @@ export interface SaveData {
   /** Investigación (desde el 2026-10-19; las partidas de antes no tienen nada investigado). */
   research?: { current: string | null; progress: Record<string, number>; done: string[] };
   nextCorpseId?: number;
+  /** Granadas en el aire (desde el 2026-10-20; las partidas de antes, ninguna). */
+  grenades?: { from: { x: number; y: number }; to: { x: number; y: number }; thrownAt: number; explodeAt: number; by: string }[];
   /** Raids, caravanas y supervivientes activados (por defecto, sí). */
   events?: boolean;
   /** Dureza y días sin raids (desde que existe; las anteriores, Normal). */
@@ -116,6 +118,9 @@ interface SavedColonist {
   weapon?: string | null;
   weaponChoice?: string;
   ammo?: number;
+  /** Granadas que lleva y cuándo puede lanzar otra (desde el 2026-10-20). */
+  grenades?: number;
+  grenadeReadyAt?: number;
   vest?: string | null;
   helmet?: string | null;
   armorChoice?: string;
@@ -167,6 +172,8 @@ function savePawn(c: Colonist): SavedColonist {
     weapon: c.weapon,
     weaponChoice: c.weaponChoice,
     ammo: c.ammo,
+    ...(c.grenades ? { grenades: c.grenades } : {}),
+    ...(c.grenadeReadyAt ? { grenadeReadyAt: c.grenadeReadyAt } : {}),
     vest: c.vest,
     helmet: c.helmet,
     armorChoice: c.armorChoice,
@@ -228,6 +235,7 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
       ...world.colonists.flatMap((k) => (k.job?.corpse?.body ? [{ ...k.job.corpse.body, x: k.tile.x, y: k.tile.y }] : [])),
     ],
     nextCorpseId: world.nextCorpseId,
+    grenades: world.grenades.map((g) => ({ from: { ...g.from }, to: { ...g.to }, thrownAt: g.thrownAt, explodeAt: g.explodeAt, by: g.by })),
     research: { current: world.research.current, progress: { ...world.research.progress }, done: [...world.research.done] },
     events: world.eventsEnabled,
     difficulty: { ...world.difficulty },
@@ -419,6 +427,9 @@ function restoreColonist(s: SavedColonist): Colonist {
     weapon: typeof s.weapon === 'string' && isWeapon(s.weapon) ? s.weapon : null,
     weaponChoice: s.weaponChoice === 'ninguna' || (typeof s.weaponChoice === 'string' && isWeapon(s.weaponChoice)) ? s.weaponChoice : 'auto',
     ammo: Math.max(0, Math.round(num(s.ammo, 0))),
+    // Partidas de antes de las granadas: sin ninguna.
+    ...(num(s.grenades, 0) > 0 ? { grenades: Math.min(GRENADE.carry, Math.round(num(s.grenades, 0))) } : {}),
+    ...(num(s.grenadeReadyAt, 0) > 0 ? { grenadeReadyAt: num(s.grenadeReadyAt, 0) } : {}),
     // Partidas de antes de las armaduras: sin nada puesto, eligiendo sola la mejor.
     vest: typeof s.vest === 'string' && isArmor(s.vest) && ARMORS[s.vest].slot === 'chaleco' ? s.vest : null,
     helmet: typeof s.helmet === 'string' && isArmor(s.helmet) && ARMORS[s.helmet].slot === 'casco' ? s.helmet : null,
@@ -542,6 +553,13 @@ export function loadWorld(input: string | unknown): World {
   }
   world.nextCorpseId = Math.max(num(d.nextCorpseId, 1), ...world.corpses.map((c) => c.id + 1), 1);
   world.research = loadResearch(d.research);
+  for (const g of d.grenades ?? []) {
+    const pt = (p: { x: number; y: number } | undefined) => ({ x: Math.round(num(p?.x, -1)), y: Math.round(num(p?.y, -1)) });
+    const from = pt(g.from);
+    const to = pt(g.to);
+    if (!inBounds(world.map, to.x, to.y) || !inBounds(world.map, from.x, from.y)) continue;
+    world.grenades.push({ from, to, thrownAt: num(g.thrownAt, world.tick), explodeAt: num(g.explodeAt, world.tick), by: typeof g.by === 'string' ? g.by : '?' });
+  }
   // Asientos de vehículos que ya no existen: fuera.
   for (const c of world.pawns()) if (c.vehicle && !world.vehicle(c.vehicle.id)) delete c.vehicle;
   for (const it of d.items ?? []) {

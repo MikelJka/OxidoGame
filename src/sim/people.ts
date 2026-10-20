@@ -17,6 +17,7 @@ import { RAIDER_VEHICLE, vehicleDef } from '../data/vehicles';
 import { DIFFICULTIES, RADIO_GAP_DAYS, raidGap, raidSize, TRADER_GAP, WANDERER_GAP } from './storyteller';
 import type { World } from './world';
 import { maybePanic, witnessFall } from './panic';
+import { tryThrowGrenade } from './grenades';
 import { TICKS_PER_DAY } from './time';
 export { canTalk, TALK_HOURS } from './jobs';
 
@@ -635,6 +636,15 @@ export function colonistFight(w: World, c: Colonist): boolean {
   if (enemies.length === 0) return false;
   // El enemigo más cercano a su alcance (pegado, o más lejos con lanza o arco) y sin un muro delante.
   const near = enemies.filter((e) => canHit(w, c, e)).sort((x, y) => tileDistance(c, x) - tileDistance(c, y))[0];
+  // Granadas: si hay un grupo de enemigos a tiro sin colonos cerca, lanza una en vez de golpear.
+  if (!c.attackCooldown && tryThrowGrenade(w, c)) {
+    c.attackCooldown = ATTACK_COOLDOWN;
+    if (c.drafted || c.job === null) {
+      c.path = [];
+      return true;
+    }
+    return false;
+  }
   if (near) {
     if (!c.attackCooldown) attack(w, c, near);
     // Reclutado y con arco: si está al descubierto, busca cobertura cerca (sin dejar de disparar).
@@ -790,6 +800,8 @@ export function updateOthers(w: World): void {
 export function dropGear(w: World, c: Colonist): void {
   if (c.ammo > 0) w.items.drop(c.tile.x, c.tile.y, ammoFor(c.weapon) ?? 'flechas', c.ammo);
   if (c.weapon) w.items.drop(c.tile.x, c.tile.y, c.weapon, 1);
+  if ((c.grenades ?? 0) > 0) w.items.drop(c.tile.x, c.tile.y, 'granadas', c.grenades!);
+  c.grenades = 0;
   if (c.vest) w.items.drop(c.tile.x, c.tile.y, c.vest, 1);
   if (c.helmet) w.items.drop(c.tile.x, c.tile.y, c.helmet, 1);
   c.weapon = null;

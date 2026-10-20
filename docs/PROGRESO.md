@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (10) — Granadas caseras con «Explosivos» (primera parte)
+
+- Sin incidencias nuevas en 🐞. Siguiente del orden: las **granadas** que eligió Mikel (opción B + saqueadores). Primera parte: las de los colonos.
+- **Granadas caseras** 💣: se fabrican en el banco de trabajo (🔩2 ⚙️1 → 2) tras investigar **«Explosivos»** (antes, la receta sale con 🔒). Van al armero como las armas.
+- Cada colono coge **2** del almacén y las lleva aparte de su arma (se ven en su ficha: «· 💣 2»). Quien está puesto «sin arma» no las coge y suelta las que lleva; al caer o morir, las suelta en el suelo.
+- En combate lanza una sola cuando hay **2 o más enemigos en pie en un 3×3 sin ningún colono** (ni caído) dentro, a **6 casillas** o menos; como mucho **una cada 10 s**. Tarda 1,5 s en estallar (se ve volar en arco y luego el fogonazo): **daño ×3** a todos los que estén entonces en el 3×3, **también a un colono que haya entrado en el último momento**, y les quita **un 10 % de su vida** a muros, puertas y portones.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): 1,5 s hasta estallar; se lanzan por encima de muros (van en arco); el 10 % de vida a muros y puertas; la armadura y el rasgo «duro» protegen como de un golpe; trabajo de la receta 200 (como las balas).
+- Por dentro: los números van en `weapons.json` (`grenade`); la regla, en `src/sim/grenades.ts`. Las que están en el aire y las que lleva cada colono se guardan con la partida.
+- Qué probar: investigar Pólvora → Armas largas → Explosivos en 📜 → 🔬 Investigación (🪄 acelera), fabricar granadas en el banco y ver que cada colono coge 2; lanzar un raid con 🪄 y ver que, cuando dos saqueadores van juntos, alguien les lanza una (diario: «💥 Estalla la granada de …»). En el móvil, que se vea la granada volar y el fogonazo.
+- Sin npm en el entorno: tests con Bun (485, 7 nuevos) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguiente: las granadas de los saqueadores (desde el día 30), segunda parte; después «Medicina de campo» y el muro con aspilleras.
+
 ## 2026-10-20 (9) — La hoguera da luz y ánimo
 
 - Pedido por Mikel en el chat: la hoguera debe dar luz y ánimo, y rellenarse si se apaga. Números elegidos por él: luz como una lámpara y +5 % de ánimo cerca, de noche.

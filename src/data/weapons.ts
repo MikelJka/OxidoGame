@@ -9,6 +9,10 @@
  *   casillas o menos y `farDamage` más lejos.
  * - ammoCarry / ammoLow: munición que coge un tirador de una vez y por debajo de cuánta vuelve.
  * - raiderAmmo: munición con la que llega un saqueador tirador.
+ * - grenade: granadas caseras (bloque 13, elegido por Mikel el 2026-10-20, opción B): cuántas lleva
+ *   cada colono, alcance, radio de la explosión (1 = el 3×3), daño (× los puños), enemigos que tiene
+ *   que haber en el 3×3, segundos entre lanzamientos, ticks que tarda en estallar y parte de la vida
+ *   que quita a muros y puertas.
  * - raiderPools: armas de los saqueadores desde cada día (sin arma = puños, `null`).
  */
 import data from './weapons.json';
@@ -40,6 +44,17 @@ export interface WeaponDef {
 
 const IDS: readonly WeaponId[] = ['palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'ballesta', 'lanza_metal', 'pistola', 'escopeta', 'rifle', 'subfusil', 'francotirador'];
 
+export interface GrenadeDef {
+  carry: number;
+  reach: number;
+  radius: number;
+  damage: number;
+  minTargets: number;
+  cooldownSeconds: number;
+  fuseTicks: number;
+  structureDamage: number;
+}
+
 function validate(): Record<WeaponId, WeaponDef> {
   const fail = (m: string): never => {
     throw new Error(`weapons.json: ${m}`);
@@ -63,6 +78,9 @@ function validate(): Record<WeaponId, WeaponDef> {
     last = p.fromDay;
   }
   if (data.raiderPools[0]?.fromDay !== 0) fail('armas de los saqueadores: la primera, desde el día 0');
+  const g = data.grenade as GrenadeDef;
+  const int = (n: number, min: number) => Number.isInteger(n) && n >= min;
+  if (!int(g.carry, 1) || !int(g.reach, 2) || !int(g.radius, 0) || !(g.damage > 0) || !int(g.minTargets, 1) || !(g.cooldownSeconds > 0) || !int(g.fuseTicks, 1) || !(g.structureDamage >= 0 && g.structureDamage <= 1)) fail('granadas: números no válidos');
   if (!(data.ammoCarry > data.ammoLow && data.ammoLow >= 0 && data.raiderAmmo > 0)) fail('munición: números no válidos');
   return out;
 }
@@ -81,13 +99,16 @@ export function isWeapon(r: string): r is WeaponId {
   return Object.prototype.hasOwnProperty.call(WEAPONS, r);
 }
 
+/** Granadas caseras: cuántas lleva cada colono, alcance, explosión… */
+export const GRENADE: GrenadeDef = data.grenade;
+
 export function isAmmo(r: string): r is AmmoId {
   return (AMMO_IDS as readonly string[]).includes(r);
 }
 
-/** Armas y munición: no se comen, no van a las caravanas (por ahora). */
+/** Armas, munición y granadas: no se comen, no van a las caravanas (por ahora); van al armero. */
 export function isGear(r: ResourceId): boolean {
-  return isWeapon(r) || isAmmo(r);
+  return isWeapon(r) || isAmmo(r) || r === 'granadas';
 }
 
 /** Daño (× los puños) del arma a `dist` casillas: la escopeta pega menos lejos. */

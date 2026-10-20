@@ -1450,7 +1450,7 @@ function renderWeapon(c: Colonist): void {
   renderArmor(c);
   weaponPawnId = c.id;
   const def = c.weapon ? WEAPONS[c.weapon] : null;
-  const ammo = def?.ammo ? ` · ${RESOURCE_ICONS[def.ammo]} ${c.ammo}` : '';
+  const ammo = (def?.ammo ? ` · ${RESOURCE_ICONS[def.ammo]} ${c.ammo}` : '') + (c.grenades ? ` · ${RESOURCE_ICONS.granadas} ${c.grenades}` : '');
   $('cp-weapon-now').textContent = c.weapon
     ? `${RESOURCE_ICONS[c.weapon]} ${RESOURCE_NAMES[c.weapon]} (×${String(def!.damage).replace('.', ',')}${def!.closeRange !== undefined ? ` a ${def!.closeRange} o menos, ×${String(def!.farDamage).replace('.', ',')} más lejos` : ''}, ${def!.speedLabel}${def!.reach > 1 ? `, alcance ${def!.reach}` : ''})${ammo}`
     : '✊ Sin arma (puños)';

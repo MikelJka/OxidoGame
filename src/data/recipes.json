@@ -345,6 +345,21 @@
     "description": "Munición para las armas de fuego."
   },
   {
+    "id": "fabricar_granadas",
+    "name": "Granadas caseras (2)",
+    "station": "banco_trabajo",
+    "research": "explosivos",
+    "inputs": {
+      "chatarra": 2,
+      "componentes": 1
+    },
+    "outputs": {
+      "granadas": 2
+    },
+    "work": 200,
+    "description": "Cada colono lleva 2: las lanza a 6 casillas a grupos de enemigos (×3 en el 3×3)."
+  },
+  {
     "id": "fabricar_chaleco_cuero",
     "name": "Chaleco de cuero",
     "station": "banco_trabajo",

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GameMap, describeTile, inBounds } from '../sim/map';
 import { activityLabel, Colonist, groupSummary, type Stance } from '../sim/colonist';
 import { TURRET_SHOT_TICKS } from '../sim/people';
+import { BLAST_TICKS } from '../sim/grenades';
 import { isWalkable } from '../sim/pathfinding';
 import { GameSpeed, World } from '../sim/world';
 import { loadWorld } from '../sim/save';
@@ -381,13 +382,13 @@ export class WorldScene extends Phaser.Scene {
   }
 
   /** Elevación dibujada de una casilla real. */
-  /** Trazos de los disparos recientes de las torretas (amarillo si aciertan, gris si fallan). */
+  /** Trazos de los disparos recientes de las torretas (amarillo si aciertan, gris si fallan), granadas y explosiones. */
   private shotGfx: Phaser.GameObjects.Graphics | null = null;
 
   private drawTurretShots(): void {
     const shots = this.world.turretShots;
     if (!this.shotGfx) {
-      if (shots.length === 0) return;
+      if (shots.length === 0 && this.world.grenades.length === 0 && this.world.blasts.length === 0) return;
       this.shotGfx = this.add.graphics().setDepth(COLONIST_DEPTH + 1.5);
     }
     const g = this.shotGfx;
@@ -401,6 +402,29 @@ export class WorldScene extends Phaser.Scene {
       const by = rowY(b.y) - this.liftAt(k.to.x, k.to.y) - 4;
       g.lineStyle(1.5, k.hit ? 0xffd27a : 0xb8b0a0, 1 - age);
       g.lineBetween(a.x * TILE, ay, b.x * TILE, by);
+    }
+    // Granadas en el aire: una bolita que sube y baja en arco hasta donde estalla.
+    for (const k of this.world.grenades) {
+      const t = Math.min(1, (this.world.tick - k.thrownAt) / Math.max(1, k.explodeAt - k.thrownAt));
+      const a = this.toViewPoint(k.from.x + 0.5, k.from.y + 0.5);
+      const b = this.toViewPoint(k.to.x + 0.5, k.to.y + 0.5);
+      const ay = rowY(a.y) - this.liftAt(k.from.x, k.from.y) - 8;
+      const by = rowY(b.y) - this.liftAt(k.to.x, k.to.y) - 2;
+      const x = (a.x + (b.x - a.x) * t) * TILE;
+      const y = ay + (by - ay) * t - Math.sin(t * Math.PI) * TILE * 1.2;
+      g.fillStyle(0x3e4628, 1);
+      g.fillCircle(x, y, 2.5);
+    }
+    // Explosiones: fogonazo naranja que cubre el 3×3 y se apaga.
+    for (const k of this.world.blasts) {
+      const age = (this.world.tick - k.tick) / BLAST_TICKS;
+      if (age > 1) continue;
+      const c = this.toViewPoint(k.x + 0.5, k.y + 0.5);
+      const cy = rowY(c.y) - this.liftAt(k.x, k.y) - 4;
+      g.fillStyle(0xff9a3c, 0.55 * (1 - age));
+      g.fillCircle(c.x * TILE, cy, TILE * (0.8 + 0.8 * age));
+      g.fillStyle(0xffe08a, 0.8 * (1 - age));
+      g.fillCircle(c.x * TILE, cy, TILE * 0.5 * (1 - age));
     }
   }
 

@@ -374,6 +374,16 @@ export function paintItem(ctx: CanvasRenderingContext2D, r: ResourceId): void {
         px(x, 7, 2, 1, '#8a6a2a');
       }
       break;
+    case 'granadas':
+      // Dos granadas caseras: lata verde oliva con anillas y mecha.
+      for (const x of [2, 6]) {
+        px(x, 4, 3, 5, '#5a6438'); // lata
+        px(x, 5, 3, 1, '#3e4628'); // fleje
+        px(x + 1, 3, 1, 1, '#8a8780'); // espoleta
+        px(x + 2, 2, 1, 1, '#b4b1a8'); // anilla
+      }
+      px(3, 4, 1, 1, '#7a8450'); // brillo
+      break;
     case 'chaleco_cuero':
     case 'chaleco_chapa':
     case 'chaleco_metal': {

@@ -2,6 +2,7 @@
   "ammoCarry": 20,
   "ammoLow": 5,
   "raiderAmmo": 15,
+  "grenade": { "carry": 2, "reach": 6, "radius": 1, "damage": 3, "minTargets": 2, "cooldownSeconds": 10, "fuseTicks": 45, "structureDamage": 0.1 },
   "weapons": [
     { "id": "palo", "damage": 1.4, "cooldown": 1, "reach": 1, "speedLabel": "normal" },
     { "id": "cuchillo", "damage": 1.8, "cooldown": 0.75, "reach": 1, "speedLabel": "rápido" },

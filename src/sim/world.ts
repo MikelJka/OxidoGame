@@ -15,10 +15,11 @@ import { giveDose, needsDose, tickHealth, tickInfection, treatWounds } from './h
 import { Difficulty, initialSchedule, makeDifficulty, scaledSupplies, StorySchedule } from './storyteller';
 import { findRefuge, updatePanic } from './panic';
 import { canTalk, colonistFight, dropGear, hurtFoe, makePrisoner, runStoryteller, talkToPrisoner, TurretShot, updateOthers, updateTurrets, validAttackTarget } from './people';
-import { AMMO_CARRY, AMMO_LOW, ammoFor, isAmmo, isGear, isWeapon, WEAPON_IDS, WEAPONS, weaponScore } from '../data/weapons';
+import { AMMO_CARRY, AMMO_LOW, ammoFor, GRENADE, isAmmo, isGear, isWeapon, WEAPON_IDS, WEAPONS, weaponScore } from '../data/weapons';
 import { ARMOR_IDS, ARMORS, armorProtection, isArmor } from '../data/armor';
 import { FINISH_MOOD } from '../data/morale';
 import { Corpse, updateCorpses } from './corpses';
+import { Blast, Grenade, grenadesOf, updateGrenades } from './grenades';
 import { isLitBonfire, updateBonfireCheer, updateBonfires } from './bonfire';
 import { CREATURES } from '../data/creatures';
 import { addResearch, batteryMultiplier, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
@@ -194,6 +195,10 @@ export class World implements JobContext {
   readonly turretCooldown = new Map<number, number>();
   /** Disparos recientes de las torretas, para dibujar el trazo (no se guarda). */
   readonly turretShots: TurretShot[] = [];
+  /** Granadas en el aire (se guardan con la partida). */
+  readonly grenades: Grenade[] = [];
+  /** Explosiones recientes (para el dibujado; no se guardan). */
+  readonly blasts: Blast[] = [];
   tick = 0;
   speed: GameSpeed = 1;
   private accumulator = 0;
@@ -349,6 +354,7 @@ export class World implements JobContext {
     for (const v of this.vehicles) updateVehicle(this, v, TICKS_PER_SECOND, TICKS_PER_HOUR, BASE_WALK_SPEED);
     updateOthers(this);
     updateTurrets(this);
+    updateGrenades(this);
   }
 
   // --- Personas: diario, muertes y llegadas ------------------------------------------
@@ -729,6 +735,8 @@ export class World implements JobContext {
     }
     const ammo = ammoFor(c.weapon);
     if (ammo && c.ammo < AMMO_LOW && inv[ammo] > 0) return ammo;
+    // Granadas: lleva 2 aparte de su arma (no quien va desarmado; eso ya ha salido arriba).
+    if (grenadesOf(c) < GRENADE.carry && inv.granadas > 0) return 'granadas';
     // Armadura: el chaleco y el casco que más protegen de los que hay libres.
     if (c.armorChoice === 'auto') {
       for (const slot of ['chaleco', 'casco'] as const) {
@@ -769,6 +777,11 @@ export class World implements JobContext {
       c.weapon = null;
       c.ammo = 0;
     }
+    // Desarmado del todo: tampoco lleva granadas.
+    if (choice === 'ninguna' && grenadesOf(c) > 0) {
+      this.items.drop(c.tile.x, c.tile.y, 'granadas', grenadesOf(c));
+      c.grenades = 0;
+    }
   }
 
   private tryStartGear(c: Colonist): boolean {
@@ -798,6 +811,11 @@ export class World implements JobContext {
     if (c.tile.x === t.x && c.tile.y === t.y && c.path.length === 0) {
       c.gearTask = undefined;
       c.activity = 'idle';
+      if (t.resource === 'granadas') {
+        const got = this.items.at(t.x, t.y)?.resource === 'granadas' ? this.items.take(t.x, t.y, GRENADE.carry - grenadesOf(c)) : null;
+        if (got) c.grenades = grenadesOf(c) + got.amount;
+        return;
+      }
       if (isAmmo(t.resource)) {
         // Solo la munición de su arma (si la ha cambiado mientras iba, no la coge).
         if (ammoFor(c.weapon) !== t.resource) return;
