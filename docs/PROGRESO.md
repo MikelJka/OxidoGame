@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (16) — Chaleco y casco tácticos con «Blindaje avanzado»
+
+- Sin incidencias nuevas en 🐞. «Desguace de máquinas» se deja para cuando existan los drones y las arañas (bloque 6), porque hoy no haría nada. Siguiente aprobado con todos sus números: el blindaje táctico (bloque 5).
+- En el banco de trabajo, tras investigar **«Blindaje avanzado»** (12 h, pide «Armas largas»; antes salen con 🔒): **chaleco táctico** (🔗10 ⚙️2 🧵6: quita un 45 % del daño, se anda un 5 % más despacio) y **casco táctico** (🔗6 ⚙️1: −20 %). Juntos, −65 %.
+- Los colonos se ponen solos lo mejor que haya libre, así que cambian el de metal por el táctico; en la ficha se ve como siempre.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): el trabajo de fabricarlos es el de los de metal (500 y 300), su valor para el trueque es 75 y 38, y los saqueadores siguen sin traerlos.
+- Qué probar: investigar «Armas largas» y «Blindaje avanzado» en 📜 → 🔬 Investigación (🪄 acelera), encargar los dos en el banco de trabajo y ver que el colono se los pone y en su ficha sale «−65 % de daño».
+- Sin npm en el entorno: tests con Bun (505, 3 nuevos) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguiente: el **mortero** (🔗20 ⚙️4 🔩10, con «Artillería»: lo maneja un colono, cada disparo gasta 🔩2, daña 3×3 a 6–20 casillas, falla un 40 %).
+
 ## 2026-10-20 (15) — «Medicina avanzada»: heridas un 25 % más rápidas y la mitad de infecciones
 
 - Sin incidencias nuevas en 🐞. Siguiente del orden: «Medicina avanzada» (bloque 13, con sus números en el catálogo).

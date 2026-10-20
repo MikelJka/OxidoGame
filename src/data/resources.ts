@@ -1,7 +1,7 @@
 /** Recursos de la colonia y trabajos para obtenerlos del mapa. Ampliar aquí, no en la lógica. */
 import type { Skill } from './colonists';
 
-export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra', 'metal', 'hormigon', 'comida', 'palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'ballesta', 'lanza_metal', 'flechas', 'pistola', 'escopeta', 'rifle', 'subfusil', 'francotirador', 'balas', 'granadas', 'chaleco_cuero', 'chaleco_chapa', 'chaleco_metal', 'casco_chapa', 'casco_metal', 'medicina', 'combustible', 'hierba'] as const;
+export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra', 'metal', 'hormigon', 'comida', 'palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'ballesta', 'lanza_metal', 'flechas', 'pistola', 'escopeta', 'rifle', 'subfusil', 'francotirador', 'balas', 'granadas', 'chaleco_cuero', 'chaleco_chapa', 'chaleco_metal', 'chaleco_tactico', 'casco_chapa', 'casco_metal', 'casco_tactico', 'medicina', 'combustible', 'hierba'] as const;
 
 export type ResourceId = (typeof RESOURCES)[number];
 
@@ -36,8 +36,10 @@ export const RESOURCE_NAMES: Record<ResourceId, string> = {
   chaleco_cuero: 'Chaleco de cuero',
   chaleco_chapa: 'Chaleco de chapa',
   chaleco_metal: 'Chaleco de metal',
+  chaleco_tactico: 'Chaleco táctico',
   casco_chapa: 'Casco de chapa',
   casco_metal: 'Casco de metal',
+  casco_tactico: 'Casco táctico',
   medicina: 'Medicina',
   combustible: 'Combustible',
   hierba: 'Hierba curativa',
@@ -82,8 +84,10 @@ export const RESOURCE_ICONS: Record<ResourceId, string> = {
   chaleco_cuero: '🦺',
   chaleco_chapa: '🦺',
   chaleco_metal: '🦺',
+  chaleco_tactico: '🦺',
   casco_chapa: '⛑️',
   casco_metal: '⛑️',
+  casco_tactico: '⛑️',
   medicina: '💊',
   combustible: '⛽',
   hierba: '🌿',
@@ -149,8 +153,10 @@ export const MAX_STACK: Record<ResourceId, number> = {
   chaleco_cuero: 10,
   chaleco_chapa: 10,
   chaleco_metal: 10,
+  chaleco_tactico: 10,
   casco_chapa: 10,
   casco_metal: 10,
+  casco_tactico: 10,
   medicina: 25,
   combustible: 50,
   hierba: 75,

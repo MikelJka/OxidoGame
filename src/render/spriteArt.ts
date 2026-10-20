@@ -394,6 +394,25 @@ export function paintItem(ctx: CanvasRenderingContext2D, r: ResourceId): void {
       px(5, 1, 2, 2, '#1a1410'); // cuello
       break;
     }
+    case 'chaleco_tactico':
+      // Chaleco de placas verde oliva con bolsillos y correa.
+      px(2, 1, 8, 8, '#1a1410');
+      px(3, 2, 6, 6, '#4e5634');
+      px(3, 2, 6, 1, '#6e7848');
+      px(5, 1, 2, 2, '#1a1410'); // cuello
+      px(3, 4, 6, 1, '#2a2e1c'); // correa
+      px(3, 5, 2, 2, '#3a4026'); // bolsillos
+      px(7, 5, 2, 2, '#3a4026');
+      break;
+    case 'casco_tactico':
+      // Casco verde oliva con cinta y gafas.
+      px(2, 3, 8, 6, '#1a1410');
+      px(3, 4, 6, 4, '#4e5634');
+      px(4, 4, 3, 1, '#6e7848');
+      px(3, 6, 6, 1, '#2a2e1c'); // cinta
+      px(5, 6, 2, 1, '#6fa0b4'); // gafas
+      px(1, 7, 10, 1, '#1a1410');
+      break;
     case 'casco_chapa':
     case 'casco_metal': {
       const [base, light] = r === 'casco_chapa' ? ['#8a4a26', '#c27a3e'] : ['#6e747a', '#b4b8bc'];

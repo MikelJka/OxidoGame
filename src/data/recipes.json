@@ -400,6 +400,22 @@
     "description": "Quita un 35 % del daño; se anda un 10 % más despacio."
   },
   {
+    "id": "fabricar_chaleco_tactico",
+    "name": "Chaleco táctico",
+    "station": "banco_trabajo",
+    "inputs": {
+      "metal": 10,
+      "componentes": 2,
+      "fibra": 6
+    },
+    "outputs": {
+      "chaleco_tactico": 1
+    },
+    "work": 500,
+    "description": "Quita un 45 % del daño; se anda un 5 % más despacio.",
+    "research": "blindaje"
+  },
+  {
     "id": "fabricar_casco_chapa",
     "name": "Casco de chapa",
     "station": "banco_trabajo",
@@ -424,6 +440,21 @@
     },
     "work": 300,
     "description": "Quita un 15 % del daño."
+  },
+  {
+    "id": "fabricar_casco_tactico",
+    "name": "Casco táctico",
+    "station": "banco_trabajo",
+    "inputs": {
+      "metal": 6,
+      "componentes": 1
+    },
+    "outputs": {
+      "casco_tactico": 1
+    },
+    "work": 300,
+    "description": "Quita un 20 % del daño.",
+    "research": "blindaje"
   },
   {
     "id": "destilar_combustible",
