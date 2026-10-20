@@ -1,11 +1,11 @@
 /**
  * Mutantes y criaturas (bloque 2 del catálogo, aprobado por Mikel el 2026-10-18).
  * Los números están en `creatures.json`: perros mutantes, brutos mutantes y sus cadáveres, y las
- * máquinas del bloque 6 (la araña de chatarra).
+ * máquinas del bloque 6 (la araña de chatarra y el dron de vigilancia).
  */
 import data from './creatures.json';
 
-export type CreatureId = 'perro_mutante' | 'bruto_mutante' | 'arana_chatarra';
+export type CreatureId = 'perro_mutante' | 'bruto_mutante' | 'arana_chatarra' | 'dron_vigilancia';
 
 export interface CreatureDef {
   id: CreatureId;
@@ -28,6 +28,12 @@ export interface CreatureDef {
   armor?: number;
   /** Máquina (bloque 6): sin moral, no deja cadáver y suelta chatarra y componentes. */
   machine?: boolean;
+  /** Vuela (el dron): pasa por encima de muros, zanjas, barricadas, agua y trampas, y nada le cubre. */
+  flies?: boolean;
+  /** Arma (id de `weapons.json`) con la que dispara, sin gastar munición ni soltarla al caer. */
+  gun?: string;
+  /** Para los textos: «la araña… queda destrozada». */
+  female?: boolean;
 }
 
 export const CREATURES: Record<CreatureId, CreatureDef> = Object.fromEntries(
@@ -56,11 +62,17 @@ export const MACHINES = {
   /** 1 de cada tantos ataques es de máquinas. */
   every: data.machines.every,
   spiders: [data.machines.spiders[0], data.machines.spiders[1]] as const,
+  drones: [data.machines.drones[0], data.machines.drones[1]] as const,
   scrap: [data.machines.scrap[0], data.machines.scrap[1]] as const,
   parts: [data.machines.parts[0], data.machines.parts[1]] as const,
   /** Daño de más que les hacen las armas de fuego (0,25 = +25 %). */
   firearmBonus: data.machines.firearmBonus,
 };
+
+/** Si vuela (el dron de vigilancia). */
+export function flies(id: CreatureId | undefined): boolean {
+  return !!id && !!CREATURES[id].flies;
+}
 
 /** Si es una máquina (araña de chatarra…). */
 export function isMachine(id: CreatureId | undefined): boolean {

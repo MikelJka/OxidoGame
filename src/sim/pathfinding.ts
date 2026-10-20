@@ -141,3 +141,18 @@ class MinHeap {
     [this.prios[a], this.prios[b]] = [this.prios[b], this.prios[a]];
   }
 }
+
+/**
+ * Camino en línea recta para quien vuela (el dron de vigilancia): no mira el terreno ni lo
+ * construido. Como `findPath`, desde la casilla siguiente al origen hasta el destino (vacía si
+ * origen == destino). Cada paso avanza una casilla en 8 direcciones.
+ */
+export function flightPath(from: Point, to: Point): Point[] {
+  const out: Point[] = [];
+  const n = Math.max(Math.abs(to.x - from.x), Math.abs(to.y - from.y));
+  for (let i = 1; i <= n; i++) {
+    // La casilla de la recta en el paso i, sin saltos de más de una casilla.
+    out.push({ x: Math.round(from.x + ((to.x - from.x) * i) / n), y: Math.round(from.y + ((to.y - from.y) * i) / n) });
+  }
+  return out;
+}

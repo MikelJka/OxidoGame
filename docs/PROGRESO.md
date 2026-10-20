@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (21) — Drones de vigilancia en los ataques de máquinas
+
+- Sin incidencias nuevas en 🐞. El muelle sigue esperando la respuesta de Mikel (en «Propuestas para Mikel»); se termina el bloque 6 (máquinas y drones) con el **dron de vigilancia**.
+- Cada **ataque de máquinas** (desde el día 30, 1 de cada 4) trae ahora **1–2 arañas de chatarra y 2–4 drones de vigilancia** (🛸).
+- El dron **vuela**: va en línea recta por encima de **muros, zanjas, barricadas, agua y trampas** (no pisa minas ni alambre de espino), y **nada le da cobertura** (ni le tapa el tiro un muro pegado). Tiene **poca vida** y **dispara como una pistola** (alcance 9) sin gastar munición. Es una máquina: no huye, no deja cadáver, al destruirlo suelta 🔩10–20 y ⚙️2–4 (no suelta la pistola) y las armas de fuego le hacen +25 %.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): vida **la mitad de un colono**, sin blindaje, velocidad **1,3** la de un colono; los dos tipos llegan juntos en cada ataque de máquinas. Números en `creatures.json` (`dron_vigilancia` y `machines.drones`).
+- Ojo: un colono con arma cuerpo a cuerpo no puede ir a por un dron que esté encima de un muro (no llega); con arco o arma de fuego, sí le dispara.
+- Qué probar: ☰ → 🪄 Modo Dios → «🕷️ Máquinas» (2 arañas y 3 drones); ver que los drones pasan por encima de los muros y disparan desde lejos, y que con armas de fuego o torretas caen enseguida.
+- Sin npm en el entorno: tests con Bun (537, 7 nuevos) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguiente: el muelle y la pesca si Mikel ha contestado; si no, «Desguace de máquinas» (bloque 13: los drones y arañas destruidos dejan el doble de ⚙️).
+
 ## 2026-10-20 (20) — Ataques de máquinas: la araña de chatarra
 
 - Sin incidencias nuevas en 🐞. Lo siguiente del agua (el muelle con la pesca) **necesita que Mikel decida**: lo aprobado habla de la habilidad «Supervivencia», que no existe, y no dice cómo se come el 🐟. Va en «Propuestas para Mikel» con opciones; mientras, se empieza el bloque 6 (máquinas y drones), aprobado y con sus números.

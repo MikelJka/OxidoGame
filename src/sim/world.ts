@@ -22,7 +22,7 @@ import { Corpse, updateCorpses } from './corpses';
 import { Blast, Grenade, grenadesOf, updateGrenades } from './grenades';
 import { updateMortars } from './mortar';
 import { isLitBonfire, updateBonfireCheer, updateBonfires } from './bonfire';
-import { CREATURES, MACHINES } from '../data/creatures';
+import { CREATURES, flies, MACHINES } from '../data/creatures';
 import { addResearch, batteryMultiplier, infectionChanceFactor, woundHealTimeFactor, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
 import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
 import { absorbHit, anchorFor, besideTiles, defOf, nextTo, occupant, updateVehicle, Vehicle, vehicleCenter, vehiclePath, VehicleSeat, covers } from './vehicles';
@@ -421,7 +421,8 @@ export class World implements JobContext {
       } else if (c.creature) this.corpses.push({ id: this.nextCorpseId++, creature: c.creature, x: c.tile.x, y: c.tile.y, diedAt: this.tick });
       if (quiet) return;
       if (c.creature) {
-        this.addLog(CREATURES[c.creature].machine ? `${c.name} queda destrozada (${cause}).` : `${c.name} muere (${cause}).`, 'info');
+        const def = CREATURES[c.creature];
+        this.addLog(def.machine ? `${c.name} queda ${def.female ? 'destrozada' : 'destrozado'} (${cause}).` : `${c.name} muere (${cause}).`, 'info');
         return;
       }
       const who = c.role === 'saqueador' ? 'Un saqueador' : c.role === 'prisionero' ? 'El prisionero' : 'Alguien';
@@ -2446,7 +2447,9 @@ export class World implements JobContext {
 
   moveAlongPath(c: Colonist): void {
     const next = c.path[0];
-    const cost = this.terrainCost(next);
+    // Quien vuela (el dron) no nota el terreno ni pisa trampas ni alambre.
+    const flying = flies(c.creature);
+    const cost = flying ? 1 : this.terrainCost(next);
     let budget = (BASE_WALK_SPEED * walkSpeedMultiplier(c)) / TICKS_PER_SECOND / cost;
     while (budget > 0 && c.path.length > 0) {
       const target = c.path[0];
@@ -2462,7 +2465,7 @@ export class World implements JobContext {
         c.tile = { x: target.x, y: target.y };
         c.path.shift();
         budget -= dist;
-        if (this.stepHazard(c)) return;
+        if (!flying && this.stepHazard(c)) return;
       } else {
         c.pos.x += (dx / dist) * budget;
         c.pos.y += (dy / dist) * budget;

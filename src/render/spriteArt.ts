@@ -166,6 +166,30 @@ function paintCreature(px: (x: number, y: number, w: number, h: number, color: s
       px(10, 3, 1, 1, '#ff2a1a');
       break;
     }
+    case 'dron_vigilancia': {
+      // Dron de vigilancia: cuatro rotores sobre brazos en cruz, un cuerpo de chapa con su cámara roja
+      // y el cañón debajo; la sombra queda lejos, en el suelo, porque vuela.
+      const plate = '#8a9098';
+      const dark = '#4a4e54';
+      px(5, 15, 6, 1, 'rgba(0,0,0,0.3)'); // sombra en el suelo
+      // Brazos
+      px(3, 4, 10, 1, outline);
+      px(3, 9, 10, 1, outline);
+      // Rotores (discos borrosos)
+      for (const [x, y] of [[1, 3], [11, 3], [1, 8], [11, 8]] as const) {
+        px(x, y, 4, 1, 'rgba(200,210,220,0.55)');
+        px(x + 1, y + 1, 2, 1, outline);
+      }
+      // Cuerpo
+      px(5, 4, 6, 6, outline);
+      px(6, 5, 4, 4, plate);
+      px(6, 8, 4, 1, dark);
+      px(7, 6, 2, 2, '#1a1a1a'); // cámara
+      px(8, 6, 1, 1, '#ff2a1a'); // luz roja
+      // Cañón
+      px(7, 10, 2, 2, outline);
+      break;
+    }
   }
 }
 

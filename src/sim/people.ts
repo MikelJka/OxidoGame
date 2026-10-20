@@ -6,11 +6,11 @@ import { personValue, RESOURCE_VALUES } from '../data/values';
 import { ammoFor, damageAt, GRENADE, isGear, RAIDER_AMMO, raiderWeaponPool, WEAPONS, WeaponDef } from '../data/weapons';
 import { armorProtection, isArmor, raiderVestPool } from '../data/armor';
 import { MEDICINE_STOCK } from '../data/medicine';
-import { CREATURES, CreatureId, isMachine, MACHINES, PACKS } from '../data/creatures';
+import { CREATURES, CreatureId, flies, isMachine, MACHINES, PACKS } from '../data/creatures';
 import type { Colonist } from './colonist';
 import type { Structure } from './structures';
 import { BODY_PARTS, healthLabel, hurt } from './health';
-import { findPath, Point } from './pathfinding';
+import { findPath, flightPath, Point } from './pathfinding';
 import { BLOCK_SOLID, inBounds, isPassable, isWater, Prop, PROP_INFO, RADIATION_THRESHOLD, Terrain, TERRAIN_INFO } from './map';
 import { absorbHit, VEHICLE_SIZE } from './vehicles';
 import { RAIDER_VEHICLE, vehicleDef } from '../data/vehicles';
@@ -91,7 +91,9 @@ export function runStoryteller(w: World): void {
     // Máquinas (bloque 6 del catálogo): desde el día 30, 1 de cada 4 ataques es de máquinas.
     // Mutantes (bloque 2 del catálogo): desde el día 8, 1 de cada 3 raids es una manada de perros
     // (1 de cada 2 si la colonia está cerca de una zona irradiada).
-    if (w.day >= MACHINES.fromDay && w.rng.chance(1 / MACHINES.every)) startMachines(w, w.rng.int(MACHINES.spiders[0], MACHINES.spiders[1]));
+    if (w.day >= MACHINES.fromDay && w.rng.chance(1 / MACHINES.every)) {
+      startMachines(w, w.rng.int(MACHINES.spiders[0], MACHINES.spiders[1]), w.rng.int(MACHINES.drones[0], MACHINES.drones[1]));
+    }
     else if (w.day >= CREATURES.perro_mutante.fromDay && w.rng.chance(1 / packOdds(w))) startPack(w, packSize(w));
     else startRaid(w, raidSize(w.day, colonyWealth(w), w.colonists.length, diff.raidScale));
   }
@@ -267,16 +269,19 @@ export function startPack(w: World, n: number, brutes = packBrutes(w, n)): Colon
 }
 
 /**
- * Llega un ataque de máquinas por un mismo borde: `spiders` arañas de chatarra (los drones llegarán
- * en la parte siguiente). Sin moral: no huyen aunque caigan casi todas.
+ * Llega un ataque de máquinas por un mismo borde: `spiders` arañas de chatarra y `drones` drones de
+ * vigilancia. Sin moral: no huyen aunque caigan casi todas.
  */
-export function startMachines(w: World, spiders: number): Colonist[] {
+export function startMachines(w: World, spiders: number, drones = 0): Colonist[] {
   const out: Colonist[] = [];
+  const total = spiders + drones;
+  if (total <= 0) return out;
   const first = w.makePawn('saqueador');
   if (!w.placeAtEdge(first)) return out;
-  for (let i = 0; i < spiders; i++) {
+  for (let i = 0; i < total; i++) {
     const c = i === 0 ? first : w.makePawn('saqueador');
-    makeCreature(w, c, 'arana_chatarra', i + 1);
+    const kind: CreatureId = i < spiders ? 'arana_chatarra' : 'dron_vigilancia';
+    makeCreature(w, c, kind, i < spiders ? i + 1 : i - spiders + 1);
     if (i > 0) {
       const spot = nearFree(w, first.tile) ?? first.tile;
       c.tile = { ...spot };
@@ -287,15 +292,25 @@ export function startMachines(w: World, spiders: number): Colonist[] {
     w.others.push(c);
   }
   w.raidGroups.push({ id: first.id, size: out.length, leaderId: -1, escaped: [], routed: false });
-  const def = CREATURES.arana_chatarra;
-  const who = spiders === 1 ? `una ${def.name.toLowerCase()}` : `${spiders} ${def.plural}`;
-  w.addLog(`${def.emoji} ¡Ataque de máquinas: ${who}! Muy duras y blindadas, rompen muros y no huyen; las armas de fuego les hacen más daño. Recluta a los colonos (🎖).`, 'malo', 'raid', first.tile);
+  const spider = CREATURES.arana_chatarra;
+  const drone = CREATURES.dron_vigilancia;
+  const who: string[] = [];
+  if (spiders > 0) who.push(spiders === 1 ? `una ${spider.name.toLowerCase()}` : `${spiders} ${spider.plural}`);
+  if (drones > 0) who.push(drones === 1 ? `un ${drone.name.toLowerCase()}` : `${drones} ${drone.plural}`);
+  const traits: string[] = [];
+  if (spiders > 0) traits.push('las arañas, muy duras y blindadas, rompen muros');
+  if (drones > 0) traits.push('los drones vuelan por encima de muros y zanjas y disparan');
+  w.addLog(
+    `${(spiders > 0 ? spider : drone).emoji} ¡Ataque de máquinas: ${who.join(' y ')}! No huyen; ${traits.join('; ')}. Las armas de fuego les hacen más daño. Recluta a los colonos (🎖).`,
+    'malo', 'raid', first.tile,
+  );
   return out;
 }
 
 /** Cómo cae una criatura: la máquina queda destrozada; el mutante, muerto. */
 export function creatureFallText(c: Colonist): string {
-  return isMachine(c.creature) ? `${c.name} queda destrozada.` : `${c.name} cae muerto.`;
+  if (!isMachine(c.creature)) return `${c.name} cae muerto.`;
+  return `${c.name} queda ${CREATURES[c.creature!].female ? 'destrozada' : 'destrozado'}.`;
 }
 
 /**
@@ -377,6 +392,9 @@ function nearFree(w: World, p: Point): Point | null {
 
 /** Arma que puede usar ahora (un arco sin flechas o un arma de fuego sin balas no disparan: puños). */
 export function usableWeapon(c: Colonist): WeaponDef | null {
+  // El dron de vigilancia dispara con su arma (como una pistola) sin gastar munición.
+  const gun = c.creature ? CREATURES[c.creature].gun : undefined;
+  if (gun) return WEAPONS[gun as keyof typeof WEAPONS] ?? null;
   if (!c.weapon) return null;
   const def = WEAPONS[c.weapon];
   return def.ammo && c.ammo <= 0 ? null : def;
@@ -473,7 +491,14 @@ export function canHit(w: World, a: Colonist, b: Colonist): boolean {
   const d = tileDistance(a, b);
   if (d <= 1) return true;
   if (d > reachOf(a, w)) return false;
-  return !shotBlocked(w, a.tile, b.tile);
+  // Quien vuela (el dron) está por encima de los muros: lo que tiene pegado no le tapa el tiro.
+  if (!flies(b.creature) && coverAt(w, a.tile, b.tile) >= FULL_COVER) return false;
+  return flies(a.creature) || coverAt(w, b.tile, a.tile) < FULL_COVER;
+}
+
+/** Cobertura de `b` frente a un tiro desde `from`: a quien vuela no le cubre nada. */
+export function coverOf(w: World, from: Point, b: Colonist): number {
+  return flies(b.creature) ? 0 : coverAt(w, from, b.tile);
 }
 
 /** Un golpe (o un disparo, con arco o arma de fuego). Devuelve true si acierta. */
@@ -486,11 +511,11 @@ export function attack(w: World, a: Colonist, b: Colonist): boolean {
   const dist = tileDistance(a, b);
   let hitChance = Math.min(0.95, 0.55 + a.skills.combate * 0.02);
   if (weapon?.ammo) {
-    a.ammo--;
+    if (!a.creature) a.ammo--;
     // A distancia se acierta menos cuanto más lejos, y menos aún si el objetivo está a cubierto.
     hitChance = Math.max(0.2, hitChance * (1 - 0.06 * Math.max(0, dist - 1)));
     if (onTower(w, a)) hitChance = Math.min(0.98, hitChance + TOWER_AIM);
-    hitChance *= 1 - Math.min(FULL_COVER, coverAt(w, a.tile, b.tile));
+    hitChance *= 1 - Math.min(FULL_COVER, coverOf(w, a.tile, b));
   }
   if (!w.rng.chance(hitChance)) {
     // Fuego amigo: un disparo fallado puede dar a un colono en la línea de tiro junto al objetivo.
@@ -545,7 +570,8 @@ function applyHit(w: World, a: Colonist, b: Colonist, weapon: WeaponDef | null |
   const armor = 1 - armorProtection([b.vest, b.helmet]);
   // Una criatura muerde o golpea con su propio daño (el perro mutante, ×1,2).
   // La escopeta pega menos a más de 3 casillas.
-  const blow = a.creature ? CREATURES[a.creature].damage : weapon ? damageAt(weapon, tileDistance(a, b)) : 1;
+  // El dron dispara con su arma (como una pistola).
+  const blow = a.creature && !CREATURES[a.creature].gun ? CREATURES[a.creature].damage : weapon ? damageAt(weapon, tileDistance(a, b)) : 1;
   // Dentro de un vehículo blindado, el blindaje se lleva parte del golpe (el buggy, −40 %; el de los
   // saqueadores, −30 %) y pierde esa vida.
   // Las armas de fuego hacen más daño a las máquinas (+25 %).
@@ -613,7 +639,7 @@ export function updateTurrets(w: World): void {
     for (const e of enemies) {
       const { from, d } = turretTileNear(w, s, e.tile);
       if (d > t.reach) continue;
-      if (d > 1 && coverAt(w, from, e.tile) >= FULL_COVER) continue;
+      if (d > 1 && coverOf(w, from, e) >= FULL_COVER) continue;
       if (!best || d < best.d) best = { e, from, d };
     }
     if (!best) continue;
@@ -628,7 +654,7 @@ function turretShot(w: World, s: Structure, b: Colonist, from: Point, dist: numb
   const t = s.def.turret!;
   let hitChance = Math.min(0.95, 0.55 + TURRET_AIM_SKILL * 0.02);
   hitChance = Math.max(0.2, hitChance * (1 - 0.06 * Math.max(0, dist - 1)));
-  hitChance *= 1 - Math.min(FULL_COVER, coverAt(w, from, b.tile));
+  hitChance *= 1 - Math.min(FULL_COVER, coverOf(w, from, b));
   if (!w.rng.chance(hitChance)) return false;
   const tough = b.traits.some((k) => k.id === 'duro') ? 0.75 : 1;
   const armor = 1 - armorProtection([b.vest, b.helmet]);
@@ -888,6 +914,15 @@ function goAway(w: World, o: Colonist, why: string): void {
     w.moveAlongPath(o);
     return;
   }
+  // Quien vuela va en línea recta al borde más cercano.
+  if (flies(o.creature)) {
+    const out: Point[] = [
+      { x: 0, y: o.tile.y }, { x: m.width - 1, y: o.tile.y }, { x: o.tile.x, y: 0 }, { x: o.tile.x, y: m.height - 1 },
+    ];
+    out.sort((a, b) => Math.abs(a.x - o.tile.x) + Math.abs(a.y - o.tile.y) - (Math.abs(b.x - o.tile.x) + Math.abs(b.y - o.tile.y)));
+    o.path = flightPath(o.tile, out[0]);
+    return;
+  }
   // El borde más cercano al que se llegue.
   const edges: Point[] = [
     { x: 0, y: o.tile.y }, { x: m.width - 1, y: o.tile.y }, { x: o.tile.x, y: 0 }, { x: o.tile.x, y: m.height - 1 },
@@ -966,6 +1001,16 @@ function updateRaider(w: World, o: Colonist): void {
   // Recalcula el camino de vez en cuando (el objetivo se mueve).
   const breaker = o.creature && CREATURES[o.creature].breaksWalls ? CREATURES[o.creature] : undefined;
   if (!breaker) dropShutPath(w, o);
+  if (flies(o.creature)) {
+    // El dron vuela en línea recta hacia su objetivo, por encima de todo, hasta tenerlo a tiro.
+    if (o.path.length === 0 || (w.tick + o.id) % 30 === 0) {
+      const path = flightPath(o.tile, target.tile);
+      o.path = path.slice(0, Math.max(1, path.length - 1));
+    }
+    o.activity = 'moving';
+    if (o.path.length) w.moveAlongPath(o);
+    return;
+  }
   if (o.path.length === 0 || (w.tick + o.id) % 30 === 0) {
     let path = findPath(w.map, o.tile, target.tile, 20000, w.shutDoors);
     // El bruto mutante, si no llega, se abre paso rompiendo muros y puertas.

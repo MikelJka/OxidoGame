@@ -120,7 +120,7 @@ export function mountGodMode(opts: Options): GodPanel {
     ['🚙 Raid en buggy', 'Llega un raid de 4 saqueadores, dos en su buggy', (w) => void startRaid(w, 4, true)],
     ['🐕 Manada', 'Llega una manada de 5 perros mutantes', (w) => void startPack(w, 5, 0)],
     ['👹 Manada con brutos', 'Llega una manada de 6 perros y 2 brutos mutantes, que rompen muros y puertas', (w) => void startPack(w, 6, 2)],
-    ['🕷️ Máquinas', 'Llega un ataque de máquinas: 2 arañas de chatarra, blindadas y que rompen muros', (w) => void startMachines(w, 2)],
+    ['🕷️ Máquinas', 'Llega un ataque de máquinas: 2 arañas de chatarra, blindadas y que rompen muros, y 3 drones de vigilancia, que vuelan y disparan', (w) => void startMachines(w, 2, 3)],
     ['🐫 Caravana', 'Llega una caravana', (w) => void startTrader(w)],
     ['🚶 Superviviente', 'Alguien pide unirse', (w) => {
       if (w.offer) return 'Ya hay alguien esperando respuesta';

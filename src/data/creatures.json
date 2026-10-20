@@ -1,5 +1,5 @@
 {
-  "_": "Bloque 2 del catálogo (aprobado por Mikel el 2026-10-18). walkSpeed: velocidad al andar respecto a un colono; health: vida respecto a un colono; damage: daño del golpe (×1 = puños); breaksWalls: rompe muros y puertas; wallDamage: vida que quita cada golpe a un muro o una puerta (el muro de madera tiene 150). La araña de chatarra es del bloque 6 (máquinas).",
+  "_": "Bloque 2 del catálogo (aprobado por Mikel el 2026-10-18). walkSpeed: velocidad al andar respecto a un colono; health: vida respecto a un colono; damage: daño del golpe (×1 = puños); breaksWalls: rompe muros y puertas; wallDamage: vida que quita cada golpe a un muro o una puerta (el muro de madera tiene 150). La araña de chatarra y el dron de vigilancia son del bloque 6 (máquinas). flies: vuela por encima de muros, zanjas, barricadas, agua y trampas, y nada le da cobertura; gun: id del arma (en `weapons.json`) con la que dispara, sin gastar munición ni soltarla; female: para los textos («destrozada»).",
   "creatures": {
     "perro_mutante": {
       "name": "Perro mutante",
@@ -34,14 +34,30 @@
       "breaksWalls": true,
       "wallDamage": 30,
       "armor": 0.4,
-      "machine": true
+      "machine": true,
+      "female": true
+    },
+    "dron_vigilancia": {
+      "name": "Dron de vigilancia",
+      "plural": "drones de vigilancia",
+      "emoji": "🛸",
+      "fromDay": 30,
+      "walkSpeed": 1.3,
+      "health": 0.5,
+      "damage": 1,
+      "breaksWalls": false,
+      "wallDamage": 0,
+      "machine": true,
+      "flies": true,
+      "gun": "pistola"
     }
   },
   "machines": {
-    "_": "Máquinas (bloque 6 del catálogo, aprobado por Mikel el 2026-10-18): desde `fromDay`, 1 de cada `every` ataques es de máquinas en lugar de saqueadores o mutantes. Trae entre spiders[0] y spiders[1] arañas. Las máquinas no tienen moral (no huyen), no dejan cadáver y al destruirlas sueltan entre scrap[0] y scrap[1] 🔩 y entre parts[0] y parts[1] ⚙️. Las armas de fuego les hacen `firearmBonus` más de daño. `armor` en cada máquina: parte del daño que se quita.",
+    "_": "Máquinas (bloque 6 del catálogo, aprobado por Mikel el 2026-10-18): desde `fromDay`, 1 de cada `every` ataques es de máquinas en lugar de saqueadores o mutantes. Trae entre spiders[0] y spiders[1] arañas y entre drones[0] y drones[1] drones de vigilancia. Las máquinas no tienen moral (no huyen), no dejan cadáver y al destruirlas sueltan entre scrap[0] y scrap[1] 🔩 y entre parts[0] y parts[1] ⚙️. Las armas de fuego les hacen `firearmBonus` más de daño. `armor` en cada máquina: parte del daño que se quita.",
     "fromDay": 30,
     "every": 4,
     "spiders": [1, 2],
+    "drones": [2, 4],
     "scrap": [10, 20],
     "parts": [2, 4],
     "firearmBonus": 0.25
