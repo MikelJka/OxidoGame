@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 — Ballesta con «Ballesta» y lanza de metal con «Forja»
+
+- Sin incidencias nuevas en 🐞. Lo siguiente del orden, las granadas, deja sin decidir cómo se usan (quién las lanza, cuándo y a quién dañan): propuesta con opciones A-D en «Propuestas para Mikel». Se pasa a lo siguiente aprobado: la ballesta y la lanza de metal.
+- **🏹 Ballesta** (banco de trabajo, 🪵6 🔩4 🧵3): ×2,4 de daño, lenta, alcance 10, gasta ➶ flechas (las mismas del arco). Pide investigar **«Ballesta»** (8 h, sin requisitos).
+- **🔱 Lanza de metal** (banco de trabajo, 🔗4 🪵2): ×2,6 de daño, pega desde 2 casillas, ritmo normal (como la lanza de madera; el catálogo no dice otro). Pide investigar **«Forja»** (8 h, sin requisitos).
+- Hasta investigarlas salen con 🔒 en el banco. Al elegir arma solos, los colonos prefieren la ballesta al arco (si hay flechas) y la lanza de metal a la de madera y al machete. Los saqueadores no las traen (el catálogo no lo dice).
+- Qué probar: investigar Ballesta y Forja en 📜 → 🔬 Investigación (🪄 acelera), ver en el diario «Ya se puede fabricar: Ballesta», fabricarlas y ver que un arquero cambia el arco por la ballesta y sigue con sus flechas. En la ficha, «🏹 Ballesta (×2,4, lento, alcance 10)». En 📜 → 🔬, Ballesta y Forja ya no llevan el aviso 🕒.
+- Sin npm en el entorno: tests con Bun (443, 5 nuevos) y tipos con `tsc` (sin Phaser); la prueba completa, en GitHub Actions.
+- Siguen esperando la respuesta de Mikel: la hoguera (A-D), «Medicina de campo» (A-C), los saqueadores con las armas nuevas (A-C) y las granadas (A-D).
+- Siguiente: sacos de arena, alambre de espino y aspilleras con «Fortificación» (o las granadas, si Mikel ya ha elegido).
+
 ## 2026-10-19 (19) — Subfusil y rifle de francotirador con «Armas automáticas»
 
 - Sin incidencias nuevas en 🐞. Siguiente tarea aprobada: el subfusil y el francotirador (bloque 13 del catálogo, primera del orden que queda del árbol).

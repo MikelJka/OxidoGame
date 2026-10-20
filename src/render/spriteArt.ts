@@ -295,6 +295,25 @@ export function paintItem(ctx: CanvasRenderingContext2D, r: ResourceId): void {
       for (let i = 0; i < 8; i++) px(3 + Math.round(Math.sin((i / 7) * Math.PI) * 3), 1 + i, 2, 1, '#7a5634');
       px(3, 1, 1, 8, 'rgba(220,210,190,0.8)');
       break;
+    case 'ballesta':
+      // Ballesta: caja de madera larga, arco de chapa cruzado y cuerda tensa.
+      px(1, 5, 9, 1, '#7a5634'); // caja
+      px(0, 5, 2, 2, '#6a4628'); // culata
+      px(8, 1, 1, 9, '#8a8780'); // arco de chapa
+      px(8, 1, 1, 1, '#8a4a26'); // óxido
+      px(7, 2, 1, 3, 'rgba(220,210,190,0.8)'); // cuerda arriba
+      px(7, 6, 1, 3, 'rgba(220,210,190,0.8)'); // cuerda abajo
+      px(9, 4, 2, 1, '#b4b1a8'); // punta del virote
+      px(3, 6, 1, 2, '#1a1410'); // gatillo
+      break;
+    case 'lanza_metal':
+      // Lanza de metal: asta de tubo y punta forjada más larga que la de madera.
+      for (let i = 0; i < 8; i++) px(1 + i, 10 - i, 1, 1, '#5c5a56');
+      px(3, 8, 1, 1, '#a57a48'); // cinta del agarre
+      px(8, 1, 3, 3, '#b4b1a8'); // punta
+      px(10, 0, 1, 2, '#e0ded6'); // filo
+      px(9, 3, 1, 1, '#8a4a26'); // óxido
+      break;
     case 'pistola':
       // Pistola casera: cañón de tubo, cuerpo de chapa remachada y empuñadura con cinta.
       px(2, 3, 8, 2, '#5c5a56'); // cañón

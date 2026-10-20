@@ -299,6 +299,37 @@
     "description": "Dispara a 18 casillas (×4,5, muy lento); gasta balas."
   },
   {
+    "id": "fabricar_ballesta",
+    "name": "Ballesta",
+    "station": "banco_trabajo",
+    "research": "ballesta",
+    "inputs": {
+      "madera": 6,
+      "chatarra": 4,
+      "fibra": 3
+    },
+    "outputs": {
+      "ballesta": 1
+    },
+    "work": 450,
+    "description": "Dispara a 10 casillas (×2,4, lenta); gasta flechas."
+  },
+  {
+    "id": "fabricar_lanza_metal",
+    "name": "Lanza de metal",
+    "station": "banco_trabajo",
+    "research": "forja",
+    "inputs": {
+      "metal": 4,
+      "madera": 2
+    },
+    "outputs": {
+      "lanza_metal": 1
+    },
+    "work": 350,
+    "description": "×2,6 de daño; pega desde 2 casillas."
+  },
+  {
     "id": "fabricar_balas",
     "name": "Balas (15)",
     "station": "banco_trabajo",

@@ -9,6 +9,8 @@
     { "id": "lanza", "damage": 2.0, "cooldown": 1, "reach": 2, "speedLabel": "normal" },
     { "id": "machete", "damage": 2.8, "cooldown": 1, "reach": 1, "speedLabel": "normal" },
     { "id": "arco", "damage": 1.6, "cooldown": 1.35, "reach": 8, "ammo": "flechas", "speedLabel": "lento" },
+    { "id": "ballesta", "damage": 2.4, "cooldown": 1.35, "reach": 10, "ammo": "flechas", "speedLabel": "lento" },
+    { "id": "lanza_metal", "damage": 2.6, "cooldown": 1, "reach": 2, "speedLabel": "normal" },
     { "id": "pistola", "damage": 2.2, "cooldown": 1, "reach": 9, "ammo": "balas", "firearm": true, "speedLabel": "normal" },
     { "id": "escopeta", "damage": 3.6, "closeRange": 3, "farDamage": 1.8, "cooldown": 1.35, "reach": 6, "ammo": "balas", "firearm": true, "speedLabel": "lento" },
     { "id": "rifle", "damage": 3.0, "cooldown": 1.35, "reach": 14, "ammo": "balas", "firearm": true, "speedLabel": "lento" },
