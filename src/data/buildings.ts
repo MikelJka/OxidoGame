@@ -81,10 +81,17 @@ export interface BuildingDef {
    * Lo ya construido o planeado en partidas empezadas se queda.
    */
   research?: string;
+  /** Segunda investigación que también hace falta (la mina casera: «Trampas» y «Pólvora»). */
+  researchAlso?: string;
   /** Al demolerla se recupera todo el material, no la mitad (sacos de arena). */
   fullRefund?: boolean;
   /** Daño (salud, 0-1) a cada enemigo que entra en la casilla (alambre de espino); a los colonos, no. */
   stepDamage?: number;
+  /**
+   * Mina: estalla cuando un enemigo entra en la casilla (los colonos saben dónde está) y se gasta.
+   * Daño (× el de los puños) a cada enemigo a `radius` casillas o menos (1 = el 3×3).
+   */
+  mine?: { damage: number; radius: number };
   /** Colores del dibujo: cara de arriba, frente y sombra. */
   colors: { top: string; face: string; dark: string };
 }
@@ -127,6 +134,8 @@ export function validateBuilding(d: unknown): BuildingDef {
   if ((b.category === 'vehiculo') !== (b.vehicle !== undefined) || (b.vehicle !== undefined && !vehicleDef(b.vehicle))) fail('un vehículo necesita su definición en vehicles.json');
   if (b.workSkill !== undefined && (b.category !== 'taller' || !SKILLS.includes(b.workSkill))) fail(`habilidad de taller desconocida ${b.workSkill}`);
   if (b.research !== undefined && (typeof b.research !== 'string' || !b.research)) fail('investigación no válida');
+  if (b.researchAlso !== undefined && (typeof b.researchAlso !== 'string' || !b.researchAlso || !b.research || b.researchAlso === b.research)) fail('segunda investigación no válida');
+  if (b.mine !== undefined && (b.blocks || b.stepDamage !== undefined || !(b.mine.damage > 0) || !Number.isInteger(b.mine.radius) || b.mine.radius < 0 || b.mine.radius > 3)) fail('mina no válida');
   if (b.fullRefund !== undefined && typeof b.fullRefund !== 'boolean') fail('«fullRefund» no válido');
   if (b.stepDamage !== undefined && (b.blocks || !(b.stepDamage > 0 && b.stepDamage <= 0.5))) fail('«stepDamage» no válido');
   if (!b.colors?.top || !b.colors.face || !b.colors.dark) fail('faltan colores');

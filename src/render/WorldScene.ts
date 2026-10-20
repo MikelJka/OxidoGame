@@ -11,7 +11,7 @@ import { canDesignate, TileRect } from '../sim/designations';
 import { HARVEST_JOB_NAMES, HarvestJob, MAX_STACK, RESOURCE_NAMES, RESOURCES, ResourceId } from '../data/resources';
 import { WorkType } from '../data/work';
 import { BuildingDef, buildingDef } from '../data/buildings';
-import { researchDef } from '../data/research';
+import { missingResearch } from '../sim/research';
 import { canZone, STORAGE_PRIORITY_NAMES } from '../sim/zones';
 import { footprintTiles, PlaceShape, Structure, Structures } from '../sim/structures';
 import { fertilityAt, plantStage } from '../sim/farming';
@@ -1391,7 +1391,7 @@ export class WorldScene extends Phaser.Scene {
     } else if (mode === 'construir') {
       const def = buildingDef(this.buildDefId);
       const n = this.world.placeBuildArea(r, def.id, this.buildShape, this.buildRot);
-      const need = def.research && !this.world.canBuild(def.id) ? researchDef(def.research) : undefined;
+      const need = missingResearch(this.world.research, def);
       if (need) toast(`🔒 ${def.name}: antes hay que investigar «${need.name}» (📜 → 🔬 Investigación)`);
       else toast(n > 0 ? `${def.name}: ${n} ${n === 1 ? 'plano' : 'planos'}` : 'Ahí no se puede construir (hace falta suelo llano y libre)');
     } else if (mode === 'quitarPlano') {

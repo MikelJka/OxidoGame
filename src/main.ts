@@ -26,8 +26,8 @@ import { isWeapon, WEAPON_IDS, WEAPONS } from './data/weapons';
 import { armorProtection } from './data/armor';
 import { CROPS } from './data/crops';
 import { recipesFor } from './data/recipes';
-import { RESEARCH_BENCH, researchDef } from './data/research';
-import { researchFraction } from './sim/research';
+import { RESEARCH_BENCH, researchDef, researchNeeds } from './data/research';
+import { missingResearch, researchFraction } from './sim/research';
 import type { ResourceId } from './data/resources';
 import { billPending, type Structure } from './sim/structures';
 import { occupant, VEHICLE_SEATS, type Vehicle, type VehicleSeat } from './sim/vehicles';
@@ -443,7 +443,7 @@ for (const def of BUILDINGS) {
   b.append(name, n);
   b.dataset.name = name.textContent;
   b.title = `${BUILDING_CATEGORY_NAMES[def.category]} · ${def.name} · coste ${cost}`;
-  if (def.research) b.title += ` · pide investigar «${researchDef(def.research)?.name}»`;
+  if (def.research) b.title += ` · pide investigar ${researchNeeds(def).map((q) => `«${researchDef(q)?.name}»`).join(' y ')}`;
   if (def.turret) b.title += ` · gasta ${-(def.power ?? 0)} W · con corriente dispara sola a ${def.turret.reach} casillas, sin munición`;
   buildList.append(b);
 }
@@ -526,7 +526,7 @@ for (const b of modeButtons) {
       const id = b.dataset.build!;
       const def = buildingDef(id);
       if (!s.world.canBuild(id)) {
-        showToast(`🔒 ${def.name}: antes hay que investigar «${researchDef(def.research!)?.name}» en 📜 → 🔬 Investigación`, 3500);
+        showToast(`🔒 ${def.name}: antes hay que investigar «${missingResearch(s.world.research, def)?.name}» en 📜 → 🔬 Investigación`, 3500);
         return;
       }
       const same = s.designMode === 'construir' && s.buildDefId === id;

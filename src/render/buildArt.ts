@@ -348,6 +348,19 @@ function drawFlat(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number,
     px(0, tileH - 1, tile, 1, dark);
     return;
   }
+  if (def.id === 'mina_casera') {
+    // Mina casera: un disco de chapa medio enterrado, con su espoleta roja en medio.
+    const cx = Math.floor(tile / 2);
+    const cy = Math.floor(tileH / 2);
+    const r = Math.max(2, Math.floor(tile / 4));
+    for (let y = -r; y <= r; y++) {
+      const half = Math.floor(Math.sqrt(r * r - y * y));
+      px(cx - half, cy + y, half * 2 + 1, 1, y < 0 ? top : face);
+    }
+    px(cx - r, cy + r, r * 2 + 1, 1, dark);
+    px(cx, cy - 1, 1, 2, '#c0392b');
+    return;
+  }
   if (def.id === 'alambre_espino') {
     // Alambre de espino: dos postes y dos hilos en zigzag con púas.
     const posts = [2, tile - 3];

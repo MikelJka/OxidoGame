@@ -296,7 +296,7 @@ export function smashStructure(w: World, o: Colonist, s: Structure): void {
 function articled(name: string): string {
   const low = name.charAt(0).toLowerCase() + name.slice(1);
   if (/^(pinchos|sacos)/i.test(name)) return `los ${low}`;
-  return /^(puerta|empalizada|muralla|torre|barricada)/i.test(name) ? `la ${low}` : `el ${low}`;
+  return /^(puerta|empalizada|muralla|torre|barricada|mina|trampa)/i.test(name) ? `la ${low}` : `el ${low}`;
 }
 
 /** Llega una caravana: un comerciante con mercancía y, a veces, esclavos. */

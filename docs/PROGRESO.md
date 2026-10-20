@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (4) — Mina casera con «Trampas» y «Pólvora» (trampas, primera parte)
+
+- Sin incidencias nuevas en 🐞 ni respuestas de Mikel a las propuestas. El muro con aspilleras y las granadas esperan su elección; se pasa a lo siguiente del orden, las trampas. Se hace la primera parte, la mina casera.
+- **Mina casera** (🏗 → Defensas, 🔩6 ⚙️1): pide investigar **«Trampas»** (8 h) **y «Pólvora»**; hasta tener las dos sale con 🔒 y el aviso dice cuál falta. Va a ras de suelo y no frena. Cuando un saqueador o un mutante entra en su casilla, **estalla**: hace daño ×4 (los puños, de media; unos 0,52 de salud, menos con armadura) a cada enemigo del **3×3** y se gasta (desaparece sin dejar material). A un saqueador muy herido lo deja en el suelo, sin matarlo; un perro mutante sí puede morir.
+- Nuevo para el contenido: una construcción puede pedir **dos investigaciones** (`researchAlso` en `buildings.json`); el diario avisa «Ya se puede construir» al terminar la segunda.
+- Decidido en esta sesión porque el catálogo no lo concreta (Mikel puede cambiarlo): **a los colonos no les hace daño ni la hacen estallar** (saben dónde está), igual que el alambre de espino y que la opción A de las granadas; 40 de vida y 60 de trabajo.
+- Qué probar: investigar Trampas y Pólvora en 📜 → 🔬 Investigación (🪄 acelera), poner unas minas delante de la entrada y lanzar un raid con 🪄: el diario dice «💥 … pisa una mina casera y estalla» y los de alrededor salen heridos. En el móvil, que el dibujo (disco de chapa con la espoleta roja) se vea.
+- Sin npm en el entorno: tests con Bun (454, 4 nuevos) y tipos con `tsc` (sin Phaser, sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguen esperando la respuesta de Mikel: la hoguera (A-D), «Medicina de campo» (A-C), los saqueadores con las armas nuevas (A-C), las granadas (A-D) y el muro con aspilleras (A-C).
+- Siguiente: la trampa eléctrica (🔩6 ⚙️2, 50 W, «Trampas» y «Baterías mejoradas»; aturde 5 s). Antes habrá que hacer que «Baterías mejoradas» doble lo que guardan las baterías, o que la trampa solo pida «Trampas» hasta entonces (o el muro con aspilleras o las granadas, si Mikel ya ha elegido).
+
 ## 2026-10-20 (3) — Alambre de espino con «Fortificación» (fortificación, segunda parte)
 
 - Sin incidencias nuevas en 🐞. Las granadas siguen esperando a Mikel; se sigue con «sacos de arena, alambre de espino y aspilleras»: segunda parte, el alambre de espino.

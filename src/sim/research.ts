@@ -1,6 +1,8 @@
 // Investigación (fase 5, bloque 3 del catálogo): se elige un proyecto y avanza mientras un
 // colono con el trabajo «Investigar» está en un banco de investigación. Determinista: sin azar.
-import { RESEARCH, RESEARCH_REFERENCE_SKILL, ResearchDef, researchDef } from '../data/research';
+import { RESEARCH, RESEARCH_REFERENCE_SKILL, ResearchDef, researchDef, Researchable, researchNeeds } from '../data/research';
+
+export type { Researchable };
 import { TICKS_PER_HOUR } from './time';
 
 export interface ResearchState {
@@ -28,19 +30,23 @@ export function isResearched(r: ResearchState, id: string): boolean {
   return r.done.includes(id);
 }
 
-/** Contenido que puede pedir una investigación (construcciones, recetas…). */
-export interface Researchable {
-  research?: string;
-}
-
-/** Ya se puede usar: no pide investigación, o ya está hecha (planos nuevos, recetas…). */
+/** Ya se puede usar: no pide investigación, o ya está hecha toda la que pide (planos nuevos, recetas…). */
 export function unlocked(r: ResearchState, thing: Researchable): boolean {
-  return thing.research === undefined || isResearched(r, thing.research);
+  return researchNeeds(thing).every((q) => isResearched(r, q));
 }
 
-/** Lo que desbloquea un proyecto (para avisar al terminarlo). */
-export function unlockedBy<T extends Researchable>(list: readonly T[], id: string): T[] {
-  return list.filter((b) => b.research === id);
+/** La primera investigación que aún le falta (para decir qué hay que investigar), o undefined. */
+export function missingResearch(r: ResearchState, thing: Researchable): ResearchDef | undefined {
+  const q = researchNeeds(thing).find((id) => !isResearched(r, id));
+  return q ? researchDef(q) : undefined;
+}
+
+/**
+ * Lo que desbloquea un proyecto (para avisar al terminarlo). Con `r`, solo lo que ya no pide nada más
+ * (la mina casera pide «Trampas» y «Pólvora»: se avisa al terminar la segunda).
+ */
+export function unlockedBy<T extends Researchable>(list: readonly T[], id: string, r?: ResearchState): T[] {
+  return list.filter((b) => researchNeeds(b).includes(id) && (!r || unlocked(r, b)));
 }
 
 /** Se puede empezar: existe, no está hecho y lo que pide antes ya está terminado. */

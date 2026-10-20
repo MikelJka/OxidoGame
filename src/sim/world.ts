@@ -16,12 +16,12 @@ import { Difficulty, initialSchedule, makeDifficulty, scaledSupplies, StorySched
 import { findRefuge, updatePanic } from './panic';
 import { canTalk, colonistFight, dropGear, hurtFoe, makePrisoner, runStoryteller, talkToPrisoner, TurretShot, updateOthers, updateTurrets, validAttackTarget } from './people';
 import { AMMO_CARRY, AMMO_LOW, ammoFor, isAmmo, isGear, isWeapon, WEAPON_IDS, WEAPONS, weaponScore } from '../data/weapons';
-import { ARMOR_IDS, ARMORS, isArmor } from '../data/armor';
+import { ARMOR_IDS, ARMORS, armorProtection, isArmor } from '../data/armor';
 import { FINISH_MOOD } from '../data/morale';
 import { Corpse, updateCorpses } from './corpses';
 import { addResearch, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
 import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
-import { anchorFor, besideTiles, defOf, nextTo, occupant, updateVehicle, Vehicle, vehicleCenter, vehiclePath, VehicleSeat, covers } from './vehicles';
+import { absorbHit, anchorFor, besideTiles, defOf, nextTo, occupant, updateVehicle, Vehicle, vehicleCenter, vehiclePath, VehicleSeat, covers } from './vehicles';
 import { vehicleDef } from '../data/vehicles';
 import { TRAPPED_TILES } from './diagnostics';
 import {
@@ -105,6 +105,9 @@ export interface Offer {
   /** Tick hasta el que espera respuesta. */
   until: number;
 }
+
+/** Daño medio de un puñetazo (los golpes quitan de 0,08 a 0,18 de salud): la mina casera pega ×4. */
+const MINE_FIST_DAMAGE = 0.13;
 
 export class World implements JobContext {
   readonly map: GameMap;
@@ -1239,8 +1242,8 @@ export class World implements JobContext {
     if (j.kind === 'investigar') {
       const finished = addResearch(this.research, done);
       if (finished) {
-        const build = unlockedBy(BUILDINGS, finished.id).map((b) => b.name);
-        const craft = unlockedBy(RECIPES, finished.id).map((r) => r.name);
+        const build = unlockedBy(BUILDINGS, finished.id, this.research).map((b) => b.name);
+        const craft = unlockedBy(RECIPES, finished.id, this.research).map((r) => r.name);
         const extra = (build.length ? ` Ya se puede construir: ${build.join(', ')}.` : '') + (craft.length ? ` Ya se puede fabricar: ${craft.join(', ')}.` : '');
         this.addLog(`🔬 Investigación terminada: ${finished.name}. Desbloquea: ${finished.unlocks}.${extra}`, 'bueno');
       }
@@ -2367,11 +2370,35 @@ export class World implements JobContext {
   private stepHazard(c: Colonist): boolean {
     if (c.role !== 'saqueador' || c.downed) return false;
     const s = this.structures.mainAt(c.tile.x, c.tile.y);
+    if (s?.built && s.def.mine) return this.explodeMine(s, c);
     const dmg = s?.built ? s.def.stepDamage : undefined;
     if (!dmg) return false;
     if (!hurtFoe(this, c, dmg, 'las piernas')) return false;
     c.path = [];
     return true;
+  }
+
+  /**
+   * Estalla una mina casera que ha pisado `by`: hace daño (× los puños, de media) a cada saqueador o
+   * criatura a su alcance (el 3×3), no a los colonos, y se gasta. Devuelve true si `by` ha caído.
+   */
+  explodeMine(s: Structure, by: Colonist): boolean {
+    const m = s.def.mine!;
+    this.breakStructure(s);
+    this.addLog(`💥 ${by.name} pisa una ${s.def.name.toLowerCase()} y estalla.`, 'bueno', 'combate', { x: s.x, y: s.y });
+    let fellBy = false;
+    for (const o of [...this.others]) {
+      if (o.role !== 'saqueador' || Math.max(Math.abs(o.tile.x - s.x), Math.abs(o.tile.y - s.y)) > m.radius) continue;
+      const armor = 1 - armorProtection([o.vest, o.helmet]);
+      const fell = hurtFoe(this, o, absorbHit(this, o, MINE_FIST_DAMAGE * m.damage * armor), 'las piernas');
+      if (fell) {
+        if (o.creature) this.addLog(`${o.name} cae muerto.`, 'bueno');
+        else this.addLog(`${o.name} (saqueador) cae al suelo.`, 'bueno');
+      }
+      if (o === by && (fell || o.downed)) fellBy = true;
+    }
+    if (fellBy) by.path = [];
+    return fellBy;
   }
 
   private terrainCost(p: Point): number {

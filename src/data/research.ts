@@ -19,6 +19,17 @@ export interface ResearchDef {
   unlocks: string;
 }
 
+/** Lo que puede pedir investigaciones: una (`research`) y a veces una segunda (`researchAlso`). */
+export interface Researchable {
+  research?: string;
+  researchAlso?: string;
+}
+
+/** Todas las investigaciones que pide algo (0, 1 o 2). */
+export function researchNeeds(thing: Researchable): string[] {
+  return [thing.research, thing.researchAlso].filter((q): q is string => !!q);
+}
+
 function validate(): ResearchDef[] {
   const fail = (m: string): never => {
     throw new Error(`research.json: ${m}`);
@@ -34,7 +45,7 @@ function validate(): ResearchDef[] {
     ids.add(p.id);
   }
   // Lo que una construcción pide investigar tiene que existir en el árbol.
-  for (const b of [...BUILDINGS, ...RECIPES]) if (b.research !== undefined && !ids.has(b.research)) fail(`${b.id} pide la investigación ${b.research}, que no existe`);
+  for (const b of [...BUILDINGS, ...RECIPES]) for (const q of researchNeeds(b)) if (!ids.has(q)) fail(`${b.id} pide la investigación ${q}, que no existe`);
   return data.projects;
 }
 

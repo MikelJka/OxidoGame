@@ -530,6 +530,30 @@
     }
   },
   {
+    "id": "mina_casera",
+    "name": "Mina casera",
+    "category": "defensa",
+    "cost": {
+      "chatarra": 6,
+      "componentes": 1
+    },
+    "research": "trampas",
+    "researchAlso": "polvora",
+    "work": 60,
+    "hp": 40,
+    "blocks": false,
+    "height": 0,
+    "mine": {
+      "damage": 4,
+      "radius": 1
+    },
+    "colors": {
+      "top": "#8a8a6a",
+      "face": "#5e5e46",
+      "dark": "#33332a"
+    }
+  },
+  {
     "id": "torreta_ligera",
     "name": "Torreta ligera",
     "category": "defensa",
