@@ -103,6 +103,16 @@ export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, ti
     }
     px(Math.floor(tile / 2), tileH, 2, Math.max(2, Math.floor(wallH / 3)), dark);
   }
+  if (def.loophole !== undefined) {
+    // Aspilleras: dos rendijas oscuras en el frente y su marca en la cara de arriba.
+    const sy = tileH + Math.max(1, Math.floor(wallH / 3));
+    const sh = Math.max(2, Math.floor(wallH / 3));
+    for (const sx of [Math.floor(tile / 4), Math.floor((tile * 3) / 4) - 1]) {
+      px(sx - 1, sy - 1, 3, sh + 2, lighten(face));
+      px(sx, sy, 1, sh, outline);
+    }
+    px(Math.floor(tile / 4), Math.floor(tileH / 2), Math.ceil(tile / 2), 1, dark);
+  }
 }
 
 /** Torre de vigía: plataforma con barandilla arriba y patas (o fuste de piedra) debajo. */

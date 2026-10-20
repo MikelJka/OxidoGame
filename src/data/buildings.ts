@@ -85,6 +85,11 @@ export interface BuildingDef {
   researchAlso?: string;
   /** Al demolerla se recupera todo el material, no la mitad (sacos de arena). */
   fullRefund?: boolean;
+  /**
+   * Muro con aspilleras: se dispara a través de él desde los dos lados y quien está pegado
+   * tiene esta cobertura (0,75) en vez de la total de un muro.
+   */
+  loophole?: number;
   /** Daño (salud, 0-1) a cada enemigo que entra en la casilla (alambre de espino); a los colonos, no. */
   stepDamage?: number;
   /**
@@ -153,6 +158,7 @@ export function validateBuilding(d: unknown): BuildingDef {
   if (b.mine !== undefined && (b.blocks || b.stepDamage !== undefined || !(b.mine.damage > 0) || !Number.isInteger(b.mine.radius) || b.mine.radius < 0 || b.mine.radius > 3)) fail('mina no válida');
   if (b.stunSeconds !== undefined && (b.blocks || b.mine !== undefined || !((b.power ?? 0) < 0) || !(b.stunSeconds > 0 && b.stunSeconds <= 30))) fail('trampa eléctrica no válida');
   if (b.fullRefund !== undefined && typeof b.fullRefund !== 'boolean') fail('«fullRefund» no válido');
+  if (b.loophole !== undefined && (b.category !== 'muro' || typeof b.loophole !== 'number' || !(b.loophole > 0 && b.loophole < 1))) fail('«loophole» no válido');
   if (b.stepDamage !== undefined && (b.blocks || !(b.stepDamage > 0 && b.stepDamage <= 0.5))) fail('«stepDamage» no válido');
   if (b.burnsCorpses !== undefined && (b.burnsCorpses !== true || !b.fuel || b.power !== undefined)) fail('una hoguera necesita combustible y no da corriente');
   if (b.cheer !== undefined && (!b.burnsCorpses || !Number.isInteger(b.cheer.radius) || b.cheer.radius < 1 || b.cheer.radius > 10 || !(b.cheer.mood > 0 && b.cheer.mood <= 0.3) || !(b.cheer.hours > 0))) fail('«cheer» no válido');

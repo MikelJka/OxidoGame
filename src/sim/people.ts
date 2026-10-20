@@ -380,6 +380,8 @@ export function coverValue(w: World, x: number, y: number): number {
   const s = w.structures.mainAt(x, y);
   if (s?.built) {
     const cat = s.def.category;
+    // Un muro con aspilleras protege mucho, pero no del todo: por él se dispara.
+    if (cat === 'muro' && s.def.loophole !== undefined) return s.def.loophole;
     if (cat === 'muro' || cat === 'puerta' || cat === 'porton') return FULL_COVER;
     if (cat === 'defensa' && s.def.height >= 1) return 0.5;
   }
@@ -420,12 +422,21 @@ export function coverAt(w: World, from: Point, target: Point): number {
   return 1 - (1 - cover) * (1 - trench);
 }
 
-/** Puede golpear o disparar a `b` desde donde está: a su alcance y sin un muro delante del objetivo. */
+/**
+ * Un muro (puerta, roca…) pegado al objetivo o pegado al tirador, en la línea de tiro, impide el
+ * disparo; por un muro con aspilleras sí se dispara, desde los dos lados.
+ */
+export function shotBlocked(w: World, from: Point, target: Point): boolean {
+  if (Math.max(Math.abs(from.x - target.x), Math.abs(from.y - target.y)) <= 1) return false;
+  return coverAt(w, from, target) >= FULL_COVER || coverAt(w, target, from) >= FULL_COVER;
+}
+
+/** Puede golpear o disparar a `b` desde donde está: a su alcance y sin un muro en medio. */
 export function canHit(w: World, a: Colonist, b: Colonist): boolean {
   const d = tileDistance(a, b);
   if (d <= 1) return true;
   if (d > reachOf(a, w)) return false;
-  return coverAt(w, a.tile, b.tile) < FULL_COVER;
+  return !shotBlocked(w, a.tile, b.tile);
 }
 
 /** Un golpe (o un disparo, con arco o arma de fuego). Devuelve true si acierta. */
@@ -614,7 +625,7 @@ export function seekCover(w: World, c: Colonist, enemy: Colonist): boolean {
       if (cover <= here || cover < COVER_GOOD) continue;
       // Desde ahí tiene que poder seguir disparándole.
       const dist = Math.max(Math.abs(x - enemy.tile.x), Math.abs(y - enemy.tile.y));
-      if (dist > reachOf(c, w) || coverAt(w, { x, y }, enemy.tile) >= FULL_COVER) continue;
+      if (dist > reachOf(c, w) || shotBlocked(w, { x, y }, enemy.tile)) continue;
       const d = Math.max(Math.abs(dx), Math.abs(dy));
       if (!best || cover > best.cover || (cover === best.cover && d < best.d)) best = { x, y, cover, d };
     }

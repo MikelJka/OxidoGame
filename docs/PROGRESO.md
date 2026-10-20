@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (12) — Muro con aspilleras, de piedra y de metal
+
+- Sin incidencias nuevas en 🐞. Siguiente del orden: el **muro con aspilleras** (opción A, elegida por Mikel). Con él quedan terminados los sacos de arena, el alambre de espino y las aspilleras.
+- Dos muros nuevos en 🏗 → Muros, tras investigar **«Fortificación»** (antes salen con 🔒): **de piedra** (🪨7, aguanta 336) y **de metal** (🔗6, aguanta 560), 4/5 de la vida del muro normal. Bloquean el paso como un muro y cierran habitaciones; los brutos y las granadas los rompen igual.
+- Por ellos **se dispara desde los dos lados**; quien está pegado tiene un **75 % de cobertura**. Los arqueros y tiradores reclutados los buscan solos para cubrirse. Se ven con dos rendijas en el frente.
+- **Cambio de regla que hacía falta para que sirvan** (Mikel puede cambiarlo): hasta ahora quien estaba pegado por dentro a un muro normal disparaba hacia fuera sin que le pudieran dar, así que la aspillera habría sido peor que un muro. Ahora **un muro, puerta, roca o ruina pegado al tirador en la línea de tiro también le impide disparar**, a colonos y saqueadores. Las torretas no cambian (disparan por encima).
+- Por dentro: el número va en `buildings.json` (`loophole: 0.75`); la regla, en `shotBlocked` de `src/sim/people.ts`.
+- Qué probar: investigar «Fortificación» en 📜 → 🔬 Investigación (🪄 acelera), cerrar un tramo con muro con aspilleras, reclutar a un colono con arco o arma de fuego pegado a él y lanzar un raid con 🪄: dispara a través y a él le dan mucho menos. Pegado a un muro normal, ya no dispara.
+- Sin npm en el entorno: tests con Bun (493, 5 nuevos) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguiente: los saqueadores con subfusil y francotirador desde el día 35 (opción A); después «Medicina de campo».
+
 ## 2026-10-20 (11) — Los saqueadores traen granadas desde el día 30 (granadas terminadas)
 
 - Sin incidencias nuevas en 🐞. Siguiente del orden: la segunda parte de las **granadas** (opción B + saqueadores, elegida por Mikel).

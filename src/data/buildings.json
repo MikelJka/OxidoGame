@@ -119,6 +119,44 @@
     }
   },
   {
+    "id": "muro_aspilleras_piedra",
+    "name": "Muro con aspilleras de piedra",
+    "category": "muro",
+    "cost": {
+      "piedra": 7
+    },
+    "research": "fortificacion",
+    "work": 420,
+    "hp": 336,
+    "blocks": true,
+    "loophole": 0.75,
+    "height": 1,
+    "colors": {
+      "top": "#b4b1a8",
+      "face": "#8a877f",
+      "dark": "#55534e"
+    }
+  },
+  {
+    "id": "muro_aspilleras_metal",
+    "name": "Muro con aspilleras de metal",
+    "category": "muro",
+    "cost": {
+      "metal": 6
+    },
+    "research": "fortificacion",
+    "work": 380,
+    "hp": 560,
+    "blocks": true,
+    "loophole": 0.75,
+    "height": 1,
+    "colors": {
+      "top": "#9aa0a6",
+      "face": "#6e747a",
+      "dark": "#3e4246"
+    }
+  },
+  {
     "id": "muro_alto_metal",
     "name": "Muro alto de metal",
     "category": "muro",
