@@ -1931,7 +1931,7 @@ function powerLabel(w: World, s: Structure): string {
   const parts: string[] = [];
   const f = s.def.fuel;
   if (f) parts.push(s.powered ? 'en marcha' : `sin ${RESOURCE_NAMES[f.resource].toLowerCase()}`, `${RESOURCE_NAMES[f.resource].toLowerCase()} ${Math.ceil(s.fuel ?? 0)}/${f.capacity}`);
-  else if (s.def.battery) parts.push(`${Math.round(s.stored ?? 0)}/${s.def.battery} Wh`);
+  else if (s.def.battery) parts.push(`${Math.round(s.stored ?? 0)}/${w.batteryCapacity(s)} Wh`);
   else if (s.def.source === 'solar') parts.push(s.powered ? `${s.output ?? 0} W` : 'de noche no produce');
   else if (s.def.source === 'wind') parts.push(s.sheltered ? 'tapado: necesita las casillas de alrededor libres' : `${s.output ?? 0} W, viento ${Math.round(w.wind * 100)} %`);
   else if (s.electric) parts.push(s.powered ? 'eléctrico: el doble de rápido' : 'eléctrico, sin corriente: velocidad normal');

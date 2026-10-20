@@ -19,7 +19,7 @@ import { AMMO_CARRY, AMMO_LOW, ammoFor, isAmmo, isGear, isWeapon, WEAPON_IDS, WE
 import { ARMOR_IDS, ARMORS, armorProtection, isArmor } from '../data/armor';
 import { FINISH_MOOD } from '../data/morale';
 import { Corpse, updateCorpses } from './corpses';
-import { addResearch, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
+import { addResearch, batteryMultiplier, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
 import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
 import { absorbHit, anchorFor, besideTiles, defOf, nextTo, occupant, updateVehicle, Vehicle, vehicleCenter, vehiclePath, VehicleSeat, covers } from './vehicles';
 import { vehicleDef } from '../data/vehicles';
@@ -30,7 +30,7 @@ import {
 } from './needs';
 import { applyTerrainJob, LOWER_STONE, terrainBlocker, TerrainJob, TerrainOrders } from './terrain';
 import { Bill, PlaceShape, Structure, Structures } from './structures';
-import { isDaylight, lacksPower, litTiles, PowerNet, shutDoorTiles, stationSpeed, updatePower, windStrength } from './power';
+import { batteryCapacity, isDaylight, lacksPower, litTiles, PowerNet, shutDoorTiles, stationSpeed, updatePower, windStrength } from './power';
 import type { TileRect } from './designations';
 import { BUILDINGS, buildingDef } from '../data/buildings';
 import { RECIPES, RecipeDef } from '../data/recipes';
@@ -323,7 +323,7 @@ export class World implements JobContext {
     if (this.tick % TICKS_PER_SECOND === 0 && this.corpses.length > 0) updateCorpses(this.corpses, this.colonists, this.tick, TICKS_PER_HOUR, TICKS_PER_DAY);
     // Electricidad: cada segundo se reparte la corriente y se encienden o apagan las lámparas.
     if (this.tick % TICKS_PER_SECOND === 0) {
-      this.powerNets = updatePower(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR, { hour: this.hour, wind: this.wind });
+      this.powerNets = updatePower(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR, { hour: this.hour, wind: this.wind, batteryMultiplier: batteryMultiplier(this.research) });
       this.lit = litTiles(this.structures);
       // Puertas automáticas: con corriente, se cierran a los saqueadores mientras dura el raid.
       const raid = this.others.some((o) => o.role === 'saqueador' && !o.downed && !o.raider?.fleeing);
@@ -2296,6 +2296,11 @@ export class World implements JobContext {
   }
 
   /** Red eléctrica de una construcción (la de un cable suyo o pegado), si tiene. */
+  /** Vatios-hora que caben en una batería (el doble con «Baterías mejoradas»). */
+  batteryCapacity(s: Structure): number {
+    return batteryCapacity(s, batteryMultiplier(this.research));
+  }
+
   powerNetOf(s: Structure): PowerNet | undefined {
     return this.powerNets.find((n) => n.producers.includes(s) || n.consumers.includes(s) || n.batteries.includes(s) ||
       (!!s.def.conduit && n.tiles.includes(s.y * this.map.width + s.x)));

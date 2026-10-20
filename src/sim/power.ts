@@ -28,6 +28,13 @@ const SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
 export interface PowerEnv {
   hour: number;
   wind: number;
+  /** Por cuánto se multiplica lo que guarda cada batería (la investigación «Baterías mejoradas»: ×2). */
+  batteryMultiplier?: number;
+}
+
+/** Vatios-hora que caben en una batería con el multiplicador de la investigación (0 si no es batería). */
+export function batteryCapacity(s: Structure, multiplier = 1): number {
+  return (s.def.battery ?? 0) * multiplier;
 }
 
 /** Las placas solares producen de 6:00 a 20:00 (las mismas horas en que no hace falta luz). */
@@ -156,6 +163,7 @@ function netOfStructure(st: Structures, s: Structure, netOf: Map<number, number>
  */
 export function updatePower(st: Structures, hours: number, env: PowerEnv = { hour: 12, wind: 0.5 }): PowerNet[] {
   const { netOf, tiles } = cableNets(st);
+  const mult = env.batteryMultiplier ?? 1;
   const nets = new Map<number, PowerNet>();
   for (const [id, list] of tiles) {
     nets.set(id, { id, tiles: list, producers: [], consumers: [], batteries: [], production: 0, demand: 0, supplied: 0, stored: 0, capacity: 0 });
@@ -174,7 +182,7 @@ export function updatePower(st: Structures, hours: number, env: PowerEnv = { hou
     const id = netOfStructure(st, s, netOf);
     const net = id !== undefined ? nets.get(id) : undefined;
     if (s.def.battery) {
-      s.stored = Math.min(s.def.battery, s.stored ?? 0);
+      s.stored = Math.min(batteryCapacity(s, mult), s.stored ?? 0);
       if (net) net.batteries.push(s);
       continue;
     }
@@ -202,7 +210,7 @@ export function updatePower(st: Structures, hours: number, env: PowerEnv = { hou
   for (const net of nets.values()) {
     for (const b of net.batteries) {
       net.stored += b.stored ?? 0;
-      net.capacity += b.def.battery ?? 0;
+      net.capacity += batteryCapacity(b, mult);
     }
     // Primero lo más antiguo: si falta corriente, se apaga lo último que se conectó.
     net.consumers.sort((a, b) => a.id - b.id);
@@ -222,7 +230,7 @@ export function updatePower(st: Structures, hours: number, env: PowerEnv = { hou
     net.stored += change;
     for (const b of net.batteries) {
       if (change === 0) break;
-      const cap = b.def.battery ?? 0;
+      const cap = batteryCapacity(b, mult);
       const now = b.stored ?? 0;
       const step = change > 0 ? Math.min(change, cap - now) : Math.max(change, -now);
       b.stored = now + step;

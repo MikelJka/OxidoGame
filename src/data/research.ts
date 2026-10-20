@@ -5,6 +5,7 @@
  * - referenceSkill: un colono con esta Investigación tarda `hours` horas en cada proyecto.
  * - chunkHours: horas seguidas que investiga un colono antes de volver a mirar qué hacer.
  * - projects: el árbol; `requires` son los proyectos que tienen que estar terminados antes.
+ *   `batteryMultiplier` (opcional): al terminarlo, lo que guarda cada batería se multiplica por él.
  */
 import data from './research.json';
 import { BUILDINGS } from './buildings';
@@ -17,6 +18,8 @@ export interface ResearchDef {
   requires: string[];
   /** Qué desbloquea, en palabras (para la interfaz). */
   unlocks: string;
+  /** Al terminarlo, lo que guarda cada batería se multiplica por esto («Baterías mejoradas»: ×2). */
+  batteryMultiplier?: number;
 }
 
 /** Lo que puede pedir investigaciones: una (`research`) y a veces una segunda (`researchAlso`). */
@@ -40,6 +43,8 @@ function validate(): ResearchDef[] {
   for (const p of data.projects) {
     if (!p.id || ids.has(p.id)) fail(`id repetido o vacío ${p.id}`);
     if (!p.name || !(p.hours > 0) || typeof p.unlocks !== 'string') fail(`proyecto ${p.id} no válido`);
+    const bm = (p as { batteryMultiplier?: number }).batteryMultiplier;
+    if (bm !== undefined && !(bm >= 1)) fail(`${p.id}: batteryMultiplier no válido`);
     // Lo que pide antes tiene que ir antes en la lista (así no hay ciclos).
     for (const r of p.requires) if (!ids.has(r)) fail(`${p.id} pide ${r}, que no existe o va después`);
     ids.add(p.id);

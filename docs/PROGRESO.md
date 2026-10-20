@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-20 (7) — «Baterías mejoradas»: las baterías guardan el doble
+
+- Sin incidencias nuevas en 🐞 ni respuestas de Mikel a las propuestas. Siguiente del orden del árbol (las granadas y el muro con aspilleras esperan a Mikel): «Baterías mejoradas».
+- Al terminar la investigación **«Baterías mejoradas»**, cada batería guarda **el doble**: 12 000 Wh en vez de 6 000. Vale para las que ya estaban construidas y para las nuevas. La información de la batería y de su red muestra la capacidad nueva.
+- Por dentro: el multiplicador va en `research.json` (`batteryMultiplier: 2` en «baterias»), no en el código. La carga por encima de 6 000 Wh se guarda con la partida.
+- Qué probar: con una batería conectada a un generador, ver en su información «…/6000 Wh»; investigar Baterías mejoradas en 📜 → 🔬 Investigación (🪄 acelera) y ver «…/12000 Wh» y que sigue cargándose por encima de 6 000.
+- Sin npm en el entorno: tests con Bun (467, 4 nuevos) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguen esperando la respuesta de Mikel: la hoguera (A-D), «Medicina de campo» (A-C), los saqueadores con las armas nuevas (A-C), las granadas (A-D) y el muro con aspilleras (A-C).
+- Siguiente: «Medicina avanzada» (heridas un 25 % antes y la mitad de infecciones), o las granadas o el muro con aspilleras si Mikel ya ha elegido.
+
 ## 2026-10-20 (6) — Torreta rotativa con «Ametralladoras»
 
 - Sin incidencias nuevas en 🐞 ni respuestas de Mikel a las propuestas. Siguiente del orden del árbol (las granadas y el muro con aspilleras esperan a Mikel): la torreta rotativa.

@@ -30,6 +30,13 @@ export function isResearched(r: ResearchState, id: string): boolean {
   return r.done.includes(id);
 }
 
+/** Por cuánto se multiplica lo que guarda cada batería con lo investigado («Baterías mejoradas»: ×2). */
+export function batteryMultiplier(r: ResearchState): number {
+  let m = 1;
+  for (const id of r.done) m *= researchDef(id)?.batteryMultiplier ?? 1;
+  return m;
+}
+
 /** Ya se puede usar: no pide investigación, o ya está hecha toda la que pide (planos nuevos, recetas…). */
 export function unlocked(r: ResearchState, thing: Researchable): boolean {
   return researchNeeds(thing).every((q) => isResearched(r, q));

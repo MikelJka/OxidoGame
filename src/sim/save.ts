@@ -1,7 +1,7 @@
 // Guardar y cargar partidas. El formato lleva versión y se lee de forma tolerante, para que
 // una partida guardada siga sirviendo cuando se publica una versión nueva del juego:
 // lo que ya no existe se descarta y lo nuevo toma su valor por defecto.
-import { loadResearch } from './research';
+import { batteryMultiplier, loadResearch } from './research';
 import { isCreature } from '../data/creatures';
 import { SKILLS, Skill, TRAITS } from '../data/colonists';
 import { BUILDINGS } from '../data/buildings';
@@ -437,6 +437,8 @@ export function loadWorld(input: string | unknown): World {
   world.rng.setState(num(d.rng, map.seed));
 
   // Construcciones primero: deciden qué casillas bloquean.
+  // Lo que cabe en las baterías depende de lo investigado («Baterías mejoradas»).
+  const batteryMult = batteryMultiplier(loadResearch(d.research));
   for (const s of d.structures ?? []) {
     const def = BUILDINGS.find((b) => b.id === s.def);
     if (!def) continue; // construcción que ya no existe
@@ -455,7 +457,7 @@ export function loadWorld(input: string | unknown): World {
     // Orden de mover (desde el 2026-10-18): si ya no cabe donde iba, se olvida.
     if (s.moveTo) world.structures.orderMove(restored, num(s.moveTo.x, -1), num(s.moveTo.y, -1), s.moveTo.rot === 1 ? 1 : 0);
     // Electricidad (desde que existe): carga de las baterías y combustible de los generadores.
-    if (def.battery) restored.stored = Math.max(0, Math.min(def.battery, num(s.stored, 0)));
+    if (def.battery) restored.stored = Math.max(0, Math.min(def.battery * batteryMult, num(s.stored, 0)));
     if (def.fuel) restored.fuel = Math.max(0, Math.min(def.fuel.capacity, num(s.fuel, 0)));
     // Talleres electrificados o a medio electrificar (desde 2026-10-18; antes, ninguno).
     if (def.electrify && s.built) {
