@@ -56,6 +56,7 @@ export const DESIGN_COLORS: Record<WorkType | TerrainJob | 'cancelar' | 'almacen
   zanja: 0x9a6a40,
   rellenar: 0xc09060,
   cultivar: 0x8fc060,
+  cazar: 0xc07040,
   cultivo: 0x8fc060,
   terreno: 0xc09060,
   fabricar: 0xd0a060,
