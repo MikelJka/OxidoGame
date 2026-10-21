@@ -1,4 +1,5 @@
 import { TICKS_PER_HOUR } from './sim/time';
+import { VOLUME_STEPS } from './audio/sound';
 import Phaser from 'phaser';
 import { WorldScene } from './render/WorldScene';
 import { northLabel, Rotation } from './render/rotation';
@@ -1493,6 +1494,50 @@ else game.events.once('map-ready', () => window.setTimeout(() => mainMenu.open()
     return f.id;
   },
 };
+
+// --- Sonido y enfoque automático (menú) ------------------------------------------
+{
+  const soundBtn = $('sound-btn');
+  const focusBtn = $('focus-btn');
+  const soundLabel = () => {
+    const v = scene()?.sound.volume ?? 1;
+    soundBtn.innerHTML = v >= 1 ? '<span class="mi">🔊</span><span>Sonido alto</span>' : v > 0 ? '<span class="mi">🔉</span><span>Sonido bajo</span>' : '<span class="mi">🔇</span><span>Sin sonido</span>';
+  };
+  const focusOn = () => {
+    try {
+      return localStorage.getItem('oxido-enfoque') !== 'no';
+    } catch {
+      return true;
+    }
+  };
+  const focusLabel = () => {
+    focusBtn.innerHTML = `<span class="mi">🎬</span><span>Enfoque: ${focusOn() ? 'sí' : 'no'}</span>`;
+  };
+  soundBtn.addEventListener('click', () => {
+    const s = scene();
+    if (!s) return;
+    const steps = VOLUME_STEPS as readonly number[];
+    const i = steps.indexOf(s.sound.volume);
+    s.sound.setVolume(steps[(i + 1) % steps.length]);
+    soundLabel();
+  });
+  focusBtn.addEventListener('click', () => {
+    try {
+      localStorage.setItem('oxido-enfoque', focusOn() ? 'no' : 'si');
+    } catch {
+      /* sin almacenamiento */
+    }
+    focusLabel();
+  });
+  game.events.once('map-ready', () => {
+    soundLabel();
+    focusLabel();
+  });
+  // Un clic suave en los botones de la interfaz.
+  document.addEventListener('click', (ev) => {
+    if ((ev.target as HTMLElement | null)?.closest?.('button')) scene()?.sound.play('clic');
+  });
+}
 
 // --- Lista de colonos ----------------------------------------------------------
 const roster = $('roster');

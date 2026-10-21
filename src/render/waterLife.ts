@@ -14,6 +14,8 @@ export class WaterLife {
   private foamKey = '';
   private timer = 0;
   private fishTimer = 0;
+  /** Un pez cae al agua (para el chapoteo). */
+  onSplash?: (x: number, y: number) => void;
 
   constructor(private readonly scene: Phaser.Scene) {
     makeTextures(scene);
@@ -88,6 +90,7 @@ export class WaterLife {
       onYoyo: () => f.setAngle(f.flipX ? -30 : 30),
       onComplete: () => {
         f.destroy();
+        this.onSplash?.(x, y);
         this.ripple(x, y, 9);
         this.ripple(x + (f.flipX ? -3 : 3), y, 6);
       },

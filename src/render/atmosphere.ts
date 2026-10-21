@@ -59,6 +59,10 @@ export class Atmosphere {
   private smokeTimer = 0;
   private flash = 0;
   private boltTimer = 0;
+  /** Cae un rayo (para el trueno). */
+  onBolt?: () => void;
+  /** Fuegos y hogueras que se ven ahora (para el sonido). */
+  flickerNear = 0;
 
   constructor(private readonly scene: Phaser.Scene, private readonly toScreen: TileToScreen) {
     makeTextures(scene);
@@ -130,6 +134,7 @@ export class Atmosphere {
       if (this.boltTimer <= 0) {
         this.boltTimer = 2500 + Math.random() * 6000;
         this.flash = 1;
+        this.onBolt?.();
       }
     }
     if (this.flash > 0) {
@@ -157,6 +162,7 @@ export class Atmosphere {
       this.smokeTimer = 0;
       for (const s of sources) if (s.flicker && Math.random() < 0.35) this.smoke.emitParticleAt(s.x + (Math.random() - 0.5) * 4, s.y - 4, 1);
     }
+    this.flickerNear = sources.filter((s) => s.flicker).length;
     let n = 0;
     const t = this.scene.time.now;
     for (const s of sources) {

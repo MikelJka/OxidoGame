@@ -1,5 +1,7 @@
 import { ambientAt, Atmosphere } from './atmosphere';
 import { WaterLife } from './waterLife';
+import { Sound } from '../audio/sound';
+import { WEAPONS } from '../data/weapons';
 import Phaser from 'phaser';
 import { GameMap, describeTile, inBounds, isWater, Prop } from '../sim/map';
 import { activityLabel, Colonist, groupSummary, type Stance } from '../sim/colonist';
@@ -178,6 +180,11 @@ export class WorldScene extends Phaser.Scene {
   private fireGfx!: Phaser.GameObjects.Graphics;
   private atmosphere!: Atmosphere;
   private waterLife!: WaterLife;
+  /** Sonido del juego (el menú cambia su volumen). */
+  readonly sound = new Sound();
+  private soundTimer = 0;
+  private lastShotTick = -1;
+  private lastBlastTick = -1;
   /** Sombra de los tejados (se ve por dónde hay techo). */
   private roofGfx!: Phaser.GameObjects.Graphics;
   private roofDrawn = -1;
@@ -269,6 +276,8 @@ export class WorldScene extends Phaser.Scene {
     });
     this.events.once('shutdown', () => this.atmosphere.destroy());
     this.waterLife = new WaterLife(this);
+    this.waterLife.onSplash = (x, y) => this.sound.play('chapoteo', { x, y });
+    this.atmosphere.onBolt = () => window.setTimeout(() => this.sound.play('trueno'), 200 + Math.random() * 900);
     this.events.once('shutdown', () => this.waterLife.destroy());
     this.roofGfx = this.add.graphics().setDepth(ZONE_DEPTH + 0.1);
     this.roofDrawn = -1;
@@ -316,6 +325,7 @@ export class WorldScene extends Phaser.Scene {
     this.atmosphere.update(this.world, delta);
     this.waterLife.update(this.view, `${this.rotation}|${tiltIndex}|${this.map.seed}`, delta, ambientAt(this.world.hour).dark);
     this.watchAlerts();
+    this.updateSound(delta);
     this.drawSelection();
     this.uiTimer += delta;
     if (this.uiTimer >= UI_EMIT_MS) {
@@ -392,6 +402,73 @@ export class WorldScene extends Phaser.Scene {
     if (key === this.propLookKey) return;
     this.propLookKey = key;
     for (const vi of this.propSprites.keys()) this.syncPropSprite(vi);
+  }
+
+  private creatureBeat = new Map<number, number>();
+
+  /** El golpe de cada animación: disparo, flecha, llamarada o golpe al pelear; hacha, pico o martillo al trabajar. */
+  private pawnSound(c: Colonist, frame: string, x: number, y: number): void {
+    const at = { x, y };
+    if (frame === 'hit1') {
+      const w = c.weapon ? WEAPONS[c.weapon] : null;
+      if (c.creature) this.sound.play('gruñido', at);
+      else if (!w || !w.ammo) this.sound.play('golpe', at);
+      else if (w.ignites) this.sound.play('llamas', at);
+      else if (!w.firearm) this.sound.play('arco', at);
+      else this.sound.play(c.weapon === 'escopeta' || c.weapon === 'francotirador' ? 'escopeta' : c.weapon === 'subfusil' ? 'rafaga' : 'disparo', at);
+      return;
+    }
+    const kind = c.job?.kind ?? '';
+    if (/investigar|curar|carcelero|transportar|cocinar|cazar/.test(kind)) return;
+    const name = /talar/.test(kind) ? 'hacha'
+      : /minar|saquear|demoler|desguazar/.test(kind) ? 'pico'
+      : /cultivar|terreno|zanja|rebajar|elevar|rellenar|rampa/.test(kind) ? 'azada'
+      : 'martillo';
+    this.sound.play(name, at, 0.8);
+  }
+
+  /** Disparos de torretas, explosiones y el ambiente según lo que se ve. */
+  private updateSound(delta: number): void {
+    const cam = this.cameras.main;
+    const { width, height } = this.scale.gameSize;
+    this.sound.setListener(cam.midPoint.x, cam.midPoint.y, cam.zoom, width, height);
+    const w = this.world;
+    for (const k of w.turretShots) {
+      if (k.tick <= this.lastShotTick) continue;
+      const v = this.toViewPoint(k.from.x + 0.5, k.from.y + 0.5);
+      this.sound.play('disparo', { x: v.x * TILE, y: rowY(v.y) });
+    }
+    for (const k of w.turretShots) this.lastShotTick = Math.max(this.lastShotTick, k.tick);
+    for (const b of w.blasts) {
+      if (b.tick <= this.lastBlastTick) continue;
+      const v = this.toViewPoint(b.x + 0.5, b.y + 0.5);
+      this.sound.play('explosion', { x: v.x * TILE, y: rowY(v.y) });
+      this.cameras.main.shake(260, 0.006);
+    }
+    for (const b of w.blasts) this.lastBlastTick = Math.max(this.lastBlastTick, b.tick);
+    // Ambiente (cada medio segundo).
+    this.soundTimer += delta;
+    if (this.soundTimer < 500) return;
+    const dt = this.soundTimer;
+    this.soundTimer = 0;
+    const view = cam.worldView;
+    let water = 0;
+    for (let i = 0; i < 24; i++) {
+      const tx = Math.floor((view.x + ((i % 6) + 0.5) * (view.width / 6)) / TILE);
+      const ty = Math.floor((view.y + (Math.floor(i / 6) + 0.5) * (view.height / 4)) / TILE_H);
+      if (tx >= 0 && ty >= 0 && tx < this.view.width && ty < this.view.height && isWater(this.view.terrain[ty * this.view.width + tx])) water++;
+    }
+    const weather = w.weather.filter((e) => w.tick < e.until).map((e) => e.id);
+    const storm = weather.includes('tormenta_electrica');
+    const amb = ambientAt(w.hour);
+    this.sound.updateAmbience({
+      wind: storm ? 0.8 : weather.includes('tormenta_polvo') ? 0.9 : weather.includes('ola_frio') ? 0.6 : 0.2,
+      rain: storm || weather.includes('lluvia_acida') ? 0.9 : 0,
+      water: water / 24,
+      fire: Math.min(1, this.atmosphere.flickerNear / 4),
+      night: amb.dark > 0.6,
+      winter: this.snowNow > 0.3,
+    }, dt);
   }
 
   /** Capa de nieve sobre el suelo (debajo de suelos construidos, objetos y personas). */
@@ -1091,6 +1168,11 @@ export class WorldScene extends Phaser.Scene {
       this.logPrimed = true;
       return;
     }
+    // Sonidos del diario: buena noticia, mala noticia, una muerte, un ataque.
+    if (fresh.some((e) => e.alert === 'raid')) this.sound.play('alarma');
+    else if (fresh.some((e) => e.alert === 'muerte')) this.sound.play('muerte');
+    else if (fresh.some((e) => e.kind === 'malo')) this.sound.play('malo');
+    else if (fresh.some((e) => e.kind === 'bueno')) this.sound.play('bueno');
     const hit = fresh.find((e) => e.alert === 'raid' && e.at);
     if (!hit?.at || this.focusOff()) return;
     const cam = this.cameras.main;
@@ -1311,7 +1393,13 @@ export class WorldScene extends Phaser.Scene {
           : walking ? `walk${Math.floor(t / 140 + c.id) % 4}`
           : working ? `${c.drafted || c.role === 'saqueador' || c.creature ? 'hit' : 'work'}${Math.floor(t / 260 + c.id) % 2}`
           : `idle${Math.floor(t / 800 + c.id) % 2}`;
-        if (img.frame.name !== frame) img.setFrame(frame);
+        if (img.frame.name !== frame) {
+          img.setFrame(frame);
+          if (frame === 'hit1' || frame === 'work1') this.pawnSound(c, frame, img.x, img.y);
+        }
+      } else if (working && Math.floor(t / 260 + c.id) % 2 !== this.creatureBeat.get(c.id)) {
+        this.creatureBeat.set(c.id, Math.floor(t / 260 + c.id) % 2);
+        if (Math.floor(t / 260 + c.id) % 2) this.sound.play('gruñido', { x: img.x, y: img.y }, 0.7);
       }
       // Sube o baja de nivel poco a poco en lugar de saltar.
       const target = this.liftAt(c.tile.x, c.tile.y) + this.towerLift(c.tile.x, c.tile.y);
