@@ -17,6 +17,9 @@ import { World } from './world';
 /** Una expedición en marcha: de ida, peleando o de vuelta. */
 export interface Expedition {
   faction: string;
+  /** «ocupar»: van a vivir a las ruinas de una base (su nombre en `ruin`). Sin poner, a atacar. */
+  kind?: 'ataque' | 'ocupar';
+  ruin?: string;
   members: Colonist[];
   phase: 'ida' | 'batalla' | 'vuelta';
   /** Tick (del mapa de la colonia) en que llegan a la base o vuelven a casa. */
@@ -73,6 +76,10 @@ export function startExpedition(w: World, factionId: string, ids: number[]): str
 export function updateExpedition(w: World): void {
   const e = w.expedition;
   if (!e || w.tick < e.arriveAt) return;
+  if (e.phase === 'ida' && e.kind === 'ocupar') {
+    settleRuin(w, e);
+    return;
+  }
   if (e.phase === 'ida') {
     const f = w.faction(e.faction);
     if (!f?.base) {
@@ -272,4 +279,82 @@ export function cleanLoot(o: unknown): Partial<Record<ResourceId, number>> {
 /** Horas que faltan para que llegue la expedición (a la base o a casa). */
 export function expeditionHours(w: World): number {
   return w.expedition ? Math.max(0, Math.ceil((w.expedition.arriveAt - w.tick) / TICKS_PER_HOUR)) : 0;
+}
+
+// --- Ocupar las ruinas (bases, tercera parte; opción 3A de Mikel) ------------------------------
+
+/** Una colonia más: las ruinas de una base que han ocupado unos colonos. */
+export interface Outpost {
+  name: string;
+  world: World;
+}
+
+/** Manda a unos colonos a vivir en las ruinas de una base. Devuelve el motivo si no se puede. */
+export function startSettling(w: World, ruinName: string, ids: number[]): string | null {
+  if (w.expedition) return 'Ya hay una expedición fuera.';
+  const ruin = w.ruins.find((r) => r.name === ruinName);
+  if (!ruin) return 'Esas ruinas ya no están.';
+  const members = w.colonists.filter((c) => ids.includes(c.id) && !c.downed);
+  if (!members.length) return 'Elige al menos a un colono que pueda andar.';
+  if (members.length === w.colonists.length) return 'Alguien tiene que quedarse en la colonia.';
+  for (const c of members) w.removeFromColony(c);
+  const days = travelDays({ x: ruin.x, y: ruin.y, population: 0, wealth: 0, defenses: 0, grownAt: 0 });
+  w.expedition = { faction: ruin.faction, kind: 'ocupar', ruin: ruin.name, members, phase: 'ida', arriveAt: w.tick + Math.round(days * TICKS_PER_DAY), loot: {} };
+  w.addLog(`🏚 ${members.map((c) => c.name).join(', ')} ${members.length === 1 ? 'sale' : 'salen'} hacia las ruinas de ${ruin.name} para vivir allí: ${String(days).replace('.', ',')} días de viaje.`, 'info');
+  return null;
+}
+
+/** Llegan a las ruinas: se crea la colonia nueva con ellos dentro. */
+function settleRuin(w: World, e: Expedition): void {
+  const ruin = w.ruins.find((r) => r.name === e.ruin);
+  w.expedition = null;
+  const mainWorld = w.outpostHome ?? w;
+  const name = ruin?.name ?? e.ruin ?? 'Ruinas';
+  const seed = ((w.map.seed ^ 0x51e7713) + (ruin?.x ?? 0) * 131 + (ruin?.y ?? 0) * 977) >>> 0;
+  const o = new World({ seed, width: 80, height: 60, colonists: 0, events: true, difficulty: w.difficulty });
+  o.nextPawnId = mainWorld.nextPawnId + 2000 * (mainWorld.outposts.length + 1);
+  o.tick = w.tick;
+  o.name = name;
+  const m = o.map;
+  for (const s of o.items.list()) o.items.take(s.x, s.y, s.amount);
+  const home = o.colonyPoint() ?? { x: Math.floor(m.width / 2), y: Math.floor(m.height / 2) };
+  // Lo que queda de sus muros: un recinto de madera roto, con huecos.
+  const rng = new Rng(seed);
+  for (let x = home.x - 6; x <= home.x + 6; x++) {
+    for (let y = home.y - 5; y <= home.y + 5; y++) {
+      if (x !== home.x - 6 && x !== home.x + 6 && y !== home.y - 5 && y !== home.y + 5) continue;
+      if (!rng.chance(0.55)) continue;
+      if (o.structures.place(x, y, 'muro_madera')) {
+        const s = o.structures.at(x, y)!;
+        o.completeStructure(s);
+        s.hp = Math.max(1, Math.round(s.hp * (0.3 + rng.next() * 0.5)));
+      }
+    }
+  }
+  o.items.dropAll(home.x, home.y, { madera: 30, comida: 10 });
+  e.members.forEach((c) => {
+    c.drafted = false;
+    c.job = null;
+    c.path = [];
+    o.colonists.push(c);
+    if (!o.placeNearColony(c)) {
+      c.tile = { ...home };
+      c.pos = { x: home.x + 0.5, y: home.y + 0.5 };
+    }
+  });
+  // Comparten el mundo con la principal: las mismas facciones, ruinas y mercado.
+  const main = w.outpostHome ?? w;
+  o.factions = main.factions;
+  o.ruins = main.ruins;
+  o.market = main.market;
+  o.outpostHome = main;
+  main.outposts.push({ name, world: o });
+  if (ruin) w.ruins.splice(w.ruins.indexOf(ruin), 1);
+  w.addLog(`🏚 ${e.members.map((c) => c.name).join(', ')} ${e.members.length === 1 ? 'se instala' : 'se instalan'} en las ruinas de ${name}: es vuestra nueva colonia. Cambiad de una a otra en 📜 → 🏳 Facciones.`, 'bueno');
+}
+
+/** Todas las colonias del jugador: la principal y las ocupadas. */
+export function allColonies(w: World): { name: string; world: World }[] {
+  const home = w.outpostHome ?? w.battle?.home ?? w;
+  return [{ name: home.name ?? 'Colonia principal', world: home }, ...home.outposts.map((o) => ({ name: o.name, world: o.world }))];
 }

@@ -4,7 +4,7 @@ import { marketDay, MarketState, newMarket } from './market';
 import { ActiveEvent, firstEventTick, runEvents, solarFactor } from './events';
 import { burning, extinguish, threatens, updateFires } from './fire';
 import { checkNewFaction, growBases, placeBases } from './worldmap';
-import { BattleInfo, checkBattle, Expedition, Ruin, updateExpedition } from './expedition';
+import { BattleInfo, checkBattle, Expedition, Outpost, Ruin, updateExpedition } from './expedition';
 import { factionDef, RELATION } from '../data/factions';
 import { countReachable, GameMap, generateMap, inBounds, isPassable, TRENCH_FLOODED, isWater, Prop, PROP_INFO, Terrain, TERRAIN_INFO, tileMoveCost } from './map';
 import { findPath, isWalkable, Point } from './pathfinding';
@@ -232,11 +232,17 @@ export class World implements JobContext {
   /** Expedición de colonos fuera (atacando una base), el mapa de batalla que está por abrirse y las ruinas de las bases destruidas. */
   expedition: Expedition | null = null;
   pendingBattle: World | null = null;
-  readonly ruins: Ruin[] = [];
+  ruins: Ruin[] = [];
   /** Tick en que llega una facción nueva (si quedan pocas), o null. */
   newFactionAt: number | null = null;
   /** Solo en un mapa de batalla: de qué colonia es y contra quién. */
   battle?: BattleInfo;
+  /** Otras colonias del jugador (las ruinas de bases ocupadas). Solo avanza la que se está viendo. */
+  readonly outposts: Outpost[] = [];
+  /** En una colonia ocupada: la principal (es la que se guarda, con esta dentro). */
+  outpostHome?: World;
+  /** Nombre de la colonia (las ocupadas, el de las ruinas). */
+  name?: string;
   /** Tejados: casillas bajo techo, versión para el dibujado y habitaciones que se pueden tejar (caché). */
   readonly roofs = new Set<number>();
   roofVersion = 0;

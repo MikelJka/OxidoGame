@@ -85,3 +85,37 @@ describe('batalla en directo', () => {
     expect(b.battle!.result).toBeDefined();
   });
 });
+
+describe('ocupar las ruinas', () => {
+  it('unos colonos van a vivir a las ruinas: colonia nueva que comparte facciones y se guarda dentro de la principal', async () => {
+    const { allColonies, startSettling } = await import('../src/sim/expedition');
+    const w = flatWorld(3);
+    w.map.start = { x: 15, y: 15 };
+    startExpedition(w, 'granjeros', [w.colonists[0].id]);
+    const b = arrive(w);
+    for (const o of [...b.others]) if (o.role === 'saqueador') b.killPawn(o, 'heridas', true);
+    for (let k = 0; k < 31; k++) b.step();
+    finishBattle(b);
+    w.tick = w.expedition!.arriveAt - (w.expedition!.arriveAt % TICKS_PER_HOUR) + TICKS_PER_HOUR - 1;
+    w.step();
+    expect(w.ruins.length).toBe(1);
+    const ruin = w.ruins[0].name;
+    expect(startSettling(w, ruin, w.colonists.map((c) => c.id))).toContain('quedarse');
+    expect(startSettling(w, ruin, [w.colonists[0].id])).toBeNull();
+    w.tick = w.expedition!.arriveAt - (w.expedition!.arriveAt % TICKS_PER_HOUR) + TICKS_PER_HOUR - 1;
+    w.step();
+    expect(w.outposts.length).toBe(1);
+    expect(w.ruins.length).toBe(0);
+    const o = w.outposts[0].world;
+    expect(o.colonists.length).toBe(1);
+    expect(o.factions).toBe(w.factions);
+    expect(allColonies(o).length).toBe(2);
+    for (let k = 0; k < 200; k++) o.step();
+    // Guardar desde la colonia ocupada guarda la principal, con la ocupada dentro.
+    const back = loadWorld(serializeWorld(o));
+    expect(back.colonists.length).toBe(2);
+    expect(back.outposts.length).toBe(1);
+    expect(back.outposts[0].world.colonists.length).toBe(1);
+    expect(back.outposts[0].world.factions).toBe(back.factions);
+  });
+});

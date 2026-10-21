@@ -91,6 +91,9 @@ export interface SaveData {
   /** Bases destruidas y expedición fuera (desde el 2026-10-21). */
   ruins?: { faction: string; name: string; x: number; y: number; day: number }[];
   newFactionAt?: number;
+  /** Colonias ocupadas (desde el 2026-10-21): cada una, su partida entera. */
+  outposts?: { name: string; save: unknown }[];
+  name?: string;
   expedition?: { faction: string; members: SavedColonist[]; phase: string; arriveAt: number; loot: Record<string, number>; result?: string };
   nextEvent?: number;
   /** Tributo pedido y sin responder (desde el 2026-10-21). */
@@ -235,9 +238,11 @@ function base64ToBytes(b64: string): Uint8Array {
 
 // --- Guardar --------------------------------------------------------------------
 
-export function serializeWorld(world: World, gameVersion?: string): SaveData {
+export function serializeWorld(world: World, gameVersion?: string, direct = false): SaveData {
   // En un mapa de batalla se guarda la colonia (la batalla no se guarda: al cargar, la expedición vuelve).
   if (world.battle) return serializeWorld(world.battle.home, gameVersion);
+  // En una colonia ocupada se guarda la principal, que la lleva dentro.
+  if (world.outpostHome && !direct) return serializeWorld(world.outpostHome, gameVersion);
   const m = world.map;
   const u8: Partial<Record<U8Field, string>> = {};
   for (const f of U8_FIELDS) u8[f] = bytesToBase64(m[f]);
@@ -268,6 +273,8 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     ...(world.roofs.size ? { roofs: [...world.roofs] } : {}),
     ...(world.ruins.length ? { ruins: world.ruins.map((r) => ({ ...r })) } : {}),
     ...(world.newFactionAt !== null ? { newFactionAt: world.newFactionAt } : {}),
+    ...(world.outposts.length ? { outposts: world.outposts.map((o) => ({ name: o.name, save: serializeWorld(o.world, gameVersion, true) })) } : {}),
+    ...(world.name ? { name: world.name } : {}),
     ...(world.expedition ? { expedition: { faction: world.expedition.faction, members: world.expedition.members.map(savePawn), phase: world.expedition.phase, arriveAt: world.expedition.arriveAt, loot: { ...world.expedition.loot }, ...(world.expedition.result ? { result: world.expedition.result } : {}) } } : {}),
     ...(world.burnt.size ? { burnt: [...world.burnt] } : {}),
     ...(world.plague ? { plague: { ...world.plague } } : {}),
@@ -618,6 +625,17 @@ export function loadWorld(input: string | unknown): World {
   const ids = [...world.colonists, ...(world.expedition?.members ?? []), ...world.others, ...world.others.flatMap((o) => o.trader?.slaves ?? []), ...(world.offer ? [world.offer.pawn] : [])].map((c) => c.id);
   world.factions = restoreFactions(d.factions, world.map.seed, world.ruins.map((r) => r.faction));
   world.newFactionAt = typeof d.newFactionAt === 'number' ? d.newFactionAt : null;
+  if (typeof d.name === 'string') world.name = d.name;
+  for (const o of d.outposts ?? []) {
+    try {
+      const ow = loadWorld(o.save);
+      ow.name = String(o.name ?? ow.name ?? 'Ruinas');
+      ow.outpostHome = world;
+      world.outposts.push({ name: ow.name, world: ow });
+    } catch {
+      // Una colonia ocupada que no se puede leer se pierde, pero la partida se carga.
+    }
+  }
   placeBases(world.factions, world.map.seed, world.tick);
   world.market = restoreMarket(d.market);
   world.weather = restoreWeather(d.weather);
@@ -704,6 +722,12 @@ export function loadWorld(input: string | unknown): World {
   // Colonos que quedaran sobre una casilla que ya no se pisa se apartan.
   for (const c of world.colonists) {
     if (!isPassable(world.map, c.tile.x, c.tile.y)) world.moveOutOfTheWay(c);
+  }
+  // Las colonias ocupadas comparten con la principal las facciones, las ruinas y el mercado.
+  for (const o of world.outposts) {
+    o.world.factions = world.factions;
+    o.world.ruins = world.ruins;
+    o.world.market = world.market;
   }
   return world;
 }

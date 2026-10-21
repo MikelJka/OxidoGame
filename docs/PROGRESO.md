@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (45) — Ocupar las ruinas: una colonia más
+
+- Opción 3A de Mikel. Las **🏚 ruinas** de una base destruida salen en **📜 → 🏳 Facciones** con **Ocupar**: se elige quién va (alguien tiene que quedarse) y salen de viaje.
+- Al llegar hacen allí una **colonia nueva**: un mapa con lo que queda de los muros (rotos, con huecos), algo de madera y comida, y los colonos que han ido. Comparte con la principal las facciones, las ruinas y el mercado.
+- En 📜 → 🏳 Facciones sale **🏠 Vuestras colonias** con un botón por colonia para **ir de una a otra**. Solo avanza la que se está viendo; las demás esperan.
+- Se guarda todo en la misma partida: la principal con las ocupadas dentro, desde cualquiera de ellas.
+- Con esto quedan hechas las **bases de las facciones**.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): que solo avance la colonia abierta, el tamaño del mapa nuevo (80×60) y lo que hay al llegar.
+- Qué probar: tras ganar una batalla, «🏚 Ocupar» con un colono, esperar a que llegue y cambiar de colonia con los botones.
+- Sin npm en el entorno: tests con Bun (638) y tipos con `tsc`. El cambio de colonia no se ha podido probar en el navegador desde aquí: la prueba completa, en GitHub Actions.
+- Siguiente: los opcionales aprobados (caza, estaciones y ropa con la temperatura, ocio).
+
 ## 2026-10-21 (44) — Facciones nuevas
 
 - Opción 4B de Mikel: si quedan **menos de 3 facciones** (porque habéis destruido alguna base), a los **3–6 días** llega una **nueva** que monta su base en el mapa del mundo. Sale una de esta lista, que no haya estado antes:

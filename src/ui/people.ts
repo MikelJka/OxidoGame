@@ -22,7 +22,7 @@ import { marketTrend } from '../sim/market';
 import { relationLevel, RELATION_LEVEL_NAMES } from '../sim/factions';
 import { baseLevel, WORLD_MAP } from '../data/worldmap';
 import { colonyCell, travelDays } from '../sim/worldmap';
-import { expeditionHours, startExpedition } from '../sim/expedition';
+import { allColonies, expeditionHours, startExpedition, startSettling } from '../sim/expedition';
 
 export interface PeopleUI {
   /** Abre la pestaña de una persona tocada en el mapa (prisionero o comerciante). */
@@ -35,6 +35,8 @@ interface Options {
   /** Empieza un mapa nuevo (sin preguntar: la partida ya ha terminado). */
   newGame: () => void;
   focus: (x: number, y: number) => void;
+  /** Pasa a ver otra colonia (las ruinas ocupadas o la principal). */
+  switchTo?: (w: World) => void;
 }
 
 type Tab = 'diario' | 'prisioneros' | 'comercio' | 'investigacion' | 'facciones';
@@ -232,7 +234,62 @@ export function mountPeople(opts: Options): PeopleUI {
       const where = w.faction(e.faction)?.settlement ?? def?.name ?? e.faction;
       out.push(el('p', 'pp-hint', e.phase === 'ida' ? `⚔️ Expedición de camino a ${where} (${e.members.map((c) => c.name).join(', ')}): llega en ${expeditionHours(w)} h.` : e.phase === 'vuelta' ? `🏠 La expedición vuelve de ${where}: llega en ${expeditionHours(w)} h.` : `⚔️ Batalla en ${where}.`));
     }
-    for (const r of w.ruins) out.push(el('div', 'muted', `🏚 Ruinas de ${r.name} (cayó el día ${r.day}).`));
+    // Vuestras colonias (la principal y las ruinas ocupadas): se ve y avanza solo la que está abierta.
+    const colonies = allColonies(w);
+    if (colonies.length > 1 && !w.battle) {
+      const box = el('div', 'pp-card');
+      box.append(el('strong', undefined, '🏠 Vuestras colonias'), el('div', 'muted', 'Solo avanza la que estáis viendo; las demás esperan.'));
+      const row = el('div', 'pp-modes');
+      for (const c of colonies) {
+        const here = c.world === w;
+        const b = button(`${here ? '📍 ' : ''}${c.name} · ${c.world.colonists.length} 👤`, () => {
+          if (!here) opts.switchTo?.(c.world);
+        }, here ? 'Estáis aquí' : `Ir a ${c.name}`);
+        if (here) b.classList.add('active');
+        row.append(b);
+      }
+      box.append(row);
+      out.push(box);
+    }
+    // Ruinas de las bases destruidas: se pueden ocupar (mandar a vivir allí a unos colonos).
+    for (const r of w.ruins) {
+      const card = el('div', 'pp-card');
+      card.append(el('strong', undefined, `🏚 Ruinas de ${r.name}`), el('div', 'muted', `Cayó el día ${r.day}. Se pueden ocupar: los que vayan harán allí una colonia nueva.`));
+      if (!w.expedition && !w.battle) {
+        if (attackPick?.faction === `ruina:${r.name}`) {
+          const pick = el('div', 'pp-modes');
+          for (const c of w.colonists.filter((k) => !k.downed)) {
+            const on = attackPick.ids.includes(c.id);
+            const btn = button(`${on ? '☑' : '☐'} ${c.name}`, () => {
+              attackPick!.ids = on ? attackPick!.ids.filter((i) => i !== c.id) : [...attackPick!.ids, c.id];
+              rerender();
+            });
+            if (on) btn.classList.add('active');
+            pick.append(btn);
+          }
+          const go = el('div', 'zp-row');
+          go.append(
+            button(`🏚 Enviar (${attackPick.ids.length})`, () => {
+              const why = startSettling(w, r.name, attackPick!.ids);
+              opts.toast(why ?? `🏚 Salen hacia ${r.name}`, why ? 3000 : 2500);
+              if (!why) attackPick = null;
+              rerender();
+            }),
+            button('✖', () => {
+              attackPick = null;
+              rerender();
+            }, 'Cancelar'),
+          );
+          card.append(el('div', 'pp-hint', '¿Quién va a vivir allí? (alguien tiene que quedarse aquí)'), pick, go);
+        } else {
+          card.append(button('🏚 Ocupar', () => {
+            attackPick = { faction: `ruina:${r.name}`, ids: [] };
+            rerender();
+          }, 'Mandar colonos a vivir en las ruinas'));
+        }
+      }
+      out.push(card);
+    }
     // Radio: llamar a una caravana o pedir ayuda a los aliados.
     const radio = el('div', 'pp-card');
     radio.append(el('strong', undefined, '📻 Radio'));
@@ -535,7 +592,7 @@ export function mountPeople(opts: Options): PeopleUI {
       tab, logFilter, w.research.current, w.log.length, w.log[w.log.length - 1]?.tick, trader, w.colonists.length, w.day,
       prisoners.map((p) => `${p.id}:${p.prisoner!.mode}:${Math.round(p.prisoner!.resistance * 100)}:${Math.round(p.needs.food * 20)}:${Math.round(p.needs.water * 20)}:${Math.round(p.health * 20)}`).join(','),
       tab === 'comercio' ? `${JSON.stringify(w.inventory())}:${Math.floor(w.tick / TICKS_PER_HOUR)}` : '',
-      tab === 'facciones' ? `${JSON.stringify(attackPick)}:${w.expedition?.phase ?? ''}:${expeditionHours(w)}:${w.ruins.length}:${w.colonists.length}:${w.factions.map((f) => `${f.relation}:${f.calledAt ?? ''}:${f.helpAt ?? ''}:${f.base?.population ?? ''}:${f.base?.defenses ?? ''}`).join(',')}:${radioProblem(w) ?? ''}` : '',
+      tab === 'facciones' ? `${allColonies(w).map((c) => c.world.colonists.length).join('/')}:${JSON.stringify(attackPick)}:${w.expedition?.phase ?? ''}:${expeditionHours(w)}:${w.ruins.length}:${w.colonists.length}:${w.factions.map((f) => `${f.relation}:${f.calledAt ?? ''}:${f.helpAt ?? ''}:${f.base?.population ?? ''}:${f.base?.defenses ?? ''}`).join(',')}:${radioProblem(w) ?? ''}` : '',
       tab === 'investigacion' ? `${w.research.current}:${w.research.done.join(',')}:${w.research.current ? Math.floor(researchFraction(w.research, w.research.current) * 100) : ''}:${w.structures.stations().length}:${w.colonists.map((c) => c.priorities.investigar).join('')}` : '',
     ].join('|');
     if (key === lastKey) return;

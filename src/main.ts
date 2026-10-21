@@ -1278,6 +1278,10 @@ const people = mountPeople({
     scene().focusTile(x, y);
     view3d?.lookAt(x + 0.5, y + 0.5);
   },
+  switchTo: (w) => {
+    scene().scene.restart({ seed: w.map.seed, world: w });
+    showToast(`🏠 ${w.name ?? 'Colonia principal'}`, 2000);
+  },
 });
 // Saqueador en el suelo (#22): elegir si se le captura o se le remata.
 const foePanel = $('foe-panel');
