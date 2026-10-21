@@ -72,39 +72,6 @@ try {
       await page.keyboard.press('Escape');
     }
     await page.click('#build-btn');
-    // Vista 3D.
-    await page.click('#menu-btn');
-    await page.click('#view3d-btn');
-    await sleep(5000);
-    await page.screenshot({ path: `smoke/${d.name}-3d.png` });
-    if (!d.isMobile) {
-      // Pivotar con el botón central.
-      await page.mouse.move(640, 400);
-      await page.mouse.down({ button: 'middle' });
-      await page.mouse.move(820, 330, { steps: 10 });
-      await page.mouse.up({ button: 'middle' });
-      await page.mouse.wheel(0, -600);
-      await sleep(1000);
-      await page.screenshot({ path: `smoke/${d.name}-3d-girada.png` });
-      // Un clic en el suelo con el colono elegido (orden de ir).
-      await page.mouse.click(600, 450);
-      await sleep(1500);
-      await page.screenshot({ path: `smoke/${d.name}-3d-orden.png` });
-      // Fantasma en 3D de un muro de piedra.
-      await page.click('#build-btn');
-      await page.click('#build-tabs button[data-cat="muro"]');
-      await page.click('#build-modes button[data-build="muro_piedra"]');
-      await page.mouse.move(640, 420);
-      await page.mouse.move(650, 430);
-      await sleep(600);
-      await page.screenshot({ path: `smoke/${d.name}-3d-fantasma.png` });
-      await page.keyboard.press('Escape');
-      await page.click('#build-btn');
-    }
-    await page.click('#menu-btn');
-    await page.click('#view3d-btn');
-    await sleep(1500);
-    await page.screenshot({ path: `smoke/${d.name}-vuelta-2d.png` });
     // Gente: superviviente, raid, prisionero y caravana (provocados) y sus paneles.
     await page.evaluate(() => window.oxidoPrueba.superviviente());
     await sleep(800);

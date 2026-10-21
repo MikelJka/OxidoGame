@@ -468,7 +468,6 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 .need .num { text-align: right; color: var(--muted); }
 
 /* --- Vista 3D ------------------------------------------------------------------ */
-#view3d { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 
 /* --- Gente: diario, prisioneros, comercio ------------------------------------------- */
 #people-btn.alert { border-color: #d9534f; color: #d9534f; }

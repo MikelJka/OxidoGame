@@ -19,9 +19,9 @@ Idioma: el código (nombres de variables, funciones, tipos) en inglés; comentar
 - Nunca uses `Math.random()` dentro de `src/sim/`: usa `Rng`.
 - Partidas guardadas (`src/sim/save.ts`): no las rompas. Si añades estado a la simulación, guárdalo en `serializeWorld` y léelo en `loadWorld` con un valor por defecto para partidas antiguas; si un cambio no se puede leer así, sube `SAVE_VERSION` y añade la migración.
 
-## Contenido primero; 3D aparcada (orden de Mikel del 2026-10-18)
+## Contenido primero; solo 2D (órdenes de Mikel del 2026-10-18 y 2026-10-21)
 
-- No se trabaja en la vista 3D (`src/render3d/`) salvo para arreglar algo que rompa el juego. Lo nuevo se dibuja solo en 2D.
+- La vista 3D se ha quitado (2026-10-21: «podemos descartar el 3d por completo»). Todo se dibuja en 2D, con calidad de estudio: `src/render/` (dibujo) y `src/audio/` (sonido).
 - El contenido que falta está en `docs/CATALOGO.md`. Un bloque marcado «✅ Aprobado» por Mikel pasa a «Pendiente» de `FEEDBACK.md` (por fases) y se implementa sin volver a preguntar; lo no aprobado, no.
 - La simulación debe poder llevarse a otro motor con mejor 3D (Babylon.js, PlayCanvas, Godot…), así que:
   - Todas las reglas van en `src/sim/` (TypeScript puro, sin Phaser, Three.js ni DOM). El dibujado y la interfaz solo leen el estado y llaman a métodos de `World`; nunca deciden reglas.

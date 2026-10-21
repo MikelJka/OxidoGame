@@ -160,83 +160,8 @@ function checkBattleSwitch(): void {
 }
 
 // --- Giro de la vista -------------------------------------------------------
-// --- Vista 3D (en pruebas) ------------------------------------------------------
-type View3DType = import('./render3d/View3D').View3D;
-let view3d: View3DType | null = null;
-const VIEW3D_KEY = 'oxido.vista3d';
-const view3dBtn = $<HTMLButtonElement>('view3d-btn');
-async function setView3D(on: boolean): Promise<void> {
-  const s = scene();
-  if (on && !view3d) {
-    try {
-      const mod = await import('./render3d/View3D');
-      view3d = new mod.View3D($('game'), () => game.scene.getScene('world') as WorldScene);
-      view3d.onContextLost = () => {
-        recordError('error', 'La vista 3D perdió el contexto gráfico (falta de memoria gráfica); se vuelve a la 2D');
-        void setView3D(false).then(() => (view3d = null)); // la próxima vez se crea de nuevo
-        showToast('⚠️ La vista 3D se ha cerrado: el dispositivo se quedó sin memoria gráfica. Sigues en 2D.', 6000);
-      };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      // Si falla la descarga del código de la 3D es que se ha publicado una versión nueva con la
-      // página abierta (el archivo viejo ya no existe): se guarda y se recarga con la versión nueva.
-      if (isStaleChunkError(msg) && reloadForNewVersion()) return;
-      recordError('error', `No se pudo abrir la vista 3D: ${msg}`);
-      showToast(
-        isStaleChunkError(msg)
-          ? '⚠️ No se pudo descargar la vista 3D. Comprueba la conexión y recarga la página.'
-          : `⚠️ No se pudo abrir la vista 3D: ${msg}. ¿Está activada la aceleración por hardware del navegador?`,
-        7000,
-      );
-      return;
-    }
-  }
-  if (on) {
-    view3d!.start();
-    game.canvas.style.display = 'none';
-    s.scene.setVisible(false);
-    s.cameraKeysEnabled = false;
-  } else {
-    view3d?.stop();
-    game.canvas.style.display = '';
-    s.scene.setVisible(true);
-    s.cameraKeysEnabled = true;
-  }
-  document.body.classList.toggle('mode-3d', on);
-  $('view3d-quick').textContent = on ? '2D' : '3D';
-  $('view3d-quick').classList.toggle('active', on);
-  view3dBtn.innerHTML = on ? '<span class="mi">🗺</span><span>Vista 2D</span>' : '<span class="mi">🧊</span><span>Vista 3D</span>';
-  try {
-    localStorage.setItem(VIEW3D_KEY, on ? '1' : '0');
-  } catch {
-    // sin almacenamiento: no se recuerda
-  }
-}
-/** Error del navegador al no poder descargar un trozo del juego cargado aparte (Chrome, Firefox, Safari). */
-function isStaleChunkError(msg: string): boolean {
-  return /dynamically imported module|Importing a module script failed|error loading dynamically imported module|Failed to fetch/i.test(msg);
-}
 /** Marca, en esta pestaña, de que se recargó sola para coger una versión nueva. */
 const RELOAD_KEY = 'oxido.recargaVersion';
-/**
- * Guarda la partida y recarga la página para cargar la versión publicada, y al volver abre la 3D.
- * Devuelve false si ya se recargó hace menos de un minuto (así nunca se queda recargando sin parar).
- */
-function reloadForNewVersion(): boolean {
-  try {
-    const last = Number(sessionStorage.getItem(RELOAD_KEY) ?? 0);
-    if (Date.now() - last < 60_000) return false;
-    sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
-    localStorage.setItem(VIEW3D_KEY, '1');
-  } catch {
-    return false; // sin almacenamiento no se puede asegurar que no se repita
-  }
-  saveNow(false);
-  if (saveError) return false; // sin la partida guardada no se recarga
-  showToast('🔄 Hay una versión nueva del juego: guardando y recargando…', 4000);
-  window.setTimeout(() => window.location.reload(), 300);
-  return true;
-}
 /** true si esta carga viene de una recarga automática por versión nueva (hace menos de un minuto). */
 function cameFromVersionReload(): boolean {
   try {
@@ -245,31 +170,13 @@ function cameFromVersionReload(): boolean {
     return false;
   }
 }
-$('view3d-quick').addEventListener('click', () => void setView3D(!view3d?.active));
-game.events.on('request-3d', () => {
-  if (view3d?.active) return;
-  showToast('🧊 Vista 3D: mantén el botón central para pivotar', 2500);
-  void setView3D(true);
-});
-view3dBtn.addEventListener('click', () => {
-  menu.hidden = true;
-  void setView3D(!view3d?.active);
-});
-window.setInterval(() => {
-  if (view3d?.active) $('compass').textContent = `↑${view3d.compass()}`;
-}, 250);
-
-$('rot-left').addEventListener('click', () => (view3d?.active ? view3d.rotateBy(Math.PI / 4) : scene().rotate(-1)));
-$('rot-right').addEventListener('click', () => (view3d?.active ? view3d.rotateBy(-Math.PI / 4) : scene().rotate(1)));
+$('rot-left').addEventListener('click', () => scene().rotate(-1));
+$('rot-right').addEventListener('click', () => scene().rotate(1));
 game.events.on('view-rotation', (r: Rotation) => ($('compass').textContent = `↑${northLabel(r)}`));
 // El botón de inclinación recorre las inclinaciones, de mirar desde arriba a mirar de lado, y vuelve a empezar.
 const tiltBtn = $('tilt-btn');
 let tiltNow = DEFAULT_TILT;
 tiltBtn.addEventListener('click', () => {
-  if (view3d?.active) {
-    view3d.tiltBy(0.25);
-    return;
-  }
   scene().setTiltLevel((tiltNow + 1) % TILTS.length);
 });
 game.events.on('view-tilt', (i: number) => {
@@ -311,18 +218,7 @@ $('new-map').addEventListener('click', () => {
   startNewMap();
 });
 
-let view3dRestored = false;
 game.events.on('map-ready', (map: GameMap) => {
-  if (!view3dRestored) {
-    view3dRestored = true;
-    let want = false;
-    try {
-      want = localStorage.getItem(VIEW3D_KEY) === '1';
-    } catch {
-      // nada
-    }
-    if (want) void setView3D(true);
-  }
   seed = map.seed;
   $('seed').textContent = `Mapa · semilla ${seed}`;
   const near = reachableResources(map);
@@ -1339,7 +1235,6 @@ const people = mountPeople({
   newGame: () => startNewMap(),
   focus: (x, y) => {
     scene().focusTile(x, y);
-    view3d?.lookAt(x + 0.5, y + 0.5);
   },
   switchTo: (w) => {
     scene().scene.restart({ seed: w.map.seed, world: w });
@@ -1627,7 +1522,6 @@ function renderRoster(): void {
       }
       if (s.selectedId === c.id && s.extraIds.size === 0) {
         s.focus(c.id);
-        view3d?.lookAt(c.pos.x, c.pos.y);
       }
       s.select(c.id);
     });

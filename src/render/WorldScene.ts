@@ -760,11 +760,7 @@ export class WorldScene extends Phaser.Scene {
     const cam = this.cameras.main;
 
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
-      // El botón central es para pivotar la vista libremente: eso lo hace la vista 3D.
-      if (p.middleButtonDown()) {
-        this.game.events.emit('request-3d');
-        return;
-      }
+      if (p.middleButtonDown()) return;
       if (this.isPinching()) {
         this.clearDesignDrag();
         this.startPinch();
