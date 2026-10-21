@@ -678,7 +678,9 @@ export function startTrader(w: World): Colonist | null {
   const home = w.colonyPoint();
   const path = home ? findPath(w.map, t.tile, nearFree(w, home) ?? home, 60000) : null;
   if (path) t.path = path;
-  w.addLog(`🐫 Llega una caravana de ${t.name}${nSlaves ? ` con ${nSlaves} ${nSlaves === 1 ? 'esclavo' : 'esclavos'}` : ''}. Toca al comerciante para comerciar.`, 'bueno', 'caravana', t.tile);
+  const from = t.faction ? factionDef(t.faction) : undefined;
+  const extras = [nSlaves ? `${nSlaves} ${nSlaves === 1 ? 'esclavo' : 'esclavos'}` : '', t.trader.mules ? `${t.trader.mules} ${t.trader.mules === 1 ? 'mula' : 'mulas'}` : ''].filter(Boolean);
+  w.addLog(`🐫 Llega una caravana de ${t.name}${from ? ` (${from.icon} ${from.name})` : ''}${extras.length ? ` con ${extras.join(' y ')}` : ''}. Toca al comerciante para comerciar.`, 'bueno', 'caravana', t.tile);
   return t;
 }
 
