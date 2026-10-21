@@ -1,7 +1,7 @@
 /** Recursos de la colonia y trabajos para obtenerlos del mapa. Ampliar aquí, no en la lógica. */
 import type { Skill } from './colonists';
 
-export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra', 'metal', 'hormigon', 'comida', 'palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'ballesta', 'lanza_metal', 'flechas', 'pistola', 'escopeta', 'rifle', 'subfusil', 'francotirador', 'balas', 'granadas', 'chaleco_cuero', 'chaleco_chapa', 'chaleco_metal', 'chaleco_tactico', 'casco_chapa', 'casco_metal', 'casco_tactico', 'medicina', 'combustible', 'hierba', 'pescado', 'abrigo'] as const;
+export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra', 'metal', 'hormigon', 'comida', 'palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'ballesta', 'lanza_metal', 'flechas', 'pistola', 'escopeta', 'rifle', 'subfusil', 'francotirador', 'balas', 'granadas', 'chaleco_cuero', 'chaleco_chapa', 'chaleco_metal', 'chaleco_tactico', 'casco_chapa', 'casco_metal', 'casco_tactico', 'medicina', 'combustible', 'hierba', 'pescado', 'abrigo', 'carne', 'cuero'] as const;
 
 export type ResourceId = (typeof RESOURCES)[number];
 
@@ -45,14 +45,16 @@ export const RESOURCE_NAMES: Record<ResourceId, string> = {
   hierba: 'Hierba curativa',
   pescado: 'Pescado',
   abrigo: 'Abrigo',
+  carne: 'Carne',
+  cuero: 'Cuero',
 };
 
 /** Recursos que se muestran siempre en el inventario (los demás, solo si hay). */
 export const BASE_RESOURCES: readonly ResourceId[] = ['madera', 'piedra', 'chatarra', 'componentes'];
 /** Lo que se come: la comida cocinada y los alimentos crudos. */
-export const FOOD_RESOURCES: readonly ResourceId[] = ['comida', 'patata', 'maiz', 'setas', 'pescado'];
+export const FOOD_RESOURCES: readonly ResourceId[] = ['comida', 'patata', 'maiz', 'setas', 'pescado', 'carne'];
 /** Alimentos crudos (se pueden comer, pero sientan peor y alimentan menos que cocinados). */
-export const RAW_FOOD: readonly ResourceId[] = ['patata', 'maiz', 'setas', 'pescado'];
+export const RAW_FOOD: readonly ResourceId[] = ['patata', 'maiz', 'setas', 'pescado', 'carne'];
 
 /** Icono corto para la interfaz. */
 export const RESOURCE_ICONS: Record<ResourceId, string> = {
@@ -95,6 +97,8 @@ export const RESOURCE_ICONS: Record<ResourceId, string> = {
   hierba: '🌿',
   pescado: '🐟',
   abrigo: '🧥',
+  carne: '🥩',
+  cuero: '🟫',
 };
 
 /** Tipo de trabajo con el que se aprovecha un objeto del mapa. */
@@ -166,6 +170,8 @@ export const MAX_STACK: Record<ResourceId, number> = {
   hierba: 75,
   pescado: 75,
   abrigo: 10,
+  carne: 75,
+  cuero: 50,
 };
 
 /** Provisiones con las que llega la colonia: se dejan en el suelo junto al punto de inicio. */

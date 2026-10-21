@@ -2,6 +2,23 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (47) — Animales y caza
+
+- Bloque 10. Cada día llegan por los bordes **🦌 ciervos mutados**, **🐗 jabalíes** y **🐀 ratas gigantes** (8 como mucho). Pasean por el mapa y a los 3 días se van.
+- **Al tocar un animal se marca con 🎯 para cazarlo** (tocarlo otra vez lo desmarca). Va a por él quien tenga el trabajo nuevo **«Cazar»**, en la tabla de trabajos, con el arma que lleve.
+- Cazado deja **🥩 carne** (cruda alimenta como las patatas; en la cocina, «Carne asada»: 4 → 2 🍲) y **🟫 cuero**.
+- El **jabalí herido ataca** al que le hiere. La **rata gigante** va a por la comida que no está dentro de una habitación y se come un poco.
+- El **chaleco de cuero** pide ahora **🟫8 cuero** en vez de fibra y la investigación **«Sastrería»** (como dice el catálogo).
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo):
+  - cuántos animales hay y cuánto se quedan;
+  - su vida y su daño;
+  - la carne y el cuero que da cada uno;
+  - cuánto come una rata;
+  - que se marquen tocándolos (no hay herramienta ⚒ → 🎯, para que vaya igual con dedo y ratón).
+- Qué probar: tocar un ciervo y ver que un colono con «Cazar» y un arco o un arma de fuego va a por él; dejar comida fuera de los muros y ver a las ratas.
+- Sin npm en el entorno: tests con Bun (647, 5 nuevos en `tests/hunting.test.ts`) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+- Siguiente: el ocio (bloque 12): mesa de juego, muebles de habitación y ratos libres.
+
 ## 2026-10-21 (46) — Estaciones, frío, estufa y abrigo
 
 - Bloque 11. **Estaciones de 10 días**: 🌸 primavera, ☀️ verano, 🍂 otoño y ❄️ invierno. El icono sale junto al día, arriba.

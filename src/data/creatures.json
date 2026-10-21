@@ -50,16 +50,91 @@
       "machine": true,
       "flies": true,
       "gun": "pistola"
+    },
+    "ciervo_mutado": {
+      "name": "Ciervo mutado",
+      "plural": "ciervos mutados",
+      "emoji": "🦌",
+      "fromDay": 0,
+      "walkSpeed": 1.3,
+      "health": 0.8,
+      "damage": 0.6,
+      "breaksWalls": false,
+      "wallDamage": 0,
+      "animal": true,
+      "meat": [
+        8,
+        12
+      ],
+      "leather": [
+        3,
+        5
+      ]
+    },
+    "jabali": {
+      "name": "Jabalí",
+      "plural": "jabalíes",
+      "emoji": "🐗",
+      "fromDay": 0,
+      "walkSpeed": 1.1,
+      "health": 1.2,
+      "damage": 1.5,
+      "breaksWalls": false,
+      "wallDamage": 0,
+      "animal": true,
+      "meat": [
+        10,
+        15
+      ],
+      "leather": [
+        4,
+        6
+      ],
+      "fightsBack": true
+    },
+    "rata_gigante": {
+      "name": "Rata gigante",
+      "plural": "ratas gigantes",
+      "emoji": "🐀",
+      "fromDay": 0,
+      "walkSpeed": 1.2,
+      "health": 0.3,
+      "damage": 0.5,
+      "breaksWalls": false,
+      "wallDamage": 0,
+      "animal": true,
+      "meat": [
+        2,
+        3
+      ],
+      "leather": [
+        1,
+        1
+      ],
+      "stealsFood": true,
+      "female": true
     }
   },
   "machines": {
     "_": "Máquinas (bloque 6 del catálogo, aprobado por Mikel el 2026-10-18): desde `fromDay`, 1 de cada `every` ataques es de máquinas en lugar de saqueadores o mutantes. Trae entre spiders[0] y spiders[1] arañas y entre drones[0] y drones[1] drones de vigilancia. Las máquinas no tienen moral (no huyen), no dejan cadáver y al destruirlas sueltan entre scrap[0] y scrap[1] 🔩 y entre parts[0] y parts[1] ⚙️. Las armas de fuego les hacen `firearmBonus` más de daño. `armor` en cada máquina: parte del daño que se quita.",
     "fromDay": 30,
     "every": 4,
-    "spiders": [1, 2],
-    "drones": [2, 4],
-    "scrap": [10, 20],
-    "parts": [2, 4],
+    "spiders": [
+      1,
+      2
+    ],
+    "drones": [
+      2,
+      4
+    ],
+    "scrap": [
+      10,
+      20
+    ],
+    "parts": [
+      2,
+      4
+    ],
     "firearmBonus": 0.25
   },
   "packs": {
@@ -79,5 +154,20 @@
     "moodPenalty": 0.05,
     "viewRadius": 5,
     "moodHours": 2
+  },
+  "animals": {
+    "_": "Bloque 10 del catálogo (aprobado por Mikel el 2026-10-18): ciervos mutados, jabalíes y ratas gigantes por el mapa; cazados dan 🥩 carne y 🟫 cuero; los jabalíes heridos atacan y las ratas gigantes roban comida de los almacenes sin muros. Cuántos hay, cada cuánto llegan, cuánto se quedan y cuánto roba una rata los ha puesto la sesión del 2026-10-21.",
+    "max": 8,
+    "perDay": [
+      1,
+      3
+    ],
+    "weights": {
+      "ciervo_mutado": 3,
+      "jabali": 2,
+      "rata_gigante": 2
+    },
+    "stayDays": 3,
+    "ratSteals": 5
   }
 }

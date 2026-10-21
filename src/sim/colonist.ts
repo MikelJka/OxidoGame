@@ -172,6 +172,10 @@ export interface Colonist {
   helmet: ArmorId | null;
   /** Lleva abrigo (bloque 11): de noche en invierno no pasa frío. */
   coat?: boolean;
+  /** Animal marcado para cazarlo (⚒ → 🎯 Cazar). */
+  huntMarked?: boolean;
+  /** Animal: tick en que se va del mapa (o la rata que ya ha robado). */
+  leaveAt?: number;
   /** Armadura: la mejor libre («auto») o ninguna. */
   armorChoice: 'auto' | 'ninguna';
   /** Va a recoger un arma, munición o armadura del suelo o del almacén. */
@@ -237,7 +241,7 @@ export interface TraderInfo {
 }
 
 /** «aliado»: combatiente que manda una facción aliada para ayudar en un ataque. */
-export type PawnRole = 'colono' | 'saqueador' | 'prisionero' | 'comerciante' | 'aliado';
+export type PawnRole = 'colono' | 'saqueador' | 'prisionero' | 'comerciante' | 'aliado' | 'animal';
 
 export interface PrisonerInfo {
   /** 0–1: cuánto le falta para dejarse convencer. */
@@ -361,6 +365,7 @@ const ROLE_PLURAL: Record<PawnRole, [string, string]> = {
   prisionero: ['prisionero', 'prisioneros'],
   comerciante: ['comerciante', 'comerciantes'],
   aliado: ['aliado', 'aliados'],
+  animal: ['animal', 'animales'],
 };
 
 /**

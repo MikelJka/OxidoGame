@@ -5,7 +5,7 @@
  */
 import data from './creatures.json';
 
-export type CreatureId = 'perro_mutante' | 'bruto_mutante' | 'arana_chatarra' | 'dron_vigilancia';
+export type CreatureId = 'perro_mutante' | 'bruto_mutante' | 'arana_chatarra' | 'dron_vigilancia' | 'ciervo_mutado' | 'jabali' | 'rata_gigante';
 
 export interface CreatureDef {
   id: CreatureId;
@@ -34,6 +34,14 @@ export interface CreatureDef {
   gun?: string;
   /** Para los textos: «la araña… queda destrozada». */
   female?: boolean;
+  /** Animal (bloque 10): va por libre por el mapa, se caza y deja carne y cuero [mín, máx]. */
+  animal?: boolean;
+  meat?: [number, number];
+  leather?: [number, number];
+  /** Herido, ataca (el jabalí). */
+  fightsBack?: boolean;
+  /** Roba comida de los almacenes sin muros (la rata gigante). */
+  stealsFood?: boolean;
 }
 
 export const CREATURES: Record<CreatureId, CreatureDef> = Object.fromEntries(
@@ -90,3 +98,6 @@ export const CORPSES = {
   /** Horas que dura el mal rato después de dejar de verlo. */
   moodHours: data.corpses.moodHours,
 };
+
+/** Animales (bloque 10): cuántos como mucho, cuántos llegan al día, de qué tipo, cuánto se quedan y cuánto roba una rata. */
+export const ANIMALS = data.animals as unknown as { max: number; perDay: [number, number]; weights: Partial<Record<CreatureId, number>>; stayDays: number; ratSteals: number };

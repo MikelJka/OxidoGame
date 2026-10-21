@@ -158,6 +158,8 @@ interface SavedColonist {
   vest?: string | null;
   helmet?: string | null;
   coat?: boolean;
+  huntMarked?: boolean;
+  leaveAt?: number;
   armorChoice?: string;
   panic?: { until: number };
   stunnedUntil?: number;
@@ -214,6 +216,8 @@ function savePawn(c: Colonist): SavedColonist {
     vest: c.vest,
     helmet: c.helmet,
     ...(c.coat ? { coat: true } : {}),
+    ...(c.huntMarked ? { huntMarked: true } : {}),
+    ...(c.leaveAt !== undefined ? { leaveAt: c.leaveAt } : {}),
     armorChoice: c.armorChoice,
     panic: c.panic ? { ...c.panic } : undefined,
     stunnedUntil: c.stunnedUntil,
@@ -443,7 +447,7 @@ function restoreColonist(s: SavedColonist): Colonist {
     ...(s.vehicle && (s.vehicle.seat === 'conductor' || s.vehicle.seat === 'tirador')
       ? { vehicle: { id: num(s.vehicle.id, 0), seat: s.vehicle.seat, boarded: !!s.vehicle.boarded } }
       : {}),
-    role: (['colono', 'saqueador', 'prisionero', 'comerciante', 'aliado'] as const).find((r) => r === s.role) ?? 'colono',
+    role: (['colono', 'saqueador', 'prisionero', 'comerciante', 'aliado', 'animal'] as const).find((r) => r === s.role) ?? 'colono',
     prisoner: s.prisoner
       ? {
           resistance: Math.max(0, Math.min(1, num(s.prisoner.resistance, 0.5))),
@@ -503,6 +507,8 @@ function restoreColonist(s: SavedColonist): Colonist {
     vest: typeof s.vest === 'string' && isArmor(s.vest) && ARMORS[s.vest].slot === 'chaleco' ? s.vest : null,
     helmet: typeof s.helmet === 'string' && isArmor(s.helmet) && ARMORS[s.helmet].slot === 'casco' ? s.helmet : null,
     ...(s.coat ? { coat: true } : {}),
+    ...(s.huntMarked ? { huntMarked: true } : {}),
+    ...(typeof s.leaveAt === 'number' ? { leaveAt: s.leaveAt } : {}),
     armorChoice: s.armorChoice === 'ninguna' ? 'ninguna' : 'auto',
     // Partidas de antes del pánico: nadie en pánico (al cargar, sin camino: se queda quieto hasta que se le pasa).
     ...(s.panic && typeof s.panic === 'object' ? { panic: { until: num(s.panic.until, 0) } } : {}),

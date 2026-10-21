@@ -28,6 +28,7 @@ import { marketTrade, marketValue } from './market';
 import { Rng } from './rng';
 import { researchDef } from '../data/research';
 import { giftPoints } from './factions';
+import { enrage, updateAnimal } from './animals';
 import { enrichBase } from './worldmap';
 export { canTalk, TALK_HOURS } from './jobs';
 
@@ -946,6 +947,8 @@ function applyHit(w: World, a: Colonist, b: Colonist, weapon: WeaponDef | null |
     // Herido y con el ánimo por los suelos: puede entrar en pánico.
     maybePanic(w, b, 'herido');
   }
+  // El jabalí herido (y en pie) se vuelve contra quien le ataca.
+  if (!fell && b.role === 'animal' && !b.downed && w.others.includes(b)) enrage(w, b);
 }
 
 // --- Torretas (defensas activas con electricidad) --------------------------------------
@@ -1234,6 +1237,7 @@ export function updateOthers(w: World): void {
     }
     if (o.role === 'saqueador') updateRaider(w, o);
     else if (o.role === 'aliado') updateAlly(w, o);
+    else if (o.role === 'animal') updateAnimal(w, o, goAway);
     else if (o.role === 'comerciante') updateTrader(w, o);
     else if (o.role === 'prisionero') updatePrisoner(w, o);
   }

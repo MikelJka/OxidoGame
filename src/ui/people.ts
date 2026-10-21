@@ -1,6 +1,7 @@
 // Gente: diario de la colonia, prisioneros, comercio con caravanas, supervivientes que piden
 // unirse y fin de partida. Solo interfaz: las reglas están en src/sim/people.ts.
 import { CREATURES } from '../data/creatures';
+import { toggleHunt } from '../sim/animals';
 import type { World } from '../sim/world';
 import type { Colonist } from '../sim/colonist';
 import { buyPrice, callAllies, callCaravan, dealBalance, nextCaravanNeeds, sellPrice, makeDeal, payTribute, radioProblem, refuseTribute, slaveValue, TRADER_MARGIN, TradeDeal } from '../sim/people';
@@ -740,6 +741,12 @@ export function mountPeople(opts: Options): PeopleUI {
 
   return {
     openFor(c: Colonist): void {
+      // Un animal: al tocarlo se marca (o desmarca) para cazarlo.
+      if (c.creature && CREATURES[c.creature].animal) {
+        const on = toggleHunt(c);
+        opts.toast(`${CREATURES[c.creature].emoji} ${c.name} · ${on ? '🎯 marcado para cazar: irá quien tenga «Cazar»' : 'ya no se caza'}`, 2500);
+        return;
+      }
       if (c.creature) {
         opts.toast(`${CREATURES[c.creature].emoji} ${c.name} · ${healthLabel(c).toLowerCase()}${c.raider?.fleeing ? ' · huye' : ''}`, 2500);
         return;

@@ -2,16 +2,17 @@
 import type { Skill } from './colonists';
 import { HARVEST_JOB_NAMES, HARVEST_JOB_SKILL, HARVEST_JOB_VERBS, HarvestJob } from './resources';
 
-export type WorkType = HarvestJob | 'transportar' | 'construir' | 'cultivar' | 'terreno' | 'fabricar' | 'cocinar' | 'investigar' | 'curar' | 'carcelero';
+export type WorkType = HarvestJob | 'transportar' | 'construir' | 'cultivar' | 'cazar' | 'terreno' | 'fabricar' | 'cocinar' | 'investigar' | 'curar' | 'carcelero';
 
 /** Orden en que se muestran (y desempatan) los trabajos. */
-export const WORK_TYPES: readonly WorkType[] = ['curar', 'carcelero', 'construir', 'cultivar', 'cocinar', 'fabricar', 'investigar', 'terreno', 'talar', 'minar', 'saquear', 'transportar'];
+export const WORK_TYPES: readonly WorkType[] = ['curar', 'carcelero', 'construir', 'cultivar', 'cazar', 'cocinar', 'fabricar', 'investigar', 'terreno', 'talar', 'minar', 'saquear', 'transportar'];
 
 export const WORK_NAMES: Record<WorkType, string> = {
   ...HARVEST_JOB_NAMES,
   transportar: 'Transportar',
   construir: 'Construir',
   cultivar: 'Cultivar',
+  cazar: 'Cazar',
   terreno: 'Obras de terreno',
   fabricar: 'Fabricar',
   cocinar: 'Cocinar',
@@ -25,6 +26,7 @@ export const WORK_VERBS: Record<WorkType, string> = {
   transportar: 'Transportando',
   construir: 'Construyendo',
   cultivar: 'Cultivando',
+  cazar: 'Cazando',
   terreno: 'Moviendo tierra',
   fabricar: 'Fabricando',
   cocinar: 'Cocinando',
@@ -38,6 +40,7 @@ export const WORK_SKILL: Partial<Record<WorkType, Skill>> = {
   ...HARVEST_JOB_SKILL,
   construir: 'construccion',
   cultivar: 'cultivo',
+  cazar: 'combate',
   terreno: 'mineria',
   fabricar: 'construccion',
   cocinar: 'cocina',

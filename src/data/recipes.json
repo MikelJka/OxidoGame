@@ -52,6 +52,19 @@
     "description": "4 pescados dan 2 raciones: alimentan más que crudos y sientan bien."
   },
   {
+    "id": "carne_asada",
+    "name": "Carne asada",
+    "station": "cocina",
+    "inputs": {
+      "carne": 4
+    },
+    "outputs": {
+      "comida": 2
+    },
+    "work": 200,
+    "description": "4 de carne dan 2 raciones: alimentan más que cruda y sientan bien."
+  },
+  {
     "id": "fundir_chatarra",
     "name": "Fundir chatarra",
     "station": "horno",
@@ -377,13 +390,14 @@
     "name": "Chaleco de cuero",
     "station": "banco_trabajo",
     "inputs": {
-      "fibra": 8
+      "cuero": 8
     },
     "outputs": {
       "chaleco_cuero": 1
     },
     "work": 300,
-    "description": "Quita un 15 % del daño."
+    "description": "Quita un 15 % del daño. Se hace con 🟫 cuero de la caza.",
+    "research": "sastreria"
   },
   {
     "id": "fabricar_chaleco_chapa",

@@ -170,6 +170,32 @@ function paintCreature(px: (x: number, y: number, w: number, h: number, color: s
       px(10, 3, 1, 1, '#ff2a1a');
       break;
     }
+    case 'ciervo_mutado':
+    case 'jabali':
+    case 'rata_gigante': {
+      // Animales: cuerpo, patas, cabeza y lo suyo (cuernos torcidos, colmillos o cola pelada).
+      const [fur, dark, big] = id === 'ciervo_mutado' ? ['#8a6a44', '#5e4630', 1] : id === 'jabali' ? ['#5a4a3a', '#3a2e24', 1] : ['#6a6260', '#4a4442', 0];
+      px(2, 14, 12, 1, 'rgba(0,0,0,0.35)'); // sombra
+      for (const x of big ? [3, 5, 10, 12] : [4, 6, 9, 11]) px(x, big ? 10 : 12, 1, big ? 4 : 2, outline);
+      px(2, big ? 5 : 8, 10, big ? 6 : 5, outline);
+      px(3, big ? 6 : 9, 8, big ? 4 : 3, fur);
+      px(3, big ? 9 : 11, 8, 1, dark);
+      px(11, big ? 4 : 8, 4, big ? 4 : 3, outline); // cabeza
+      px(12, big ? 5 : 9, 2, big ? 2 : 1, fur);
+      px(13, big ? 5 : 9, 1, 1, '#c8e040'); // ojo
+      if (id === 'ciervo_mutado') {
+        px(11, 0, 1, 4, '#d8c8a0'); // cuernos
+        px(13, 1, 1, 3, '#d8c8a0');
+        px(10, 1, 1, 1, '#d8c8a0');
+      } else if (id === 'jabali') {
+        px(15, 7, 1, 1, '#e8e0c8'); // colmillo
+        px(3, 4, 6, 1, dark); // cerdas
+      } else {
+        px(0, 10, 2, 1, '#c89a9a'); // cola
+        px(1, 11, 1, 1, '#c89a9a');
+      }
+      break;
+    }
     case 'dron_vigilancia': {
       // Dron de vigilancia: cuatro rotores sobre brazos en cruz, un cuerpo de chapa con su cámara roja
       // y el cañón debajo; la sombra queda lejos, en el suelo, porque vuela.

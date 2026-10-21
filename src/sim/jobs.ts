@@ -659,6 +659,25 @@ function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   return out;
 }
 
+/** Cazar los animales marcados (🎯): quien tenga «Cazar». */
+function huntCandidates(ctx: JobContext, c: Colonist): Candidate[] {
+  if (c.priorities.cazar === 0) return [];
+  const out: Candidate[] = [];
+  for (const a of ctx.others) {
+    if (!a.huntMarked || a.downed) continue;
+    if (ctx.colonists.some((k) => k !== c && k.job?.kind === 'cazar' && k.job.pid === a.id)) continue;
+    out.push({
+      kind: 'cazar', x: a.tile.x, y: a.tile.y, dist: manhattan(c.tile, a.tile.x, a.tile.y),
+      make: () => {
+        const route = pathToNearest(ctx.map, c.tile, [a.tile, ...sideTiles(ctx.map, a.tile.x, a.tile.y)]);
+        if (!route) return null;
+        return { job: { kind: 'cazar', pid: a.id, x: a.tile.x, y: a.tile.y, stand: route.stand, progress: 0, work: 1 }, path: [] };
+      },
+    });
+  }
+  return out;
+}
+
 /** Apagar el fuego que amenaza la colonia: lo urgente, para cualquier colono. */
 function fireCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   const out: Candidate[] = [];
@@ -741,7 +760,7 @@ function terrainCandidates(ctx: JobContext, c: Colonist): Candidate[] {
  */
 export function findJob(ctx: JobContext, c: Colonist): JobPlan | null {
   const all = [
-    ...fireCandidates(ctx, c), ...doctorCandidates(ctx, c), ...wardenCandidates(ctx, c),
+    ...fireCandidates(ctx, c), ...doctorCandidates(ctx, c), ...wardenCandidates(ctx, c), ...huntCandidates(ctx, c),
     ...buildCandidates(ctx, c), ...farmCandidates(ctx, c), ...fabricateCandidates(ctx, c), ...researchCandidates(ctx, c), ...terrainCandidates(ctx, c),
     ...harvestCandidates(ctx, c), ...refuelCandidates(ctx, c), ...corpseCandidates(ctx, c), ...haulCandidates(ctx, c),
   ];

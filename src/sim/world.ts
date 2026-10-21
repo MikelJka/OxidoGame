@@ -5,6 +5,7 @@ import { ActiveEvent, firstEventTick, runEvents, solarFactor } from './events';
 import { burning, extinguish, threatens, updateFires } from './fire';
 import { checkNewFaction, growBases, placeBases } from './worldmap';
 import { coldNow, isWinter, updateCold } from './seasons';
+import { animalDrops, spawnAnimals } from './animals';
 import { seasonOf } from '../data/seasons';
 import { BattleInfo, checkBattle, Expedition, Outpost, Ruin, updateExpedition } from './expedition';
 import { factionDef, RELATION } from '../data/factions';
@@ -24,7 +25,7 @@ import { putRoof, roofed, roofRooms, roofTodo, roomInfoAt } from './roofs';
 import { giveDose, needsDose, tickHealth, tickInfection, treatWounds } from './health';
 import { Difficulty, initialSchedule, makeDifficulty, scaledSupplies, StorySchedule } from './storyteller';
 import { findRefuge, updatePanic } from './panic';
-import { canTalk, colonistFight, creatureFallText, dropGear, hurtFoe, makePrisoner, runStoryteller, talkToPrisoner, TurretShot, updateOthers, updateTurrets, validAttackTarget } from './people';
+import { attack, canHit, canTalk, colonistFight, creatureFallText, dropGear, hurtFoe, makePrisoner, runStoryteller, talkToPrisoner, TurretShot, updateOthers, updateTurrets, validAttackTarget } from './people';
 import { AMMO_CARRY, AMMO_LOW, ammoFor, GRENADE, isAmmo, isGear, isWeapon, WEAPON_IDS, WEAPONS, weaponScore } from '../data/weapons';
 import { ARMOR_IDS, ARMORS, armorProtection, isArmor } from '../data/armor';
 import { FINISH_MOOD } from '../data/morale';
@@ -370,6 +371,8 @@ export class World implements JobContext {
     if (this.tick % TICKS_PER_SECOND === 0 && this.fires.size > 0) updateFires(this);
     // Cada día, los precios del mercado se acercan a su valor y alguno cambia.
     if (this.tick % TICKS_PER_DAY === 0) marketDay(this.market, this.map.seed, this.day);
+    // Animales: cada día llegan algunos por los bordes (con los sucesos activados).
+    if (this.tick % TICKS_PER_DAY === TICKS_PER_HOUR && this.eventsEnabled && !this.battle) spawnAnimals(this);
     // Y las bases de las facciones crecen.
     if (this.tick % TICKS_PER_DAY === 0) growBases(this);
     // Si quedan pocas facciones, llega una nueva a los pocos días.
@@ -508,7 +511,8 @@ export class World implements JobContext {
         this.items.drop(c.tile.x, c.tile.y, 'chatarra', scrap);
         this.items.drop(c.tile.x, c.tile.y, 'componentes', parts);
         this.addLog(`🔩 Los restos de ${c.name} dejan 🔩${scrap} y ⚙️${parts}.`, 'bueno', undefined, c.tile);
-      } else if (c.creature) this.corpses.push({ id: this.nextCorpseId++, creature: c.creature, x: c.tile.x, y: c.tile.y, diedAt: this.tick });
+      } else if (c.creature && CREATURES[c.creature].animal) animalDrops(this, c);
+      else if (c.creature) this.corpses.push({ id: this.nextCorpseId++, creature: c.creature, x: c.tile.x, y: c.tile.y, diedAt: this.tick });
       if (quiet) return;
       if (c.creature) {
         const def = CREATURES[c.creature];
@@ -1344,6 +1348,10 @@ export class World implements JobContext {
   private jobStillValid(c: Colonist): boolean {
     const j = c.job!;
     const h = j.haul;
+    if (j.kind === 'cazar') {
+      const o = this.others.find((k) => k.id === j.pid);
+      return !!o && !o.downed && !!o.huntMarked;
+    }
     if (j.kind === 'curar' || j.kind === 'carcelero') {
       const o = this.pawns().find((k) => k.id === j.pid);
       if (!o) return false;
@@ -1440,6 +1448,10 @@ export class World implements JobContext {
     }
     if (j.haul) {
       this.updateHaul(c);
+      return;
+    }
+    if (j.kind === 'cazar') {
+      this.updateHuntJob(c);
       return;
     }
     if (j.kind === 'curar' || j.kind === 'carcelero') {
@@ -1915,6 +1927,32 @@ export class World implements JobContext {
   }
   private fireThreatKey = -1;
   private fireThreatCache: Point[] = [];
+
+  /** Caza: se acerca al animal hasta tenerlo a tiro y le dispara (o le golpea). */
+  private updateHuntJob(c: Colonist): void {
+    const j = c.job!;
+    const a = this.others.find((k) => k.id === j.pid);
+    if (!a || a.downed || !a.huntMarked) {
+      this.dropJob(c);
+      return;
+    }
+    if (c.attackCooldown && c.attackCooldown > 0) c.attackCooldown--;
+    if (canHit(this, c, a)) {
+      c.path = [];
+      c.activity = 'working';
+      if (!c.attackCooldown) attack(this, c, a);
+      return;
+    }
+    if (c.path.length === 0 || (this.tick + c.id) % 30 === 0) {
+      const path = findPath(this.map, c.tile, a.tile, JOB_PATH_NODES);
+      if (!path) {
+        this.dropJob(c);
+        this.nextJobScan.set(c.id, this.tick + JOB_RETRY_TICKS);
+        return;
+      }
+      c.path = path.slice(0, Math.max(1, path.length - 1));
+    }
+  }
 
   /** Casillas de habitaciones cerradas que piden tejado. */
   roofTodo(): Point[] {
