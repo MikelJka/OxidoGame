@@ -12,7 +12,9 @@
     "wreck": {
       "chatarra": 20
     },
-    "damageScale": 1000
+    "damageScale": 1000,
+    "cargo": 300,
+    "travel": 0.5
   },
   {
     "id": "balsa",
@@ -29,7 +31,8 @@
     "wreck": {
       "madera": 8
     },
-    "damageScale": 1000
+    "damageScale": 1000,
+    "cargo": 120
   },
   {
     "id": "lancha_armada",
@@ -46,7 +49,8 @@
     "wreck": {
       "chatarra": 15
     },
-    "damageScale": 1000
+    "damageScale": 1000,
+    "cargo": 250
   },
   {
     "id": "buggy_saqueador",

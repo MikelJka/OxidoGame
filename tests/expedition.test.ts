@@ -119,3 +119,52 @@ describe('ocupar las ruinas', () => {
     expect(back.outposts[0].world.factions).toBe(back.factions);
   });
 });
+
+describe('carga de las expediciones', () => {
+  it('llevan lo que aguanten por peso, en el buggy más (y el viaje es más corto); lo que sobra vuelve', async () => {
+    const { expeditionCapacity } = await import('../src/sim/expedition');
+    const w = flatWorld(2);
+    w.map.start = { x: 15, y: 15 };
+    w.items.drop(6, 6, 'piedra', 50);
+    w.items.drop(7, 6, 'comida', 20);
+    const ids = [w.colonists[0].id];
+    expect(expeditionCapacity(w, 1)).toBe(35);
+    expect(startExpedition(w, 'granjeros', ids, { piedra: 50 })).toContain('Demasiada carga');
+    const v = w.addVehicle('buggy', 20, 20);
+    expect(expeditionCapacity(w, 1, [v.id])).toBe(335);
+    expect(startExpedition(w, 'granjeros', ids, { piedra: 50, comida: 10 }, [v.id])).toBeNull();
+    expect(w.vehicles.length).toBe(0);
+    expect(w.inventory().piedra).toBe(0);
+    expect(w.inventory().comida).toBe(10);
+    const back = loadWorld(serializeWorld(w));
+    expect(back.expedition?.supplies).toEqual({ piedra: 50, comida: 10 });
+    expect(back.expedition?.vehicles?.length).toBe(1);
+    const b = arrive(w);
+    expect(b.vehicles.length).toBe(1);
+    expect(b.inventory().piedra).toBe(50);
+    retreat(b);
+    finishBattle(b);
+    expect(w.expedition?.loot.piedra).toBe(50);
+    w.tick = w.expedition!.arriveAt - (w.expedition!.arriveAt % TICKS_PER_HOUR) + TICKS_PER_HOUR - 1;
+    w.step();
+    expect(w.vehicles.length).toBe(1);
+    expect(w.inventory().piedra).toBe(50);
+  });
+});
+
+describe('colonias a la vez', () => {
+  it('el tiempo corre en todas las colonias a la vez', () => {
+    const w = flatWorld(1);
+    const o = flatWorld(1);
+    o.outpostHome = w;
+    w.outposts.push({ name: 'X', world: o });
+    w.speed = 1;
+    const t0 = o.tick;
+    w.update(1000);
+    expect(o.tick).toBe(t0 + 30);
+    o.speed = 1;
+    const m0 = w.tick;
+    o.update(1000);
+    expect(w.tick).toBe(m0 + 30);
+  });
+});

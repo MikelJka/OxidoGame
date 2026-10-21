@@ -42,6 +42,10 @@ export interface VehicleDef {
    * al huir, vuelven a ella si la tienen a `reboardRange` casillas o menos.
    */
   raft?: { nearRiver: number; raidersPerRaft: number; reboardRange: number };
+  /** Kilos de más que lleva en una expedición (elegido por Mikel el 2026-10-21). */
+  cargo?: number;
+  /** En una expedición, el viaje dura esto (el buggy: la mitad). */
+  travel?: number;
 }
 
 export function validateVehicle(d: unknown): VehicleDef {

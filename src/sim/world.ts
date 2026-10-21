@@ -344,13 +344,22 @@ export class World implements JobContext {
     if (this.speed === 0) return 0;
     this.accumulator += (deltaMs / 1000) * TICKS_PER_SECOND * this.speed;
     let steps = 0;
+    // Las demás colonias (la principal y las ocupadas) corren a la vez (pedido por Mikel el 2026-10-21).
+    const others = this.battle ? [] : this.otherColonies();
     while (this.accumulator >= 1 && steps < MAX_TICKS_PER_UPDATE) {
       this.step();
+      for (const o of others) o.step();
       this.accumulator -= 1;
       steps++;
     }
     if (steps === MAX_TICKS_PER_UPDATE) this.accumulator = 0; // descarta el atraso
     return steps;
+  }
+
+  /** Las otras colonias del jugador (sin esta): la principal y las ruinas ocupadas. */
+  otherColonies(): World[] {
+    const main = this.outpostHome ?? this;
+    return [main, ...main.outposts.map((o) => o.world)].filter((k) => k !== this);
   }
 
   /** Un tick de simulación. */
@@ -371,13 +380,14 @@ export class World implements JobContext {
     // Fuego: cada segundo arde, se extiende o se apaga.
     if (this.tick % TICKS_PER_SECOND === 0 && this.fires.size > 0) updateFires(this);
     // Cada día, los precios del mercado se acercan a su valor y alguno cambia.
-    if (this.tick % TICKS_PER_DAY === 0 && !this.battle) marketDay(this.market, this.map.seed, this.day);
+    // Lo que es de todo el mundo (precios, bases, facciones nuevas) lo lleva la colonia principal.
+    if (this.tick % TICKS_PER_DAY === 0 && !this.battle && !this.outpostHome) marketDay(this.market, this.map.seed, this.day);
     // Animales: cada día llegan algunos por los bordes (con los sucesos activados).
     if (this.tick % TICKS_PER_DAY === TICKS_PER_HOUR && this.eventsEnabled && !this.battle) spawnAnimals(this);
     // Y las bases de las facciones crecen.
-    if (this.tick % TICKS_PER_DAY === 0 && !this.battle) growBases(this);
+    if (this.tick % TICKS_PER_DAY === 0 && !this.battle && !this.outpostHome) growBases(this);
     // Si quedan pocas facciones, llega una nueva a los pocos días.
-    if (this.tick % TICKS_PER_HOUR === 0 && !this.battle) checkNewFaction(this);
+    if (this.tick % TICKS_PER_HOUR === 0 && !this.battle && !this.outpostHome) checkNewFaction(this);
     // Cada día, las trampas de pesca dejan su 🐟 en el muelle de al lado.
     if (this.tick % TICKS_PER_HOUR === 0) this.emptyFishTraps();
     // Las plantas crecen a saltos de un segundo (basta y cuesta poco).

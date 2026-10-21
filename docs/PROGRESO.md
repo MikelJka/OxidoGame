@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (49) — Carga de las expediciones y colonias a la vez
+
+- Pedido por Mikel. Al mandar una expedición (⚔️ Atacar su base) se elige también **qué llevan**: comida, armas, munición, medicinas o lo que haya. Va **por peso**: cada colono 35 kg; se ve «🎒 Carga: X de Y kg».
+- Se pueden llevar **vehículos**: el **buggy** (+300 kg, y el viaje dura la mitad), la **balsa** (+120 kg) y la **lancha armada** (+250 kg). Los pesos de cada cosa están en `src/data/weights.ts`.
+- En la batalla, lo que llevan aparece en el suelo junto a la entrada y el buggy aparcado al lado. Al acabar, **lo suyo que quede fuera de la base vuelve con ellos**, y los vehículos vuelven junto a la colonia.
+- **Las colonias corren a la vez** (pedido por Mikel): el tiempo pasa en la principal y en las ocupadas a la vez, se esté viendo la que se esté viendo. Los precios, el crecimiento de las bases y las facciones nuevas los lleva la principal, para que no cuenten dos veces. La batalla sigue parando las colonias mientras dura.
+- Mikel ha elegido también los **kits** (desmontar defensas y energía para llevarlas) y los **animales de carga** (domarlos y comprarlos): son las siguientes partes.
+- Qué probar: «⚔️ Atacar su base» con un buggy y comida y munición; ocupar unas ruinas y ver que el día avanza en las dos colonias.
+- Sin npm en el entorno: tests con Bun (651) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+
 ## 2026-10-21 (48) — Ocio y calidad de las habitaciones
 
 - Bloque 12. Muebles nuevos en 🏗 → Muebles: **mesa** (🪵8), **silla** (🪵4), **alfombra** (🧵6), **cuadro** (🪵2 🧵2) y **mesa de juego** (🪵15, 2×1).

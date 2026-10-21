@@ -23,7 +23,10 @@ import { marketTrend } from '../sim/market';
 import { relationLevel, RELATION_LEVEL_NAMES } from '../sim/factions';
 import { baseLevel, WORLD_MAP } from '../data/worldmap';
 import { colonyCell, travelDays } from '../sim/worldmap';
-import { allColonies, expeditionHours, startExpedition, startSettling } from '../sim/expedition';
+import { allColonies, expeditionCapacity, expeditionHours, expeditionVehicles, startExpedition, startSettling } from '../sim/expedition';
+import { CARRY_PER_COLONIST, loadWeight, weightOf } from '../data/weights';
+import { vehicleDef } from '../data/vehicles';
+import type { ResourceId } from '../data/resources';
 
 export interface PeopleUI {
   /** Abre la pestaña de una persona tocada en el mapa (prisionero o comerciante). */
@@ -223,7 +226,7 @@ export function mountPeople(opts: Options): PeopleUI {
 
   // --- Facciones ---------------------------------------------------------------------
   /** Colonos elegidos para atacar una base (mientras se eligen). */
-  let attackPick: { faction: string; ids: number[] } | null = null;
+  let attackPick: { faction: string; ids: number[]; load?: Partial<Record<ResourceId, number>>; vehicles?: number[] } | null = null;
   function renderFactions(w: World): HTMLElement[] {
     const out: HTMLElement[] = [];
     out.push(el('p', 'muted', `La relación va de ${RELATION.min} a ${RELATION.max}: con ${RELATION.war} o menos son hostiles (y os mandan sus raids), con ${RELATION.ally} o más, aliados. Sube al comerciar con sus caravanas (+${RELATION.tradeCaravan}), al darles de más en un trato (+1 cada ${RELATION.giftValuePerPoint} chapas), al curar a sus heridos y al liberar a sus prisioneros (+${RELATION.releasePrisoner}); baja al matar o retener a los suyos (${RELATION.killOrHold}). Los Piratas del Óxido son siempre hostiles.`));
@@ -239,7 +242,7 @@ export function mountPeople(opts: Options): PeopleUI {
     const colonies = allColonies(w);
     if (colonies.length > 1 && !w.battle) {
       const box = el('div', 'pp-card');
-      box.append(el('strong', undefined, '🏠 Vuestras colonias'), el('div', 'muted', 'Solo avanza la que estáis viendo; las demás esperan.'));
+      box.append(el('strong', undefined, '🏠 Vuestras colonias'), el('div', 'muted', 'El tiempo corre en todas a la vez; tocad una para ir a verla.'));
       const row = el('div', 'pp-modes');
       for (const c of colonies) {
         const here = c.world === w;
@@ -343,7 +346,7 @@ export function mountPeople(opts: Options): PeopleUI {
           const go = el('div', 'zp-row');
           go.append(
             button(`⚔️ Enviar (${attackPick.ids.length})`, () => {
-              const why = startExpedition(w, f.id, attackPick!.ids);
+              const why = startExpedition(w, f.id, attackPick!.ids, attackPick!.load ?? {}, attackPick!.vehicles ?? []);
               opts.toast(why ?? `⚔️ La expedición sale hacia ${f.settlement}`, why ? 3000 : 2500);
               if (!why) attackPick = null;
               rerender();
@@ -353,7 +356,49 @@ export function mountPeople(opts: Options): PeopleUI {
               rerender();
             }, 'Cancelar'),
           );
-          card.append(el('div', 'pp-hint', `¿Quién va? Llegan en ${String(travelDays(b)).replace('.', ',')} días; allí se pelea en directo. Atacarles os pone en guerra con ellos.`), pick, go);
+          // Lo que llevan (por peso) y los vehículos.
+          const ap = attackPick;
+          ap.load ??= {};
+          ap.vehicles ??= [];
+          const cap = expeditionCapacity(w, ap.ids.length, ap.vehicles);
+          const kg = loadWeight(ap.load);
+          const cargo = el('div', 'trade-table');
+          const inv = w.inventory();
+          for (const r of RESOURCES) {
+            if (inv[r] <= 0) continue;
+            const n = ap.load[r] ?? 0;
+            const step = inv[r] >= 50 ? 10 : inv[r] >= 10 ? 5 : 1;
+            const row = el('div', 'trade-row');
+            const qty = el('span', 'trade-qty');
+            const set = (v: number) => {
+              ap.load![r] = Math.max(0, Math.min(inv[r], v));
+              if (!ap.load![r]) delete ap.load![r];
+              rerender();
+            };
+            const minus = button('−', () => set(n - step), `Quitar ${step}`);
+            const plus = button('+', () => set(n + step), `Añadir ${step}`);
+            minus.disabled = n <= 0;
+            plus.disabled = n >= inv[r];
+            qty.append(minus, el('span', 'num', String(n)), plus);
+            row.append(el('span', 'trade-name', `${RESOURCE_ICONS[r]} ${RESOURCE_NAMES[r]} · ${weightOf(r)} kg · tenéis ${inv[r]}`), qty);
+            cargo.append(row);
+          }
+          const vrow = el('div', 'pp-modes');
+          for (const v of expeditionVehicles(w)) {
+            const on = ap.vehicles.includes(v.id);
+            const d = vehicleDef(v.def)!;
+            const btn = button(`${on ? '☑' : '☐'} ${d.name} (+${d.cargo} kg${d.travel ? ', viaje más corto' : ''})`, () => {
+              ap.vehicles = on ? ap.vehicles!.filter((i) => i !== v.id) : [...ap.vehicles!, v.id];
+              rerender();
+            });
+            if (on) btn.classList.add('active');
+            vrow.append(btn);
+          }
+          card.append(
+            el('div', 'pp-hint', `¿Quién va? Llegan en ${String(travelDays(b)).replace('.', ',')} días; allí se pelea en directo. Atacarles os pone en guerra con ellos.`), pick,
+            el('div', kg > cap ? 'warn' : 'pp-hint', `🎒 Carga: ${kg} de ${cap} kg (cada colono lleva ${CARRY_PER_COLONIST} kg; los vehículos, más).`),
+            ...(vrow.childElementCount ? [vrow] : []), cargo, go,
+          );
         } else {
           card.append(button('⚔️ Atacar su base', () => {
             attackPick = { faction: f.id, ids: [] };

@@ -94,7 +94,7 @@ export interface SaveData {
   /** Colonias ocupadas (desde el 2026-10-21): cada una, su partida entera. */
   outposts?: { name: string; save: unknown }[];
   name?: string;
-  expedition?: { faction: string; members: SavedColonist[]; phase: string; arriveAt: number; loot: Record<string, number>; result?: string };
+  expedition?: { faction: string; members: SavedColonist[]; phase: string; arriveAt: number; loot: Record<string, number>; result?: string; kind?: string; ruin?: string; supplies?: Record<string, number>; vehicles?: { id: number; def: string; x: number; y: number; fuel: number; hp: number }[] };
   nextEvent?: number;
   /** Tributo pedido y sin responder (desde el 2026-10-21). */
   tribute?: { faction: string; demand: Record<string, number>; value: number; until: number };
@@ -281,7 +281,7 @@ export function serializeWorld(world: World, gameVersion?: string, direct = fals
     ...(world.newFactionAt !== null ? { newFactionAt: world.newFactionAt } : {}),
     ...(world.outposts.length ? { outposts: world.outposts.map((o) => ({ name: o.name, save: serializeWorld(o.world, gameVersion, true) })) } : {}),
     ...(world.name ? { name: world.name } : {}),
-    ...(world.expedition ? { expedition: { faction: world.expedition.faction, members: world.expedition.members.map(savePawn), phase: world.expedition.phase, arriveAt: world.expedition.arriveAt, loot: { ...world.expedition.loot }, ...(world.expedition.result ? { result: world.expedition.result } : {}) } } : {}),
+    ...(world.expedition ? { expedition: { faction: world.expedition.faction, members: world.expedition.members.map(savePawn), phase: world.expedition.phase, arriveAt: world.expedition.arriveAt, loot: { ...world.expedition.loot }, ...(world.expedition.result ? { result: world.expedition.result } : {}), ...(world.expedition.kind ? { kind: world.expedition.kind } : {}), ...(world.expedition.ruin ? { ruin: world.expedition.ruin } : {}), ...(world.expedition.supplies ? { supplies: { ...world.expedition.supplies } } : {}), ...(world.expedition.vehicles?.length ? { vehicles: world.expedition.vehicles.map((v) => ({ id: v.id, def: v.def, x: 0, y: 0, fuel: v.fuel, hp: v.hp })) } : {}) } } : {}),
     ...(world.burnt.size ? { burnt: [...world.burnt] } : {}),
     ...(world.plague ? { plague: { ...world.plague } } : {}),
     nextEvent: world.nextEvent,
@@ -628,7 +628,12 @@ export function loadWorld(input: string | unknown): World {
       faction: factionId(String(ex.faction)), members,
       phase: ex.phase === 'ida' ? 'ida' : 'vuelta',
       arriveAt: battle ? world.tick + TICKS_PER_DAY : num(ex.arriveAt, world.tick),
-      loot: cleanLoot(ex.loot),
+      loot: battle ? { ...cleanLoot(ex.loot), ...cleanLoot(ex.supplies) } : cleanLoot(ex.loot),
+      ...(ex.kind === 'ocupar' ? { kind: 'ocupar' as const } : {}),
+      ...(typeof ex.ruin === 'string' ? { ruin: ex.ruin } : {}),
+      // Si la batalla no se guardó, lo que llevaban vuelve con ellos.
+      supplies: battle ? {} : cleanLoot(ex.supplies),
+      vehicles: (ex.vehicles ?? []).filter((v) => vehicleDef(String(v.def))).map((v) => ({ id: num(v.id, 0), def: String(v.def), x: 0, y: 0, pos: { x: 0, y: 0 }, path: [], fuel: num(v.fuel, 0), hp: num(v.hp, 1), facing: 1 as const })),
       ...(ex.result === 'victoria' || ex.result === 'derrota' || ex.result === 'retirada' ? { result: ex.result } : battle ? { result: 'retirada' as const } : {}),
     };
   }

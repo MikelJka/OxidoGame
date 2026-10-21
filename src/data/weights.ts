@@ -1,0 +1,30 @@
+/**
+ * Peso de cada recurso y lo que se puede llevar en una expedición (elegido por Mikel el
+ * 2026-10-21: por peso; cada colono 35 kg, el buggy +300, la balsa +120, la lancha +250 y un
+ * animal de carga +80). Los pesos de cada cosa los ha puesto la sesión del 2026-10-21.
+ */
+import type { ResourceId } from './resources';
+
+/** Kilos por unidad (lo que no está aquí, 1 kg). */
+export const WEIGHTS: Partial<Record<ResourceId, number>> = {
+  madera: 1, piedra: 2, chatarra: 1, componentes: 0.5, patata: 0.5, maiz: 0.5, setas: 0.3, fibra: 0.3,
+  metal: 2, hormigon: 3, comida: 0.5, palo: 1, cuchillo: 0.5, tuberia: 2, lanza: 2, machete: 1, arco: 1,
+  ballesta: 3, lanza_metal: 3, flechas: 0.05, pistola: 1.5, escopeta: 3.5, rifle: 4, subfusil: 3,
+  francotirador: 6, balas: 0.05, granadas: 0.5, chaleco_cuero: 3, chaleco_chapa: 6, chaleco_metal: 9,
+  chaleco_tactico: 5, casco_chapa: 2, casco_metal: 3, casco_tactico: 1.5, medicina: 0.2, combustible: 1,
+  hierba: 0.2, pescado: 0.5, abrigo: 2, carne: 0.5, cuero: 1,
+};
+
+/** Lo que lleva un colono a pie. */
+export const CARRY_PER_COLONIST = 35;
+
+export function weightOf(r: ResourceId): number {
+  return WEIGHTS[r] ?? 1;
+}
+
+/** Peso de un montón de recursos. */
+export function loadWeight(load: Partial<Record<ResourceId, number>>): number {
+  let kg = 0;
+  for (const [r, n] of Object.entries(load) as [ResourceId, number][]) kg += weightOf(r) * (n ?? 0);
+  return Math.round(kg * 10) / 10;
+}

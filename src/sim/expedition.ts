@@ -12,6 +12,9 @@ import { isPassable, Prop, Terrain } from './map';
 import { Rng } from './rng';
 import { TICKS_PER_DAY, TICKS_PER_HOUR } from './time';
 import { travelDays } from './worldmap';
+import { fits, Vehicle } from './vehicles';
+import { vehicleDef } from '../data/vehicles';
+import { CARRY_PER_COLONIST, loadWeight } from '../data/weights';
 import { World } from './world';
 
 /** Una expedición en marcha: de ida, peleando o de vuelta. */
@@ -26,6 +29,10 @@ export interface Expedition {
   arriveAt: number;
   /** Lo que traen de vuelta. */
   loot: Partial<Record<ResourceId, number>>;
+  /** Lo que llevan para la batalla (comida, armas, munición…). */
+  supplies?: Partial<Record<ResourceId, number>>;
+  /** Vehículos que se llevan (el buggy, barcas…). */
+  vehicles?: Vehicle[];
   /** Cómo acabó la batalla (de vuelta). */
   result?: BattleResult;
 }
@@ -55,16 +62,50 @@ const BATTLE_SIZE = { width: 64, height: 44 };
 /** Defensores como mucho (aunque la base tenga más gente). */
 const MAX_DEFENDERS = 18;
 
-/** Saca a unos colonos de la colonia y los manda a atacar la base de una facción. Devuelve el motivo si no se puede. */
-export function startExpedition(w: World, factionId: string, ids: number[]): string | null {
+/** Kilos que pueden llevar esos colonos con esos vehículos. */
+export function expeditionCapacity(w: World, members: number, vehicleIds: number[] = []): number {
+  let kg = members * CARRY_PER_COLONIST;
+  for (const v of w.vehicles) if (vehicleIds.includes(v.id)) kg += vehicleDef(v.def)?.cargo ?? 0;
+  return kg;
+}
+
+/** Vehículos de la colonia que se pueden llevar (los suyos, con capacidad de carga). */
+export function expeditionVehicles(w: World): Vehicle[] {
+  return w.vehicles.filter((v) => !vehicleDef(v.def)?.hostile && (vehicleDef(v.def)?.cargo ?? 0) > 0);
+}
+
+/**
+ * Saca a unos colonos de la colonia y los manda a atacar la base de una facción, con lo que lleven
+ * (`supplies`, hasta lo que aguanten por peso) y los vehículos elegidos. Devuelve el motivo si no se puede.
+ */
+export function startExpedition(w: World, factionId: string, ids: number[], supplies: Partial<Record<ResourceId, number>> = {}, vehicleIds: number[] = []): string | null {
   if (w.expedition) return 'Ya hay una expedición fuera.';
   const f = w.faction(factionId);
   if (!f?.base) return 'Esa facción no tiene base.';
   const members = w.colonists.filter((c) => ids.includes(c.id) && !c.downed);
   if (!members.length) return 'Elige al menos a un colono que pueda andar.';
+  const vehicles = expeditionVehicles(w).filter((v) => vehicleIds.includes(v.id));
+  const cap = expeditionCapacity(w, members.length, vehicles.map((v) => v.id));
+  const kg = loadWeight(supplies);
+  if (kg > cap) return `Demasiada carga: ${kg} de ${cap} kg.`;
+  const inv = w.inventory();
+  for (const [r, n] of Object.entries(supplies) as [ResourceId, number][]) if ((n ?? 0) > inv[r]) return `No hay tanto de ${r}.`;
   for (const c of members) w.removeFromColony(c);
-  const days = travelDays(f.base);
-  w.expedition = { faction: factionId, members, phase: 'ida', arriveAt: w.tick + Math.round(days * TICKS_PER_DAY), loot: {} };
+  // Lo que llevan sale de los montones; los vehículos se van con ellos (los que iban dentro se bajan).
+  const load: Partial<Record<ResourceId, number>> = {};
+  for (const [r, n] of Object.entries(supplies) as [ResourceId, number][]) {
+    if (!(n > 0)) continue;
+    takeStock(w, r, n);
+    load[r] = n;
+  }
+  for (const v of vehicles) {
+    for (const c of w.pawns()) if (c.vehicle?.id === v.id) w.leaveVehicle(c);
+    w.vehicles.splice(w.vehicles.indexOf(v), 1);
+    v.path = [];
+  }
+  const speed = Math.min(1, ...vehicles.map((v) => vehicleDef(v.def)?.travel ?? 1));
+  const days = Math.max(0.5, Math.round(travelDays(f.base) * speed * 2) / 2);
+  w.expedition = { faction: factionId, members, phase: 'ida', arriveAt: w.tick + Math.round(days * TICKS_PER_DAY), loot: {}, supplies: load, vehicles };
   // Atacarles los pone en guerra con vosotros.
   w.changeRelation(factionId, -100, 'les atacáis');
   const def = factionDef(factionId);
@@ -105,6 +146,8 @@ export function updateExpedition(w: World): void {
     }
     const home = w.colonyPoint();
     if (home) w.items.dropAll(home.x, home.y, e.loot);
+    // Los vehículos vuelven junto a la colonia.
+    for (const v of e.vehicles ?? []) parkVehicle(w, v);
     const got = (Object.entries(e.loot) as [ResourceId, number][]).filter(([, n]) => n > 0).map(([r, n]) => `${n} de ${r}`).join(', ');
     w.addLog(`🏠 Vuelve la expedición: ${e.members.map((c) => c.name).join(', ') || 'nadie'}${got ? `, con ${got}` : ''}.`, e.result === 'victoria' ? 'bueno' : 'info');
   }
@@ -205,6 +248,24 @@ export function createBattle(home: World, e: Expedition): World {
     c.drafted = true;
     b.colonists.push(c);
   });
+  // Lo que traen, en el suelo junto a la entrada; los vehículos de tierra, aparcados al lado.
+  b.items.dropAll(3, m.start.y, e.supplies ?? {});
+  b.nextVehicleId = Math.max(b.nextVehicleId, ...(e.vehicles ?? []).map((v) => v.id + 1));
+  for (const v of e.vehicles ?? []) {
+    const def = vehicleDef(v.def);
+    if (!def || def.water) continue;
+    for (let k = 0; k < 20; k++) {
+      const x = 4 + (k % 3) * 3;
+      const y = Math.max(0, Math.min(m.height - 2, m.start.y - 6 + Math.floor(k / 3) * 3));
+      if (!fits(b, x, y, def) || b.vehicles.some((o) => Math.abs(o.x - x) < 2 && Math.abs(o.y - y) < 2)) continue;
+      v.x = x;
+      v.y = y;
+      v.pos = { x, y };
+      v.path = [];
+      b.vehicles.push(v);
+      break;
+    }
+  }
   b.battle = { home, faction: e.faction, base: [x0, y0, x1, y1] };
   b.addLog(`⚔️ Batalla en ${f.settlement}: ${defenders.length} defensores tras sus muros. Vuestros colonos están reclutados: tocad a un enemigo para atacarle, o 🏳 Retirarse para volver.`, 'malo', 'raid');
   return b;
@@ -252,13 +313,17 @@ export function finishBattle(b: World): World {
     c.activity = 'idle';
   }
   const loot: Partial<Record<ResourceId, number>> = {};
+  // Lo suyo que quede fuera de la base (lo que llevaron, lo que soltaron) vuelve con ellos; si han
+  // ganado, también lo de dentro.
+  const [x0, y0, x1, y1] = info.base;
+  for (const s of b.items.list()) {
+    const inside = s.x >= x0 && s.x <= x1 && s.y >= y0 && s.y <= y1;
+    if (inside && result !== 'victoria') continue;
+    loot[s.resource] = (loot[s.resource] ?? 0) + s.amount;
+  }
+  for (const c of b.pawns()) if (c.vehicle) delete c.vehicle;
+  const ownVehicles = (e?.vehicles ?? []).filter((v) => b.vehicles.includes(v) || vehicleDef(v.def)?.water);
   if (result === 'victoria') {
-    // Se llevan lo que había en la base.
-    const [x0, y0, x1, y1] = info.base;
-    for (const s of b.items.list()) {
-      if (s.x < x0 || s.x > x1 || s.y < y0 || s.y > y1) continue;
-      loot[s.resource] = (loot[s.resource] ?? 0) + s.amount;
-    }
     if (f?.base) home.ruins.push({ faction: f.id, name: f.settlement, x: f.base.x, y: f.base.y, day: home.day });
     home.factions.splice(home.factions.findIndex((k) => k.id === info.faction), 1);
     home.addLog(`🏚 ¡Victoria! ${f?.settlement ?? 'La base'} ha caído: ${def?.name ?? info.faction} ya no existen. Quedan sus ruinas en el mapa del mundo.`, 'bueno');
@@ -266,7 +331,7 @@ export function finishBattle(b: World): World {
     home.addLog(result === 'derrota' ? `☠ Derrota en ${f?.settlement ?? 'la base'}: los vuestros vuelven a casa malheridos.` : `🏳 La expedición se retira de ${f?.settlement ?? 'la base'} y vuelve a casa.`, 'malo');
   }
   const days = f?.base ? travelDays(f.base) : 1;
-  home.expedition = { faction: info.faction, members, phase: 'vuelta', arriveAt: home.tick + Math.round(days * TICKS_PER_DAY), loot, result };
+  home.expedition = { faction: info.faction, members, phase: 'vuelta', arriveAt: home.tick + Math.round(days * TICKS_PER_DAY), loot, result, vehicles: ownVehicles };
   home.pendingBattle = null;
   if (e) e.members = members;
   return home;
@@ -361,4 +426,39 @@ function settleRuin(w: World, e: Expedition): void {
 export function allColonies(w: World): { name: string; world: World }[] {
   const home = w.outpostHome ?? w.battle?.home ?? w;
   return [{ name: home.name ?? 'Colonia principal', world: home }, ...home.outposts.map((o) => ({ name: o.name, world: o.world }))];
+}
+
+/** Quita `n` de un recurso de los montones de la colonia. */
+function takeStock(w: World, r: ResourceId, n: number): void {
+  let left = n;
+  for (const s of w.items.list()) {
+    if (left <= 0) break;
+    if (s.resource !== r) continue;
+    const got = w.items.take(s.x, s.y, left);
+    if (got) left -= got.amount;
+  }
+}
+
+/** Deja un vehículo que vuelve junto a la colonia (en el agua más cercana, si es un barco). */
+export function parkVehicle(w: World, v: Vehicle): void {
+  const def = vehicleDef(v.def);
+  const home = w.colonyPoint();
+  if (!def || !home) return;
+  for (let r = 1; r <= 40; r++) {
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const x = home.x + dx;
+        const y = home.y + dy;
+        if (!fits(w, x, y, def) || w.vehicles.some((o) => Math.abs(o.x - x) < 2 && Math.abs(o.y - y) < 2)) continue;
+        v.id = w.nextVehicleId++;
+        v.x = x;
+        v.y = y;
+        v.pos = { x, y };
+        v.path = [];
+        w.vehicles.push(v);
+        return;
+      }
+    }
+  }
 }
