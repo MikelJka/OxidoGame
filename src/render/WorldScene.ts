@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GameMap, describeTile, inBounds } from '../sim/map';
+import { GameMap, describeTile, inBounds, Prop } from '../sim/map';
 import { activityLabel, Colonist, groupSummary, type Stance } from '../sim/colonist';
 import { TURRET_SHOT_TICKS } from '../sim/people';
 import { BLAST_TICKS } from '../sim/grenades';
@@ -24,6 +24,7 @@ import { drawBuilding, faceHeight, wallHeight } from './buildArt';
 import { paintVehicle, VEHICLE_H, VEHICLE_W } from './vehicleArt';
 import { defOf, occupant, Vehicle } from '../sim/vehicles';
 import { CHAR, CHAR_POSES, charKey, paintCharSheet } from './charArt';
+import { isTallProp, paintPropAtlas, PROP_BASE, PROP_H, PROP_VARIANTS, PROP_W, propFrame, propVariant, TALL_PROPS } from './propArt';
 import { colonistLookKey, COLONIST_SIZE, CROP_SIZE, ITEM_H, ITEM_W, paintColonist, paintCorpse, paintCrop, paintItem } from './spriteArt';
 import { rotOf } from '../sim/corpses';
 import { TICKS_PER_DAY } from '../sim/time';
@@ -33,6 +34,7 @@ import { fromView, normalizeRotation, Rotation, rotateMap, tileFromView, tileToV
 
 export { TILE };
 const MAP_TEXTURE = 'world-map';
+const PROP_ATLAS = 'props-2x';
 const MAX_ZOOM = 4;
 const COLONIST_DEPTH = 10;
 /** Marcas de designación: encima de los montones, debajo de los colonos. */
@@ -123,6 +125,8 @@ export class WorldScene extends Phaser.Scene {
   private mapTexture?: Phaser.Textures.CanvasTexture;
   private mapPixels?: ImageData;
   private propRaster?: PropRasterizer;
+  /** Objetos altos del mapa (árboles, rocas, coches…) como sprites a doble resolución, por casilla de la vista. */
+  private propSprites = new Map<number, Phaser.GameObjects.Image>();
   /** Última X dibujada de cada colono, para saber hacia dónde mira con la vista girada. */
   private lastViewX = new Map<number, number>();
   private pinchStartAngle = 0;
@@ -213,6 +217,7 @@ export class WorldScene extends Phaser.Scene {
     this.spriteLift.clear();
     this.lastViewX.clear();
     this.mapImage = undefined;
+    this.propSprites.clear();
     this.itemSprites = [];
     this.itemsVersion = -1;
     this.designVersion = -1;
@@ -332,7 +337,11 @@ export class WorldScene extends Phaser.Scene {
     if (!ground) throw new Error('No se pudo crear la textura del mapa');
     const gctx = ground.getContext();
     const img = gctx.createImageData(w, h);
-    this.propRaster ??= canvasPropRasterizer();
+    // Los objetos altos no se pintan en el suelo: van como sprites (más detalle y se ordenan con las personas).
+    if (!this.propRaster) {
+      const flat = canvasPropRasterizer();
+      this.propRaster = (p, rng) => (isTallProp(p) ? null : flat(p, rng));
+    }
     paintGround(this.view, img, this.propRaster);
     gctx.putImageData(img, 0, 0);
     ground.refresh();
@@ -340,6 +349,39 @@ export class WorldScene extends Phaser.Scene {
     this.mapPixels = img;
     this.world.takeChangedTiles(); // ya están pintados
     this.mapImage = this.add.image(0, -TOP_MARGIN, MAP_TEXTURE).setOrigin(0, 0).setDepth(-1);
+    for (const img of this.propSprites.values()) img.destroy();
+    this.propSprites.clear();
+    for (let i = 0; i < this.view.props.length; i++) this.syncPropSprite(i);
+  }
+
+  /** Atlas de los objetos altos (una sola textura con todas sus variantes). */
+  private ensurePropAtlas(): void {
+    if (this.textures.exists(PROP_ATLAS)) return;
+    const tex = this.textures.createCanvas(PROP_ATLAS, PROP_W * PROP_VARIANTS, PROP_H * TALL_PROPS.length);
+    if (!tex) return;
+    for (const f of paintPropAtlas(tex.getContext())) tex.add(f.frame, 0, f.x, f.y, PROP_W, PROP_H);
+    tex.refresh();
+  }
+
+  /** Pone, cambia o quita el sprite del objeto de una casilla de la vista. */
+  private syncPropSprite(vi: number): void {
+    const p = this.view.props[vi] as Prop;
+    let img = this.propSprites.get(vi);
+    if (!isTallProp(p)) {
+      img?.destroy();
+      this.propSprites.delete(vi);
+      return;
+    }
+    this.ensurePropAtlas();
+    const vx = vi % this.view.width;
+    const vy = Math.floor(vi / this.view.width);
+    const frame = propFrame(p, propVariant(this.map.seed, vx, vy));
+    if (!img) {
+      img = this.add.image(0, 0, PROP_ATLAS, frame).setScale(0.5).setOrigin(0.5, PROP_BASE / PROP_H);
+      this.propSprites.set(vi, img);
+    } else if (img.frame.name !== frame) img.setFrame(frame);
+    img.setPosition((vx + 0.5) * TILE, (vy + 1) * TILE_H - liftOf(this.view, vx, vy));
+    img.setDepth(COLONIST_DEPTH + (vy + 0.5) / 1000);
   }
 
   /**
@@ -380,6 +422,10 @@ export class WorldScene extends Phaser.Scene {
     }
     const ctx = this.mapTexture.getContext();
     const h = this.view.height * TILE_H + TOP_MARGIN;
+    for (const i of changed) {
+      const v = this.viewTile(i % this.map.width, Math.floor(i / this.map.width));
+      this.syncPropSprite(v.y * this.view.width + v.x);
+    }
     for (const col of columns) {
       paintGround(this.view, this.mapPixels, this.propRaster, col);
       ctx.putImageData(this.mapPixels, 0, 0, col * TILE, 0, TILE, h);
