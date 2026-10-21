@@ -3,7 +3,7 @@
 import { CREATURES } from '../data/creatures';
 import type { World } from '../sim/world';
 import type { Colonist } from '../sim/colonist';
-import { callAllies, callCaravan, dealBalance, makeDeal, payTribute, radioProblem, refuseTribute, slaveValue, TRADER_MARGIN, TradeDeal } from '../sim/people';
+import { buyPrice, callAllies, callCaravan, dealBalance, nextCaravanNeeds, sellPrice, makeDeal, payTribute, radioProblem, refuseTribute, slaveValue, TRADER_MARGIN, TradeDeal } from '../sim/people';
 import { healthLabel } from '../sim/health';
 import { RESOURCES, RESOURCE_ICONS, RESOURCE_NAMES } from '../data/resources';
 import { RESOURCE_VALUES } from '../data/values';
@@ -17,6 +17,8 @@ import { RECIPES } from '../data/recipes';
 import { canResearch, isResearched, researchFraction, unlockedBy } from '../sim/research';
 import { factionDef, RADIO, RELATION, TRADER_FACTION } from '../data/factions';
 import { CROPS } from '../data/crops';
+import { MARKET } from '../data/market';
+import { marketTrend } from '../sim/market';
 import { relationLevel, RELATION_LEVEL_NAMES } from '../sim/factions';
 
 export interface PeopleUI {
@@ -318,7 +320,13 @@ export function mountPeople(opts: Options): PeopleUI {
   /** Pinta el comercio en el cuerpo y deja en el pie el saldo y «Cerrar trato». */
   function renderTrade(w: World): HTMLElement[] {
     const trader = w.others.find((o) => o.role === 'comerciante' && o.trader && !o.trader.leaving);
-    if (!trader) return [empty('🐫', 'No hay ninguna caravana. Pasan de vez en cuando; cuando llegue una, tócala en el mapa o vuelve aquí.')];
+    if (!trader) {
+      const out = [empty('🐫', 'No hay ninguna caravana. Pasan de vez en cuando; cuando llegue una, tócala en el mapa o vuelve aquí.')];
+      // Con «Rutas comerciales» se sabe antes qué necesitará la próxima.
+      const next = isResearched(w.research, MARKET.trendResearch) ? nextCaravanNeeds(w) : null;
+      if (next) out.push(el('p', 'pp-hint', `🗺 La próxima caravana (hacia el día ${next.day}) necesitará: ${next.needs.map((r) => `${RESOURCE_ICONS[r]} ${RESOURCE_NAMES[r].toLowerCase()}`).join(', ')}.`));
+      return out;
+    }
     if (dealTrader !== trader.id) {
       dealTrader = trader.id;
       deal = { buy: {}, sell: {}, slaves: [], sellPrisoners: [] };
@@ -328,6 +336,10 @@ export function mountPeople(opts: Options): PeopleUI {
     const out: HTMLElement[] = [];
     const hours = Math.max(0, Math.ceil((t.leaveAt - w.tick) / TICKS_PER_HOUR));
     out.push(el('p', 'pp-hint', `Caravana de ${trader.name} · se va en ${hours} h. Cobra un ${Math.round((TRADER_MARGIN - 1) * 100)} % más de lo que paga. Elige con − y + qué compras y qué vendes; el saldo sale abajo.`));
+    const trends = isResearched(w.research, MARKET.trendResearch);
+    const wants = (list: typeof t.needs) => (list ?? []).map((r) => `${RESOURCE_ICONS[r]} ${RESOURCE_NAMES[r].toLowerCase()}`).join(', ');
+    if (t.needs?.length) out.push(el('p', 'muted', `💰 Necesita (paga un ${Math.round(MARKET.needPremium * 100)} % más): ${wants(t.needs)}.${t.surplus?.length ? ` 📦 Le sobra (un ${Math.round(MARKET.surplusDiscount * 100)} % menos): ${wants(t.surplus)}.` : ''}`));
+    out.push(el('p', 'muted', trends ? 'Los precios cambian con lo que se vende y se compra; ▲ sube y ▼ baja desde ayer.' : 'Los precios cambian con lo que se vende y se compra. Con «Rutas comerciales» se ve si suben o bajan.'));
     const table = el('div', 'trade-table');
     for (const r of RESOURCES) {
       const has = t.stock[r] ?? 0;
@@ -335,7 +347,10 @@ export function mountPeople(opts: Options): PeopleUI {
       const step = RESOURCE_VALUES[r] >= 4 ? 1 : 5;
       const row = el('div', 'trade-row');
       if (deal.buy[r] || deal.sell[r]) row.classList.add('on');
-      row.append(el('span', 'trade-name', `${RESOURCE_ICONS[r]} ${RESOURCE_NAMES[r]}`));
+      // Lo que necesita la caravana (+50 %) o le sobra (−30 %), y la tendencia del precio con «Rutas comerciales».
+      const tags = (t.needs?.includes(r) ? ' · 💰 lo necesita' : '') + (t.surplus?.includes(r) ? ' · 📦 le sobra' : '');
+      const tr = trends ? marketTrend(w.market, r) : 0;
+      row.append(el('span', 'trade-name', `${RESOURCE_ICONS[r]} ${RESOURCE_NAMES[r]}${tr > 0 ? ' ▲' : tr < 0 ? ' ▼' : ''}${tags}`));
       const qty = (side: 'buy' | 'sell', max: number) => {
         const box = el('span', 'trade-qty');
         const n = deal[side][r] ?? 0;
@@ -353,10 +368,10 @@ export function mountPeople(opts: Options): PeopleUI {
       };
       const sides = el('div', 'trade-sides');
       const buyCell = el('span', 'trade-side');
-      const price = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ','));
-      buyCell.append(el('strong', undefined, 'Comprar'), el('span', 'muted', `él tiene ${has} · ${price(RESOURCE_VALUES[r] * TRADER_MARGIN)} c/u`), qty('buy', has));
+      const price = (v: number) => (Math.abs(v - Math.round(v)) < 0.05 ? String(Math.round(v)) : v.toFixed(1).replace('.', ','));
+      buyCell.append(el('strong', undefined, 'Comprar'), el('span', 'muted', `él tiene ${has} · ${price(buyPrice(w, trader, r))} c/u`), qty('buy', has));
       const sellCell = el('span', 'trade-side');
-      sellCell.append(el('strong', undefined, 'Vender'), el('span', 'muted', `tenéis ${inv[r]} · ${price(RESOURCE_VALUES[r])} c/u`), qty('sell', inv[r]));
+      sellCell.append(el('strong', undefined, 'Vender'), el('span', 'muted', `tenéis ${inv[r]} · ${price(sellPrice(w, trader, r))} c/u`), qty('sell', inv[r]));
       sides.append(buyCell, sellCell);
       row.append(sides);
       table.append(row);

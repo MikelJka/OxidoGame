@@ -1,0 +1,23 @@
+{
+  "_": "Bloque 8 del catálogo (aprobado por Mikel el 2026-10-18): el valor de cada recurso va del 50 % al 200 % del suyo; baja si se vende mucho y sube si escasea, y se recupera un 10 % al día hacia su valor. Cada caravana trae 2–3 necesidades (las paga a +50 %) y 2–3 sobrantes (a −30 %), según su facción. Cuánto mueve cada venta (0,2 % por chapa) y los cambios al azar de cada día (lo que pasa en el mundo) los ha puesto la sesión del 2026-10-21.",
+  "min": 0.5,
+  "max": 2,
+  "recoveryPerDay": 0.1,
+  "perChapa": 0.002,
+  "shocks": { "perDay": [0, 2], "size": [0.1, 0.3] },
+  "needPremium": 0.5,
+  "surplusDiscount": 0.3,
+  "needs": [2, 3],
+  "surplus": [2, 3],
+  "trendResearch": "rutas_comerciales",
+  "caravans": {
+    "chatarreros": {
+      "needs": ["comida", "medicina", "madera", "piedra", "patata", "maiz", "fibra", "hierba", "flechas", "balas", "pescado"],
+      "surplus": ["chatarra", "componentes", "metal", "hormigon", "fibra", "flechas", "balas", "setas"]
+    },
+    "granjeros": {
+      "needs": ["chatarra", "componentes", "metal", "medicina", "flechas", "balas"],
+      "surplus": ["patata", "maiz", "setas", "comida", "fibra", "hierba"]
+    }
+  }
+}

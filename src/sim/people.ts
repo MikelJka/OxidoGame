@@ -22,6 +22,9 @@ import { mortarManned, mortarShots } from './mortar';
 import { TICKS_PER_DAY } from './time';
 import { ALLY_HELP, factionDef, RADIO, RAIDER_FACTION, RELATION, TRADER_FACTION, TRIBUTE, WAR } from '../data/factions';
 import { isResearched } from './research';
+import { MARKET } from '../data/market';
+import { marketTrade, marketValue } from './market';
+import { Rng } from './rng';
 import { researchDef } from '../data/research';
 import { giftPoints } from './factions';
 export { canTalk, TALK_HOURS } from './jobs';
@@ -652,12 +655,65 @@ export function startTrader(w: World): Colonist | null {
   for (let i = 0; i < nSlaves; i++) slaves.push(w.makePawn('prisionero'));
   t.trader = { stock, slaves, leaveAt: w.tick + Math.round(TICKS_PER_DAY * 0.75), leaving: false };
   t.faction = TRADER_FACTION;
+  caravanWants(w, t);
   w.others.push(t);
   const home = w.colonyPoint();
   const path = home ? findPath(w.map, t.tile, nearFree(w, home) ?? home, 60000) : null;
   if (path) t.path = path;
   w.addLog(`🐫 Llega una caravana de ${t.name}${nSlaves ? ` con ${nSlaves} ${nSlaves === 1 ? 'esclavo' : 'esclavos'}` : ''}. Toca al comerciante para comerciar.`, 'bueno', 'caravana', t.tile);
   return t;
+}
+
+/** Azar de las necesidades de la caravana que llega ese día (el mismo antes y después de llegar). */
+function caravanRng(w: World, day: number): Rng {
+  return new Rng(((w.map.seed ^ 0x2c1b3c6d) + day * 0x85ebca6b) >>> 0);
+}
+
+/** Saca hasta `range` recursos distintos de `pool`. */
+function pickSome(rng: Rng, pool: ResourceId[], range: [number, number]): ResourceId[] {
+  const left = [...pool];
+  const out: ResourceId[] = [];
+  for (let n = rng.int(range[0], range[1]); n > 0 && left.length; n--) out.push(left.splice(rng.int(0, left.length - 1), 1)[0]);
+  return out;
+}
+
+/**
+ * Necesidades y sobrantes de una caravana (bloque 8), según su facción: 2–3 recursos que paga a
+ * +50 % (y que no vende) y 2–3 de los que trae que rebaja un 30 %. Con su propio azar, sacado de la
+ * semilla y del día (no toca el de la partida; así se pueden ver antes con «Rutas comerciales»).
+ */
+export function caravanWants(w: World, t: Colonist): void {
+  const info = t.trader;
+  const pools = t.faction ? MARKET.caravans[t.faction] : undefined;
+  if (!info || !pools) return;
+  const rng = caravanRng(w, w.day);
+  info.needs = pickSome(rng, pools.needs, MARKET.needs);
+  // Lo que necesita no lo vende; lo que le sobra tiene que traerlo.
+  for (const r of info.needs) delete info.stock[r];
+  info.surplus = pickSome(rng, pools.surplus.filter((r) => (info.stock[r] ?? 0) > 0 && !info.needs!.includes(r)), MARKET.surplus);
+}
+
+/** Lo que necesitará la próxima caravana (la que toca por el calendario), para verlo con «Rutas comerciales». */
+export function nextCaravanNeeds(w: World): { day: number; needs: ResourceId[] } | null {
+  const pools = MARKET.caravans[TRADER_FACTION];
+  const at = w.schedule.nextTrader;
+  if (!pools || !Number.isFinite(at)) return null;
+  const day = w.dayOf(at);
+  return { day, needs: pickSome(caravanRng(w, day), pools.needs, MARKET.needs) };
+}
+
+/** Lo que cobra la caravana por una unidad: su precio de mercado, más su margen; lo que le sobra, −30 %. */
+export function buyPrice(w: World, trader: Colonist, r: ResourceId): number {
+  const surplus = trader.trader?.surplus?.includes(r) ? 1 - MARKET.surplusDiscount : 1;
+  return marketValue(w.market, r) * TRADER_MARGIN * surplus;
+}
+
+/** Lo que paga la caravana por una unidad: su precio de mercado; lo que necesita, +50 %; lo que le sobra, −30 %. */
+export function sellPrice(w: World, trader: Colonist, r: ResourceId): number {
+  const t = trader.trader;
+  const need = t?.needs?.includes(r) ? 1 + MARKET.needPremium : 1;
+  const surplus = t?.surplus?.includes(r) ? 1 - MARKET.surplusDiscount : 1;
+  return marketValue(w.market, r) * need * surplus;
 }
 
 function nearFree(w: World, p: Point): Point | null {
@@ -1454,13 +1510,13 @@ export function slaveValue(c: Colonist): number {
 /** Balance de un trato para la colonia (≥ 0: el comerciante acepta). */
 export function dealBalance(w: World, trader: Colonist, d: TradeDeal): number {
   let give = 0;
-  for (const [r, n] of Object.entries(d.sell) as [ResourceId, number][]) give += n * RESOURCE_VALUES[r];
+  for (const [r, n] of Object.entries(d.sell) as [ResourceId, number][]) give += n * sellPrice(w, trader, r);
   for (const id of d.sellPrisoners) {
     const p = w.others.find((o) => o.id === id && o.role === 'prisionero');
     if (p) give += slaveValue(p) * 0.6;
   }
   let take = 0;
-  for (const [r, n] of Object.entries(d.buy) as [ResourceId, number][]) take += n * RESOURCE_VALUES[r] * TRADER_MARGIN;
+  for (const [r, n] of Object.entries(d.buy) as [ResourceId, number][]) take += n * buyPrice(w, trader, r);
   for (const id of d.slaves) {
     const s = trader.trader?.slaves.find((k) => k.id === id);
     if (s) take += slaveValue(s) * TRADER_MARGIN;
@@ -1512,6 +1568,8 @@ export function makeDeal(w: World, trader: Colonist, d: TradeDeal): string | nul
     w.others.push(s);
     w.addLog(`⛓ Compráis a ${s.name}: ahora es prisionero de la colonia. Convencedlo para que se una.`, 'info');
   }
+  // Mercado: lo que se vende mucho baja de precio y lo que se compra sube.
+  for (const r of RESOURCES) marketTrade(w.market, r, (d.sell[r] ?? 0) - (d.buy[r] ?? 0));
   // Facciones: el primer trato con cada caravana sube la relación, y lo que se da de más cuenta como regalo.
   if (!t.traded) {
     t.traded = true;

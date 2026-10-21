@@ -2,6 +2,26 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (36) — El mercado: precios que suben y bajan
+
+- Bloque 8 entero. El **precio** de cada recurso va del **50 % al 200 %** de su valor:
+  - **Baja al venderlo** a las caravanas y **sube al comprarlo**: 0,2 % por chapa, así que vender 50 🪵 la deja un 10 % más barata.
+  - **Se recupera un 10 % al día** hacia su valor.
+  - Cada día cambian 0–2 recursos al azar un 10–30 %, por lo que pasa en el resto del mundo.
+- Cada **caravana** trae, según su facción:
+  - **2–3 necesidades**: las paga un **50 % más** y no las vende.
+  - **2–3 sobrantes** de lo que trae: los rebaja un **30 %**, tanto al comprar como al venderlos.
+  - Sale arriba en 🐫 Comercio y en cada fila («💰 lo necesita», «📦 le sobra»).
+- Con **«Rutas comerciales»**: cada recurso lleva **▲ / ▼** si su precio ha subido o bajado desde ayer, y sin caravana en la colonia se ve **qué necesitará la próxima** y hacia qué día llega.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo):
+  - cuánto mueve cada venta (0,2 % por chapa);
+  - los cambios al azar de cada día;
+  - de qué listas salen las necesidades y sobrantes de los Chatarreros, y también las de los Granjeros, que de momento no traen caravanas;
+  - que lo que necesitan no lo vendan (si no, se podría comprar y revender a la misma caravana).
+- Qué probar: con una caravana, mirar en 📜 → 🐫 Comercio qué necesita y venderle eso. Vender mucho de algo y ver que baja de precio en la siguiente.
+- Sin npm en el entorno: tests con Bun (612, 6 nuevos en `tests/market.test.ts`) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+- Siguiente: los **sucesos** (bloque 9), por partes.
+
 ## 2026-10-21 (35) — Facciones: la radio (bloque 7 terminado)
 
 - Con **«Radio»** investigada y una **📻 radio de llamada** construida y con corriente, en **📜 → 🏳 Facciones** hay una tarjeta **📻 Radio** con dos botones:

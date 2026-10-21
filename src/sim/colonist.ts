@@ -221,6 +221,9 @@ export interface TraderInfo {
   leaving: boolean;
   /** Ya se ha hecho algún trato con esta caravana (sube la relación una vez). */
   traded?: boolean;
+  /** Lo que necesita (lo paga a +50 %) y lo que le sobra (a −30 %), según su facción. */
+  needs?: ResourceId[];
+  surplus?: ResourceId[];
 }
 
 /** «aliado»: combatiente que manda una facción aliada para ayudar en un ataque. */

@@ -1,5 +1,6 @@
 import { Colonist, createColonist, RaidGroup, Stance, walkSpeedMultiplier } from './colonist';
 import { createFactions, FactionState, RELATION_LEVEL_NAMES, shiftRelation } from './factions';
+import { marketDay, MarketState, newMarket } from './market';
 import { factionDef, RELATION } from '../data/factions';
 import { countReachable, GameMap, generateMap, inBounds, isPassable, TRENCH_FLOODED, isWater, Prop, PROP_INFO, Terrain, TERRAIN_INFO, tileMoveCost } from './map';
 import { findPath, isWalkable, Point } from './pathfinding';
@@ -216,6 +217,8 @@ export class World implements JobContext {
   readonly blasts: Blast[] = [];
   /** Facciones (bloque 7): sus asentamientos y su relación con la colonia. */
   factions: FactionState[];
+  /** Mercado (bloque 8): el precio de cada recurso. */
+  market: MarketState = newMarket();
   /** Tributo pedido y sin responder (o null). */
   tribute: Tribute | null = null;
   tick = 0;
@@ -326,6 +329,8 @@ export class World implements JobContext {
         !this.colonists.some((c) => c.path.some((p) => p.x === x && p.y === y)));
       this.markChanged(...grown);
     }
+    // Cada día, los precios del mercado se acercan a su valor y alguno cambia.
+    if (this.tick % TICKS_PER_DAY === 0) marketDay(this.market, this.map.seed, this.day);
     // Cada día, las trampas de pesca dejan su 🐟 en el muelle de al lado.
     if (this.tick % TICKS_PER_HOUR === 0) this.emptyFishTraps();
     // Las plantas crecen a saltos de un segundo (basta y cuesta poco).
@@ -628,6 +633,11 @@ export class World implements JobContext {
 
   get day(): number {
     return Math.floor((this.tick + START_HOUR * TICKS_PER_HOUR) / TICKS_PER_DAY) + 1;
+  }
+
+  /** Día de juego de un tick cualquiera. */
+  dayOf(tick: number): number {
+    return Math.floor((tick + START_HOUR * TICKS_PER_HOUR) / TICKS_PER_DAY) + 1;
   }
 
   /** A su hora, cada trampa de pesca terminada deja lo suyo en el muelle terminado de al lado. */

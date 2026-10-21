@@ -88,5 +88,5 @@ Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed 
 
 - [x] Facciones con relaciones y diplomacia (tres facciones con su asentamiento y su relación, la pestaña 📜 → 🏳 Facciones, la alianza, la guerra, el tributo de los Hijos del Óxido y la radio para llamar a una caravana o pedir ayuda)
 - [ ] Caravanas y trueque por valor
-- [ ] Mercado global simulado con oferta y demanda
+- [x] Mercado global simulado con oferta y demanda (precios del 50 % al 200 % que bajan al vender y suben al comprar, se recuperan un 10 % al día y cambian por lo que pasa en el mundo; necesidades y sobrantes de cada caravana; tendencia ▲ ▼ y próxima caravana con «Rutas comerciales»)
 - [ ] Eventos, arte definitivo y equilibrio

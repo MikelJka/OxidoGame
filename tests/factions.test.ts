@@ -37,9 +37,12 @@ describe('facciones', () => {
     w.items.drop(6, 6, 'madera', 75);
     const t = startTrader(w)!;
     t.trader!.stock = {};
+    t.trader!.needs = [];
+    t.trader!.surplus = [];
     expect(makeDeal(w, t, { sell: { madera: 10 }, buy: {}, sellPrisoners: [], slaves: [] })).toBeNull();
     expect(rel(w, 'chatarreros')).toBe(20 + 2);
-    // Un regalo de 60 chapas: +3.
+    // Un regalo de 60 chapas: +3 (con el precio de la madera a su valor).
+    w.market.mult = {};
     expect(makeDeal(w, t, { sell: { madera: 60 }, buy: {}, sellPrisoners: [], slaves: [] })).toBeNull();
     expect(rel(w, 'chatarreros')).toBe(22 + 3);
   });

@@ -19,6 +19,7 @@ import { initialSchedule, makeDifficulty, WANDERER_GAP } from './storyteller';
 import { vehicleDef } from '../data/vehicles';
 import { factionDef } from '../data/factions';
 import { restoreFactions } from './factions';
+import { restoreMarket } from './market';
 import { GRENADE, isWeapon } from '../data/weapons';
 import { ARMORS, isArmor } from '../data/armor';
 
@@ -72,6 +73,8 @@ export interface SaveData {
   schedule?: { nextWanderer: number; nextRaid: number; nextTrader: number; nextRadio?: number };
   /** Facciones (desde el 2026-10-21); las partidas antiguas las sacan de la semilla. */
   factions?: { id: string; settlement: string; relation: number; helpAt?: number; warRaidAt?: number; calledAt?: number }[];
+  /** Mercado: precios respecto a su valor (desde el 2026-10-21). */
+  market?: { mult: Record<string, number>; prev: Record<string, number> };
   /** Tributo pedido y sin responder (desde el 2026-10-21). */
   tribute?: { faction: string; demand: Record<string, number>; value: number; until: number };
   nextPawnId?: number;
@@ -120,7 +123,7 @@ interface SavedColonist {
   raider?: { fleeing: boolean; leaveAt: number; group?: number; leader?: boolean; finish?: boolean; raft?: number };
   /** Criatura (perro mutante…), desde 2026-10-19. */
   creature?: string;
-  trader?: { stock: Record<string, number>; slaves: SavedColonist[]; leaveAt: number; leaving: boolean; traded?: boolean };
+  trader?: { stock: Record<string, number>; slaves: SavedColonist[]; leaveAt: number; leaving: boolean; traded?: boolean; needs?: string[]; surplus?: string[] };
   /** Facción (desde el 2026-10-21). */
   faction?: string;
   /** Arma, la que prefiere y munición (desde que hay armas). */
@@ -176,7 +179,7 @@ function savePawn(c: Colonist): SavedColonist {
     raider: c.raider ? { ...c.raider } : undefined,
     ...(c.creature ? { creature: c.creature } : {}),
     trader: c.trader
-      ? { stock: { ...c.trader.stock } as Record<string, number>, slaves: c.trader.slaves.map(savePawn), leaveAt: c.trader.leaveAt, leaving: c.trader.leaving, ...(c.trader.traded ? { traded: true } : {}) }
+      ? { stock: { ...c.trader.stock } as Record<string, number>, slaves: c.trader.slaves.map(savePawn), leaveAt: c.trader.leaveAt, leaving: c.trader.leaving, ...(c.trader.traded ? { traded: true } : {}), ...(c.trader.needs ? { needs: [...c.trader.needs] } : {}), ...(c.trader.surplus ? { surplus: [...c.trader.surplus] } : {}) }
       : undefined,
     ...(c.faction ? { faction: c.faction } : {}),
     weapon: c.weapon,
@@ -237,6 +240,7 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     offer: world.offer ? { pawn: savePawn(world.offer.pawn), until: world.offer.until } : null,
     schedule: { ...world.schedule },
     factions: world.factions.map((f) => ({ ...f })),
+    market: { mult: { ...world.market.mult }, prev: { ...world.market.prev } },
     ...(world.tribute ? { tribute: { ...world.tribute, demand: { ...world.tribute.demand } } } : {}),
     nextPawnId: world.nextPawnId,
     vehicles: world.vehicles.map((v) => ({ id: v.id, def: v.def, x: v.x, y: v.y, fuel: v.fuel, hp: v.hp, facing: v.facing })),
@@ -424,6 +428,8 @@ function restoreColonist(s: SavedColonist): Colonist {
           leaveAt: num(s.trader.leaveAt, 0),
           leaving: !!s.trader.leaving,
           ...(s.trader.traded ? { traded: true } : {}),
+          ...(Array.isArray(s.trader.needs) ? { needs: s.trader.needs.filter(isResource) } : {}),
+          ...(Array.isArray(s.trader.surplus) ? { surplus: s.trader.surplus.filter(isResource) } : {}),
         }
       : undefined,
     ...(typeof s.faction === 'string' && factionDef(s.faction) ? { faction: s.faction } : {}),
@@ -559,6 +565,7 @@ export function loadWorld(input: string | unknown): World {
   world.schedule.nextWanderer = Math.min(world.schedule.nextWanderer, world.tick + Math.round(WANDERER_GAP[1] * TICKS_PER_DAY));
   const ids = [...world.colonists, ...world.others, ...world.others.flatMap((o) => o.trader?.slaves ?? []), ...(world.offer ? [world.offer.pawn] : [])].map((c) => c.id);
   world.factions = restoreFactions(d.factions, world.map.seed);
+  world.market = restoreMarket(d.market);
   if (d.tribute && factionDef(String(d.tribute.faction))) {
     const demand = Object.fromEntries(Object.entries(d.tribute.demand ?? {}).filter(([r]) => isResource(r)).map(([r, n]) => [r, Math.max(1, Math.round(num(n, 1)))]));
     world.tribute = { faction: String(d.tribute.faction), demand, value: num(d.tribute.value, 0), until: num(d.tribute.until, world.tick) };
