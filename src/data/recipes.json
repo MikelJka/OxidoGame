@@ -399,6 +399,22 @@
     "description": "Cada colono lleva 2: las lanza a 6 casillas a grupos de enemigos (×3 en el 3×3)."
   },
   {
+    "id": "fabricar_lanzallamas",
+    "name": "Lanzallamas",
+    "station": "banco_trabajo",
+    "inputs": {
+      "metal": 8,
+      "componentes": 3,
+      "tuberia": 1
+    },
+    "outputs": {
+      "lanzallamas": 1
+    },
+    "work": 700,
+    "research": "explosivos",
+    "description": "Depósito a la espalda y una tubería con mechero: quema a 4 casillas y prende fuego a lo que toca. Gasta 🧴 napalm."
+  },
+  {
     "id": "fabricar_chaleco_cuero",
     "name": "Chaleco de cuero",
     "station": "banco_trabajo",
@@ -508,6 +524,21 @@
     },
     "work": 500,
     "description": "10 de madera dan 2 de combustible para los vehículos."
+  },
+  {
+    "id": "hacer_napalm",
+    "name": "Napalm",
+    "station": "destileria",
+    "inputs": {
+      "combustible": 2,
+      "fibra": 1
+    },
+    "outputs": {
+      "napalm": 10
+    },
+    "work": 300,
+    "research": "explosivos",
+    "description": "Combustible espesado con fibra: munición del lanzallamas."
   },
   {
     "id": "hacer_abono",

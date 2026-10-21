@@ -202,6 +202,8 @@ export interface BuildingDef {
    * `crops.json`) bajo techo y con corriente, `speed` veces más rápido que un huerto, sin fertilidad.
    */
   hydroponics?: { speed: number; crops: string[] };
+  /** Explota si el fuego la destruye (generador de leña, destilería). */
+  explodes?: boolean;
   /** Espantapájaros (pedido de Mikel del 2026-10-21): las plantas a `radius` casillas o menos no enferman con las plagas. */
   scarecrow?: { radius: number };
   /** Compostera (pedido de Mikel del 2026-10-21): cada día, a esa hora, deja `perDay` 🟤 abono a su lado (de los restos de la colonia). */

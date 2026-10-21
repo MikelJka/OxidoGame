@@ -14,6 +14,7 @@ import { Point } from './pathfinding';
 import { attack, canHit, foeLabel, hurtFoe, leaveMap } from './people';
 import { hurt } from './health';
 import { theName, usesFuel, VehicleDef, vehicleDef } from '../data/vehicles';
+import { explodeAt } from './fire';
 
 /** Lado del vehículo en casillas (todos son de 2×2 por ahora). */
 export const VEHICLE_SIZE = 2;
@@ -377,13 +378,15 @@ export function absorbHit(w: World, c: Colonist, dmg: number): number {
   const def = defOf(v);
   const stopped = dmg * def.armor;
   v.hp -= stopped * def.damageScale;
-  if (v.hp <= 0) wreckVehicle(w, v, `💥 ${theName(def, true)} queda destrozad${def.feminine ? 'a' : 'o'}`);
+  if (v.hp <= 0) wreckVehicle(w, v, `💥 ${theName(def, true)} queda destrozad${def.feminine ? 'a' : 'o'}`, true);
   return dmg - stopped;
 }
 
 /** El vehículo se rompe: los de dentro se bajan y queda su chatarra en el suelo. */
-export function wreckVehicle(w: World, v: Vehicle, why: string): void {
+export function wreckVehicle(w: World, v: Vehicle, why: string, blownUp = false): void {
   const def = defOf(v);
+  // Roto a golpes o por el fuego con ⛽ en el depósito: explota.
+  const boom = blownUp && def.fuelCapacity > 0 && v.fuel > 0;
   for (const c of riders(w, v)) w.leaveVehicle(c);
   for (const c of w.pawns()) if (c.vehicle?.id === v.id) delete c.vehicle;
   const i = w.vehicles.indexOf(v);
@@ -394,6 +397,7 @@ export function wreckVehicle(w: World, v: Vehicle, why: string): void {
     parts.push(`${n} de ${r}`);
   }
   w.addLog(`${why}: deja ${parts.join(', ') || 'nada'}.`, def.hostile ? 'bueno' : 'malo', undefined, { x: v.x, y: v.y });
+  if (boom) explodeAt(w, { x: v.x, y: v.y }, `💥 ¡Explota el depósito de ⛽ de ${theName(def)}!`);
 }
 
 /** Cada cuánto recalcula el buggy de los saqueadores su camino hacia el colono más cercano. */

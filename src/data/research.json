@@ -18,7 +18,7 @@
     { "id": "calefaccion", "name": "Calefacción", "hours": 8, "requires": ["sastreria"], "unlocks": "Estufa" },
     { "id": "armas_largas", "name": "Armas largas", "hours": 12, "requires": ["polvora"], "unlocks": "Escopeta y rifle" },
     { "id": "armas_automaticas", "name": "Armas automáticas", "hours": 14, "requires": ["armas_largas"], "unlocks": "Subfusil y rifle de francotirador" },
-    { "id": "explosivos", "name": "Explosivos", "hours": 6, "requires": ["armas_largas"], "unlocks": "Granadas caseras" },
+    { "id": "explosivos", "name": "Explosivos", "hours": 6, "requires": ["armas_largas"], "unlocks": "Granadas caseras, lanzallamas y napalm" },
     { "id": "blindaje", "name": "Blindaje avanzado", "hours": 12, "requires": ["armas_largas"], "unlocks": "Chaleco táctico, casco táctico y lancha blindada (con Motores)" },
     { "id": "torretas", "name": "Torretas", "hours": 14, "requires": ["polvora"], "unlocks": "Torreta ligera" },
     { "id": "artilleria", "name": "Artillería", "hours": 20, "requires": ["torretas"], "unlocks": "Torreta pesada y mortero" },

@@ -9,7 +9,7 @@ import type { ResourceId } from './resources';
 export const WEIGHTS: Partial<Record<ResourceId, number>> = {
   madera: 1, piedra: 2, chatarra: 1, componentes: 0.5, patata: 0.5, maiz: 0.5, setas: 0.3, fibra: 0.3,
   metal: 2, hormigon: 3, comida: 0.5, palo: 1, cuchillo: 0.5, tuberia: 2, lanza: 2, machete: 1, arco: 1,
-  ballesta: 3, lanza_metal: 3, flechas: 0.05, pistola: 1.5, escopeta: 3.5, rifle: 4, subfusil: 3,
+  ballesta: 3, lanza_metal: 3, flechas: 0.05, pistola: 1.5, escopeta: 3.5, lanzallamas: 6, napalm: 0.2, rifle: 4, subfusil: 3,
   francotirador: 6, balas: 0.05, granadas: 0.5, chaleco_cuero: 3, chaleco_chapa: 6, chaleco_metal: 9,
   chaleco_tactico: 5, casco_chapa: 2, casco_metal: 3, casco_tactico: 1.5, medicina: 0.2, combustible: 1,
   hierba: 0.2, pescado: 0.5, abrigo: 2, carne: 0.5, cuero: 1, abono: 1, leche: 1, huevos: 0.1,

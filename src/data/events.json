@@ -1,5 +1,5 @@
 {
-  "_": "Bloque 9 del catálogo (aprobado por Mikel el 2026-10-18). Cada cuánto llega un suceso (cada 2–4 días, desde el día 3), cuánto pesa cada uno y lo que trae un alijo los ha puesto la sesión del 2026-10-21. La ola de frío (bloque 9, con las estaciones del bloque 11): 48 h en las que hace frío a todas horas y en cualquier estación, como una noche de invierno, y lo plantado al aire libre no crece; sus horas y su peso los ha puesto la sesión del 2026-10-21.",
+  "_": "Bloque 9 del catálogo (aprobado por Mikel el 2026-10-18). Cada cuánto llega un suceso (cada 2–4 días, desde el día 3), cuánto pesa cada uno y lo que trae un alijo los ha puesto la sesión del 2026-10-21. La ola de frío (bloque 9, con las estaciones del bloque 11): 48 h en las que hace frío a todas horas y en cualquier estación, como una noche de invierno, y lo plantado al aire libre no crece; sus horas y su peso los ha puesto la sesión del 2026-10-21. La tormenta eléctrica (con el fuego, 2026-10-21): 6 h en las que caen de 2 a 4 rayos en casillas al azar y prenden lo que ardan; números de la sesión.",
   "firstDay": 3,
   "gapDays": [
     2,
@@ -85,6 +85,16 @@
       "weight": 1,
       "hours": 48,
       "coldWave": true
+    },
+    {
+      "id": "tormenta_electrica",
+      "name": "Tormenta eléctrica",
+      "weight": 1,
+      "hours": 6,
+      "lightning": [
+        2,
+        4
+      ]
     }
   ]
 }

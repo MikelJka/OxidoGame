@@ -24,7 +24,7 @@ describe('⛽ combustible y destilería (decidido por Mikel el 2026-10-19)', () 
     expect(d.size).toEqual([2, 2]);
     expect(d.power).toBeUndefined();
     const r = recipeDef('destilar_combustible')!;
-    expect(recipesFor('destileria')).toEqual([r]);
+    expect(recipesFor('destileria').map((x) => x.id)).toEqual([r.id, 'hacer_napalm']);
     expect(r.inputs).toEqual({ madera: 10 });
     expect(r.outputs).toEqual({ combustible: 2 });
     expect(r.work).toBe(recipeDef('fabricar_cuchillo')!.work * 2);

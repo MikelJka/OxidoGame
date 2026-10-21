@@ -2,28 +2,200 @@
   "ammoCarry": 20,
   "ammoLow": 5,
   "raiderAmmo": 15,
-  "grenade": { "carry": 2, "reach": 6, "radius": 1, "damage": 3, "minTargets": 2, "cooldownSeconds": 10, "fuseTicks": 45, "structureDamage": 0.1, "raiderFromDay": 30, "raiderChance": 0.34, "raiderCarry": 1 },
+  "grenade": {
+    "carry": 2,
+    "reach": 6,
+    "radius": 1,
+    "damage": 3,
+    "minTargets": 2,
+    "cooldownSeconds": 10,
+    "fuseTicks": 45,
+    "structureDamage": 0.1,
+    "raiderFromDay": 30,
+    "raiderChance": 0.34,
+    "raiderCarry": 1
+  },
   "weapons": [
-    { "id": "palo", "damage": 1.4, "cooldown": 1, "reach": 1, "speedLabel": "normal" },
-    { "id": "cuchillo", "damage": 1.8, "cooldown": 0.75, "reach": 1, "speedLabel": "rápido" },
-    { "id": "tuberia", "damage": 2.2, "cooldown": 1.35, "reach": 1, "speedLabel": "lento" },
-    { "id": "lanza", "damage": 2.0, "cooldown": 1, "reach": 2, "speedLabel": "normal" },
-    { "id": "machete", "damage": 2.8, "cooldown": 1, "reach": 1, "speedLabel": "normal" },
-    { "id": "arco", "damage": 1.6, "cooldown": 1.35, "reach": 8, "ammo": "flechas", "speedLabel": "lento" },
-    { "id": "ballesta", "damage": 2.4, "cooldown": 1.35, "reach": 10, "ammo": "flechas", "speedLabel": "lento" },
-    { "id": "lanza_metal", "damage": 2.6, "cooldown": 1, "reach": 2, "speedLabel": "normal" },
-    { "id": "pistola", "damage": 2.2, "cooldown": 1, "reach": 9, "ammo": "balas", "firearm": true, "speedLabel": "normal" },
-    { "id": "escopeta", "damage": 3.6, "closeRange": 3, "farDamage": 1.8, "cooldown": 1.35, "reach": 6, "ammo": "balas", "firearm": true, "speedLabel": "lento" },
-    { "id": "rifle", "damage": 3.0, "cooldown": 1.35, "reach": 14, "ammo": "balas", "firearm": true, "speedLabel": "lento" },
-    { "id": "subfusil", "damage": 1.3, "cooldown": 0.5, "reach": 7, "ammo": "balas", "firearm": true, "speedLabel": "muy rápido" },
-    { "id": "francotirador", "damage": 4.5, "cooldown": 1.8, "reach": 18, "ammo": "balas", "firearm": true, "speedLabel": "muy lento" }
+    {
+      "id": "palo",
+      "damage": 1.4,
+      "cooldown": 1,
+      "reach": 1,
+      "speedLabel": "normal"
+    },
+    {
+      "id": "cuchillo",
+      "damage": 1.8,
+      "cooldown": 0.75,
+      "reach": 1,
+      "speedLabel": "rápido"
+    },
+    {
+      "id": "tuberia",
+      "damage": 2.2,
+      "cooldown": 1.35,
+      "reach": 1,
+      "speedLabel": "lento"
+    },
+    {
+      "id": "lanza",
+      "damage": 2.0,
+      "cooldown": 1,
+      "reach": 2,
+      "speedLabel": "normal"
+    },
+    {
+      "id": "machete",
+      "damage": 2.8,
+      "cooldown": 1,
+      "reach": 1,
+      "speedLabel": "normal"
+    },
+    {
+      "id": "arco",
+      "damage": 1.6,
+      "cooldown": 1.35,
+      "reach": 8,
+      "ammo": "flechas",
+      "speedLabel": "lento"
+    },
+    {
+      "id": "ballesta",
+      "damage": 2.4,
+      "cooldown": 1.35,
+      "reach": 10,
+      "ammo": "flechas",
+      "speedLabel": "lento"
+    },
+    {
+      "id": "lanza_metal",
+      "damage": 2.6,
+      "cooldown": 1,
+      "reach": 2,
+      "speedLabel": "normal"
+    },
+    {
+      "id": "pistola",
+      "damage": 2.2,
+      "cooldown": 1,
+      "reach": 9,
+      "ammo": "balas",
+      "firearm": true,
+      "speedLabel": "normal"
+    },
+    {
+      "id": "escopeta",
+      "damage": 3.6,
+      "closeRange": 3,
+      "farDamage": 1.8,
+      "cooldown": 1.35,
+      "reach": 6,
+      "ammo": "balas",
+      "firearm": true,
+      "speedLabel": "lento"
+    },
+    {
+      "id": "lanzallamas",
+      "damage": 2.4,
+      "cooldown": 1.2,
+      "reach": 4,
+      "ammo": "napalm",
+      "firearm": true,
+      "ignites": true,
+      "speedLabel": "lento"
+    },
+    {
+      "id": "rifle",
+      "damage": 3.0,
+      "cooldown": 1.35,
+      "reach": 14,
+      "ammo": "balas",
+      "firearm": true,
+      "speedLabel": "lento"
+    },
+    {
+      "id": "subfusil",
+      "damage": 1.3,
+      "cooldown": 0.5,
+      "reach": 7,
+      "ammo": "balas",
+      "firearm": true,
+      "speedLabel": "muy rápido"
+    },
+    {
+      "id": "francotirador",
+      "damage": 4.5,
+      "cooldown": 1.8,
+      "reach": 18,
+      "ammo": "balas",
+      "firearm": true,
+      "speedLabel": "muy lento"
+    }
   ],
   "raiderPools": [
-    { "fromDay": 0, "weapons": [null, "palo", "palo", "cuchillo"] },
-    { "fromDay": 8, "weapons": ["palo", "cuchillo", "tuberia", "lanza"] },
-    { "fromDay": 12, "weapons": ["cuchillo", "tuberia", "lanza", "arco", "arco"] },
-    { "fromDay": 15, "weapons": ["cuchillo", "tuberia", "lanza", "arco", "arco", "pistola"] },
-    { "fromDay": 25, "weapons": ["tuberia", "lanza", "arco", "pistola", "pistola", "escopeta", "rifle"] },
-    { "fromDay": 35, "weapons": ["tuberia", "lanza", "arco", "pistola", "escopeta", "rifle", "subfusil", "francotirador"] }
+    {
+      "fromDay": 0,
+      "weapons": [
+        null,
+        "palo",
+        "palo",
+        "cuchillo"
+      ]
+    },
+    {
+      "fromDay": 8,
+      "weapons": [
+        "palo",
+        "cuchillo",
+        "tuberia",
+        "lanza"
+      ]
+    },
+    {
+      "fromDay": 12,
+      "weapons": [
+        "cuchillo",
+        "tuberia",
+        "lanza",
+        "arco",
+        "arco"
+      ]
+    },
+    {
+      "fromDay": 15,
+      "weapons": [
+        "cuchillo",
+        "tuberia",
+        "lanza",
+        "arco",
+        "arco",
+        "pistola"
+      ]
+    },
+    {
+      "fromDay": 25,
+      "weapons": [
+        "tuberia",
+        "lanza",
+        "arco",
+        "pistola",
+        "pistola",
+        "escopeta",
+        "rifle"
+      ]
+    },
+    {
+      "fromDay": 35,
+      "weapons": [
+        "tuberia",
+        "lanza",
+        "arco",
+        "pistola",
+        "escopeta",
+        "rifle",
+        "subfusil",
+        "francotirador"
+      ]
+    }
   ]
 }

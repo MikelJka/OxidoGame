@@ -9,6 +9,9 @@ import { TICKS_PER_DAY, TICKS_PER_SECOND } from './time';
 import type { World } from './world';
 import { DOWNED } from './health';
 import type { Colonist } from './colonist';
+import { seasonOf } from '../data/seasons';
+import { blastAt } from './grenades';
+import { wreckVehicle } from './vehicles';
 
 const SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
 
@@ -92,7 +95,8 @@ export function updateFires(w: World): void {
   const m = w.map;
   const rng = new Rng(((m.seed ^ 0x0f1a3e5d) + Math.floor(w.tick / TICKS_PER_SECOND) * 0x9e3779b1) >>> 0);
   const rain = w.weather.some((e) => w.tick < e.until && e.id === 'lluvia_acida');
-  const factor = (1 + FIRE.windSpread * w.wind) * (rain ? FIRE.rainSpread : 1);
+  const factor = (1 + FIRE.windSpread * w.wind) * (rain ? FIRE.rainSpread : 1) * (FIRE.seasonSpread[seasonOf(w.day).id] ?? 1);
+  const [wx, wy] = SIDES[windDirection(w)];
   const spreadTo: number[] = [];
   for (const [i, age] of [...w.fires]) {
     const x = i % m.width;
@@ -110,14 +114,27 @@ export function updateFires(w: World): void {
       burn(c, FIRE.harmPerSecond);
       if (c.role === 'colono') w.combatAlert(c, 'herido', `🔥 ${c.name} se está quemando.`);
     }
-    // Lo construido con madera pierde vida hasta romperse.
+    // Lo construido con madera pierde vida hasta romperse (y lo que lleva combustible, explota).
     const s = w.structures.at(x, y);
     if (fuel === 'structure' && s) {
       s.hp -= Math.max(1, Math.ceil(s.def.hp / FIRE.burnSeconds.structure));
       if (s.hp <= 0) {
         w.breakStructure(s);
         w.addLog(`🔥 El fuego destruye: ${s.def.name.toLowerCase()}.`, 'malo', undefined, { x, y });
+        if (s.def.explodes) explodeAt(w, { x, y }, `💥 ¡Explota ${s.def.name.toLowerCase()}!`);
       }
+    }
+    // Un montón de ⛽, napalm o granadas que arde, explota.
+    const st = w.items.at(x, y);
+    if (st && FIRE.explosiveItems.includes(st.resource)) {
+      w.items.take(x, y, st.amount);
+      explodeAt(w, { x, y }, `💥 ¡Explota un montón de ${st.resource} que estaba ardiendo!`);
+    }
+    // Los vehículos encima se queman (y si se rompen con ⛽ dentro, explotan).
+    for (const v of [...w.vehicles]) {
+      if (x < v.x || x > v.x + 1 || y < v.y || y > v.y + 1) continue;
+      v.hp -= FIRE.vehicleBurnPerSecond;
+      if (v.hp <= 0) wreckVehicle(w, v, '🔥 El fuego destroza un vehículo', true);
     }
     // Se extiende a las de al lado.
     for (const [dx, dy] of SIDES) {
@@ -125,7 +142,8 @@ export function updateFires(w: World): void {
       const ny = y + dy;
       if (!inBounds(m, nx, ny) || w.fires.has(index(m, nx, ny))) continue;
       const f = fuelAt(w, nx, ny);
-      if (f && rng.chance(Math.min(0.9, FIRE.spread[f] * factor))) spreadTo.push(index(m, nx, ny));
+      const dir = dx === wx && dy === wy ? FIRE.downwind : dx === -wx && dy === -wy ? FIRE.upwind : 1;
+      if (f && rng.chance(Math.min(0.9, FIRE.spread[f] * factor * dir))) spreadTo.push(index(m, nx, ny));
     }
     // Consumido: se apaga y deja lo quemado.
     if (fuel !== 'structure' && next >= FIRE.burnSeconds[fuel]) {
@@ -164,7 +182,7 @@ export function startWildfire(w: World, rng: Rng): boolean {
     if (f !== 'tree' && f !== 'bush') continue;
     const r = FIRE.event.startRadius;
     for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) ignite(w, x + dx, y + dy);
-    w.addLog('🔥 ¡Incendio! Ha prendido fuego en el monte y se extiende. Si llega cerca de la colonia, los colonos irán a apagarlo.', 'malo', 'raid', { x, y });
+    w.addLog(`🔥 ¡Incendio! Ha prendido fuego en el monte y se extiende (el viento sopla ${WIND_NAMES[windDirection(w)]}). Si llega cerca de la colonia, los colonos irán a apagarlo.`, 'malo', 'raid', { x, y });
     return true;
   }
   return false;
@@ -186,4 +204,32 @@ function burn(c: Colonist, amount: number): void {
   if (w) w.severity = Math.min(1, w.severity + amount * 2.5);
   else c.wounds.push({ part: 'quemaduras', severity: Math.min(1, amount * 2.5), bleeding: false, treated: false });
   if (c.health < DOWNED) c.downed = true;
+}
+
+/** Hacia dónde sopla hoy el viento (índice de los cuatro lados: este, oeste, sur, norte). */
+export function windDirection(w: World): number {
+  return new Rng(((w.map.seed ^ 0x77d1e5) + w.day * 0x9e3779b1) >>> 0).int(0, 3);
+}
+
+export const WIND_NAMES = ['al este', 'al oeste', 'al sur', 'al norte'] as const;
+
+/** Una explosión: hiere y daña alrededor y prende fuego a lo que arda cerca. */
+export function explodeAt(w: World, at: { x: number; y: number }, text: string): void {
+  const e = FIRE.explosion;
+  w.addLog(text, 'malo', 'combate', at);
+  blastAt(w, at, e.radius, e.damage, e.structureDamage, 'La explosión', 'la explosión');
+  for (let dy = -e.radius; dy <= e.radius; dy++) for (let dx = -e.radius; dx <= e.radius; dx++) ignite(w, at.x + dx, at.y + dy);
+}
+
+/** Un rayo cae en una casilla al azar del mapa y prende lo que haya (tormenta eléctrica). */
+export function lightningStrike(w: World, rng: Rng): { x: number; y: number } | null {
+  const m = w.map;
+  for (let tries = 0; tries < 40; tries++) {
+    const x = rng.int(0, m.width - 1);
+    const y = rng.int(0, m.height - 1);
+    if (!fuelAt(w, x, y)) continue;
+    ignite(w, x, y);
+    return { x, y };
+  }
+  return null;
 }

@@ -11,6 +11,8 @@ export interface EventDef {
   hours?: number;
   /** Ola de frío: mientras dura hace frío a todas horas (como una noche de invierno) y no crece nada al aire libre. */
   coldWave?: boolean;
+  /** Tormenta eléctrica: rayos que caen mientras dura [mínimo, máximo]. */
+  lightning?: [number, number];
   /** Tormenta de polvo: lo que dan las placas solares (0) y el alcance de los disparos (×0,5). */
   solar?: number;
   reach?: number;

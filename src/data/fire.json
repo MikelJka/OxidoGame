@@ -1,8 +1,35 @@
 {
-  "_": "Incendio grande (pedido por Mikel el 2026-10-21): empieza en un punto al azar del mapa, lejos de la colonia, y se extiende por árboles, matorrales, neumáticos, la tierra seca, lo plantado, la madera y lo construido con madera. Los números los ha puesto la sesión del 2026-10-21.",
-  "spread": { "tree": 0.12, "bush": 0.14, "tires": 0.1, "soil": 0.03, "plant": 0.16, "structure": 0.08, "item": 0.1 },
-  "burnSeconds": { "tree": 50, "bush": 20, "tires": 60, "soil": 8, "plant": 6, "structure": 40, "item": 15 },
-  "flammableItems": ["madera", "fibra", "palo", "hierba", "comida", "patata", "maiz", "setas"],
+  "_": "Incendio grande (pedido por Mikel el 2026-10-21): empieza en un punto al azar del mapa, lejos de la colonia, y se extiende por árboles, matorrales, neumáticos, la tierra seca, lo plantado, la madera y lo construido con madera. Los números los ha puesto la sesión del 2026-10-21. Fuego completo (elegido por Mikel el 2026-10-21, propuesta C): según la estación se extiende más (verano ×1,5) o menos (invierno ×0,5); el viento sopla cada día hacia un lado y el fuego corre hacia allí (×2) y le cuesta ir en contra (×0,5); los rayos de la tormenta eléctrica prenden fuego; los montones de ⛽, 🧴 napalm y granadas, los generadores y la destilería que arden y los vehículos con ⛽ que se rompen explotan; y el lanzallamas prende fuego a lo que toca. Números de la sesión del 2026-10-21.",
+  "spread": {
+    "tree": 0.12,
+    "bush": 0.14,
+    "tires": 0.1,
+    "soil": 0.03,
+    "plant": 0.16,
+    "structure": 0.08,
+    "item": 0.1
+  },
+  "burnSeconds": {
+    "tree": 50,
+    "bush": 20,
+    "tires": 60,
+    "soil": 8,
+    "plant": 6,
+    "structure": 40,
+    "item": 15
+  },
+  "flammableItems": [
+    "madera",
+    "fibra",
+    "palo",
+    "hierba",
+    "comida",
+    "patata",
+    "maiz",
+    "setas",
+    "combustible",
+    "napalm"
+  ],
   "windSpread": 1,
   "rainSpread": 0.2,
   "harmPerSecond": 0.04,
@@ -10,5 +37,28 @@
   "extinguishWork": 60,
   "maxFires": 600,
   "noRegrowDays": 3,
-  "event": { "weight": 1, "minDistance": 35, "startRadius": 1 }
+  "event": {
+    "weight": 1,
+    "minDistance": 35,
+    "startRadius": 1
+  },
+  "seasonSpread": {
+    "primavera": 1,
+    "verano": 1.5,
+    "otono": 1,
+    "invierno": 0.5
+  },
+  "downwind": 2,
+  "upwind": 0.5,
+  "explosiveItems": [
+    "combustible",
+    "napalm",
+    "granadas"
+  ],
+  "explosion": {
+    "radius": 1,
+    "damage": 1.2,
+    "structureDamage": 0.3
+  },
+  "vehicleBurnPerSecond": 8
 }

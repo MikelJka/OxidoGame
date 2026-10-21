@@ -566,6 +566,46 @@ export function paintItem(ctx: CanvasRenderingContext2D, r: ResourceId): void {
       px(1, 7, 10, 1, '#1a1410');
       break;
     }
+    case 'lanzallamas':
+      // Lanzallamas: depósito rojo, tubo y boquilla con una llamita.
+      px(1, 3, 3, 5, '#8a2e1c'); // depósito
+      px(1, 3, 3, 1, '#b04a2a');
+      px(4, 5, 6, 1, '#5c5a56'); // tubo
+      px(5, 6, 1, 2, '#3a2a1a'); // empuñadura
+      px(10, 4, 1, 3, '#2e2c28'); // boquilla
+      px(11, 4, 1, 1, '#f0a020'); // llama
+      px(11, 5, 1, 1, '#e05010');
+      break;
+    case 'napalm':
+      // Bidones de napalm: latas verdes con una llama pintada.
+      for (const x of [2, 6]) {
+        px(x, 3, 4, 6, '#1a1410');
+        px(x + 1, 4, 2, 4, '#4a6a3a');
+        px(x + 1, 5, 2, 1, '#e08020');
+      }
+      break;
+    case 'abono':
+      // Saco de abono.
+      px(2, 3, 8, 6, '#1a1410');
+      px(3, 4, 6, 4, '#6a4a2a');
+      px(4, 5, 3, 1, '#8a6a3a');
+      px(5, 2, 2, 1, '#c8b88a');
+      break;
+    case 'leche':
+      // Cántaro de leche.
+      px(3, 2, 6, 7, '#1a1410');
+      px(4, 3, 4, 5, '#eae6dc');
+      px(4, 3, 4, 1, '#ffffff');
+      px(5, 1, 2, 1, '#8a9098');
+      break;
+    case 'huevos':
+      // Huevos en un cesto.
+      px(1, 6, 10, 3, '#7a5634');
+      for (const [x, y] of [[2, 4], [5, 3], [8, 4]] as const) {
+        px(x, y, 2, 3, '#f0e8d8');
+        px(x, y, 1, 1, '#ffffff');
+      }
+      break;
     case 'flechas':
       for (const y of [3, 5, 7]) {
         px(2, y, 7, 1, '#9a7650');

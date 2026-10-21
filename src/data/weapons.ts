@@ -18,9 +18,9 @@
 import data from './weapons.json';
 import type { ResourceId } from './resources';
 
-export type WeaponId = 'palo' | 'cuchillo' | 'tuberia' | 'lanza' | 'machete' | 'arco' | 'ballesta' | 'lanza_metal' | 'pistola' | 'escopeta' | 'rifle' | 'subfusil' | 'francotirador';
-export type AmmoId = 'flechas' | 'balas';
-export const AMMO_IDS: readonly AmmoId[] = ['flechas', 'balas'];
+export type WeaponId = 'palo' | 'cuchillo' | 'tuberia' | 'lanza' | 'machete' | 'arco' | 'ballesta' | 'lanza_metal' | 'pistola' | 'escopeta' | 'rifle' | 'subfusil' | 'francotirador' | 'lanzallamas';
+export type AmmoId = 'flechas' | 'balas' | 'napalm';
+export const AMMO_IDS: readonly AmmoId[] = ['flechas', 'balas', 'napalm'];
 
 export interface WeaponDef {
   id: WeaponId;
@@ -38,11 +38,13 @@ export interface WeaponDef {
   ammo?: AmmoId;
   /** Arma de fuego (pistola, escopeta, rifle). */
   firearm?: boolean;
+  /** Prende fuego a la casilla del objetivo (el lanzallamas). */
+  ignites?: boolean;
   /** Rápido, normal o lento (para la interfaz). */
   speedLabel: 'muy rápido' | 'rápido' | 'normal' | 'lento' | 'muy lento';
 }
 
-const IDS: readonly WeaponId[] = ['palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'ballesta', 'lanza_metal', 'pistola', 'escopeta', 'rifle', 'subfusil', 'francotirador'];
+const IDS: readonly WeaponId[] = ['palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'ballesta', 'lanza_metal', 'pistola', 'escopeta', 'rifle', 'subfusil', 'francotirador', 'lanzallamas'];
 
 export interface GrenadeDef {
   carry: number;

@@ -1406,7 +1406,8 @@
     "size": [
       2,
       2
-    ]
+    ],
+    "explodes": true
   },
   {
     "id": "mesa_boticario",
@@ -1754,7 +1755,8 @@
       "face": "#3e3c38",
       "dark": "#1e1c1a"
     },
-    "kit": true
+    "kit": true,
+    "explodes": true
   },
   {
     "id": "placa_solar",

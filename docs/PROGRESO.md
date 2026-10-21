@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (59) — Fuego completo y lanzallamas
+
+- Elegido por Mikel (sale de «Aparcado»). El fuego se extiende **según la estación** (verano ×1,5, invierno ×0,5) y **según el viento**: cada día sopla hacia un lado y el fuego corre hacia allí (×2) y le cuesta ir en contra (×0,5). El aviso del incendio dice hacia dónde sopla.
+- **⛈ Tormenta eléctrica** (suceso nuevo): 6 h en las que caen 2–4 rayos que prenden fuego donde caen.
+- **Explosiones** (como una granada, 3×3, y prenden fuego alrededor): los montones de ⛽, 🧴 napalm y granadas que arden, el generador de leña y la destilería si el fuego los destruye, y los vehículos con ⛽ que se rompen (a golpes o quemados: el fuego daña a los vehículos que tiene encima).
+- **🔥 Lanzallamas** (con «Explosivos»; 🔗8 ⚙️3 + 1 tubería en el banco): alcance 4, gasta **🧴 napalm** (2 ⛽ + 1 🌿 → 10 en la destilería) y prende fuego a la casilla del objetivo.
+- Decidido en esta sesión (Mikel puede cambiarlo): todos los números.
+- Qué probar: un incendio en verano con viento; dejar ⛽ cerca del fuego; un lanzallamas contra un raid en zona de matorrales.
+- Siguiente: el equilibrio con partidas simuladas.
+
 ## 2026-10-21 (58) — Más barcos y comercio por barco
 
 - Elegido por Mikel. Dos barcos nuevos: **barcaza de carga** (🪵40 🌿10 🔩10, con «Navegación»; lenta, sin blindaje, **600 kg**) y **lancha blindada** (🔗25 🔩20 ⚙️6, con «Motores» y «Blindaje avanzado»; blindaje −50 %, 800 de vida, gasta ⛽).

@@ -111,21 +111,28 @@ export function updateGrenades(w: World): void {
 
 /** Estalla: daño a todos los que están en pie en el 3×3 (enemigos y colonos) y a muros y puertas. */
 export function explodeGrenade(w: World, g: Grenade): void {
-  const r = GRENADE.radius;
-  w.blasts.push({ x: g.to.x, y: g.to.y, tick: w.tick });
   w.addLog(g.shell ? `💥 Cae el proyectil del mortero de ${g.by}.` : `💥 Estalla la granada de ${g.by}.`, g.foe ? 'malo' : 'bueno', 'combate', g.to);
+  blastAt(w, g.to, GRENADE.radius, GRENADE.damage, GRENADE.structureDamage, g.shell ? 'El mortero' : 'La granada', g.shell ? 'el proyectil' : 'la granada');
+}
+
+/**
+ * Una explosión (granada, mortero, un vehículo o un depósito que revientan): hiere a todos a `r`
+ * casillas (daño ×`damage` los puños de una granada) y daña muros, puertas y portones.
+ */
+export function blastAt(w: World, to: Point, r: number, damage: number, structureDamage: number, what: string, cause: string): void {
+  w.blasts.push({ x: to.x, y: to.y, tick: w.tick });
   for (const p of w.pawns()) {
-    if (p.downed || !within(p.tile, g.to, r)) continue;
+    if (p.downed || !within(p.tile, to, r)) continue;
     const tough = p.traits.some((t) => t.id === 'duro') ? 0.75 : 1;
     const armor = 1 - armorProtection([p.vest, p.helmet]);
-    const dmg = absorbHit(w, p, GRENADE_FIST_DAMAGE * GRENADE.damage * tough * armor);
+    const dmg = absorbHit(w, p, GRENADE_FIST_DAMAGE * damage * tough * armor);
     const part = BODY_PARTS[w.rng.int(0, BODY_PARTS.length - 1)];
     if (p.role === 'colono') {
       hurt(p, dmg, part);
       if (p.downed) {
-        w.addLog(`🩸 ${p.name} cae herido por la granada (${part}).`, 'malo', 'caido', p.tile);
+        w.addLog(`🩸 ${p.name} cae herido por ${cause} (${part}).`, 'malo', 'caido', p.tile);
         witnessFall(w, p);
-      } else w.combatAlert(p, 'herido', `🩸 ${p.name} está herido por una granada (${part}).`);
+      } else w.combatAlert(p, 'herido', `🩸 ${p.name} está herido por ${cause} (${part}).`);
     } else if (p.role === 'saqueador' && hurtFoe(w, p, dmg, part)) {
       w.addLog(p.creature ? creatureFallText(p) : `${foeLabel(p)} cae al suelo.`, 'bueno');
     }
@@ -133,17 +140,17 @@ export function explodeGrenade(w: World, g: Grenade): void {
   }
   // Muros, puertas y portones: un poco de daño a cada uno (una vez aunque ocupe varias casillas).
   const hit = new Set<number>();
-  for (let y = g.to.y - r; y <= g.to.y + r; y++) {
-    for (let x = g.to.x - r; x <= g.to.x + r; x++) {
+  for (let y = to.y - r; y <= to.y + r; y++) {
+    for (let x = to.x - r; x <= to.x + r; x++) {
       const s = w.structures.mainAt(x, y);
       if (!s?.built || hit.has(s.id)) continue;
       const cat = s.def.category;
       if (cat !== 'muro' && cat !== 'puerta' && cat !== 'porton') continue;
       hit.add(s.id);
-      s.hp -= Math.max(1, Math.round(s.def.hp * GRENADE.structureDamage));
+      s.hp -= Math.max(1, Math.round(s.def.hp * structureDamage));
       if (s.hp <= 0) {
         w.breakStructure(s);
-        w.addLog(`💥 ${g.shell ? 'El mortero' : 'La granada'} derriba: ${s.def.name.toLowerCase()}.`, 'malo', 'combate', { x: s.x, y: s.y });
+        w.addLog(`💥 ${what} derriba: ${s.def.name.toLowerCase()}.`, 'malo', 'combate', { x: s.x, y: s.y });
       }
     }
   }

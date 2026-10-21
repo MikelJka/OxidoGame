@@ -7,7 +7,7 @@ import { isPassable } from './map';
 import { findPath, Point } from './pathfinding';
 import { Rng } from './rng';
 import { factionDef, RAIDER_FACTION } from '../data/factions';
-import { startWildfire } from './fire';
+import { lightningStrike, startWildfire } from './fire';
 import { roofed } from './roofs';
 import { TICKS_PER_DAY, TICKS_PER_HOUR } from './time';
 import type { World } from './world';
@@ -58,6 +58,9 @@ export function runEvents(w: World): void {
   // Lluvia ácida: cada hora estropea lo plantado al aire libre y quema un poco a quien está fuera.
   const acid = w.weather.find((e) => w.tick < e.until && eventDef(e.id)?.cropYield !== undefined);
   if (acid) acidRainHour(w, eventDef(acid.id)!);
+  // Tormenta eléctrica: cada hora puede caer un rayo.
+  const storm = w.weather.find((e) => w.tick < e.until && eventDef(e.id)?.lightning);
+  if (storm) lightningHour(w, eventDef(storm.id)!);
   if (w.plague) checkPlague(w);
   checkRefugees(w);
   if (w.tick < w.nextEvent) return;
@@ -87,6 +90,11 @@ export function startEvent(w: World, id: string): boolean {
     if (ev.cropYield !== undefined) {
       w.addLog(`☔ ¡Lluvia ácida! Durante ${ev.hours} horas estropea lo plantado al aire libre (−${Math.round((1 - ev.cropYield) * 100)} % de cosecha) y quema a quien no esté bajo techo.`, 'malo');
       acidRainHour(w, ev);
+      return true;
+    }
+    if (ev.lightning) {
+      w.addLog(`⛈ ¡Tormenta eléctrica! Durante ${ev.hours} horas caerán rayos que pueden prender fuego a árboles, cultivos y lo construido con madera.`, 'malo');
+      lightningHour(w, ev);
       return true;
     }
     if (ev.coldWave) w.addLog(`🥶 ¡Ola de frío! Durante ${ev.hours} horas hace frío a todas horas y no crece nada al aire libre: abrigos, estufas encendidas y bajo techo.`, 'malo');
@@ -263,4 +271,13 @@ export function scarecrowTiles(w: World): Set<number> {
       }
   }
   return out;
+}
+
+/** Una hora de tormenta eléctrica: entre los rayos que tocan en toda la tormenta, cae uno de vez en cuando. */
+function lightningHour(w: World, ev: EventDef): void {
+  const [lo, hi] = ev.lightning!;
+  const rng = eventRng(w, 9);
+  if (!rng.chance(Math.min(1, (lo + hi) / 2 / (ev.hours ?? 6)))) return;
+  const at = lightningStrike(w, rng);
+  if (at) w.addLog(`⚡ Cae un rayo y prende fuego.`, 'malo', undefined, at);
 }

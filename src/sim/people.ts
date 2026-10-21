@@ -30,6 +30,7 @@ import { researchDef } from '../data/research';
 import { giftPoints } from './factions';
 import { enrage, makeAnimal, tameAnimal, updateAnimal } from './animals';
 import { enrichBase } from './worldmap';
+import { ignite } from './fire';
 export { canTalk, TALK_HOURS } from './jobs';
 
 /** Ticks entre golpes. */
@@ -904,6 +905,8 @@ export function attack(w: World, a: Colonist, b: Colonist): boolean {
     return false;
   }
   applyHit(w, a, b, weapon);
+  // El lanzallamas prende fuego a la casilla del objetivo.
+  if (weapon?.ignites) ignite(w, b.tile.x, b.tile.y);
   return true;
 }
 

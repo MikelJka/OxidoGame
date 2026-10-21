@@ -25,6 +25,17 @@ export interface FireRules {
   maxFires: number;
   /** Días que la tierra quemada tarda en poder volver a arder. */
   noRegrowDays: number;
+  /** Cuánto más (o menos) se extiende según la estación. */
+  seasonSpread: Record<string, number>;
+  /** Hacia donde sopla el viento se extiende ×`downwind`; en contra, ×`upwind`. */
+  downwind: number;
+  upwind: number;
+  /** Montones que explotan al arder. */
+  explosiveItems: ResourceId[];
+  /** Explosión: radio, daño (×granada) y parte de la vida que quita a muros y puertas. */
+  explosion: { radius: number; damage: number; structureDamage: number };
+  /** Vida que pierde cada segundo un vehículo encima del fuego. */
+  vehicleBurnPerSecond: number;
   /** Suceso: peso, distancia mínima a la colonia y radio del foco. */
   event: { weight: number; minDistance: number; startRadius: number };
 }
