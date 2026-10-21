@@ -29,6 +29,8 @@ export interface VehicleDef {
    * se sube y se baja desde la orilla o el agua poco profunda.
    */
   water?: boolean;
+  /** El nombre es femenino («la balsa»): para los textos del diario. */
+  feminine?: boolean;
   /** Es de los saqueadores (no lo maneja el jugador). */
   hostile?: boolean;
   /** De los saqueadores: día desde el que llega con los raids y probabilidad de que traigan uno. */
@@ -46,6 +48,7 @@ export function validateVehicle(d: unknown): VehicleDef {
   // Sin depósito solo si no gasta ⛽ (la balsa se rema).
   if (v.fuelCapacity === 0 && v.fuelPerHour > 0) fail('gasta ⛽ y no tiene depósito');
   if (v.water !== undefined && v.water !== true) fail('«water» no válido');
+  if (v.feminine !== undefined && v.feminine !== true) fail('«feminine» no válido');
   if (!(v.armor >= 0 && v.armor < 1) || !(v.runOverDamage >= 0)) fail('armadura o atropello');
   if (!(v.damageScale >= 0)) fail('damageScale');
   if (v.hostile && !(v.fromDay! >= 0 && v.raidChance! >= 0 && v.raidChance! <= 1)) fail('día o probabilidad del raid');
@@ -65,4 +68,16 @@ export function usesFuel(d: VehicleDef): boolean {
 
 export function vehicleDef(id: string): VehicleDef | undefined {
   return VEHICLES.find((v) => v.id === id);
+}
+
+/** «el buggy blindado» / «la lancha armada» (con «El»/«La» si `capital`). */
+export function theName(d: VehicleDef, capital = false): string {
+  const art = d.feminine ? 'la' : 'el';
+  return `${capital ? art[0].toUpperCase() + art.slice(1) : art} ${d.name.toLowerCase()}`;
+}
+
+/** «del buggy blindado» / «de la balsa», «al buggy blindado» / «a la balsa». */
+export function prepName(d: VehicleDef, prep: 'de' | 'a'): string {
+  const n = d.name.toLowerCase();
+  return d.feminine ? `${prep} la ${n}` : `${prep === 'de' ? 'del' : 'al'} ${n}`;
 }

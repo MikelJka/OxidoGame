@@ -1554,5 +1554,30 @@
       2,
       2
     ]
+  },
+  {
+    "id": "lancha_armada",
+    "research": "motores",
+    "name": "Lancha armada",
+    "category": "vehiculo",
+    "vehicle": "lancha_armada",
+    "cost": {
+      "chatarra": 30,
+      "componentes": 4
+    },
+    "work": 1000,
+    "hp": 400,
+    "blocks": true,
+    "height": 1,
+    "onWater": true,
+    "colors": {
+      "top": "#6a6a62",
+      "face": "#44443e",
+      "dark": "#1e1e1a"
+    },
+    "size": [
+      2,
+      2
+    ]
   }
 ]

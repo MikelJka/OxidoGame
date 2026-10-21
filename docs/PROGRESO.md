@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (26) — La lancha armada: el barco con motor
+
+- Sin incidencias nuevas en 🐞. El muelle sigue esperando la respuesta de Mikel (en «Propuestas para Mikel»); se hace la siguiente parte aprobada de la update del agua: la **lancha armada**.
+- Tras investigar **«Motores»** (pide «Navegación» y «Pólvora»), en 🏗 → Vehículos: **lancha armada** (🔩30 ⚙️4, 2×2). Se construye en el agua poco profunda o normal, como la balsa, y al terminarla pasa a ser un vehículo.
+- Lleva un **conductor** y un **tirador** (que dispara con su arma) y su **blindaje para un 30 %** del daño a los de dentro (y se lo lleva el casco). Va **solo por el agua** (también la profunda) y gasta **⛽**: sale con el depósito vacío y **reposta sola** si se para a 2 casillas o menos de un montón de ⛽ en la orilla.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): **1 ⛽ cada hora en marcha** y depósito de 10, como el buggy; **1,5 veces lo que anda un colono**; vida 400 y, si se rompe, deja 🔩15; trabajo 1 000; no atropella. Números en `vehicles.json` y `buildings.json` (`lancha_armada`).
+- Además, los textos del diario de los vehículos ya llevan su artículo («la balsa», «se sube a la lancha armada»).
+- Qué probar: investigar «Puentes», «Navegación», «Pólvora» y «Motores» en 📜 → 🔬 Investigación (🪄 acelera), poner una lancha en la orilla de un río o lago, dejar un montón de ⛽ en la orilla a su lado, tocarla y elegir conductor y tirador; luego tocar el agua para llevarla.
+- Sin npm en el entorno: tests con Bun (569, 8 nuevos) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguiente: los **saqueadores en balsa** desde el día 15 (falta decidir cuántos y cada cuánto: si no está concretado, propuesta para Mikel); o el muelle si Mikel ya ha contestado.
+
 ## 2026-10-20 (25) — La balsa: el primer barco
 
 - Sin incidencias nuevas en 🐞. El muelle sigue esperando la respuesta de Mikel (en «Propuestas para Mikel»); se hace la siguiente parte aprobada de la update del agua: la **balsa**.

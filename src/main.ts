@@ -446,7 +446,11 @@ for (const def of BUILDINGS) {
   if (def.research) b.title += ` · pide investigar ${researchNeeds(def).map((q) => `«${researchDef(q)?.name}»`).join(' y ')}`;
   if (def.turret) b.title += ` · gasta ${-(def.power ?? 0)} W · con corriente dispara sola a ${def.turret.reach} casillas, sin munición`;
   if (def.platform) b.title += ` · solo sobre el agua${def.platform.deepWater ? ' (también la profunda)' : ' poco profunda o normal'}; encima se construye como en tierra (menos huertos)`;
-  if (def.onWater && def.vehicle) b.title += ` · se construye en el agua (poco profunda o normal); va solo por el agua, ${(vehicleDef(def.vehicle)?.speed ?? 1) < 1 ? 'más despacio que andando' : 'rápido'}, con 2 colonos: uno rema y el otro dispara`;
+  if (def.onWater && def.vehicle) {
+    const vd = vehicleDef(def.vehicle);
+    const motor = !!vd && usesFuel(vd);
+    b.title += ` · se construye en el agua (poco profunda o normal); va solo por el agua, ${(vd?.speed ?? 1) < 1 ? 'más despacio que andando' : 'más rápido que andando'}, con 2 colonos: ${motor ? `uno conduce (gasta ${vd!.fuelPerHour} ⛽ cada hora en marcha) y el otro dispara` : 'uno rema y el otro dispara'}${vd && vd.armor > 0 ? ` · blindaje −${Math.round(vd.armor * 100)} %` : ''}`;
+  }
   else if (def.onWater) b.title += ` · solo en un río (agua poco profunda o normal); da ${def.power ?? 0} W fijos, de día y de noche`;
   if (def.drawbridge) b.title += ` · ${def.size?.[0] ?? 1}×${def.size?.[1] ?? 1} sobre el agua (puede apoyarse en la orilla) · gasta ${-(def.power ?? 0)} W · bajado se cruza andando; alzado no pasa nadie · con corriente se alza solo ante un raid; tócalo para alzarlo o bajarlo a mano`;
   if (def.bridge) b.title += ` · solo sobre el agua (se cruza andando); en el agua profunda cuesta ×${def.bridge.deepCostMultiplier}`;
@@ -818,7 +822,7 @@ function renderVehicle(): void {
   const driver = occupant(w, v, 'conductor');
   const fuel = usesFuel(def);
   $('vh-name').textContent = `${def.water ? '🛶' : '🚙'} ${def.name}`;
-  $('vh-conductor-label').textContent = def.water ? 'Remero' : 'Conductor';
+  $('vh-conductor-label').textContent = def.water && !fuel ? 'Remero' : 'Conductor';
   const state = v.path.length > 0 ? 'en marcha' : fuel && v.fuel <= 0 ? 'sin combustible' : 'parado';
   const parts = [state, `vida ${Math.max(0, Math.ceil(v.hp))}/${def.hp}`];
   if (fuel) parts.unshift(`⛽ ${Math.floor(v.fuel)}/${def.fuelCapacity}`);
@@ -843,7 +847,9 @@ function renderVehicle(): void {
     : !driver.vehicle?.boarded
       ? `${driver.name} va hacia el vehículo…`
       : fuel && v.fuel <= 0
-        ? 'Sin ⛽: apárcalo junto a un montón de ⛽ (a 2 casillas) y repostará solo.'
+        ? def.water
+          ? 'Sin ⛽: llévala a la orilla junto a un montón de ⛽ (a 2 casillas) y repostará sola.'
+          : 'Sin ⛽: apárcalo junto a un montón de ⛽ (a 2 casillas) y repostará solo.'
         : def.water
           ? 'Toca el agua para llevarla allí (solo por el agua, sin pasar bajo puentes). Para bajarse, acércala a la orilla.'
           : 'Toca el suelo para llevarlo allí. Atropella a los saqueadores que pilla.';

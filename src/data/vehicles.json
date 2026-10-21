@@ -17,6 +17,7 @@
   {
     "id": "balsa",
     "name": "Balsa",
+    "feminine": true,
     "_": "Update del agua (elegido por Mikel el 2026-10-18): 🪵20, 2 colonos, la mitad de rápida que un colono andando, con «Navegación». Va solo por el agua (cualquiera), sin ⛽ (se rema). Sin blindaje. La vida y lo que deja al romperse los ha puesto la sesión del 2026-10-20.",
     "water": true,
     "speed": 0.5,
@@ -27,6 +28,23 @@
     "runOverDamage": 0,
     "wreck": {
       "madera": 8
+    },
+    "damageScale": 1000
+  },
+  {
+    "id": "lancha_armada",
+    "name": "Lancha armada",
+    "feminine": true,
+    "_": "Update del agua (elegido por Mikel el 2026-10-18): 🔩30 ⚙️4, gasta ⛽, conductor y tirador, armadura −30 %, con «Motores». El gasto (1 ⛽ cada hora en marcha, como el buggy), el depósito (10), la velocidad (1,5 veces lo que anda un colono), la vida (400) y lo que deja al romperse (🔩15) los ha puesto la sesión del 2026-10-21.",
+    "water": true,
+    "speed": 1.5,
+    "fuelPerHour": 1,
+    "fuelCapacity": 10,
+    "armor": 0.3,
+    "hp": 400,
+    "runOverDamage": 0,
+    "wreck": {
+      "chatarra": 15
     },
     "damageScale": 1000
   },

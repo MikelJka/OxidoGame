@@ -26,7 +26,7 @@ import { CREATURES, flies, MACHINES } from '../data/creatures';
 import { addResearch, batteryMultiplier, infectionChanceFactor, machinePartsMultiplier, woundHealTimeFactor, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
 import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
 import { absorbHit, anchorFor, besideTiles, defOf, nextTo, occupant, updateVehicle, Vehicle, vehicleCenter, vehiclePath, VehicleSeat, covers } from './vehicles';
-import { usesFuel, vehicleDef } from '../data/vehicles';
+import { prepName, theName, usesFuel, vehicleDef } from '../data/vehicles';
 import { TRAPPED_TILES } from './diagnostics';
 import {
   BAD_WATER_TICKS_DAYS, DEHYDRATED, DRINK_TICKS, EAT_TICKS, EXHAUSTED, foodDecay, foodPreference, HUNGRY, isFood, isRawFood, NUTRITION, restDecay,
@@ -2151,8 +2151,10 @@ export class World implements JobContext {
     if (s.def.vehicle && vehicleDef(s.def.vehicle)) {
       this.structures.demolish(s);
       this.addVehicle(s.def.vehicle, s.x, s.y);
-      const boat = !!vehicleDef(s.def.vehicle)!.water;
-      this.addLog(`${boat ? '🛶' : '🚙'} ${s.def.name}: terminado. Tócalo para elegir ${boat ? 'quién rema y quién va de tirador' : 'conductor y tirador'}.`, 'bueno');
+      const vd = vehicleDef(s.def.vehicle)!;
+      const boat = !!vd.water;
+      const rowed = boat && !usesFuel(vd);
+      this.addLog(`${boat ? '🛶' : '🚙'} ${s.def.name}: terminado. Tócalo para elegir ${rowed ? 'quién rema y quién va de tirador' : 'conductor y tirador'}.`, 'bueno');
       return;
     }
     this.settleStructure(s);
@@ -2213,7 +2215,7 @@ export class World implements JobContext {
     const spots = besideTiles(this, v).sort((a, b) => Math.hypot(a.x + 0.5 - at.x, a.y + 0.5 - at.y) - Math.hypot(b.x + 0.5 - at.x, b.y + 0.5 - at.y));
     // En medio de un lago (la balsa) no hay dónde poner el pie al lado: va nadando a la orilla más cercana.
     const t = spots[0] ?? this.nearestDryTile(v.x, v.y) ?? { x: v.x, y: v.y };
-    if (!spots[0] && defOf(v).water) this.addLog(`🛶 ${c.name} se baja de la ${defOf(v).name.toLowerCase()} y nada hasta la orilla.`, 'info', undefined, t);
+    if (!spots[0] && defOf(v).water) this.addLog(`🛶 ${c.name} se baja de ${theName(defOf(v))} y nada hasta la orilla.`, 'info', undefined, t);
     c.tile = { x: t.x, y: t.y };
     c.pos = { x: t.x + 0.5, y: t.y + 0.5 };
     c.path = [];
@@ -2281,7 +2283,7 @@ export class World implements JobContext {
       if (!this.needsEnabled) return true;
       this.decayNeeds(c);
       if (c.needs.food < STARVING || c.needs.water < DEHYDRATED) {
-        this.addLog(`🚙 ${c.name} se baja del ${defOf(v).name.toLowerCase()} para ${c.needs.food < STARVING ? 'comer' : 'beber'}.`, 'info');
+        this.addLog(`🚙 ${c.name} se baja ${prepName(defOf(v), 'de')} para ${c.needs.food < STARVING ? 'comer' : 'beber'}.`, 'info');
         this.leaveVehicle(c);
         return false;
       }
@@ -2290,13 +2292,13 @@ export class World implements JobContext {
     if (nextTo(v, c.tile)) {
       seat.boarded = true;
       c.path = [];
-      this.addLog(`🚙 ${c.name} se sube al ${defOf(v).name.toLowerCase()} de ${seat.seat}.`, 'info');
+      this.addLog(`🚙 ${c.name} se sube ${prepName(defOf(v), 'a')} de ${seat.seat}.`, 'info');
       return true;
     }
     if (c.path.length === 0) {
       const route = this.routeTo(c, besideTiles(this, v).slice(0, 6));
       if (!route || route.path.length === 0) {
-        this.addLog(`🚙 ${c.name} no puede llegar al ${defOf(v).name.toLowerCase()}.`, 'malo');
+        this.addLog(`🚙 ${c.name} no puede llegar ${prepName(defOf(v), 'a')}.`, 'malo');
         delete c.vehicle;
         return false;
       }

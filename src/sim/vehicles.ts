@@ -13,7 +13,7 @@ import { index, inBounds, isPassable, isWater, PROP_INFO, Prop, Terrain } from '
 import { Point } from './pathfinding';
 import { attack, canHit, foeLabel, hurtFoe, leaveMap } from './people';
 import { hurt } from './health';
-import { usesFuel, VehicleDef, vehicleDef } from '../data/vehicles';
+import { theName, usesFuel, VehicleDef, vehicleDef } from '../data/vehicles';
 
 /** Lado del vehículo en casillas (todos son de 2×2 por ahora). */
 export const VEHICLE_SIZE = 2;
@@ -257,7 +257,7 @@ export function updateVehicle(w: World, v: Vehicle, ticksPerSecond: number, tick
       if (usesFuel(def) && v.fuel <= 0) {
         v.path = [];
         v.pos = { x: v.x, y: v.y };
-        w.addLog(`⛽ El ${def.name.toLowerCase()} se ha quedado sin combustible.`, 'malo');
+        w.addLog(`⛽ ${theName(def, true)} se ha quedado sin combustible.`, 'malo');
       }
       runOver(w, v, def);
     }
@@ -298,7 +298,7 @@ function runOver(w: World, v: Vehicle, def: VehicleDef): void {
     w.runOverAt.set(o.id, w.tick);
     const fell = hurtFoe(w, o, def.runOverDamage, 'las piernas');
     const what = fell ? (o.creature ? ': muere' : ': cae al suelo') : '';
-    w.addLog(`🚙 El ${def.name.toLowerCase()} atropella a ${foeLabel(o)}${what}.`, 'bueno');
+    w.addLog(`🚙 ${theName(def, true)} atropella a ${foeLabel(o)}${what}.`, 'bueno');
   }
 }
 
@@ -310,8 +310,8 @@ function runOverColonists(w: World, v: Vehicle, def: VehicleDef): void {
     if (last !== undefined && w.tick - last < 60) continue;
     w.runOverAt.set(c.id, w.tick);
     hurt(c, def.runOverDamage, 'las piernas');
-    if (c.downed) w.addLog(`🚙 El ${def.name.toLowerCase()} atropella a ${c.name}: cae herido.`, 'malo', 'caido', c.tile);
-    else w.combatAlert(c, 'herido', `🚙 El ${def.name.toLowerCase()} atropella a ${c.name}.`);
+    if (c.downed) w.addLog(`🚙 ${theName(def, true)} atropella a ${c.name}: cae herido.`, 'malo', 'caido', c.tile);
+    else w.combatAlert(c, 'herido', `🚙 ${theName(def, true)} atropella a ${c.name}.`);
   }
 }
 
@@ -325,7 +325,7 @@ function refuel(w: World, v: Vehicle, def: VehicleDef): void {
     const got = w.items.take(s.x, s.y, room);
     if (got) {
       v.fuel = Math.min(def.fuelCapacity, v.fuel + got.amount);
-      w.addLog(`⛽ El ${def.name.toLowerCase()} reposta ${got.amount} ⛽ (${Math.floor(v.fuel)}/${def.fuelCapacity}).`, 'info');
+      w.addLog(`⛽ ${theName(def, true)} reposta ${got.amount} ⛽ (${Math.floor(v.fuel)}/${def.fuelCapacity}).`, 'info');
     }
     return;
   }
@@ -363,7 +363,7 @@ export function absorbHit(w: World, c: Colonist, dmg: number): number {
   const def = defOf(v);
   const stopped = dmg * def.armor;
   v.hp -= stopped * def.damageScale;
-  if (v.hp <= 0) wreckVehicle(w, v, `💥 El ${def.name.toLowerCase()} queda destrozado`);
+  if (v.hp <= 0) wreckVehicle(w, v, `💥 ${theName(def, true)} queda destrozad${def.feminine ? 'a' : 'o'}`);
   return dmg - stopped;
 }
 
@@ -439,7 +439,7 @@ function driveRaider(w: World, v: Vehicle): boolean {
         delete c.vehicle;
         leaveMap(w, c, '');
       }
-      w.addLog(`🏳 El ${def.name.toLowerCase()} huye del mapa.`, 'bueno');
+      w.addLog(`🏳 ${theName(def, true)} huye del mapa.`, 'bueno');
       return false;
     }
     if (v.path.length === 0) {

@@ -102,6 +102,31 @@ export function paintVehicle(ctx: CanvasRenderingContext2D, id: string, w = VEHI
     // Remo cruzado.
     px(12, 3, 2, 10, '#5e4630');
     px(11, 1, 4, 3, '#7a5a38');
+  } else if (id === 'lancha_armada') {
+    // Lancha armada: casco de chapa en punta, motor fuera borda atrás, ametralladora delante y estela.
+    ctx.fillStyle = 'rgba(200,230,240,0.4)';
+    ctx.fillRect(0, 21, 30, 2);
+    ctx.fillRect(0, 12, 3, 1);
+    ctx.fillRect(0, 17, 2, 1);
+    // Casco (de perfil-cenital, la proa a la derecha).
+    px(3, 10, 22, 11, '#1a1410');
+    px(25, 12, 3, 7, '#1a1410');
+    px(28, 14, 2, 3, '#1a1410');
+    px(4, 11, 21, 9, '#5c5e58');
+    px(25, 13, 3, 5, '#5c5e58');
+    px(4, 11, 24, 1, '#8a8c84');
+    px(4, 18, 21, 2, '#3a3c38'); // línea de flotación
+    px(9, 14, 3, 2, '#7a4a2a'); // óxido
+    px(19, 16, 2, 1, '#7a4a2a');
+    // Chapas de blindaje en la borda.
+    for (const x of [7, 13, 19]) px(x, 9, 4, 3, '#44463f');
+    // Motor fuera borda.
+    px(1, 11, 3, 6, '#2a2a26');
+    px(0, 12, 1, 4, '#c8a020');
+    // Puesto del tirador con ametralladora hacia la proa.
+    px(16, 5, 5, 5, '#2a2826');
+    px(20, 6, 8, 1, '#1a1410');
+    px(27, 5, 2, 3, '#4a4844');
   } else {
     px(2, 4, VEHICLE_W - 4, VEHICLE_H - 8, '#7a6a4a');
   }
