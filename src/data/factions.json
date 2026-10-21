@@ -86,5 +86,65 @@
     "caravanHours": 4,
     "caravanEveryDays": 3,
     "caravanMinRelation": 0
-  }
+  },
+  "newFactions": {
+    "_": "Si quedan menos de 3 facciones, a los pocos días llega una nueva de esta lista (elegido por Mikel el 2026-10-21, opción 4B). Los días y la lista los ha puesto la sesión del 2026-10-21.",
+    "minFactions": 3,
+    "days": [
+      3,
+      6
+    ]
+  },
+  "extraFactions": [
+    {
+      "id": "mercenarios",
+      "name": "Mercenarios de la autopista",
+      "icon": "🛣",
+      "start": 0,
+      "description": "Gente armada que vende sus servicios a quien pague.",
+      "settlements": [
+        "Peaje Norte",
+        "El Área de Servicio",
+        "Kilómetro 40",
+        "La Gasolinera"
+      ]
+    },
+    {
+      "id": "culto_reactor",
+      "name": "Culto del Reactor",
+      "icon": "☢",
+      "start": -100,
+      "fixed": true,
+      "description": "Fanáticos de la radiación: siempre hostiles.",
+      "settlements": [
+        "El Núcleo",
+        "Torre de Refrigeración",
+        "La Sala de Control"
+      ]
+    },
+    {
+      "id": "nomadas",
+      "name": "Nómadas del desierto",
+      "icon": "🐪",
+      "start": 0,
+      "description": "Van de un lado a otro con sus rebaños; comercian y a veces ayudan.",
+      "settlements": [
+        "Campamento del Pozo",
+        "Las Dunas Rojas",
+        "Oasis Seco"
+      ]
+    },
+    {
+      "id": "hermandad",
+      "name": "Hermandad de la Chatarra",
+      "icon": "⚙",
+      "start": 0,
+      "description": "Ingenieros que reparan máquinas viejas; valoran los ⚙️ componentes.",
+      "settlements": [
+        "El Taller Grande",
+        "La Chatarrería del Puente",
+        "Fundición Vieja"
+      ]
+    }
+  ]
 }

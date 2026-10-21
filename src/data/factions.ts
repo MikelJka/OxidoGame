@@ -57,6 +57,8 @@ export interface RadioRules {
 }
 
 interface FactionData {
+  extraFactions: FactionDef[];
+  newFactions: { minFactions: number; days: [number, number] };
   allyHelp: AllyHelp;
   radio: RadioRules;
   tribute: TributeRules;
@@ -96,7 +98,11 @@ export function validateFactions(d: unknown): FactionData {
 
 const DATA = validateFactions(raw);
 
+/** Las de cada partida nueva. */
 export const FACTIONS: readonly FactionDef[] = DATA.factions;
+/** Las que pueden llegar después, si quedan pocas (opción 4B de Mikel). */
+export const EXTRA_FACTIONS: readonly FactionDef[] = DATA.extraFactions ?? [];
+export const NEW_FACTIONS = DATA.newFactions;
 export const RELATION: RelationRules = DATA.relation;
 export const ALLY_HELP: AllyHelp = DATA.allyHelp;
 export const WAR: WarRules = DATA.war;
@@ -117,5 +123,5 @@ export function factionId(id: string): string {
 
 export function factionDef(id: string): FactionDef | undefined {
   const real = factionId(id);
-  return FACTIONS.find((f) => f.id === real);
+  return FACTIONS.find((f) => f.id === real) ?? EXTRA_FACTIONS.find((f) => f.id === real);
 }

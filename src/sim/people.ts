@@ -106,7 +106,7 @@ export function runStoryteller(w: World): void {
     else if (w.day >= CREATURES.perro_mutante.fromDay && w.rng.chance(1 / packOdds(w))) startPack(w, packSize(w));
     // Tributo (bloque 7): desde el día 10, 1 de cada 3 raids de saqueadores empieza pidiendo recursos.
     else if (w.day >= TRIBUTE.fromDay && !w.tribute && w.rng.chance(1 / TRIBUTE.every) && demandTribute(w)) { /* espera respuesta */ }
-    else startRaid(w, raidSize(w.day, colonyWealth(w), w.colonists.length, diff.raidScale));
+    else startRaid(w, raidSize(w.day, colonyWealth(w), w.colonists.length, diff.raidScale), undefined, undefined, raidFaction(w));
     // Facciones aliadas (60 o más): si os atacan, mandan combatientes (una vez cada 10 días).
     if (w.factions.some((f) => f.relation >= RELATION.ally)) sendAllies(w);
   }
@@ -225,6 +225,15 @@ function takeFromStock(w: World, r: ResourceId, n: number): void {
 }
 
 /**
+ * De quién son los raids normales: de los Piratas del Óxido; si ya no existen, de otra facción
+ * siempre hostil (el Culto del Reactor…), y si no queda ninguna, de sus restos (siguen llegando).
+ */
+export function raidFaction(w: World): string {
+  if (w.faction(RAIDER_FACTION)) return RAIDER_FACTION;
+  return w.factions.find((f) => factionDef(f.id)?.fixed)?.id ?? RAIDER_FACTION;
+}
+
+/**
  * Guerra (bloque 7): una facción con −50 o menos de relación manda sus propios raids además de los
  * normales; el primero, a los 2 días, y luego tan a menudo como los normales. Los Piratas del Óxido
  * ya son los de los raids normales.
@@ -232,7 +241,7 @@ function takeFromStock(w: World, r: ResourceId, n: number): void {
 function warRaids(w: World, days: (gap: [number, number]) => number): void {
   const diff = DIFFICULTIES[w.difficulty.level];
   for (const f of w.factions) {
-    if (f.id === RAIDER_FACTION || f.relation > RELATION.war) {
+    if (f.id === RAIDER_FACTION || f.id === raidFaction(w) || f.relation > RELATION.war) {
       f.warRaidAt = undefined;
       continue;
     }

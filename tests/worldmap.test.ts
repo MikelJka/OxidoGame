@@ -53,3 +53,23 @@ describe('mapa del mundo', () => {
     expect(loadWorld(old).factions.every((f) => !!f.base)).toBe(true);
   });
 });
+
+describe('facciones nuevas', () => {
+  it('si quedan menos de 3, a los 3–6 días llega una nueva con su base', async () => {
+    const { checkNewFaction } = await import('../src/sim/worldmap');
+    const w = flatWorld(1);
+    w.ruins.push({ faction: 'granjeros', name: 'X', x: 0, y: 0, day: 1 });
+    w.factions.splice(w.factions.findIndex((f) => f.id === 'granjeros'), 1);
+    checkNewFaction(w);
+    expect(w.newFactionAt).not.toBeNull();
+    w.tick = w.newFactionAt!;
+    checkNewFaction(w);
+    expect(w.factions.length).toBe(3);
+    const nf = w.factions[2];
+    expect(nf.id).not.toBe('granjeros');
+    expect(nf.base).toBeDefined();
+    // Se guarda (y la destruida no vuelve).
+    const back = loadWorld(serializeWorld(w));
+    expect(back.factions.map((f) => f.id)).toEqual(w.factions.map((f) => f.id));
+  });
+});

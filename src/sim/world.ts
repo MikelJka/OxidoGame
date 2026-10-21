@@ -3,7 +3,7 @@ import { createFactions, FactionState, shiftRelation } from './factions';
 import { marketDay, MarketState, newMarket } from './market';
 import { ActiveEvent, firstEventTick, runEvents, solarFactor } from './events';
 import { burning, extinguish, threatens, updateFires } from './fire';
-import { growBases, placeBases } from './worldmap';
+import { checkNewFaction, growBases, placeBases } from './worldmap';
 import { BattleInfo, checkBattle, Expedition, Ruin, updateExpedition } from './expedition';
 import { factionDef, RELATION } from '../data/factions';
 import { countReachable, GameMap, generateMap, inBounds, isPassable, TRENCH_FLOODED, isWater, Prop, PROP_INFO, Terrain, TERRAIN_INFO, tileMoveCost } from './map';
@@ -233,6 +233,8 @@ export class World implements JobContext {
   expedition: Expedition | null = null;
   pendingBattle: World | null = null;
   readonly ruins: Ruin[] = [];
+  /** Tick en que llega una facción nueva (si quedan pocas), o null. */
+  newFactionAt: number | null = null;
   /** Solo en un mapa de batalla: de qué colonia es y contra quién. */
   battle?: BattleInfo;
   /** Tejados: casillas bajo techo, versión para el dibujado y habitaciones que se pueden tejar (caché). */
@@ -362,6 +364,8 @@ export class World implements JobContext {
     if (this.tick % TICKS_PER_DAY === 0) marketDay(this.market, this.map.seed, this.day);
     // Y las bases de las facciones crecen.
     if (this.tick % TICKS_PER_DAY === 0) growBases(this);
+    // Si quedan pocas facciones, llega una nueva a los pocos días.
+    if (this.tick % TICKS_PER_HOUR === 0 && !this.battle) checkNewFaction(this);
     // Cada día, las trampas de pesca dejan su 🐟 en el muelle de al lado.
     if (this.tick % TICKS_PER_HOUR === 0) this.emptyFishTraps();
     // Las plantas crecen a saltos de un segundo (basta y cuesta poco).

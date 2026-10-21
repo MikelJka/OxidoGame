@@ -2,6 +2,20 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (44) — Facciones nuevas
+
+- Opción 4B de Mikel: si quedan **menos de 3 facciones** (porque habéis destruido alguna base), a los **3–6 días** llega una **nueva** que monta su base en el mapa del mundo. Sale una de esta lista, que no haya estado antes:
+  - 🛣 **Mercenarios de la autopista**: neutrales.
+  - ☢ **Culto del Reactor**: siempre hostiles.
+  - 🐪 **Nómadas del desierto**: neutrales.
+  - ⚙ **Hermandad de la Chatarra**: neutrales.
+- Si caen los Piratas del Óxido, los raids normales pasan a ser de otra facción siempre hostil (el Culto del Reactor, si está). Si no queda ninguna, siguen llegando los restos de los piratas.
+- Las facciones destruidas no vuelven al cargar la partida.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): la lista, sus relaciones al llegar y los días.
+- Qué probar: destruir una base y esperar unos días a la facción nueva (📜 → 🏳 Facciones).
+- Sin npm en el entorno: tests con Bun (637) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+- Siguiente: ocupar las ruinas de una base como segunda colonia.
+
 ## 2026-10-21 (43) — Atacar la base de una facción
 
 - Segunda parte de las bases (opción 1C). En **📜 → 🏳 Facciones**, cada facción tiene **⚔️ Atacar su base**: se elige quién va y se pulsa **Enviar**.

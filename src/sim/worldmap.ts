@@ -3,7 +3,7 @@
 // días (gente y defensas) y más deprisa cuanto más ricas son: se enriquecen al comerciar con la
 // colonia, al cobrar tributo y con los raids que les salen bien. Puro y determinista.
 import { baseLevel, WORLD_MAP } from '../data/worldmap';
-import { factionDef } from '../data/factions';
+import { EXTRA_FACTIONS, factionDef, FACTIONS, NEW_FACTIONS } from '../data/factions';
 import { Rng } from './rng';
 import { TICKS_PER_DAY } from './time';
 import type { FactionState } from './factions';
@@ -88,4 +88,30 @@ export function growBases(w: World): void {
       w.addLog(`🗺 ${def?.icon ?? ''} ${f.settlement}, la base de ${def?.name ?? f.id}, ha crecido: ahora es ${after.name.toLowerCase()} (${b.population} habitantes).`, 'info');
     }
   }
+}
+
+/**
+ * Facciones nuevas (opción 4B de Mikel): si quedan menos de 3, a los 3–6 días llega una de la lista
+ * (que no haya estado ya) y monta su base en el mapa del mundo.
+ */
+export function checkNewFaction(w: World): void {
+  if (w.factions.length >= NEW_FACTIONS.minFactions) {
+    w.newFactionAt = null;
+    return;
+  }
+  const rng = new Rng(((w.map.seed ^ 0x3c6ef372) + Math.floor(w.tick / TICKS_PER_DAY) * 0x85ebca6b) >>> 0);
+  if (w.newFactionAt === null) {
+    w.newFactionAt = w.tick + rng.int(NEW_FACTIONS.days[0], NEW_FACTIONS.days[1]) * TICKS_PER_DAY;
+    return;
+  }
+  if (w.tick < w.newFactionAt) return;
+  w.newFactionAt = null;
+  const gone = new Set([...w.factions.map((f) => f.id), ...w.ruins.map((r) => r.faction)]);
+  const pool = [...EXTRA_FACTIONS, ...FACTIONS].filter((d) => !gone.has(d.id));
+  if (!pool.length) return;
+  const def = pool[rng.int(0, pool.length - 1)];
+  const f: FactionState = { id: def.id, settlement: def.settlements[rng.int(0, def.settlements.length - 1)], relation: def.start };
+  w.factions.push(f);
+  placeBases(w.factions, (w.map.seed + w.tick) >>> 0, w.tick);
+  w.addLog(`🗺 Llega una facción nueva: ${def.icon} ${def.name}, que monta su base en ${f.settlement}. ${def.description}`, 'info');
 }

@@ -66,26 +66,28 @@ export function giftPoints(value: number): number {
 }
 
 /** Lee las facciones de una partida guardada; lo que falte (partidas antiguas) sale como en una nueva. */
-export function restoreFactions(saved: unknown, seed: number): FactionState[] {
-  const base = createFactions(seed);
+export function restoreFactions(saved: unknown, seed: number, destroyed: readonly string[] = []): FactionState[] {
+  const base = createFactions(seed).filter((f) => !destroyed.includes(f.id));
   if (!Array.isArray(saved)) return base;
+  // Las que llegaron después (no son de las de partida nueva).
+  for (const k of saved) {
+    const id = k && typeof k === 'object' ? factionId(String((k as FactionState).id)) : '';
+    const def = factionDef(id);
+    if (!def || base.some((f) => f.id === id) || FACTIONS.some((f) => f.id === id) || destroyed.includes(id)) continue;
+    base.push({ id, settlement: def.settlements[0], relation: def.start });
+  }
   for (const f of base) {
     const s = saved.find((k) => k && typeof k === 'object' && factionId(String((k as FactionState).id)) === f.id) as Partial<FactionState> | undefined;
     if (!s) continue;
-    // Los que no cambian (los Piratas del Óxido) siguen con la suya de siempre.
-    if (factionDef(f.id)?.fixed) {
-      if (typeof s.settlement === 'string' && s.settlement) f.settlement = s.settlement;
-      const fb = s.base as Partial<FactionBase> | undefined;
-      if (fb && [fb.x, fb.y, fb.population, fb.wealth, fb.defenses, fb.grownAt].every((v) => typeof v === 'number' && Number.isFinite(v))) f.base = { ...(fb as FactionBase) };
-      continue;
-    }
+    const fb = s.base as Partial<FactionBase> | undefined;
+    if (fb && [fb.x, fb.y, fb.population, fb.wealth, fb.defenses, fb.grownAt].every((v) => typeof v === 'number' && Number.isFinite(v))) f.base = { ...(fb as FactionBase) };
     if (typeof s.settlement === 'string' && s.settlement) f.settlement = s.settlement;
+    // Los que no cambian (los Piratas del Óxido) siguen con la suya de siempre.
+    if (factionDef(f.id)?.fixed) continue;
     if (typeof s.relation === 'number' && Number.isFinite(s.relation)) f.relation = clampRelation(s.relation);
     if (typeof s.helpAt === 'number' && Number.isFinite(s.helpAt)) f.helpAt = s.helpAt;
     if (typeof s.warRaidAt === 'number' && Number.isFinite(s.warRaidAt)) f.warRaidAt = s.warRaidAt;
     if (typeof s.calledAt === 'number' && Number.isFinite(s.calledAt)) f.calledAt = s.calledAt;
-    const b = s.base as Partial<FactionBase> | undefined;
-    if (b && [b.x, b.y, b.population, b.wealth, b.defenses, b.grownAt].every((v) => typeof v === 'number' && Number.isFinite(v))) f.base = { ...(b as FactionBase) };
   }
   return base;
 }

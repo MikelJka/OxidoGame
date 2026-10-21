@@ -90,6 +90,7 @@ export interface SaveData {
   roofs?: number[];
   /** Bases destruidas y expedición fuera (desde el 2026-10-21). */
   ruins?: { faction: string; name: string; x: number; y: number; day: number }[];
+  newFactionAt?: number;
   expedition?: { faction: string; members: SavedColonist[]; phase: string; arriveAt: number; loot: Record<string, number>; result?: string };
   nextEvent?: number;
   /** Tributo pedido y sin responder (desde el 2026-10-21). */
@@ -266,6 +267,7 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     ...(world.fires.size ? { fires: [...world.fires] } : {}),
     ...(world.roofs.size ? { roofs: [...world.roofs] } : {}),
     ...(world.ruins.length ? { ruins: world.ruins.map((r) => ({ ...r })) } : {}),
+    ...(world.newFactionAt !== null ? { newFactionAt: world.newFactionAt } : {}),
     ...(world.expedition ? { expedition: { faction: world.expedition.faction, members: world.expedition.members.map(savePawn), phase: world.expedition.phase, arriveAt: world.expedition.arriveAt, loot: { ...world.expedition.loot }, ...(world.expedition.result ? { result: world.expedition.result } : {}) } } : {}),
     ...(world.burnt.size ? { burnt: [...world.burnt] } : {}),
     ...(world.plague ? { plague: { ...world.plague } } : {}),
@@ -614,7 +616,8 @@ export function loadWorld(input: string | unknown): World {
     };
   }
   const ids = [...world.colonists, ...(world.expedition?.members ?? []), ...world.others, ...world.others.flatMap((o) => o.trader?.slaves ?? []), ...(world.offer ? [world.offer.pawn] : [])].map((c) => c.id);
-  world.factions = restoreFactions(d.factions, world.map.seed);
+  world.factions = restoreFactions(d.factions, world.map.seed, world.ruins.map((r) => r.faction));
+  world.newFactionAt = typeof d.newFactionAt === 'number' ? d.newFactionAt : null;
   placeBases(world.factions, world.map.seed, world.tick);
   world.market = restoreMarket(d.market);
   world.weather = restoreWeather(d.weather);
