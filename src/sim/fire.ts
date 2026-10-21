@@ -1,0 +1,160 @@
+// Fuego (incendio grande, pedido por Mikel el 2026-10-21): casillas que arden y lo pasan a las de
+// al lado según lo que haya en ellas (árboles, matorrales, tierra seca, cultivos, madera, lo
+// construido con madera). Quema lo que hay, hace daño a quien está dentro y, si llega cerca de la
+// colonia, los colonos van a apagarlo. Puro y determinista: sin Phaser ni DOM.
+import { FIRE, FuelKind } from '../data/fire';
+import { index, inBounds, isWater, Prop, Terrain } from './map';
+import { Rng } from './rng';
+import { TICKS_PER_DAY, TICKS_PER_SECOND } from './time';
+import type { World } from './world';
+import { hurt } from './health';
+
+const SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
+
+/** Lo que arde en una casilla (lo que más dura), o null si nada. */
+export function fuelAt(w: World, x: number, y: number): FuelKind | null {
+  const m = w.map;
+  if (!inBounds(m, x, y)) return null;
+  const i = index(m, x, y);
+  const t = m.terrain[i] as Terrain;
+  if (isWater(t)) return null;
+  const s = w.structures.at(x, y);
+  if (s && (s.def.cost.madera ?? 0) > 0) return 'structure';
+  const p = m.props[i] as Prop;
+  if (p === Prop.DeadTree || p === Prop.Stump) return 'tree';
+  if (p === Prop.Bush) return 'bush';
+  if (p === Prop.Tires) return 'tires';
+  if (w.farms.plantAt(x, y)) return 'plant';
+  const st = w.items.at(x, y);
+  if (st && FIRE.flammableItems.includes(st.resource)) return 'item';
+  // La tierra seca arde un momento (si no se ha quemado hace poco y no hay nada que no arda encima).
+  if (t === Terrain.Soil && !s && !m.trench[i]) {
+    const burnt = w.burnt.get(i);
+    if (burnt === undefined || w.tick - burnt > FIRE.noRegrowDays * TICKS_PER_DAY) return 'soil';
+  }
+  return null;
+}
+
+/** Prende fuego a una casilla (si hay algo que arda). */
+export function ignite(w: World, x: number, y: number): boolean {
+  if (!inBounds(w.map, x, y)) return false;
+  const i = index(w.map, x, y);
+  if (w.fires.has(i) || w.fires.size >= FIRE.maxFires || !fuelAt(w, x, y)) return false;
+  w.fires.set(i, 0);
+  w.fireVersion++;
+  return true;
+}
+
+/** Apaga una casilla. */
+export function extinguish(w: World, x: number, y: number): boolean {
+  const i = index(w.map, x, y);
+  if (!w.fires.delete(i)) return false;
+  w.fireVersion++;
+  return true;
+}
+
+/** La casilla está ardiendo. */
+export function burning(w: World, x: number, y: number): boolean {
+  return inBounds(w.map, x, y) && w.fires.has(index(w.map, x, y));
+}
+
+/** El fuego de esa casilla amenaza la colonia: cerca de su punto o de algo construido. */
+export function threatens(w: World, x: number, y: number): boolean {
+  const R = FIRE.threatRange;
+  const home = w.colonyPoint();
+  if (home && Math.abs(home.x - x) + Math.abs(home.y - y) <= R) return true;
+  return w.structures.all().some((s) => s.built && Math.abs(s.x - x) + Math.abs(s.y - y) <= R / 2);
+}
+
+/** Un segundo de fuego: arde lo que hay, se extiende y se apaga lo que se ha consumido. */
+export function updateFires(w: World): void {
+  if (w.fires.size === 0) return;
+  const m = w.map;
+  const rng = new Rng(((m.seed ^ 0x0f1a3e5d) + Math.floor(w.tick / TICKS_PER_SECOND) * 0x9e3779b1) >>> 0);
+  const rain = w.weather.some((e) => w.tick < e.until && e.id === 'lluvia_acida');
+  const factor = (1 + FIRE.windSpread * w.wind) * (rain ? FIRE.rainSpread : 1);
+  const spreadTo: number[] = [];
+  for (const [i, age] of [...w.fires]) {
+    const x = i % m.width;
+    const y = (i - x) / m.width;
+    const fuel = fuelAt(w, x, y);
+    if (!fuel) {
+      w.fires.delete(i);
+      continue;
+    }
+    const next = age + 1;
+    w.fires.set(i, next);
+    // Quien está dentro se quema.
+    for (const c of w.pawns()) {
+      if (c.tile.x !== x || c.tile.y !== y || c.vehicle?.boarded) continue;
+      hurt(c, FIRE.harmPerSecond, 'quemaduras', c.role !== 'colono');
+      if (c.role === 'colono') w.combatAlert(c, 'herido', `🔥 ${c.name} se está quemando.`);
+    }
+    // Lo construido con madera pierde vida hasta romperse.
+    const s = w.structures.at(x, y);
+    if (fuel === 'structure' && s) {
+      s.hp -= Math.max(1, Math.ceil(s.def.hp / FIRE.burnSeconds.structure));
+      if (s.hp <= 0) {
+        w.breakStructure(s);
+        w.addLog(`🔥 El fuego destruye: ${s.def.name.toLowerCase()}.`, 'malo', undefined, { x, y });
+      }
+    }
+    // Se extiende a las de al lado.
+    for (const [dx, dy] of SIDES) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (!inBounds(m, nx, ny) || w.fires.has(index(m, nx, ny))) continue;
+      const f = fuelAt(w, nx, ny);
+      if (f && rng.chance(Math.min(0.9, FIRE.spread[f] * factor))) spreadTo.push(index(m, nx, ny));
+    }
+    // Consumido: se apaga y deja lo quemado.
+    if (fuel !== 'structure' && next >= FIRE.burnSeconds[fuel]) {
+      burnOut(w, x, y, fuel);
+      w.fires.delete(i);
+    }
+  }
+  for (const i of spreadTo) ignite(w, i % m.width, Math.floor(i / m.width));
+  w.fireVersion++;
+}
+
+/** Lo que queda al consumirse el fuego de una casilla. */
+function burnOut(w: World, x: number, y: number, fuel: FuelKind): void {
+  const m = w.map;
+  const i = index(m, x, y);
+  if (fuel === 'tree' || fuel === 'bush' || fuel === 'tires') {
+    m.props[i] = Prop.None;
+    w.markChanged(i);
+  } else if (fuel === 'plant') w.farms.uproot(x, y);
+  else if (fuel === 'item') {
+    const st = w.items.at(x, y);
+    if (st) w.items.take(x, y, st.amount);
+  }
+  w.burnt.set(i, w.tick);
+}
+
+/** Suceso: un incendio grande en un sitio al azar con algo que arda, lejos de la colonia. */
+export function startWildfire(w: World, rng: Rng): boolean {
+  const m = w.map;
+  const home = w.colonyPoint() ?? { x: Math.floor(m.width / 2), y: Math.floor(m.height / 2) };
+  for (let tries = 0; tries < 200; tries++) {
+    const x = rng.int(1, m.width - 2);
+    const y = rng.int(1, m.height - 2);
+    if (Math.abs(x - home.x) + Math.abs(y - home.y) < FIRE.event.minDistance) continue;
+    const f = fuelAt(w, x, y);
+    if (f !== 'tree' && f !== 'bush') continue;
+    const r = FIRE.event.startRadius;
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) ignite(w, x + dx, y + dy);
+    w.addLog('🔥 ¡Incendio! Ha prendido fuego en el monte y se extiende. Si llega cerca de la colonia, los colonos irán a apagarlo.', 'malo', 'raid', { x, y });
+    return true;
+  }
+  return false;
+}
+
+/** Lee el fuego de una partida guardada. */
+export function restoreFires(w: World, fires: unknown, burnt: unknown): void {
+  w.fires.clear();
+  w.burnt.clear();
+  const n = w.map.width * w.map.height;
+  if (Array.isArray(fires)) for (const f of fires) if (Array.isArray(f) && f[0] >= 0 && f[0] < n) w.fires.set(Math.floor(f[0]), Math.max(0, Math.floor(f[1] ?? 0)));
+  if (Array.isArray(burnt)) for (const b of burnt) if (Array.isArray(b) && b[0] >= 0 && b[0] < n) w.burnt.set(Math.floor(b[0]), Math.floor(b[1] ?? 0));
+}

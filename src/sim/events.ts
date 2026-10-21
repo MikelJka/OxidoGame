@@ -7,6 +7,7 @@ import { isPassable } from './map';
 import { findPath, Point } from './pathfinding';
 import { Rng } from './rng';
 import { factionDef, RAIDER_FACTION } from '../data/factions';
+import { startWildfire } from './fire';
 import { TICKS_PER_DAY, TICKS_PER_HOUR } from './time';
 import type { World } from './world';
 
@@ -74,6 +75,7 @@ export function startEvent(w: World, id: string): boolean {
   const ev = eventDef(id);
   if (!ev) return false;
   if (ev.id === 'alijo') return dropCache(w, ev);
+  if (ev.id === 'incendio') return startWildfire(w, eventRng(w, 8));
   if (ev.repair) return breakMachine(w, ev);
   if (ev.sickShare !== undefined) return startPlague(w, ev);
   if (ev.stayChance !== undefined) return refugeeArrives(w, ev);

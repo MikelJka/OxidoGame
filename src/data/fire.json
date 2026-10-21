@@ -1,0 +1,14 @@
+{
+  "_": "Incendio grande (pedido por Mikel el 2026-10-21): empieza en un punto al azar del mapa, lejos de la colonia, y se extiende por árboles, matorrales, neumáticos, la tierra seca, lo plantado, la madera y lo construido con madera. Los números los ha puesto la sesión del 2026-10-21.",
+  "spread": { "tree": 0.12, "bush": 0.14, "tires": 0.1, "soil": 0.03, "plant": 0.16, "structure": 0.08, "item": 0.1 },
+  "burnSeconds": { "tree": 50, "bush": 20, "tires": 60, "soil": 8, "plant": 6, "structure": 40, "item": 15 },
+  "flammableItems": ["madera", "fibra", "palo", "hierba", "comida", "patata", "maiz", "setas"],
+  "windSpread": 1,
+  "rainSpread": 0.2,
+  "harmPerSecond": 0.04,
+  "threatRange": 25,
+  "extinguishWork": 60,
+  "maxFires": 600,
+  "noRegrowDays": 3,
+  "event": { "weight": 1, "minDistance": 35, "startRadius": 1 }
+}

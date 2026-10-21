@@ -73,6 +73,11 @@
       "healedAt": 0.9,
       "stayChance": 0.5,
       "relation": 10
+    },
+    {
+      "id": "incendio",
+      "name": "Incendio",
+      "weight": 1
     }
   ]
 }

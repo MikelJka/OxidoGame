@@ -3,6 +3,7 @@
 // Determinista: sin azar.
 import type { Skill } from '../data/colonists';
 import { eventDef } from '../data/events';
+import { FIRE } from '../data/fire';
 import { depositOf } from '../data/buildings';
 import { MAX_STACK, RESOURCES, ResourceId } from '../data/resources';
 import { BLUEPRINT_SHARE_RADIUS, FINISH_WORK, WORK_SKILL, WORK_TYPES, WorkType } from '../data/work';
@@ -123,6 +124,8 @@ export interface JobContext {
   fightOver(): boolean;
   /** Colono en el suelo, fuera de la cama, al que hay que llevar a una cama libre tras el combate. */
   wantsCarryToBed(p: Colonist): boolean;
+  /** Casillas que arden cerca de la colonia (hay que apagarlas). */
+  fireThreats(): Point[];
 }
 
 /** Colono que necesita que le atiendan ya: sangra. */
@@ -640,6 +643,25 @@ function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   return out;
 }
 
+/** Apagar el fuego que amenaza la colonia: lo urgente, para cualquier colono. */
+function fireCandidates(ctx: JobContext, c: Colonist): Candidate[] {
+  const out: Candidate[] = [];
+  for (const f of ctx.fireThreats()) {
+    const h = ctx.reservations.holder(f.x, f.y);
+    if (h !== undefined && h !== c.id) continue;
+    out.push({
+      kind: 'construir', x: f.x, y: f.y, dist: manhattan(c.tile, f.x, f.y), urgent: true,
+      make: () => {
+        const here = isBeside(c.tile, f.x, f.y) || (c.tile.x === f.x && c.tile.y === f.y);
+        const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, sideTiles(ctx.map, f.x, f.y));
+        if (!route) return null;
+        return { job: { kind: 'construir', x: f.x, y: f.y, stand: route.stand, progress: 0, work: FIRE.extinguishWork, fire: true }, path: route.path };
+      },
+    });
+  }
+  return out;
+}
+
 /** Trabajo de arrancar una planta enferma (plaga). */
 const UPROOT_WORK = eventDef('plaga')?.uprootWork ?? 60;
 
@@ -703,7 +725,7 @@ function terrainCandidates(ctx: JobContext, c: Colonist): Candidate[] {
  */
 export function findJob(ctx: JobContext, c: Colonist): JobPlan | null {
   const all = [
-    ...doctorCandidates(ctx, c), ...wardenCandidates(ctx, c),
+    ...fireCandidates(ctx, c), ...doctorCandidates(ctx, c), ...wardenCandidates(ctx, c),
     ...buildCandidates(ctx, c), ...farmCandidates(ctx, c), ...fabricateCandidates(ctx, c), ...researchCandidates(ctx, c), ...terrainCandidates(ctx, c),
     ...harvestCandidates(ctx, c), ...refuelCandidates(ctx, c), ...corpseCandidates(ctx, c), ...haulCandidates(ctx, c),
   ];

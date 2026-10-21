@@ -159,6 +159,9 @@ export class WorldScene extends Phaser.Scene {
   /** Giro de la construcción que se coloca (para las de varias casillas). */
   buildRot: 0 | 1 = 0;
   private zoneGfx!: Phaser.GameObjects.Graphics;
+  /** Llamas de los incendios (se repinta a menudo para que parpadeen). */
+  private fireGfx!: Phaser.GameObjects.Graphics;
+  private fireTimer = 0;
   private zoneVersion = -1;
   private structSprites: Phaser.GameObjects.Image[] = [];
   private structVersion = -1;
@@ -232,6 +235,7 @@ export class WorldScene extends Phaser.Scene {
     this.selectionGfx = this.add.graphics().setDepth(COLONIST_DEPTH - 1);
     this.designGfx = this.add.graphics().setDepth(DESIGN_DEPTH);
     this.zoneGfx = this.add.graphics().setDepth(ZONE_DEPTH);
+    this.fireGfx = this.add.graphics().setDepth(COLONIST_DEPTH + 1);
     this.designPreview = this.add.graphics().setDepth(COLONIST_DEPTH + 2);
     this.createColonistSprites();
 
@@ -264,6 +268,11 @@ export class WorldScene extends Phaser.Scene {
     this.syncZones();
     this.syncStructures();
     this.syncPlants();
+    this.fireTimer += delta;
+    if (this.fireTimer >= 120) {
+      this.fireTimer = 0;
+      this.drawFires();
+    }
     this.drawSelection();
     this.uiTimer += delta;
     if (this.uiTimer >= UI_EMIT_MS) {
@@ -1624,6 +1633,27 @@ export class WorldScene extends Phaser.Scene {
     const f = this.selectedFarmId === null ? undefined : this.world.farms.get(this.selectedFarmId);
     if (!f) this.selectedFarmId = null;
     this.game.events.emit('farm-select', f ?? null);
+  }
+
+  /** Pinta las llamas de las casillas que arden y lo quemado (tierra negra), parpadeando. */
+  private drawFires(): void {
+    const g = this.fireGfx;
+    g.clear();
+    const w = this.world;
+    if (w.fires.size === 0) return;
+    const flick = Math.floor(this.time.now / 120);
+    for (const [i, age] of w.fires) {
+      const x = i % w.map.width;
+      const y = (i - x) / w.map.width;
+      const v = this.viewTile(x, y);
+      const left = v.x * TILE;
+      const bottom = (v.y + 1) * TILE_H - liftOf(this.view, v.x, v.y);
+      const h = TILE_H * (0.6 + 0.3 * (((i + flick) * 7) % 3) / 2);
+      g.fillStyle(0x2a1a10, 0.35).fillRect(left, bottom - TILE_H, TILE, TILE_H);
+      g.fillStyle(0xd0401a, 0.85).fillTriangle(left + 2, bottom, left + TILE - 2, bottom, left + TILE / 2, bottom - h);
+      g.fillStyle(0xf0a020, 0.9).fillTriangle(left + 5, bottom, left + TILE - 5, bottom, left + TILE / 2 + (((flick + i) % 3) - 1), bottom - h * 0.6);
+      if (age % 3 === 0) g.fillStyle(0xf8e060, 0.9).fillRect(left + TILE / 2 - 1, bottom - h * 0.35, 2, 2);
+    }
   }
 
   /** Rehace las plantas de los huertos si han cambiado (sembradas, cosechadas o de otra fase). */

@@ -21,6 +21,7 @@ import { factionDef, factionId } from '../data/factions';
 import { restoreFactions } from './factions';
 import { restoreMarket } from './market';
 import { restoreWeather } from './events';
+import { restoreFires } from './fire';
 import { GRENADE, isWeapon } from '../data/weapons';
 import { ARMORS, isArmor } from '../data/armor';
 
@@ -79,6 +80,9 @@ export interface SaveData {
   /** Sucesos que duran y el siguiente (desde el 2026-10-21). */
   weather?: { id: string; until: number }[];
   plague?: { zone: number; until: number };
+  /** Fuego: [casilla, segundos ardiendo] y [casilla, tick en que se quemó] (desde el 2026-10-21). */
+  fires?: [number, number][];
+  burnt?: [number, number][];
   nextEvent?: number;
   /** Tributo pedido y sin responder (desde el 2026-10-21). */
   tribute?: { faction: string; demand: Record<string, number>; value: number; until: number };
@@ -249,6 +253,8 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     factions: world.factions.map((f) => ({ ...f })),
     market: { mult: { ...world.market.mult }, prev: { ...world.market.prev } },
     weather: world.weather.map((e) => ({ ...e })),
+    ...(world.fires.size ? { fires: [...world.fires] } : {}),
+    ...(world.burnt.size ? { burnt: [...world.burnt] } : {}),
     ...(world.plague ? { plague: { ...world.plague } } : {}),
     nextEvent: world.nextEvent,
     ...(world.tribute ? { tribute: { ...world.tribute, demand: { ...world.tribute.demand } } } : {}),
@@ -584,6 +590,7 @@ export function loadWorld(input: string | unknown): World {
   world.factions = restoreFactions(d.factions, world.map.seed);
   world.market = restoreMarket(d.market);
   world.weather = restoreWeather(d.weather);
+  restoreFires(world, d.fires, d.burnt);
   world.plague = d.plague && typeof d.plague.zone === 'number' && typeof d.plague.until === 'number' ? { zone: d.plague.zone, until: d.plague.until } : null;
   // Las partidas antiguas tienen su primer suceso dentro de un día.
   world.nextEvent = typeof d.nextEvent === 'number' && Number.isFinite(d.nextEvent) ? d.nextEvent : world.tick + TICKS_PER_DAY;

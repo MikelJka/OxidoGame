@@ -2,6 +2,7 @@ import { Colonist, createColonist, RaidGroup, Stance, walkSpeedMultiplier } from
 import { createFactions, FactionState, shiftRelation } from './factions';
 import { marketDay, MarketState, newMarket } from './market';
 import { ActiveEvent, firstEventTick, runEvents, solarFactor } from './events';
+import { burning, extinguish, threatens, updateFires } from './fire';
 import { factionDef, RELATION } from '../data/factions';
 import { countReachable, GameMap, generateMap, inBounds, isPassable, TRENCH_FLOODED, isWater, Prop, PROP_INFO, Terrain, TERRAIN_INFO, tileMoveCost } from './map';
 import { findPath, isWalkable, Point } from './pathfinding';
@@ -221,6 +222,10 @@ export class World implements JobContext {
   factions: FactionState[];
   /** Sucesos que duran (tormenta de polvo…) y tick del siguiente suceso. */
   weather: ActiveEvent[] = [];
+  /** Fuego: casillas que arden (índice → segundos ardiendo), las quemadas (índice → tick) y versión para el dibujado. */
+  readonly fires = new Map<number, number>();
+  readonly burnt = new Map<number, number>();
+  fireVersion = 0;
   /** Plaga en un huerto: cuál y hasta cuándo hay para arrancar las enfermas. */
   plague: { zone: number; until: number } | null = null;
   nextEvent = firstEventTick();
@@ -263,7 +268,8 @@ export class World implements JobContext {
   }
 
   /** Apunta casillas que hay que repintar (y que pueden cambiar las habitaciones). */
-  private markChanged(...tiles: number[]): void {
+  /** Han cambiado los objetos de esas casillas (índices): rehace lo que depende de ellos. */
+  markChanged(...tiles: number[]): void {
     if (tiles.length === 0) return;
     this.changedTiles.push(...tiles);
     this.propsVersion++;
@@ -336,6 +342,8 @@ export class World implements JobContext {
         !this.colonists.some((c) => c.path.some((p) => p.x === x && p.y === y)));
       this.markChanged(...grown);
     }
+    // Fuego: cada segundo arde, se extiende o se apaga.
+    if (this.tick % TICKS_PER_SECOND === 0 && this.fires.size > 0) updateFires(this);
     // Cada día, los precios del mercado se acercan a su valor y alguno cambia.
     if (this.tick % TICKS_PER_DAY === 0) marketDay(this.market, this.map.seed, this.day);
     // Cada día, las trampas de pesca dejan su 🐟 en el muelle de al lado.
@@ -1222,7 +1230,7 @@ export class World implements JobContext {
 
   /** Busca trabajo (si toca) y lo empieza. true si ahora tiene uno. */
   private tryStartJob(c: Colonist): boolean {
-    const people = this.others.length > 0 || this.colonists.some((k) => k.wounds.some((w) => w.bleeding) || needsDose(k) || k.downed);
+    const people = this.others.length > 0 || this.fires.size > 0 || this.colonists.some((k) => k.wounds.some((w) => w.bleeding) || needsDose(k) || k.downed);
     if (!people && this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.structures.toMove().length === 0 && this.structures.repairs().length === 0 && this.structures.stations().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0 && this.corpses.length === 0 && !this.structures.all().some((s) => s.built && !!depositOf(s.def))) return false;
     if (this.tick < (this.nextJobScan.get(c.id) ?? 0)) return false;
     const plan = findJob(this, c);
@@ -1287,6 +1295,7 @@ export class World implements JobContext {
       return canTalk(this.tick, o);
     }
     if (j.kind === 'construir') {
+      if (j.fire) return burning(this, j.x, j.y);
       const s = this.jobStructure(j);
       if (j.demolish) return !!s && s.built && !!s.demolish;
       if (j.move === 'desmontar') return !!s && !!s.moveTo && this.structures.canMove(s);
@@ -1372,6 +1381,10 @@ export class World implements JobContext {
     }
     if (j.kind === 'curar' || j.kind === 'carcelero') {
       this.updatePawnJob(c);
+      return;
+    }
+    if (j.fire) {
+      this.updateFireJob(c);
       return;
     }
     const building = j.kind === 'construir' || j.kind === 'fabricar' || j.kind === 'cocinar';
@@ -1818,6 +1831,51 @@ export class World implements JobContext {
     }
     // Una zanja nueva pegada al agua (o a un foso) se inunda en el momento.
     if (job === 'zanja' || job === 'rellenar') this.refreshFlooding();
+  }
+
+  /** Casillas que arden cerca de la colonia (se calcula como mucho una vez por segundo). */
+  fireThreats(): Point[] {
+    const key = Math.floor(this.tick / TICKS_PER_SECOND);
+    if (this.fireThreatKey === key) return this.fireThreatCache;
+    this.fireThreatKey = key;
+    this.fireThreatCache = [];
+    for (const i of this.fires.keys()) {
+      const x = i % this.map.width;
+      const y = (i - x) / this.map.width;
+      if (threatens(this, x, y)) this.fireThreatCache.push({ x, y });
+    }
+    return this.fireThreatCache;
+  }
+  private fireThreatKey = -1;
+  private fireThreatCache: Point[] = [];
+
+  /** Va a la casilla que arde y la apaga. */
+  private updateFireJob(c: Colonist): void {
+    const j = c.job!;
+    if (!burning(this, j.x, j.y)) {
+      this.dropJob(c);
+      return;
+    }
+    const here = (Math.abs(c.tile.x - j.x) + Math.abs(c.tile.y - j.y)) <= 1;
+    if (!here) {
+      if (c.path.length === 0) {
+        const path = findPath(this.map, c.tile, j.stand, JOB_PATH_NODES);
+        if (!path || path.length === 0) {
+          this.dropJob(c);
+          this.nextJobScan.set(c.id, this.tick + JOB_RETRY_TICKS);
+          return;
+        }
+        c.path = path;
+      }
+      return;
+    }
+    c.path = [];
+    c.activity = 'working';
+    j.progress += 1;
+    if (j.progress >= j.work) {
+      extinguish(this, j.x, j.y);
+      this.dropJob(c);
+    }
   }
 
   /** Termina de sembrar o de cosechar una casilla. */

@@ -6,7 +6,7 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 - [x] **Facciones cambiadas por Mikel** (2026-10-21, en el chat): los Chatarreros y los Granjeros empiezan neutrales y su relación puede mejorar o empeorar (hostiles, neutrales o aliados); los Hijos del Óxido pasan a llamarse **Piratas del Óxido**, son siempre hostiles y lanzan los raids. Hecho.
 - [ ] **Bases de las facciones** (2026-10-21, pedido por Mikel en el chat): cada facción tiene su base, que se genera y crece; los colonos pueden atacarla; si se destruye, la facción desaparece y se puede mandar a colonos a vivir allí y ocuparla; más facciones para no quedarse sin ninguna. Falta decidir cómo funciona: propuesta en «Propuestas para Mikel».
-- [ ] **Incendio grande** (2026-10-21, pedido por Mikel en el chat): un suceso de fuego que empieza en un punto al azar del mapa, se extiende y puede llegar a quemar la colonia.
+- [x] **Incendio grande** (2026-10-21, pedido por Mikel en el chat): un suceso de fuego que empieza en un punto al azar del mapa, se extiende y puede llegar a quemar la colonia. Hecho (2026-10-21).
 - [ ] **Tejados y habitaciones** (2026-10-21, pedido por Mikel en el chat): al cerrar del todo un espacio con paredes (no muros altos), los colonos ponen el tejado; dentro no llueve, se guarda mejor la temperatura y cuenta como habitación, con sus valores (limpieza, belleza…) que afectan al ánimo de quien está dentro.
 
 - [x] **Decisiones de Mikel del 2026-10-21 (muelle, balsas y fase 5)** — aprobado, se implementa sin volver a preguntar:
@@ -41,7 +41,11 @@ Lo que Mikel ha pedido dejar para más adelante. No se trabaja en ello salvo par
 
 Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat o con 🐞).
 
-(Sin propuestas abiertas: Mikel contestó las tres el 2026-10-21, ver «Pendiente».)
+- **Bases de las facciones** (2026-10-21, pedido por Mikel). Elige una opción de cada:
+  - **Dónde están**: **A**: en el mismo mapa, un recinto amurallado por facción, lejos de la colonia, al que se va andando con los reclutados. **B**: en un mapa del mundo aparte; atacar es mandar una expedición que se resuelve sola (días fuera, según armas, Combate y número). **C**: mixto; en el mapa del mundo y, al atacar, un mapa de batalla con su base para pelear en directo.
+  - **Cómo crecen**: **A**: cada X días ganan gente y añaden muros, torres o talleres según su facción. **B**: según su riqueza (comercio, raids que les salen bien). **C**: por niveles: aldea, pueblo y fortaleza (más defensores, caravanas y raids más grandes).
+  - **Al destruirla**: **A**: desaparece la facción y la base queda en ruinas; se puede mandar a colonos a ocuparla como segunda colonia. **B**: igual, pero la ocupada va sola y manda recursos cada pocos días.
+  - **Para no quedarse sin facciones**: **A**: cada X días puede llegar una nueva de una lista (Mercenarios de la autopista, Culto del Reactor, Nómadas del desierto, Hermandad de la Chatarra…). **B**: si quedan menos de 3, aparece una nueva a los pocos días.
 
 ## Hecho
 

@@ -2,6 +2,21 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (40) — Incendio grande
+
+- Pedido por Mikel: suceso **🔥 Incendio**. Prende en un sitio al azar con árboles o matorrales, a 35 casillas o más de la colonia, y **se extiende** cada segundo a las casillas de al lado:
+  - Arde lo que tiene combustible: árboles secos, tocones, matorrales, neumáticos, la tierra seca, lo plantado, los montones de madera, fibra o comida y **lo construido con madera**.
+  - El agua, la roca, las zanjas y lo de piedra o metal lo frenan.
+  - Con viento se extiende más; con lluvia, mucho menos.
+- Lo quemado desaparece: los árboles y matorrales se pierden, y lo construido con madera pierde vida hasta romperse. Quien está en una casilla ardiendo **se quema**. La tierra quemada no vuelve a arder en 3 días.
+- Cuando el fuego llega a **25 casillas de la colonia** (o cerca de algo construido), **todos los colonos no reclutados dejan lo que hacen y van a apagarlo**, casilla a casilla (unos 2 s cada una).
+- Las llamas se ven en el mapa (en 2D).
+- El fuego estaba aparcado; esto es solo el incendio que pidió Mikel. Las armas incendiarias y las explosiones que prenden siguen aparcadas.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): todos los números de `src/data/fire.json` (cuánto se extiende cada cosa, cuánto arde, distancias) y que apagarlo no gaste agua.
+- Qué probar: adelantar el tiempo con 🪄 hasta que salga «🔥 ¡Incendio!» (1 de cada 9 sucesos, más o menos) y tocar el aviso para ir al fuego.
+- Sin npm en el entorno: tests con Bun (626, 5 nuevos en `tests/fire.test.ts`) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+- Siguiente: los tejados y las habitaciones, que ha pedido Mikel.
+
 ## 2026-10-21 (39) — Sucesos terminados y Piratas del Óxido
 
 - **🐛 Plaga**: en un huerto con 4 o más plantas enferma una cuarta parte, que se ve pardusca. Los que tienen «Cultivar» van antes que nada a **arrancarlas**. Si en **un día** queda alguna enferma, el huerto **pierde la mitad** de sus plantas.
