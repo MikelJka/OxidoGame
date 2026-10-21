@@ -170,6 +170,24 @@ function paintCreature(px: (x: number, y: number, w: number, h: number, color: s
       px(10, 3, 1, 1, '#ff2a1a');
       break;
     }
+    case 'gallina_mutada': {
+      // Gallina mutada: cuerpo redondo pardo, cresta roja (doble) y patas finas.
+      px(4, 14, 8, 1, 'rgba(0,0,0,0.35)');
+      px(6, 12, 1, 2, '#d8a030');
+      px(9, 12, 1, 2, '#d8a030');
+      px(3, 7, 9, 6, outline);
+      px(4, 8, 7, 4, '#b07a48');
+      px(4, 11, 7, 1, '#7a5030');
+      px(2, 6, 3, 3, '#5a3a20'); // cola
+      px(10, 4, 4, 5, outline); // cabeza
+      px(11, 5, 2, 3, '#b07a48');
+      px(12, 5, 1, 1, '#c8e040'); // ojo
+      px(14, 6, 1, 1, '#e8b030'); // pico
+      px(10, 3, 1, 1, '#d83a2a'); // cresta (dos)
+      px(12, 2, 1, 2, '#d83a2a');
+      px(13, 3, 1, 1, '#d83a2a');
+      break;
+    }
     case 'ciervo_mutado':
     case 'jabali':
     case 'mula':

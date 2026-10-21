@@ -50,6 +50,9 @@ export interface Plant {
 /** Lo que da de más una planta abonada (+25 %, bloque 3 del catálogo). */
 export const FERTILIZER_BONUS = 1.25;
 
+/** Lo que crece más deprisa una planta abonada (+25 %, pedido de Mikel del 2026-10-21 con la compostera). */
+export const FERTILIZER_GROWTH = 1.25;
+
 /** Fase visible de una planta: 0 sembrada, 1 brote, 2 creciendo, 3 madura. */
 export function plantStage(p: Plant): 0 | 1 | 2 | 3 {
   if (p.growth >= 1) return 3;
@@ -214,7 +217,7 @@ export class GrowZones {
       const hours = p.crop.growsInDark ? 1 : dayFraction;
       const f = fertilityAt(this.map, i % this.map.width, Math.floor(i / this.map.width));
       const before = plantStage(p);
-      p.growth = Math.min(1, p.growth + (ticks * f) / (p.crop.growDays * ticksPerDay * hours));
+      p.growth = Math.min(1, p.growth + (ticks * f * (p.fertilized ? FERTILIZER_GROWTH : 1)) / (p.crop.growDays * ticksPerDay * hours));
       if (plantStage(p) !== before) this.version++;
     }
   }

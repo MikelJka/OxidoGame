@@ -4,8 +4,9 @@
  * máquinas del bloque 6 (la araña de chatarra y el dron de vigilancia).
  */
 import data from './creatures.json';
+import type { ResourceId } from './resources';
 
-export type CreatureId = 'perro_mutante' | 'bruto_mutante' | 'arana_chatarra' | 'dron_vigilancia' | 'ciervo_mutado' | 'jabali' | 'rata_gigante' | 'cabra_salvaje' | 'vaca_dos_cabezas' | 'caballo_salvaje' | 'mula';
+export type CreatureId = 'perro_mutante' | 'bruto_mutante' | 'arana_chatarra' | 'dron_vigilancia' | 'ciervo_mutado' | 'jabali' | 'rata_gigante' | 'cabra_salvaje' | 'vaca_dos_cabezas' | 'caballo_salvaje' | 'gallina_mutada' | 'mula';
 
 export interface CreatureDef {
   id: CreatureId;
@@ -45,7 +46,7 @@ export interface CreatureDef {
   /** Se puede domar como animal de carga. */
   tamable?: boolean;
   /** Doma: probabilidad base de cada intento y kilos que carga en una expedición. */
-  tame?: { chance: number; cargo: number };
+  tame?: { chance: number; cargo: number; produces?: { resource: ResourceId; amount: number } };
 }
 
 export const CREATURES: Record<CreatureId, CreatureDef> = Object.fromEntries(

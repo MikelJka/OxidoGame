@@ -788,6 +788,13 @@ export class World implements JobContext {
       const dock = this.structures.dockBeside(s.x, s.y, undefined, true);
       if (dock) this.items.dropAll(dock.x, dock.y, { pescado: trap.perDay });
     }
+    // Compostera: cada día, a su hora, deja abono a su lado.
+    for (const s of this.structures.all()) {
+      const c = s.def.compost;
+      if (!c || !s.built || c.hour !== hour) continue;
+      const spot = this.structures.sidesOf(s).find((t) => isPassable(this.map, t.x, t.y) && !this.structures.at(t.x, t.y)?.def.blocks);
+      if (spot) this.items.drop(spot.x, spot.y, 'abono', c.perDay);
+    }
   }
 
   /** Facción con ese id. */

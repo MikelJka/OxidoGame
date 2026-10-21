@@ -2,6 +2,14 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (56) — Espantapájaros, compostera, leche y huevos
+
+- Pedido por Mikel. En **Granja**: **espantapájaros** (🪵4 🌿3): las plantas a 5 casillas o menos **no enferman** con las plagas (si todo el huerto está guardado, no hay plaga). **Compostera** (🪵12, con «Agricultura mejorada»): cada mañana deja **2 🟤 abono** a su lado. Lo **abonado** da +25 % de cosecha y ahora además **crece un 25 % más deprisa**.
+- **Leche y huevos**: la **vaca de dos cabezas** domada da **3 🥛 leche** cada día que come; la nueva **🐔 gallina mutada** (fácil de domar, 40 %; no carga) da **2 🥚 huevos**. Se comen tal cual, y en la cocina hay **tortilla** (4 🥚 → 2 raciones).
+- Decidido en esta sesión (Mikel puede cambiarlo): radio, costes y cantidades.
+- Qué probar: poner un espantapájaros junto a un huerto; investigar «Agricultura mejorada» y hacer una compostera; domar una gallina y una vaca y mirar qué dejan cada día.
+- Sin npm en el entorno: tests con Bun (670) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+
 ## 2026-10-21 (55) — Abono y bandeja hidropónica
 
 - Contenido aprobado del catálogo que faltaba (bloques 3 y 5): con **«Agricultura mejorada»**, receta de **🟤 abono** en el banco de trabajo (🍄2 + 🪨1 → 3). Al **sembrar**, si hay abono en el almacén se echa 1 y esa planta da **+25 %** de cosecha (al tocarla pone «abonada»).

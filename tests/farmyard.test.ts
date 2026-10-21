@@ -143,3 +143,51 @@ describe('abono', () => {
     expect(b).toBe(Math.round(a * 1.25));
   });
 });
+
+describe('espantapájaros, compostera, leche y huevos', () => {
+  it('las plantas cerca de un espantapájaros no enferman con la plaga', async () => {
+    const { startEvent, scarecrowTiles } = await import('../src/sim/events');
+    const w = flatWorld(1);
+    w.farms.create({ x0: 10, y0: 10, x1: 13, y1: 11 });
+    for (let x = 10; x <= 13; x++) for (let y = 10; y <= 11; y++) w.farms.sow(x, y);
+    build(w, 12, 13, 'espantapajaros');
+    expect(scarecrowTiles(w).has(11 * w.map.width + 12)).toBe(true);
+    // Todo el huerto está guardado: no hay plaga.
+    expect(startEvent(w, 'plaga')).toBe(false);
+    expect(w.farms.plantList().some((p) => p.plant.sick)).toBe(false);
+  });
+
+  it('la compostera deja 2 de abono al día y lo abonado crece un 25 % más deprisa', async () => {
+    const { FERTILIZER_GROWTH } = await import('../src/sim/farming');
+    const w = flatWorld(1);
+    expect(buildingDef('compostera')!.research).toBe('agricultura');
+    build(w, 15, 15, 'compostera');
+    let got = 0;
+    for (let k = 0; k < TICKS_PER_DAY; k++) {
+      w.step();
+      got = w.items.list().filter((s) => s.resource === 'abono').reduce((t, s) => t + s.amount, 0);
+      if (got) break;
+    }
+    expect(got).toBe(2);
+    expect(FERTILIZER_GROWTH).toBe(1.25);
+    w.farms.create({ x0: 5, y0: 20, x1: 6, y1: 20 });
+    w.farms.sow(5, 20);
+    w.farms.sow(6, 20);
+    w.farms.plantAt(6, 20)!.fertilized = true;
+    w.farms.grow(1000, true, TICKS_PER_DAY);
+    expect(w.farms.plantAt(6, 20)!.growth).toBeCloseTo(w.farms.plantAt(5, 20)!.growth * 1.25);
+  });
+
+  it('la vaca de dos cabezas da leche y la gallina, huevos, cada día que comen', async () => {
+    const w = flatWorld(1);
+    w.items.drop(3, 3, 'patata', 20);
+    const cow = put(w, 'vaca_dos_cabezas', 10, 10);
+    const hen = put(w, 'gallina_mutada', 14, 10);
+    tameAnimal(w, cow);
+    tameAnimal(w, hen);
+    cow.fedAt = hen.fedAt = w.tick - TICKS_PER_DAY;
+    feedPackAnimals(w);
+    expect(w.items.at(10, 10)).toEqual(expect.objectContaining({ resource: 'leche', amount: 3 }));
+    expect(w.items.at(14, 10)).toEqual(expect.objectContaining({ resource: 'huevos', amount: 2 }));
+  });
+});

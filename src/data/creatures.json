@@ -173,7 +173,11 @@
       "tamable": true,
       "tame": {
         "chance": 0.15,
-        "cargo": 100
+        "cargo": 100,
+        "produces": {
+          "resource": "leche",
+          "amount": 3
+        }
       }
     },
     "caballo_salvaje": {
@@ -200,6 +204,36 @@
       "tame": {
         "chance": 0.06,
         "cargo": 120
+      }
+    },
+    "gallina_mutada": {
+      "name": "Gallina mutada",
+      "plural": "gallinas mutadas",
+      "emoji": "🐔",
+      "fromDay": 0,
+      "walkSpeed": 1,
+      "health": 0.25,
+      "damage": 0.3,
+      "breaksWalls": false,
+      "wallDamage": 0,
+      "animal": true,
+      "meat": [
+        2,
+        3
+      ],
+      "leather": [
+        0,
+        0
+      ],
+      "female": true,
+      "tamable": true,
+      "tame": {
+        "chance": 0.4,
+        "cargo": 0,
+        "produces": {
+          "resource": "huevos",
+          "amount": 2
+        }
       }
     },
     "mula": {
@@ -282,13 +316,14 @@
       "rata_gigante": 2,
       "cabra_salvaje": 2,
       "vaca_dos_cabezas": 1,
-      "caballo_salvaje": 1
+      "caballo_salvaje": 1,
+      "gallina_mutada": 2
     },
     "stayDays": 3,
     "ratSteals": 5
   },
   "taming": {
-    "_": "Animales de carga (elegido por Mikel el 2026-10-21: domarlos y comprarlos). Probabilidad de domarlo en cada intento (más con Supervivencia), comida que se gasta en cada intento y cada día, lo que llevan en una expedición, a qué distancia de la colonia pasean, días sin comer hasta que se escapan y precio de una mula en las caravanas de los Granjeros y los Nómadas: los ha puesto la sesión del 2026-10-21. Cada animal lleva en «tame» su probabilidad base de domarlo (chance) y lo que carga (cargo): cabra 30 % y 30 kg, mula 25 % y 80 kg, vaca de dos cabezas 15 % y 100 kg, caballo salvaje 6 % y 120 kg, ciervo 5 % y 50 kg, jabalí 3 % y 60 kg (pedido de Mikel del 2026-10-21: que cada uno cueste más o menos; números de la sesión). Supervivencia suma chancePerSkill por nivel, sin pasar de maxChance.",
+    "_": "Animales de carga (elegido por Mikel el 2026-10-21: domarlos y comprarlos). Probabilidad de domarlo en cada intento (más con Supervivencia), comida que se gasta en cada intento y cada día, lo que llevan en una expedición, a qué distancia de la colonia pasean, días sin comer hasta que se escapan y precio de una mula en las caravanas de los Granjeros y los Nómadas: los ha puesto la sesión del 2026-10-21. Cada animal lleva en «tame» su probabilidad base de domarlo (chance) y lo que carga (cargo): cabra 30 % y 30 kg, mula 25 % y 80 kg, vaca de dos cabezas 15 % y 100 kg, caballo salvaje 6 % y 120 kg, ciervo 5 % y 50 kg, jabalí 3 % y 60 kg (pedido de Mikel del 2026-10-21: que cada uno cueste más o menos; números de la sesión). Supervivencia suma chancePerSkill por nivel, sin pasar de maxChance. Lo que da cada día un animal domado que ha comido («produces» en «tame»): la vaca de dos cabezas 3 🥛 leche y la gallina mutada (fácil, 40 %, no carga) 2 🥚 huevos (pedido de Mikel del 2026-10-21; números de la sesión).",
     "chance": 0.15,
     "chancePerSkill": 0.02,
     "maxChance": 0.6,

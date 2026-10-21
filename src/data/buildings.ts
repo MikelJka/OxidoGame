@@ -200,6 +200,10 @@ export interface BuildingDef {
    * `crops.json`) bajo techo y con corriente, `speed` veces más rápido que un huerto, sin fertilidad.
    */
   hydroponics?: { speed: number; crops: string[] };
+  /** Espantapájaros (pedido de Mikel del 2026-10-21): las plantas a `radius` casillas o menos no enferman con las plagas. */
+  scarecrow?: { radius: number };
+  /** Compostera (pedido de Mikel del 2026-10-21): cada día, a esa hora, deja `perDay` 🟤 abono a su lado (de los restos de la colonia). */
+  compost?: { perDay: number; hour: number };
   /** Colores del dibujo: cara de arriba, frente y sombra. */
   colors: { top: string; face: string; dark: string };
 }
@@ -264,6 +268,8 @@ export function validateBuilding(d: unknown): BuildingDef {
   if (b.platform !== undefined && (b.category !== 'suelo' || b.blocks || b.bridge !== undefined || typeof b.platform.deepWater !== 'boolean')) fail('plataforma no válida');
   if (b.drawbridge !== undefined && (b.drawbridge !== true || b.category !== 'defensa' || b.blocks || b.height !== 0 || !((b.power ?? 0) < 0) || b.bridge !== undefined || b.onWater !== undefined)) fail('puente levadizo no válido');
   if (b.onWater !== undefined && (b.onWater !== true || b.category === 'suelo' || b.nearWater)) fail('«onWater» no válido');
+  if (b.scarecrow && (b.blocks || !Number.isInteger(b.scarecrow.radius) || b.scarecrow.radius < 1 || b.scarecrow.radius > 15)) fail('espantapájaros no válido');
+  if (b.compost && (!Number.isInteger(b.compost.perDay) || b.compost.perDay < 1 || !Number.isInteger(b.compost.hour) || b.compost.hour < 0 || b.compost.hour > 23)) fail('compostera no válida');
   if (b.hydroponics && (!((b.power ?? 0) < 0) || !(b.hydroponics.speed > 0) || !Array.isArray(b.hydroponics.crops) || !b.hydroponics.crops.length)) fail('bandeja hidropónica no válida');
   if ((b.fence || b.gate || b.tiePost || b.stable) && b.category !== 'granja') fail('vallas, postes y establos van en «Granja»');
   if (b.gate && (!b.fence || b.blocks)) fail('una puerta de valla es una valla que se pisa');

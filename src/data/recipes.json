@@ -65,6 +65,19 @@
     "description": "4 de carne dan 2 raciones: alimentan más que cruda y sientan bien."
   },
   {
+    "id": "tortilla",
+    "name": "Tortilla",
+    "station": "cocina",
+    "inputs": {
+      "huevos": 4
+    },
+    "outputs": {
+      "comida": 2
+    },
+    "work": 150,
+    "description": "4 huevos dan 2 raciones."
+  },
+  {
     "id": "fundir_chatarra",
     "name": "Fundir chatarra",
     "station": "horno",

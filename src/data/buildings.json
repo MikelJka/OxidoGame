@@ -1541,6 +1541,51 @@
     }
   },
   {
+    "id": "espantapajaros",
+    "name": "Espantapájaros",
+    "category": "granja",
+    "scarecrow": {
+      "radius": 5
+    },
+    "cost": {
+      "madera": 4,
+      "fibra": 3
+    },
+    "work": 80,
+    "hp": 40,
+    "blocks": false,
+    "moveCost": 1.2,
+    "height": 1,
+    "beauty": 0,
+    "colors": {
+      "top": "#c8a050",
+      "face": "#7a5634",
+      "dark": "#4a6a8a"
+    }
+  },
+  {
+    "id": "compostera",
+    "research": "agricultura",
+    "name": "Compostera",
+    "category": "granja",
+    "compost": {
+      "perDay": 2,
+      "hour": 7
+    },
+    "cost": {
+      "madera": 12
+    },
+    "work": 150,
+    "hp": 60,
+    "blocks": true,
+    "height": 1,
+    "colors": {
+      "top": "#4a3a24",
+      "face": "#7a5634",
+      "dark": "#3a2a18"
+    }
+  },
+  {
     "id": "bandeja_hidroponica",
     "research": "hidroponica",
     "name": "Bandeja hidropónica",

@@ -153,10 +153,13 @@ function breakMachine(w: World, ev: EventDef): boolean {
 function startPlague(w: World, ev: EventDef): boolean {
   if (w.plague) return false;
   const rng = eventRng(w, 4);
-  const zones = w.farms.all().filter((z) => [...z.tiles].filter((i) => w.farms.plantAt(i % w.map.width, Math.floor(i / w.map.width))).length >= (ev.minPlants ?? 4));
+  // Las plantas cerca de un espantapájaros no enferman.
+  const guarded = scarecrowTiles(w);
+  const exposed = (i: number) => !guarded.has(i) && !!w.farms.plantAt(i % w.map.width, Math.floor(i / w.map.width));
+  const zones = w.farms.all().filter((z) => [...z.tiles].filter(exposed).length >= (ev.minPlants ?? 4));
   if (!zones.length) return false;
   const z = zones[rng.int(0, zones.length - 1)];
-  const plants = [...z.tiles].map((i) => w.farms.plantAt(i % w.map.width, Math.floor(i / w.map.width))).filter((p): p is NonNullable<typeof p> => !!p);
+  const plants = [...z.tiles].filter(exposed).map((i) => w.farms.plantAt(i % w.map.width, Math.floor(i / w.map.width))).filter((p): p is NonNullable<typeof p> => !!p);
   const n = Math.max(1, Math.ceil(plants.length * (ev.sickShare ?? 0.25)));
   for (let k = 0; k < n; k++) {
     const left = plants.filter((p) => !p.sick);
@@ -182,7 +185,8 @@ function checkPlague(w: World): void {
   if (w.tick < pl.until) return;
   const ev = eventDef('plaga');
   const rng = eventRng(w, 5);
-  const alive = [...z.tiles].filter((i) => at(i));
+  const guarded = scarecrowTiles(w);
+  const alive = [...z.tiles].filter((i) => at(i) && !guarded.has(i));
   const lose = Math.ceil(alive.length * (ev?.loss ?? 0.5));
   // Se pierden primero las enfermas y luego, al azar, las demás.
   const healthy = alive.filter((i) => !at(i)!.sick);
@@ -242,4 +246,21 @@ export function restoreWeather(saved: unknown): ActiveEvent[] {
   return saved
     .filter((e) => e && typeof e === 'object' && typeof e.id === 'string' && eventDef(e.id) && typeof e.until === 'number')
     .map((e) => ({ id: e.id as string, until: e.until as number }));
+}
+
+/** Casillas que guarda algún espantapájaros terminado (a su radio o menos). */
+export function scarecrowTiles(w: World): Set<number> {
+  const out = new Set<number>();
+  for (const s of w.structures.all()) {
+    const r = s.def.scarecrow?.radius;
+    if (!r || !s.built) continue;
+    for (let dy = -r; dy <= r; dy++)
+      for (let dx = -r; dx <= r; dx++) {
+        const x = s.x + dx;
+        const y = s.y + dy;
+        if (dx * dx + dy * dy > r * r || x < 0 || y < 0 || x >= w.map.width || y >= w.map.height) continue;
+        out.add(y * w.map.width + x);
+      }
+  }
+  return out;
 }

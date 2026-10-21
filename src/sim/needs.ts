@@ -18,7 +18,7 @@ export const AWAKE_HOURS = 18;
 export const SLEEP_HOURS_BED = 6;
 export const SLEEP_HOURS_GROUND = 8;
 /** Comida que da cada unidad de un alimento (de 0 a 1). Una ración cocinada sale de 2,5 a 3 crudos y alimenta más. */
-export const NUTRITION: Partial<Record<ResourceId, number>> = { comida: 0.35, patata: 0.1, maiz: 0.1, setas: 0.08, pescado: 0.1, carne: 0.1 };
+export const NUTRITION: Partial<Record<ResourceId, number>> = { comida: 0.35, patata: 0.1, maiz: 0.1, setas: 0.08, pescado: 0.1, carne: 0.1, leche: 0.12, huevos: 0.08 };
 /** Casillas de más que un colono está dispuesto a andar para comer cocinado en vez de crudo. */
 export const COOKED_DETOUR = 25;
 /** Por debajo de esto, va a comer (si hay comida). */

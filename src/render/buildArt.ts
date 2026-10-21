@@ -881,6 +881,34 @@ function drawFarmBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, tile:
     px(cx + 4, base - postH + 6, 2, 1, dark);
     return;
   }
+  if (def.scarecrow) {
+    // Espantapájaros: palo en cruz, camisa azul remendada, cabeza de saco y sombrero de paja.
+    const cx = Math.floor(tile / 2) - 1;
+    const top0 = Math.max(0, base - wallH - Math.round(tileH / 2));
+    px(cx - 3, base + 1, 8, 1, 'rgba(0,0,0,0.3)');
+    px(cx, top0 + 4, 2, base - top0 - 4, face); // palo
+    px(cx - 5, top0 + 7, 12, 2, face); // brazos
+    px(cx - 3, top0 + 6, 8, 6, outline);
+    px(cx - 2, top0 + 7, 6, 4, dark); // camisa
+    px(cx, top0 + 8, 1, 1, '#c8b07a'); // remiendo
+    px(cx - 1, top0 + 2, 4, 4, '#d8c8a0'); // cabeza de saco
+    px(cx, top0 + 3, 1, 1, outline);
+    px(cx + 2, top0 + 3, 1, 1, outline);
+    px(cx - 3, top0 + 1, 8, 1, top); // ala del sombrero
+    px(cx - 1, top0, 4, 1, top);
+    for (const x of [cx - 6, cx + 7]) px(x, top0 + 7, 1, 2, top); // paja en las mangas
+    return;
+  }
+  if (def.compost) {
+    // Compostera: cajón de tablas lleno de restos oscuros con algo verde.
+    px(0, 0, tile, h, outline);
+    px(1, 1, tile - 2, tileH - 2, top);
+    for (let y = 2; y < tileH - 2; y += 2) for (let x = 2 + (y % 4); x < tile - 2; x += 4) px(x, y, 2, 1, '#6a8a3a');
+    px(1, tileH - 1, tile - 2, wallH, face);
+    for (let x = 4; x < tile - 1; x += 4) px(x, tileH, 1, wallH - 1, dark);
+    px(1, h - 2, tile - 2, 1, dark);
+    return;
+  }
   if (def.hydroponics) {
     // Bandeja hidropónica: mesa de chapa con su pila de agua y filas de brotes, y la luz encima.
     px(0, 0, tile, h, outline);

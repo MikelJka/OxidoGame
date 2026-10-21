@@ -203,6 +203,9 @@ export function feedPackAnimals(w: World): void {
     const stable = tetherOf(w, a)?.stable;
     if (takeFood(w, Math.ceil(TAMING.foodPerDay * (stable ?? 1)))) {
       a.fedAt = w.tick;
+      // Bien comido, da lo suyo cada día (la vaca leche, la gallina huevos).
+      const made = a.creature ? CREATURES[a.creature].tame?.produces : undefined;
+      if (made) w.items.drop(a.tile.x, a.tile.y, made.resource, made.amount);
       continue;
     }
     if (w.tick - (a.fedAt ?? 0) > TAMING.hungryDays * TICKS_PER_DAY) {
@@ -230,8 +233,8 @@ export function animalDrops(w: World, a: Colonist): void {
   if (!def?.animal) return;
   const meat = def.meat ? w.rng.int(def.meat[0], def.meat[1]) : 0;
   const leather = def.leather ? w.rng.int(def.leather[0], def.leather[1]) : 0;
-  w.items.dropAll(a.tile.x, a.tile.y, { carne: meat, cuero: leather });
-  w.addLog(`${def.emoji} ${def.name} cazad${def.female ? 'a' : 'o'}: deja 🥩${meat} y 🟫${leather}.`, 'bueno', undefined, a.tile);
+  w.items.dropAll(a.tile.x, a.tile.y, leather ? { carne: meat, cuero: leather } : { carne: meat });
+  w.addLog(`${def.emoji} ${def.name} cazad${def.female ? 'a' : 'o'}: deja 🥩${meat}${leather ? ` y 🟫${leather}` : ''}.`, 'bueno', undefined, a.tile);
 }
 
 /** De noche (de 20:00 a 6:00) los animales con establo duermen en él. */
