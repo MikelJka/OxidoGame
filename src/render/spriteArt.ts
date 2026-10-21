@@ -207,15 +207,19 @@ function paintCreature(px: (x: number, y: number, w: number, h: number, color: s
         px(15, 7, 1, 1, '#e8e0c8'); // colmillo
         px(3, 4, 6, 1, dark); // cerdas
       } else if (id === 'cabra_salvaje') {
-        px(12, 6, 1, 2, '#9a8a6a'); // cuernos curvos
-        px(13, 5, 1, 1, '#9a8a6a');
+        px(11, 5, 1, 3, '#9a8a6a'); // cuernos curvos hacia atrás
+        px(10, 4, 1, 2, '#9a8a6a');
+        px(13, 6, 1, 2, '#9a8a6a');
         px(14, 12, 1, 1, '#e8e0d0'); // barba
       } else if (id === 'vaca_dos_cabezas') {
         px(4, 7, 2, 2, dark); // manchas
         px(8, 6, 2, 2, dark);
-        px(11, 8, 4, 3, outline); // la segunda cabeza
-        px(12, 9, 2, 1, fur);
-        px(13, 9, 1, 1, '#c8e040');
+        px(12, 8, 4, 4, outline); // la segunda cabeza, más baja y adelantada
+        px(13, 9, 2, 2, fur);
+        px(14, 9, 1, 1, '#c8e040');
+        px(11, 3, 1, 1, '#e8e0c8'); // cuernos cortos
+        px(14, 3, 1, 1, '#e8e0c8');
+        px(15, 7, 1, 1, '#e8e0c8');
       } else if (id === 'caballo_salvaje') {
         px(10, 3, 1, 4, dark); // crin
         px(1, 6, 1, 4, dark); // cola
