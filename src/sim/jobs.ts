@@ -30,7 +30,7 @@ export const TALK_HOURS = 6;
 export function canTalk(tick: number, o: Colonist): boolean {
   return !!o.prisoner && o.prisoner.mode === 'convencer' && !o.downed && tick - o.prisoner.lastTalk >= TALK_HOURS * TICKS_PER_HOUR;
 }
-import { billPending, Structure, Structures } from './structures';
+import { billPending, buildWork, Structure, Structures } from './structures';
 import { StorageZones } from './zones';
 import { GrowZones } from './farming';
 import { TERRAIN_WORK, terrainBlocker, TerrainOrders } from './terrain';
@@ -652,7 +652,7 @@ function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
         const here = ctx.structures.isBesideStructure(c.tile, s);
         const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, sides);
         if (!route) return null;
-        return { job: { kind: 'construir', sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: s.progress, work: s.def.work }, path: route.path };
+        return { job: { kind: 'construir', sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: s.progress, work: buildWork(s) }, path: route.path };
       },
     });
   }

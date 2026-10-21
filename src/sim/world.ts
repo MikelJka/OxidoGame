@@ -45,11 +45,11 @@ import {
   restGain, STARVING, THIRSTY, TIRED, waterDecay,
 } from './needs';
 import { applyTerrainJob, LOWER_STONE, terrainBlocker, TerrainJob, TerrainOrders, updateFlooding } from './terrain';
-import { Bill, PlaceShape, Structure, Structures } from './structures';
+import { Bill, buildWork, PlaceShape, Structure, Structures } from './structures';
 import { toggleDrawbridge, updateDrawbridges } from './drawbridge';
 import { batteryCapacity, isDaylight, lacksPower, litTiles, PowerNet, shutDoorTiles, stationSpeed, updatePower, windStrength } from './power';
 import type { TileRect } from './designations';
-import { BUILDINGS, buildingDef, depositOf } from '../data/buildings';
+import { BUILDINGS, buildingDef, kitOf, depositOf } from '../data/buildings';
 import { RECIPES, RecipeDef } from '../data/recipes';
 import { CROPS, CropDef } from '../data/crops';
 import { RESOURCES, ResourceId, STARTING_SUPPLIES } from '../data/resources';
@@ -1572,7 +1572,7 @@ export class World implements JobContext {
     }
     if (building) {
       const s = this.jobStructure(j)!;
-      s.progress = Math.min(j.progress, s.def.work);
+      s.progress = Math.min(j.progress, buildWork(s));
       if (j.progress >= j.work) {
         this.completeStructure(s);
         this.dropJob(c);
@@ -2321,8 +2321,35 @@ export class World implements JobContext {
   }
 
   demolishStructure(s: Structure): void {
+    // Desmontar en kit: no se recupera el material, queda el kit (y lo que tuviera dentro).
+    const kit = s.pack ? kitOf(s.def) : undefined;
+    if (kit) {
+      const inside = { ...s.delivered };
+      this.breakStructure(s);
+      this.items.dropAll(s.x, s.y, { ...inside, [kit]: 1 });
+      this.addLog(`📦 Desmontado en kit: ${s.def.name.toLowerCase()}. Se guarda en el almacén y se monta en otro sitio.`, 'info', undefined, { x: s.x, y: s.y });
+      return;
+    }
     const back = this.structures.demolish(s);
     this.items.dropAll(s.x, s.y, back);
+  }
+
+  /** Pide desmontar en kit una construcción terminada que lo admite (lo hace un colono con «Construir»). */
+  orderPack(id: number, on = true): boolean {
+    const s = this.structures.get(id);
+    if (!s || !s.built || !kitOf(s.def)) return false;
+    s.pack = on;
+    s.demolish = on;
+    this.structures.version++;
+    return true;
+  }
+
+  /** Kits de esa construcción en el almacén que no tiene ya apalabrados otro plano. */
+  freeKits(defId: string): number {
+    const kit = kitOf(buildingDef(defId));
+    if (!kit) return 0;
+    const claimed = this.structures.all().filter((s) => !s.built && s.fromKit && s.def.id === defId && !(s.delivered[kit] ?? 0)).length;
+    return Math.max(0, this.inventory()[kit] - claimed);
   }
 
   /** Una construcción rota a golpes (por el bruto mutante): desaparece sin dejar material. */
@@ -2353,8 +2380,18 @@ export class World implements JobContext {
    * la investigación que pide.
    */
   placeBuildArea(r: TileRect, defId: string, shape: PlaceShape, rot: 0 | 1 = 0): number {
-    if (!this.canBuild(defId)) return 0;
-    return this.structures.placeArea(r, defId, shape, rot);
+    let kits = this.freeKits(defId);
+    if (!this.canBuild(defId) && kits <= 0) return 0;
+    const before = new Set(this.structures.all().map((s) => s.id));
+    const n = this.structures.placeArea(r, defId, shape, rot);
+    // Con kits en el almacén, los planos nuevos se montan con ellos (sin material).
+    for (const s of this.structures.all()) {
+      if (kits <= 0) break;
+      if (before.has(s.id) || s.built || s.def.id !== defId) continue;
+      s.fromKit = true;
+      kits--;
+    }
+    return n;
   }
 
   /** Ya se puede encargar esta receta (las armas de fuego y las balas piden «Pólvora»). */

@@ -435,7 +435,8 @@
       "top": "#a57a48",
       "face": "#74512f",
       "dark": "#45301c"
-    }
+    },
+    "kit": true
   },
   {
     "id": "barricada_chatarra",
@@ -453,7 +454,8 @@
       "top": "#9e6c44",
       "face": "#76492b",
       "dark": "#452b1b"
-    }
+    },
+    "kit": true
   },
   {
     "id": "pinchos_madera",
@@ -489,7 +491,8 @@
       "top": "#9aa0a6",
       "face": "#6e747a",
       "dark": "#3e4246"
-    }
+    },
+    "kit": true
   },
   {
     "id": "pinchos_metal",
@@ -525,7 +528,8 @@
       "top": "#a8a49c",
       "face": "#86827a",
       "dark": "#5a5751"
-    }
+    },
+    "kit": true
   },
   {
     "id": "sacos_arena",
@@ -545,7 +549,8 @@
       "top": "#c9b27e",
       "face": "#a38a58",
       "dark": "#6b5836"
-    }
+    },
+    "kit": true
   },
   {
     "id": "alambre_espino",
@@ -636,7 +641,8 @@
       "top": "#8a8f84",
       "face": "#5e635a",
       "dark": "#30332e"
-    }
+    },
+    "kit": true
   },
   {
     "id": "torreta_pesada",
@@ -665,7 +671,8 @@
     "size": [
       2,
       2
-    ]
+    ],
+    "kit": true
   },
   {
     "id": "torreta_rotativa",
@@ -690,7 +697,8 @@
       "top": "#868a7c",
       "face": "#585c50",
       "dark": "#2e302a"
-    }
+    },
+    "kit": true
   },
   {
     "id": "mortero",
@@ -723,7 +731,8 @@
       "top": "#6e7468",
       "face": "#4a4f46",
       "dark": "#262a24"
-    }
+    },
+    "kit": true
   },
   {
     "id": "suelo_madera",
@@ -1550,7 +1559,8 @@
       "top": "#5c5a56",
       "face": "#3e3c38",
       "dark": "#1e1c1a"
-    }
+    },
+    "kit": true
   },
   {
     "id": "placa_solar",
@@ -1574,7 +1584,8 @@
       "top": "#2c3e66",
       "face": "#4a4c50",
       "dark": "#1a1c22"
-    }
+    },
+    "kit": true
   },
   {
     "id": "molino_viento",
@@ -1595,7 +1606,8 @@
       "top": "#b8b2a4",
       "face": "#6e5a40",
       "dark": "#2a2218"
-    }
+    },
+    "kit": true
   },
   {
     "id": "molino_agua",
@@ -1640,7 +1652,8 @@
       "top": "#4a5a3a",
       "face": "#33402a",
       "dark": "#1a2014"
-    }
+    },
+    "kit": true
   },
   {
     "id": "lampara",
@@ -1662,7 +1675,8 @@
       "top": "#d8c27a",
       "face": "#6e6c66",
       "dark": "#2a2826"
-    }
+    },
+    "kit": true
   },
   {
     "id": "radio",

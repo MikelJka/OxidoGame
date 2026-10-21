@@ -1,7 +1,7 @@
 /** Recursos de la colonia y trabajos para obtenerlos del mapa. Ampliar aquí, no en la lógica. */
 import type { Skill } from './colonists';
 
-export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra', 'metal', 'hormigon', 'comida', 'palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'ballesta', 'lanza_metal', 'flechas', 'pistola', 'escopeta', 'rifle', 'subfusil', 'francotirador', 'balas', 'granadas', 'chaleco_cuero', 'chaleco_chapa', 'chaleco_metal', 'chaleco_tactico', 'casco_chapa', 'casco_metal', 'casco_tactico', 'medicina', 'combustible', 'hierba', 'pescado', 'abrigo', 'carne', 'cuero'] as const;
+export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra', 'metal', 'hormigon', 'comida', 'palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'ballesta', 'lanza_metal', 'flechas', 'pistola', 'escopeta', 'rifle', 'subfusil', 'francotirador', 'balas', 'granadas', 'chaleco_cuero', 'chaleco_chapa', 'chaleco_metal', 'chaleco_tactico', 'casco_chapa', 'casco_metal', 'casco_tactico', 'medicina', 'combustible', 'hierba', 'pescado', 'abrigo', 'carne', 'cuero', 'kit_barricada_madera', 'kit_barricada_chatarra', 'kit_barricada_metal', 'kit_barricada_hormigon', 'kit_sacos_arena', 'kit_torreta_ligera', 'kit_torreta_pesada', 'kit_torreta_rotativa', 'kit_mortero', 'kit_generador_lena', 'kit_placa_solar', 'kit_molino_viento', 'kit_bateria', 'kit_lampara'] as const;
 
 export type ResourceId = (typeof RESOURCES)[number];
 
@@ -47,6 +47,20 @@ export const RESOURCE_NAMES: Record<ResourceId, string> = {
   abrigo: 'Abrigo',
   carne: 'Carne',
   cuero: 'Cuero',
+  kit_barricada_madera: 'Kit: Barricada de madera',
+  kit_barricada_chatarra: 'Kit: Barricada de chatarra',
+  kit_barricada_metal: 'Kit: Barricada de metal',
+  kit_barricada_hormigon: 'Kit: Barricada de hormigón',
+  kit_sacos_arena: 'Kit: Sacos de arena',
+  kit_torreta_ligera: 'Kit: Torreta ligera',
+  kit_torreta_pesada: 'Kit: Torreta pesada',
+  kit_torreta_rotativa: 'Kit: Torreta rotativa',
+  kit_mortero: 'Kit: Mortero',
+  kit_generador_lena: 'Kit: Generador de leña',
+  kit_placa_solar: 'Kit: Placa solar',
+  kit_molino_viento: 'Kit: Molino de viento',
+  kit_bateria: 'Kit: Batería',
+  kit_lampara: 'Kit: Lámpara',
 };
 
 /** Recursos que se muestran siempre en el inventario (los demás, solo si hay). */
@@ -99,6 +113,20 @@ export const RESOURCE_ICONS: Record<ResourceId, string> = {
   abrigo: '🧥',
   carne: '🥩',
   cuero: '🟫',
+  kit_barricada_madera: '📦',
+  kit_barricada_chatarra: '📦',
+  kit_barricada_metal: '📦',
+  kit_barricada_hormigon: '📦',
+  kit_sacos_arena: '📦',
+  kit_torreta_ligera: '📦',
+  kit_torreta_pesada: '📦',
+  kit_torreta_rotativa: '📦',
+  kit_mortero: '📦',
+  kit_generador_lena: '📦',
+  kit_placa_solar: '📦',
+  kit_molino_viento: '📦',
+  kit_bateria: '📦',
+  kit_lampara: '📦',
 };
 
 /** Tipo de trabajo con el que se aprovecha un objeto del mapa. */
@@ -172,6 +200,20 @@ export const MAX_STACK: Record<ResourceId, number> = {
   abrigo: 10,
   carne: 75,
   cuero: 50,
+  kit_barricada_madera: 5,
+  kit_barricada_chatarra: 5,
+  kit_barricada_metal: 5,
+  kit_barricada_hormigon: 5,
+  kit_sacos_arena: 5,
+  kit_torreta_ligera: 5,
+  kit_torreta_pesada: 5,
+  kit_torreta_rotativa: 5,
+  kit_mortero: 5,
+  kit_generador_lena: 5,
+  kit_placa_solar: 5,
+  kit_molino_viento: 5,
+  kit_bateria: 5,
+  kit_lampara: 5,
 };
 
 /** Provisiones con las que llega la colonia: se dejan en el suelo junto al punto de inicio. */

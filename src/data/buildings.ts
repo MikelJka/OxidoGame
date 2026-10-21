@@ -131,6 +131,11 @@ export interface BuildingDef {
   heater?: boolean;
   /** Puntos de belleza que da a la habitación con tejado en la que está (bloque 12); los muebles sin esto, 2. */
   beauty?: number;
+  /**
+   * Kit (elegido por Mikel el 2026-10-21): se desmonta como objeto (`kit_<id>`) que se guarda en el
+   * almacén y se lleva a otro sitio; montarlo pide solo ese kit y la mitad del trabajo.
+   */
+  kit?: boolean;
   /** Para los ratos libres (bloque 12): la mesa de juego (la hoguera encendida también vale). */
   recreation?: boolean;
   /**
@@ -263,4 +268,10 @@ export function buildingDef(id: string): BuildingDef {
   const d = BY_ID.get(id);
   if (!d) throw new Error(`Construcción desconocida: ${id}`);
   return d;
+}
+
+/** Recurso del kit de una construcción (o undefined si no se desmonta en kit). */
+export function kitOf(def: BuildingDef): ResourceId | undefined {
+  const id = `kit_${def.id}`;
+  return def.kit && RESOURCES.includes(id as ResourceId) ? (id as ResourceId) : undefined;
 }

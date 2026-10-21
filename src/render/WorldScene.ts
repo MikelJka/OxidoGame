@@ -12,7 +12,7 @@ import { describeStack } from '../sim/items';
 import { canDesignate, TileRect } from '../sim/designations';
 import { HARVEST_JOB_NAMES, HarvestJob, MAX_STACK, RESOURCE_NAMES, RESOURCES, ResourceId } from '../data/resources';
 import { WorkType } from '../data/work';
-import { BuildingDef, buildingDef } from '../data/buildings';
+import { BuildingDef, buildingDef, kitOf } from '../data/buildings';
 import { missingResearch } from '../sim/research';
 import { canZone, STORAGE_PRIORITY_NAMES } from '../sim/zones';
 import { footprintTiles, PlaceShape, Structure, Structures } from '../sim/structures';
@@ -1010,7 +1010,7 @@ export class WorldScene extends Phaser.Scene {
       this.selectZone(z ? z.id : null);
       this.selectFarm(f ? f.id : null);
       this.selectStation(st && st.built && st.def.category === 'taller' ? st : null);
-      this.selectPiece(st && st.built && (st.def.movable || st.def.drawbridge) && st.def.category !== 'taller' ? st : null);
+      this.selectPiece(st && st.built && (st.def.movable || st.def.drawbridge || kitOf(st.def)) && st.def.category !== 'taller' ? st : null);
       return;
     }
     const tile = t;

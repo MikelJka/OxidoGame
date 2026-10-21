@@ -34,7 +34,7 @@ import { billPending, type Structure } from './sim/structures';
 import { occupant, VEHICLE_SEATS, type Vehicle, type VehicleSeat } from './sim/vehicles';
 import { usesFuel, vehicleDef } from './data/vehicles';
 import type { GrowZone } from './sim/farming';
-import { BUILDING_CATEGORY_NAMES, BuildingCategory, BUILDINGS, buildingDef } from './data/buildings';
+import { BUILDING_CATEGORY_NAMES, BuildingCategory, BUILDINGS, buildingDef, kitOf } from './data/buildings';
 import { STORAGE_PRIORITIES, STORAGE_PRIORITY_NAMES, StorageZone } from './sim/zones';
 import type { DesignMode } from './render/WorldScene';
 import type { Stockpile } from './sim/resources';
@@ -515,9 +515,11 @@ function setBuildCategory(cat: BuildingCategory): void {
 function refreshBuildLocks(): void {
   const w = (game.scene.getScene('world') as WorldScene | null)?.world;
   for (const b of buildList.querySelectorAll<HTMLButtonElement>('button[data-build]')) {
-    const locked = !!w && !w.canBuild(b.dataset.build!);
+    const kits = w ? w.freeKits(b.dataset.build!) : 0;
+    const locked = !!w && !w.canBuild(b.dataset.build!) && kits <= 0;
     b.classList.toggle('locked', locked);
-    b.querySelector('.tl')!.textContent = `${locked ? '🔒 ' : ''}${b.dataset.name}`;
+    // Con kits en el almacén se monta con ellos (sin material).
+    b.querySelector('.tl')!.textContent = `${locked ? '🔒 ' : ''}${b.dataset.name}${kits > 0 ? ` · 📦${kits}` : ''}`;
   }
 }
 setBuildCategory(buildCategory);
@@ -579,7 +581,7 @@ for (const b of modeButtons) {
     if (mode === 'construir') {
       const id = b.dataset.build!;
       const def = buildingDef(id);
-      if (!s.world.canBuild(id)) {
+      if (!s.world.canBuild(id) && s.world.freeKits(id) <= 0) {
         showToast(`🔒 ${def.name}: antes hay que investigar «${missingResearch(s.world.research, def)?.name}» en 📜 → 🔬 Investigación`, 3500);
         return;
       }
@@ -830,8 +832,18 @@ function renderPiece(): void {
     $('pc-unmove').hidden = true;
     return;
   }
-  $('pc-status').textContent = s.lifted ? '✋ Un colono lo está llevando' : s.moveTo ? '✋ Esperando a que un colono lo lleve' : 'Se puede llevar a otro sitio sin gastar nada';
-  $('pc-move').hidden = !!s.moveTo;
+  const canKit = !!kitOf(s.def) && s.built;
+  $('pc-pack').hidden = !canKit || !!s.pack;
+  $('pc-unpack').hidden = !canKit || !s.pack;
+  if (!s.def.movable) {
+    // Solo se desmonta en kit (torretas, baterías…).
+    $('pc-status').textContent = s.pack ? '📦 Esperando a que un colono la desmonte' : '📦 Se puede desmontar en kit para guardarla y montarla en otro sitio';
+    $('pc-move').hidden = true;
+    $('pc-unmove').hidden = true;
+    return;
+  }
+  $('pc-status').textContent = s.lifted ? '✋ Un colono lo está llevando' : s.moveTo ? '✋ Esperando a que un colono lo lleve' : s.pack ? '📦 Esperando a que un colono lo desmonte' : 'Se puede llevar a otro sitio sin gastar nada';
+  $('pc-move').hidden = !!s.moveTo || !!s.pack;
   $('pc-unmove').hidden = !s.moveTo || !!s.lifted;
 }
 game.events.on('piece-select', (s: Structure | null) => {
@@ -848,6 +860,14 @@ $('pc-raise').addEventListener('click', () => {
 });
 $('pc-unmove').addEventListener('click', () => {
   if (selectedPiece) scene().world.cancelMoveStructure(selectedPiece.id);
+  renderPiece();
+});
+$('pc-pack').addEventListener('click', () => {
+  if (selectedPiece) scene().world.orderPack(selectedPiece.id, true);
+  renderPiece();
+});
+$('pc-unpack').addEventListener('click', () => {
+  if (selectedPiece) scene().world.orderPack(selectedPiece.id, false);
   renderPiece();
 });
 // --- Vehículos: panel con conductor, tirador y ⛽ -----------------------------------

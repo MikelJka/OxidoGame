@@ -1,6 +1,6 @@
 // Construcciones: planos que colocan el jugador y que los colonos completan llevando
 // materiales y trabajando. Al terminarse, los muros bloquean el paso y las puertas lo frenan.
-import { BuildingDef, buildingDef, depositOf } from '../data/buildings';
+import { BuildingDef, buildingDef, depositOf, kitOf } from '../data/buildings';
 import { RESOURCES, ResourceId } from '../data/resources';
 import type { RecipeDef } from '../data/recipes';
 import { BLOCK_SOLID, TRENCH_FLOODED, walkableStructureCode, GameMap, inBounds, index, isPassable, isWater, Prop, TERRAIN_INFO, Terrain } from './map';
@@ -41,6 +41,10 @@ export interface Structure {
   electric?: boolean;
   /** Electrificación pedida y aún sin terminar: material ya traído y trabajo hecho. */
   upgrade?: { delivered: Partial<Stockpile>; progress: number };
+  /** Plano que se monta con un kit del almacén (pide solo el kit y la mitad del trabajo). */
+  fromKit?: boolean;
+  /** Pedido desmontarla en kit (la desmonta un colono y queda el kit en el suelo). */
+  pack?: boolean;
   /** Averiada (suceso «Avería»): parada hasta que un colono la arregle con lo que pide. */
   repair?: { need: Partial<Stockpile>; work: number; delivered: Partial<Stockpile>; progress: number };
   /** Mover: adónde la quiere llevar el jugador (un colono la desmonta y la lleva). */
@@ -340,6 +344,8 @@ export class Structures {
    * profunda, que cuesta `bridge.deepCostMultiplier` veces más (elegido por Mikel el 2026-10-18).
    */
   costOf(s: Structure): Partial<Record<ResourceId, number>> {
+    const kit = s.fromKit ? kitOf(s.def) : undefined;
+    if (kit) return { [kit]: 1 };
     return structureCost(this.map, s.def, s.x, s.y);
   }
 
@@ -769,4 +775,9 @@ export class Structures {
     for (const t of this.tilesOf(s)) this.refreshBlocked(index(this.map, t.x, t.y));
     this.version++;
   }
+}
+
+/** Trabajo de construir un plano (montar un kit lleva la mitad). */
+export function buildWork(s: Structure): number {
+  return s.fromKit ? Math.ceil(s.def.work / 2) : s.def.work;
 }

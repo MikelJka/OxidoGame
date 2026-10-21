@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (50) — Kits: desmontar defensas y energía
+
+- Elegido por Mikel. Las **barricadas**, los **sacos de arena**, las **torretas** (ligera, pesada y rotativa), el **mortero**, el **generador de leña**, la **placa solar**, el **molino de viento**, la **batería** y la **lámpara** se pueden **desmontar en kit**: al tocarlas sale **📦 Desmontar en kit**, un colono con «Construir» la desmonta y queda el objeto («Kit: Torreta ligera»…), que se guarda en el almacén.
+- Para **montarla** en otro sitio se pone la construcción como siempre: si hay kits libres en el almacén, el botón de 🏗 dice «📦N» y el plano pide **solo el kit** y la **mitad del trabajo**, sin material. Vale aunque no se tenga la investigación.
+- Los kits se pueden llevar en las expediciones (pesan lo que su material, un poco menos). Las caravanas no los venden y no entran en el tributo.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): el peso y el valor de cada kit, y que desmontar no devuelva material (solo el kit).
+- Qué probar: tocar una torreta o una batería, «📦 Desmontar en kit», y luego ponerla en otro sitio desde 🏗.
+- Sin npm en el entorno: tests con Bun (653) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+- Siguiente: los animales de carga (domar y comprar).
+
 ## 2026-10-21 (49) — Carga de las expediciones y colonias a la vez
 
 - Pedido por Mikel. Al mandar una expedición (⚔️ Atacar su base) se elige también **qué llevan**: comida, armas, munición, medicinas o lo que haya. Va **por peso**: cada colono 35 kg; se ve «🎒 Carga: X de Y kg».

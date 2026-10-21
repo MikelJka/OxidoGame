@@ -13,6 +13,21 @@ export const WEIGHTS: Partial<Record<ResourceId, number>> = {
   francotirador: 6, balas: 0.05, granadas: 0.5, chaleco_cuero: 3, chaleco_chapa: 6, chaleco_metal: 9,
   chaleco_tactico: 5, casco_chapa: 2, casco_metal: 3, casco_tactico: 1.5, medicina: 0.2, combustible: 1,
   hierba: 0.2, pescado: 0.5, abrigo: 2, carne: 0.5, cuero: 1,
+  // Kits: lo que pesa su material, un poco menos (va desmontado y bien atado).
+  kit_barricada_madera: 4.8,
+  kit_barricada_chatarra: 4.8,
+  kit_barricada_metal: 8.0,
+  kit_barricada_hormigon: 9.6,
+  kit_sacos_arena: 5.3,
+  kit_torreta_ligera: 21.6,
+  kit_torreta_pesada: 50.4,
+  kit_torreta_rotativa: 43.2,
+  kit_mortero: 41.6,
+  kit_generador_lena: 16.8,
+  kit_placa_solar: 13.2,
+  kit_molino_viento: 24.8,
+  kit_bateria: 8.8,
+  kit_lampara: 2.8,
 };
 
 /** Lo que lleva un colono a pie. */

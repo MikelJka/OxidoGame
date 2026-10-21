@@ -58,7 +58,7 @@ export interface SaveData {
   items: { x: number; y: number; resource: string; amount: number }[];
   designations: { x: number; y: number; job: string }[];
   zones: { id: number; name: string; priority: number; accepts: Record<string, boolean>; tiles: number[] }[];
-  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number; demolish?: boolean; bill?: { recipe: string; target: number; paused: boolean; mode?: string }; rot?: number; raised?: boolean; wantUp?: boolean; autoRaised?: boolean; stored?: number; fuel?: number; electric?: boolean; upgrade?: { delivered: Record<string, number>; progress: number }; repair?: { need: Record<string, number>; work: number; delivered: Record<string, number>; progress: number }; moveTo?: { x: number; y: number; rot: number } }[];
+  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number; demolish?: boolean; bill?: { recipe: string; target: number; paused: boolean; mode?: string }; rot?: number; raised?: boolean; wantUp?: boolean; autoRaised?: boolean; stored?: number; fuel?: number; electric?: boolean; upgrade?: { delivered: Record<string, number>; progress: number }; repair?: { need: Record<string, number>; work: number; delivered: Record<string, number>; progress: number }; fromKit?: boolean; pack?: boolean; moveTo?: { x: number; y: number; rot: number } }[];
   /** Obras de terreno pendientes (desde que existen). */
   terrain?: { x: number; y: number; job: string }[];
   /** Huertos (desde que existe el cultivo; las partidas anteriores no los tienen). */
@@ -309,6 +309,8 @@ export function serializeWorld(world: World, gameVersion?: string, direct = fals
     structures: [...world.structures.all(), ...world.structures.liftedList()].map((s) => ({
       def: s.def.id, x: s.lifted && s.moveFrom ? s.moveFrom.x : s.x, y: s.lifted && s.moveFrom ? s.moveFrom.y : s.y, built: s.built, delivered: { ...s.delivered } as Record<string, number>, progress: s.progress, hp: s.hp,
       demolish: s.demolish || undefined,
+      ...(s.fromKit ? { fromKit: true } : {}),
+      ...(s.pack ? { pack: true } : {}),
       rot: (s.lifted && s.moveFrom ? s.moveFrom.rot : s.rot) || undefined,
       moveTo: s.moveTo ? { ...s.moveTo } : undefined,
       bill: s.bill ? { recipe: s.bill.recipe.id, target: s.bill.target, paused: s.bill.paused, mode: s.bill.mode === 'count' ? 'count' : undefined } : undefined,
@@ -547,6 +549,9 @@ export function loadWorld(input: string | unknown): World {
       continue;
     }
     if (s.demolish) world.structures.markDemolish(s.x, s.y);
+    // Kits (desde el 2026-10-21).
+    if (restored && s.fromKit && !s.built) restored.fromKit = true;
+    if (restored && s.pack && s.built) restored.pack = true;
     // Orden de mover (desde el 2026-10-18): si ya no cabe donde iba, se olvida.
     if (s.moveTo) world.structures.orderMove(restored, num(s.moveTo.x, -1), num(s.moveTo.y, -1), s.moveTo.rot === 1 ? 1 : 0);
     // Electricidad (desde que existe): carga de las baterías y combustible de los generadores.

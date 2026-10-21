@@ -43,6 +43,20 @@ export const RESOURCE_VALUES: Record<ResourceId, number> = {
   abrigo: 18,
   carne: 2,
   cuero: 3,
+  kit_barricada_madera: 6,
+  kit_barricada_chatarra: 12,
+  kit_barricada_metal: 20,
+  kit_barricada_hormigon: 10,
+  kit_sacos_arena: 6,
+  kit_torreta_ligera: 98,
+  kit_torreta_pesada: 192,
+  kit_torreta_rotativa: 196,
+  kit_mortero: 148,
+  kit_generador_lena: 64,
+  kit_placa_solar: 66,
+  kit_molino_viento: 64,
+  kit_bateria: 44,
+  kit_lampara: 18,
 };
 
 /** Valor de una persona en venta (un esclavo) según sus habilidades. */
