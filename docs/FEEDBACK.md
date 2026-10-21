@@ -4,6 +4,11 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Pendiente
 
+- [ ] **Decisiones de Mikel del 2026-10-21 (muelle, balsas y fase 5)** — aprobado, se implementa sin volver a preguntar:
+  - **Pesca y muelle:** habilidad nueva **Supervivencia** (todos los colonos, de 0 a 20, valdrá también para la caza); el muelle es un puesto al que se le encarga «pescar hasta tener N 🐟»; el 🐟 crudo alimenta poco y sienta peor, y en la cocina «Pescado asado» (4 🐟 → 2 🍲); en el muelle se puede construir encima **si no hay otra estructura sobre el agua en la que se pueda construir todo tipo de estructuras** (si las plataformas ya lo permiten, el muelle solo sirve para pescar). Casillas de madera 🪵10, pegadas a la orilla o a otro muelle, sobre agua poco profunda o normal.
+  - **Saqueadores en balsa:** (B) 1 de cada 2 raids si la colonia está a 15 casillas o menos de un río, y si no, nunca, desde el día 15; (A) 2 por balsa y 1 balsa por cada 3 saqueadores del raid; (C) reman hasta la orilla más cercana, desembarcan y atacan a pie, y al huir vuelven a la balsa si la tienen a 8 casillas o menos; los puentes y plataformas solo se cruzan por debajo si están **bloqueados con el puente abajo** (levadizo bajado); si no, la balsa se para y desembarcan antes.
+  - **Fase 5 cerrada (A + B + D):** se da por terminada y se empieza la fase 6 por las **facciones** (bloque 7), después los **opcionales aprobados** (caza, estaciones y ropa, ocio y habitaciones); lo pendiente del agua (muelle y balsas) se hace con lo decidido arriba, sin más preguntas.
+
 - [ ] **Definir todo el contenido antes que nada** (2026-10-18, pedido por Mikel): la 3D queda aparcada; primero se define e implementa todo el contenido. Una sesión ha escrito `docs/CATALOGO.md` con todo lo que falta y sus números: Mikel lo revisa, marca ✅ cada bloque que apruebe y lo aprobado pasa aquí, por fases. La simulación se mantiene portable (reglas en `src/sim`, contenido en `src/data`) para poder pasar más adelante a un motor con mejor 3D.
 
 - [x] **Armas** (2026-10-17, aprobado por Mikel): cuerpo a cuerpo (cuchillo, tubería, lanza, machete) y a distancia (arco; pistola casera, escopeta y rifle). Decidido con Mikel: cada colono coge solo la mejor arma libre y en su ficha se le puede fijar una o dejarlo desarmado; munición en dos tipos, flechas (madera + fibra) para el arco y balas (chatarra + componentes) para las de fuego; ahora se fabrican en el banco las de cuerpo a cuerpo y el arco, y **las de fuego se desbloquean con investigación (fase 5)**; los saqueadores llegan armados según el día (palos y cuchillos al principio, arcos y armas de fuego más adelante) y al caer sueltan el arma. Incluye los armeros de pared (fase 3). **Hechas** las de cuerpo a cuerpo, el arco, las flechas y el armero, y (2026-10-19) la **pistola casera y las balas**, con «Pólvora», y (2026-10-19) la **escopeta y el rifle**, con «Armas largas». Punto terminado.
@@ -31,23 +36,7 @@ Lo que Mikel ha pedido dejar para más adelante. No se trabaja en ello salvo par
 
 Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat o con 🐞).
 
-- **Muelle y pesca** (2026-10-20, update del agua, tercera parte). Lo aprobado dice «pesca: 1 🐟 cada 1–2 h según Supervivencia», pero en el juego **no hay habilidad Supervivencia** (hay Construcción, Minería, Cultivo, Cocina, Combate, Investigación, Medicina y Social), y falta decidir cómo se come el 🐟. Se ha dejado sin hacer y esta sesión ha avanzado las máquinas (bloque 6). Elige una opción de cada:
-  - **Habilidad de la pesca**: **A** — Cultivo (1 🐟 cada 2 h con Cultivo 0, cada hora con 20); **B** — habilidad nueva **Supervivencia** (todos los colonos la tendrían, de 0 a 20, y valdría luego para la caza); **C** — sin habilidad, 1 🐟 cada 1,5 h siempre.
-  - **Cómo se pesca**: **A** — trabajo nuevo «Pescar» en la tabla de trabajos: el colono va al muelle y pesca solo cuando no tiene nada mejor; **B** — el muelle es un puesto como la mesa de boticario: se le encarga «pescar hasta tener N 🐟».
-  - **Cómo se come el 🐟**: **A** — como las patatas: crudo alimenta poco y sienta peor, y en la cocina «Pescado asado» (4 🐟 → 2 🍲); **B** — solo cocinado (crudo no se come); **C** — crudo alimenta como una ración pero con −5 % de ánimo.
-  - **El muelle**: casillas de madera (🪵10) que se pisan, pegadas a la orilla o a otro muelle, sobre agua poco profunda o normal. ¿Se puede construir encima como en las plataformas? **Sí** / **No** (solo pescar y la trampa de pesca al lado).
-
-- **Saqueadores en balsa** (2026-10-21, update del agua, última parte de los barcos). Lo aprobado dice solo «saqueadores que llegan en balsa desde el día 15»; falta decidir cuántos y cada cuánto, y eso cambia mucho la dificultad, así que esta sesión no lo ha hecho. Todos los mapas tienen 1 o 2 ríos que cruzan de borde a borde, así que siempre se puede. Elige una opción de cada (o di otra):
-  - **Cada cuánto**: **A** — 1 de cada 3 raids de saqueadores desde el día 15 (como los perros mutantes); **B** — 1 de cada 2 si la colonia está a 15 casillas o menos de un río, y si no, nunca; **C** — en todos los raids desde el día 15, una parte del grupo llega por el río y el resto a pie (dos frentes).
-  - **Cuántos por balsa**: **A** — 2 por balsa (uno rema y otro dispara, como la de los colonos), 1 balsa por cada 3 saqueadores del raid; **B** — 2 por balsa y siempre 1–2 balsas, sin contar los que vienen a pie.
-  - **Qué hacen**: **A** — reman río abajo hasta la orilla más cercana a la colonia, desembarcan y atacan a pie (la balsa queda en la orilla y se puede quedar o romper: 🪵8); **B** — se quedan en la balsa y disparan desde el agua hasta que la hunden (150 de vida) o huyen; **C** — como A, pero al huir vuelven a la balsa si la tienen a 8 casillas o menos.
-  - **El puente levadizo y los puentes**: la balsa no pasa por debajo de los puentes ni las plataformas (como la de los colonos). ¿Tampoco los saqueadores? **Sí, se paran y desembarcan antes** (un puente hace de barrera) / **No, los saqueadores sí pasan por debajo**.
-
-- **Las sesiones están paradas: ¿cerramos la fase 5?** (2026-10-21). Ya está hecho todo lo aprobado y decidido de la fase 5; lo que falta espera tu respuesta (muelle y saqueadores en balsa, arriba) o a otros bloques (Sastrería y Calefacción, con las estaciones; Rutas comerciales, con el mercado; lanzallamas, con el fuego aparcado). Como no se pasa de fase sin terminar la actual, hasta que contestes las sesiones no pueden hacer nada. Elige una:
-  - **A** — Dar la fase 5 por terminada a falta de eso y empezar la fase 6 por las **facciones** (bloque 7 del catálogo, ya aprobado), por partes; lo pendiente del agua se hace cuando contestes.
-  - **B** — Igual que A, pero empezar por los **opcionales aprobados** (caza, bloque 10; estaciones y ropa, bloque 11, que trae la Sastrería y la Calefacción; u ocio y habitaciones, bloque 12).
-  - **C** — Esperar: no se pasa de fase hasta que contestes lo del muelle y los saqueadores en balsa (las sesiones siguen sin cambiar el juego).
-  - **D** — Que la sesión decida por ti lo del muelle y los saqueadores en balsa con la primera opción de cada pregunta (puedes cambiarlo luego) y siga con la fase 5.
+(Sin propuestas abiertas: Mikel contestó las tres el 2026-10-21, ver «Pendiente».)
 
 ## Hecho
 

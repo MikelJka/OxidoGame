@@ -2,6 +2,11 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 — Decisiones de Mikel anotadas (sin cambiar el juego)
+
+- Mikel contestó en el chat el muelle y la pesca, los saqueadores en balsa y la fase 5; todo queda en «Pendiente» de `FEEDBACK.md`, sin propuestas abiertas.
+- Siguiente: muelle y pesca, saqueadores en balsa y, después, facciones (fase 6).
+
 ## 2026-10-21 (29) — Propuesta: cómo seguir con la fase 5 parada
 
 - Sin incidencias nuevas en 🐞 y la última publicación (foso con agua) pasó bien. No hay nada aprobado y decidido por hacer: el muelle y los saqueadores en balsa esperan a Mikel, y lo demás de la fase 5 espera a las estaciones, al mercado o al fuego.
