@@ -2,6 +2,14 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (60) — Equilibrio con partidas simuladas
+
+- Elegido por Mikel. Nueva herramienta `scripts/equilibrio.ts`: juega partidas enteras sin pantalla con un jugador automático. Informe y cambios en `docs/EQUILIBRIO.md`.
+- Cambios: la ola de frío solo en otoño/invierno y desde el día 15 (hipotermia hasta 0,35 de salud); tormenta e incendio desde el día 8 y plaga desde el 6; un golpe no mata a quien está de pie, el sangrado tiene tope y en el suelo va al 40 %; la infección mata al 4.º día y el cuerpo la puede vencer (30 % al día); se empieza con 3 💊; las manadas crecen con los días.
+- Arreglo de rendimiento: con la colonia amurallada, los saqueadores sin camino lo buscaban en cada tic (la partida se volvía muy lenta).
+- Antes: ninguna colonia simulada pasaba del día 18. Ahora: 7 de 8 llegan al día 30.
+- Qué probar: una partida normal hasta el día 20 con muros; un colono caído (da tiempo a curarle).
+
 ## 2026-10-21 (59) — Fuego completo y lanzallamas
 
 - Elegido por Mikel (sale de «Aparcado»). El fuego se extiende **según la estación** (verano ×1,5, invierno ×0,5) y **según el viento**: cada día sopla hacia un lado y el fuego corre hacia allí (×2) y le cuesta ir en contra (×0,5). El aviso del incendio dice hacia dónde sopla.
