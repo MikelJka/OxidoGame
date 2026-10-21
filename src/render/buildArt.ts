@@ -4,6 +4,8 @@ import type { BuildingDef } from '../data/buildings';
 import { paintVehicle } from './vehicleArt';
 
 /** Altura del frente de un muro para una elevación de nivel dada (px). */
+import { drawWall, joinSides } from './wallArt';
+
 export function wallHeight(lift: number): number {
   return lift + 2;
 }
@@ -17,7 +19,18 @@ export function faceHeight(def: BuildingDef, lift: number): number {
  * Dibuja una construcción. `tile` = ancho, `tileH` = alto de la cara de arriba, `wallH` = alto
  * de un piso de muro (la construcción mide `def.height` pisos).
  */
-export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, unitH: number, raised = false, links = 0): void {
+export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, unitH: number, raised = false, links = 0, variant = 0): void {
+  // Muros: tramos que se unen con sus vecinos (wallArt.ts).
+  if (def.category === 'muro') {
+    drawWall(ctx, def, tile, tileH, unitH * def.height, links, variant);
+    return;
+  }
+  drawBuildingBase(ctx, def, tile, tileH, unitH, raised, links);
+  // Puertas y portones unidos a un muro: sin contorno por ese lado.
+  if (def.category === 'puerta' || def.category === 'porton') joinSides(ctx, tile, tileH + unitH * def.height, links);
+}
+
+function drawBuildingBase(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, unitH: number, raised = false, links = 0): void {
   // Puente levadizo: bajado o alzado.
   if (def.drawbridge) {
     drawDrawbridge(ctx, def, tile, tileH, raised);
