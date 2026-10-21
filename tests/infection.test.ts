@@ -64,13 +64,19 @@ describe('infecciones', () => {
     expect(needsWorkFactor(c)).toBeCloseTo(work * 0.85);
   });
 
-  it('sin tratar 3 días seguidos, muere; con una dosis al día durante 2 días, se cura', () => {
+  it('sin tratar 4 días seguidos, muere; con una dosis al día durante 2 días, se cura', () => {
     const w = flatWorld(1);
     const c = w.colonists[0];
     infect(c);
     expect(tickInfection(c, TICKS_PER_DAY, TICKS_PER_DAY, fixedRng(0.9)).worse).toBe(true);
     expect(tickInfection(c, TICKS_PER_DAY, TICKS_PER_DAY, fixedRng(0.9)).died).toBeFalsy();
+    expect(tickInfection(c, TICKS_PER_DAY, TICKS_PER_DAY, fixedRng(0.9)).died).toBeFalsy();
     expect(tickInfection(c, TICKS_PER_DAY, TICKS_PER_DAY, fixedRng(0.9)).died).toBe(true);
+    // Bien comido y bebido, a veces el cuerpo la vence solo (30 % al día).
+    const r = w.makePawn('colono');
+    infect(r);
+    expect(tickInfection(r, TICKS_PER_DAY, TICKS_PER_DAY, fixedRng(0.1)).recovered).toBe(true);
+    expect(r.infection).toBeUndefined();
 
     const b = w.makePawn('colono');
     infect(b);

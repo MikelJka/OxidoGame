@@ -286,7 +286,7 @@
     "firearmBonus": 0.25
   },
   "packs": {
-    "_": "Una manada llega en lugar de un raid de saqueadores 1 de cada `every` veces (1 de cada `everyNearRadiation` si la colonia está a menos de `radiationRange` casillas de una zona irradiada). Tamaño de la manada: entre size[0] y size[1] perros (por la dureza de la partida). Desde el día de `bruto_mutante.fromDay`, la manada trae además 1 bruto por cada `dogsPerBrute` perros.",
+    "_": "Una manada llega en lugar de un raid de saqueadores 1 de cada `every` veces (1 de cada `everyNearRadiation` si la colonia está a menos de `radiationRange` casillas de una zona irradiada). Tamaño de la manada: entre size[0] y size[1] perros (por la dureza de la partida). Desde el día de `bruto_mutante.fromDay`, la manada trae además 1 bruto por cada `dogsPerBrute` perros. Equilibrio (2026-10-21, partidas simuladas): el máximo de la manada empieza en 3 el día del primer perro y sube 1 cada growDays días (antes podían llegar 8 perros el día 8 y acababan con la colonia).",
     "every": 3,
     "everyNearRadiation": 2,
     "radiationRange": 25,
@@ -294,7 +294,8 @@
       3,
       8
     ],
-    "dogsPerBrute": 3
+    "dogsPerBrute": 3,
+    "growDays": 4
   },
   "corpses": {
     "_": "Cadáveres (bloque 2 del catálogo): al morir, perros y brutos dejan un cadáver que se pudre. Quien lo ve a `viewRadius` casillas o menos pierde `moodPenalty` de ánimo, que le dura `moodHours` horas después de dejar de verlo. A los `rotDays` días se ha podrido del todo y desaparece. Con una hoguera encendida (en `buildings.json`), los colonos los llevan a ella y los queman.",

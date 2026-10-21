@@ -443,6 +443,7 @@ export class World implements JobContext {
         }
         const inf = tickInfection(c, TICKS_PER_SECOND, TICKS_PER_DAY, this.rng, ours ? infChance : 1);
         const mine = c.role === 'colono';
+        if (inf.recovered && mine) this.addLog(`💪 ${c.name} vence la infección sin medicina.`, 'bueno');
         if (inf.died) this.killPawn(c, 'infección');
         else if (inf.infected && mine) this.addLog(`🦠 Se le infecta la herida de ${inf.infected} a ${c.name}. Necesita 💊 Medicina: una al día durante 2 días.`, 'malo', 'herido', c.tile);
         else if (inf.worse && mine) this.addLog(`🦠 Empeora la infección de ${c.name}${c.infection!.untreatedDays >= 2 ? ': si mañana no toma 💊, morirá' : ''}.`, 'malo', 'herido', c.tile);

@@ -7,6 +7,10 @@ export interface EventDef {
   name: string;
   /** Cuánto pesa al sortear el siguiente suceso. */
   weight: number;
+  /** Desde qué día puede tocar (equilibrio, 2026-10-21). */
+  fromDay?: number;
+  /** Solo en estas estaciones (ids de `seasons.json`). */
+  seasons?: string[];
   /** Lo que dura (los que duran). */
   hours?: number;
   /** Ola de frío: mientras dura hace frío a todas horas (como una noche de invierno) y no crece nada al aire libre. */

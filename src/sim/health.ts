@@ -42,6 +42,10 @@ export const BODY_PARTS = ['la cabeza', 'el pecho', 'el brazo izquierdo', 'el br
 
 /** Por debajo de esto, cae al suelo y no puede hacer nada. */
 export const DOWNED = 0.15;
+/** Sangrado máximo que cuenta (varias heridas no suman sin fin). */
+export const BLEED_CAP = 1.2;
+/** En el suelo se sangra a este ritmo. */
+export const DOWNED_BLEED = 0.4;
 /** Por encima de esto, se levanta. */
 export const STANDS_UP = 0.3;
 
@@ -77,7 +81,9 @@ export function tickHealth(c: Colonist, ticks: number, ticksPerDay: number, asle
   }
   const bleed = bleedRate(c);
   if (bleed > 0) {
-    loss += (bleed * 0.8 * ticks) / day;
+    // Equilibrio (2026-10-21, partidas simuladas): el sangrado no pasa de BLEED_CAP y, en el suelo
+    // y quieto, se desangra más despacio (×DOWNED_BLEED): da tiempo a que alguien le cure.
+    loss += (Math.min(BLEED_CAP, bleed) * (c.downed ? DOWNED_BLEED : 1) * 0.8 * ticks) / day;
     cause = 'heridas';
   }
   const fed = c.needs.food > 0.2 && c.needs.water > 0.2;
@@ -130,6 +136,8 @@ export interface InfectionTickResult {
   worse?: boolean;
   /** Muere de la infección. */
   died?: boolean;
+  /** El cuerpo la ha vencido solo. */
+  recovered?: boolean;
 }
 
 /**
@@ -154,12 +162,17 @@ export function tickInfection(c: Colonist, ticks: number, ticksPerDay: number, r
     }
   }
   const inf = c.infection;
-  if (inf) {
+  // La que acaba de empezar no cuenta todavía su primer día.
+  if (inf && !out.infected) {
     inf.dayTicks += ticks;
     if (inf.dayTicks >= ticksPerDay) {
       inf.dayTicks -= ticksPerDay;
       if (inf.dosedToday) inf.untreatedDays = 0;
-      else {
+      else if (c.needs.food > 0.3 && c.needs.water > 0.3 && rng.chance(INFECTION.naturalRecovery ?? 0)) {
+        // Bien comido y bebido, el cuerpo a veces la vence solo (equilibrio, 2026-10-21).
+        delete c.infection;
+        out.recovered = true;
+      } else {
         inf.untreatedDays++;
         out.worse = true;
         if (inf.untreatedDays >= INFECTION.deadlyDays) out.died = true;

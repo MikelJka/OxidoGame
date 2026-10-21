@@ -67,6 +67,8 @@ export const PACKS = {
   size: [data.packs.size[0], data.packs.size[1]] as const,
   /** Desde el día del bruto, 1 bruto por cada tantos perros de la manada. */
   dogsPerBrute: data.packs.dogsPerBrute,
+  /** El máximo de la manada sube 1 cada tantos días desde el primer perro. */
+  growDays: data.packs.growDays,
 };
 
 /** Ataques de máquinas (bloque 6 del catálogo): cuándo llegan, cuántas y qué sueltan. */

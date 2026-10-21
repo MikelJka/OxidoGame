@@ -7,10 +7,11 @@
     "moodPenalty": 0.15,
     "workFactor": 0.85,
     "dosesToCure": 2,
-    "deadlyDays": 3,
+    "deadlyDays": 4,
     "medicineHealFactor": 2,
     "chanceSelf": 0.12,
-    "chanceSelfMedicine": 0.04
+    "chanceSelfMedicine": 0.04,
+    "naturalRecovery": 0.3
   },
   "find": {
     "_": "💊 en las ruinas: probabilidad de encontrar al saquear escombros y unidades; y lo que traen las caravanas que venden medicina",
@@ -33,5 +34,6 @@
     "_": "El herido en pie tras el combate (opción C): se acuesta con la salud por debajo de startBelow y se queda hasta untilHealth; se levanta a comer y beber",
     "startBelow": 0.5,
     "untilHealth": 0.8
-  }
+  },
+  "_equilibrio": "Equilibrio (2026-10-21, partidas simuladas): sin 💊 la infección mataba siempre a los 3 días y era la primera causa de muerte en las colonias que empiezan. Ahora mata al 4.º día sin dosis y cada día, bien comido y bebido, el cuerpo la vence solo con un 30 %."
 }

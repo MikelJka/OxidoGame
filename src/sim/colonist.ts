@@ -218,6 +218,8 @@ export interface RaiderInfo {
   finish?: boolean;
   /** Llegó en esta balsa (id del vehículo): al huir vuelve a ella si la tiene cerca. */
   raft?: number;
+  /** No encontró camino hasta su objetivo: no lo vuelve a buscar antes de este tic (no se guarda). */
+  noPathUntil?: number;
 }
 
 /** Un raid en marcha: cuántos llegaron, quién lo dirige y quién se ha escapado ya. */

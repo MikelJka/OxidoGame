@@ -505,9 +505,13 @@ export function nearRadiation(w: World): boolean {
   return false;
 }
 
-/** Perros de una manada: entre 3 y 8, por la dureza de la partida. */
+/**
+ * Perros de una manada: entre 3 y 8, por la dureza de la partida. Equilibrio (2026-10-21): el máximo
+ * crece con los días (3 el día del primer perro, uno más cada `growDays` días, hasta 8).
+ */
 export function packSize(w: World): number {
-  const n = w.rng.int(PACKS.size[0], PACKS.size[1]);
+  const top = Math.min(PACKS.size[1], PACKS.size[0] + Math.max(0, Math.floor((w.day - CREATURES.perro_mutante.fromDay) / PACKS.growDays)));
+  const n = w.rng.int(PACKS.size[0], top);
   return Math.max(2, Math.round(n * DIFFICULTIES[w.difficulty.level].raidScale));
 }
 
@@ -916,6 +920,9 @@ function fightAlert(w: World, a: Colonist, b: Colonist): void {
   else if (b.role === 'colono' && a.role === 'saqueador') w.combatAlert(b, 'combate', `⚔️ ${foeLabel(a)} ataca a ${b.name}.`);
 }
 
+/** Tics que espera un saqueador sin camino antes de volver a buscarlo. */
+const NO_PATH_RETRY = 90;
+
 /** Parte de los fallos a distancia que dan a un colono en la línea de tiro (número aprobado por Mikel). */
 export const FRIENDLY_FIRE = 0.25;
 
@@ -957,7 +964,7 @@ function applyHit(w: World, a: Colonist, b: Colonist, weapon: WeaponDef | null |
   const dmg = absorbHit(w, b, (0.08 + w.rng.next() * 0.1) * (1 + a.skills.combate * 0.03) * tough * hard * blow * armor * vsMachine);
   const part = BODY_PARTS[w.rng.int(0, BODY_PARTS.length - 1)];
   const wasDown = b.downed;
-  const fell = b.role === 'colono' ? (hurt(b, dmg, part), !wasDown && b.downed) : hurtFoe(w, b, dmg, part);
+  const fell = b.role === 'colono' ? (hurt(b, dmg, part, !wasDown), !wasDown && b.downed) : hurtFoe(w, b, dmg, part);
   if (fell) {
     if (b.role === 'colono') w.addLog(`🩸 ${b.name} cae herido (${part}).`, 'malo', 'caido', b.tile);
     else if (b.creature) w.addLog(creatureFallText(b), 'bueno');
@@ -1446,7 +1453,9 @@ function updateRaider(w: World, o: Colonist): void {
     if (o.path.length) w.moveAlongPath(o);
     return;
   }
-  if (o.path.length === 0 || (w.tick + o.id) % 30 === 0) {
+  // Si hace poco que no encontró camino, no lo vuelve a buscar en cada tic (con la colonia amurallada
+  // eso lo hacía todo muy lento): espera un poco antes de reintentar.
+  if ((o.path.length === 0 && w.tick >= (r.noPathUntil ?? 0)) || (o.path.length > 0 && (w.tick + o.id) % 30 === 0)) {
     let path = findPath(w.map, o.tile, target.tile, 20000, w.shutDoors);
     // El bruto mutante, si no llega, se abre paso rompiendo muros y puertas.
     if (!path && breaker) path = findPath(w.map, o.tile, target.tile, 20000, w.shutDoors, (x, y) => breakCost(w, x, y, breaker.wallDamage));
@@ -1454,6 +1463,7 @@ function updateRaider(w: World, o: Colonist): void {
     if (!path) {
       // No llega (muros): da vueltas un rato y acabará marchándose.
       o.path = [];
+      r.noPathUntil = w.tick + NO_PATH_RETRY;
     }
   }
   // Lo siguiente del camino es un muro o una puerta cerrada: lo golpea hasta romperlo.

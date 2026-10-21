@@ -7,6 +7,7 @@ import { isPassable } from './map';
 import { findPath, Point } from './pathfinding';
 import { Rng } from './rng';
 import { factionDef, RAIDER_FACTION } from '../data/factions';
+import { seasonOf } from '../data/seasons';
 import { lightningStrike, startWildfire } from './fire';
 import { roofed } from './roofs';
 import { TICKS_PER_DAY, TICKS_PER_HOUR } from './time';
@@ -66,11 +67,14 @@ export function runEvents(w: World): void {
   if (w.tick < w.nextEvent) return;
   const rng = eventRng(w, 1);
   w.nextEvent = w.tick + rng.int(Math.round(EVENT_GAP[0] * TICKS_PER_DAY), Math.round(EVENT_GAP[1] * TICKS_PER_DAY));
-  const total = EVENTS.reduce((a, e) => a + e.weight, 0);
+  // Solo los que tocan por el día y la estación (la ola de frío, en otoño e invierno, y no al principio).
+  const pool = EVENTS.filter((e) => eventAllowed(w, e));
+  const total = pool.reduce((a, e) => a + e.weight, 0);
   let roll = rng.next() * total;
-  const ev = EVENTS.find((e) => (roll -= e.weight) < 0) ?? EVENTS[0];
+  const ev = pool.find((e) => (roll -= e.weight) < 0) ?? pool[0];
+  if (!ev) return;
   // Si no puede pasar (p. ej. una avería sin máquinas), pasa el siguiente que pueda.
-  const order = [ev, ...EVENTS.filter((e) => e !== ev)];
+  const order = [ev, ...pool.filter((e) => e !== ev)];
   for (const e of order) if (startEvent(w, e.id)) break;
 }
 
@@ -280,4 +284,11 @@ function lightningHour(w: World, ev: EventDef): void {
   if (!rng.chance(Math.min(1, (lo + hi) / 2 / (ev.hours ?? 6)))) return;
   const at = lightningStrike(w, rng);
   if (at) w.addLog(`⚡ Cae un rayo y prende fuego.`, 'malo', undefined, at);
+}
+
+/** Si un suceso puede tocar hoy (por el día y la estación). */
+export function eventAllowed(w: World, e: EventDef): boolean {
+  if (e.fromDay !== undefined && w.day < e.fromDay) return false;
+  if (e.seasons && !e.seasons.includes(seasonOf(w.day).id)) return false;
+  return true;
 }

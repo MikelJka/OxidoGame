@@ -238,4 +238,5 @@ export const STARTING_SUPPLIES: Partial<Record<ResourceId, number>> = {
   chatarra: 20,
   componentes: 5,
   patata: 120,
+  medicina: 3,
 };
