@@ -2,7 +2,7 @@
 // mapa. Marcados con 🎯 Cazar, los colonos con «Cazar» van a por ellos con su arma y dejan 🥩 carne
 // y 🟫 cuero. El jabalí herido ataca; la rata gigante roba comida de los almacenes sin muros.
 // Puro y determinista: sin Phaser ni DOM.
-import { ANIMALS, CREATURES, CreatureId } from '../data/creatures';
+import { ANIMALS, CREATURES, CreatureId, TAMING } from '../data/creatures';
 import { FOOD_RESOURCES } from '../data/resources';
 import type { Colonist } from './colonist';
 import { findPath } from './pathfinding';
@@ -57,7 +57,19 @@ export function makeAnimal(w: World, kind: CreatureId): Colonist {
 export function updateAnimal(w: World, a: Colonist, goAway: (w: World, o: Colonist, why: string) => void): void {
   const def = a.creature ? CREATURES[a.creature] : undefined;
   if (!def) return;
-  if (w.tick > (a.leaveAt ?? Infinity)) {
+  // De carga: no se va; pasea cerca de la colonia.
+  if (a.tamed) {
+    if (a.path.length) {
+      w.moveAlongPath(a);
+      return;
+    }
+    const home = w.colonyPoint();
+    if (home && Math.abs(home.x - a.tile.x) + Math.abs(home.y - a.tile.y) > TAMING.leash && (w.tick + a.id) % 60 === 0) {
+      const path = findPath(w.map, a.tile, home, 8000);
+      if (path) a.path = path.slice(0, Math.max(1, path.length - 3));
+      return;
+    }
+  } else if (w.tick > (a.leaveAt ?? Infinity)) {
     goAway(w, a, '');
     return;
   }
@@ -66,7 +78,7 @@ export function updateAnimal(w: World, a: Colonist, goAway: (w: World, o: Coloni
     return;
   }
   // La rata gigante: si está sobre comida que no está en una habitación, se lleva un poco y se va.
-  if (def.stealsFood) {
+  if (def.stealsFood && !a.tamed) {
     const st = w.items.at(a.tile.x, a.tile.y);
     if (st && FOOD_RESOURCES.includes(st.resource) && !w.rooms.at(a.tile.x, a.tile.y)) {
       const got = w.items.take(a.tile.x, a.tile.y, ANIMALS.ratSteals);
@@ -100,9 +112,95 @@ export function updateAnimal(w: World, a: Colonist, goAway: (w: World, o: Coloni
 
 /** Marca o desmarca un animal para cazarlo. Devuelve si queda marcado. */
 export function toggleHunt(a: Colonist): boolean {
-  if (a.role !== 'animal' && !(a.creature && CREATURES[a.creature].animal)) return false;
+  if (a.tamed || (a.role !== 'animal' && !(a.creature && CREATURES[a.creature].animal))) return false;
   a.huntMarked = !a.huntMarked;
+  if (a.huntMarked) a.tameMarked = false;
   return a.huntMarked;
+}
+
+/**
+ * Al tocar un animal: sin marca → 🎯 cazar → 🤝 domar (si se puede) → sin marca. Devuelve la marca
+ * que queda. Los de carga no se marcan.
+ */
+export function cycleAnimalMark(a: Colonist): 'cazar' | 'domar' | null {
+  if (a.tamed || a.role !== 'animal') return null;
+  const tamable = !!(a.creature && CREATURES[a.creature].tamable);
+  if (!a.huntMarked && !a.tameMarked) {
+    a.huntMarked = true;
+    return 'cazar';
+  }
+  if (a.huntMarked && tamable) {
+    a.huntMarked = false;
+    a.tameMarked = true;
+    return 'domar';
+  }
+  a.huntMarked = false;
+  a.tameMarked = false;
+  return null;
+}
+
+/** Saca comida de los montones de la colonia (lo que haya). true si había bastante. */
+export function takeFood(w: World, n: number): boolean {
+  const stacks = w.items.list().filter((s) => FOOD_RESOURCES.includes(s.resource));
+  if (stacks.reduce((t, s) => t + s.amount, 0) < n) return false;
+  let left = n;
+  for (const s of stacks) {
+    if (left <= 0) break;
+    const got = w.items.take(s.x, s.y, left);
+    if (got) left -= got.amount;
+  }
+  return true;
+}
+
+/** Un intento de domarlo (se gasta comida). true si se ha domado. */
+export function tryTame(w: World, c: Colonist, a: Colonist): boolean {
+  const def = a.creature ? CREATURES[a.creature] : undefined;
+  if (!def?.tamable || a.tamed) return false;
+  if (!takeFood(w, TAMING.foodPerTry)) {
+    w.addLog(`🤝 ${c.name} no tiene comida para domar a ${def.name.toLowerCase()}.`, 'info');
+    return false;
+  }
+  const chance = Math.min(TAMING.maxChance, TAMING.chance + c.skills.supervivencia * TAMING.chancePerSkill);
+  if (w.rng.chance(chance)) {
+    tameAnimal(w, a);
+    w.addLog(`🤝 ${c.name} doma ${def.female ? 'una' : 'un'} ${def.name.toLowerCase()}: ya es animal de carga de la colonia (+${TAMING.cargo} kg en las expediciones).`, 'bueno', undefined, a.tile);
+    return true;
+  }
+  if (def.fightsBack && w.rng.chance(TAMING.enrageOnFail)) enrage(w, a);
+  return false;
+}
+
+/** Pasa a ser animal de carga de la colonia. */
+export function tameAnimal(w: World, a: Colonist): void {
+  a.role = 'animal';
+  a.tamed = true;
+  a.tameMarked = false;
+  a.huntMarked = false;
+  a.leaveAt = undefined;
+  a.fedAt = w.tick;
+  a.raider = undefined;
+}
+
+/** Animales de carga de la colonia. */
+export function packAnimals(w: World): Colonist[] {
+  return w.others.filter((o) => o.tamed && !o.downed);
+}
+
+/** Cada día comen; sin comida en 2 días, se escapan. */
+export function feedPackAnimals(w: World): void {
+  for (const a of packAnimals(w)) {
+    if (w.tick - (a.fedAt ?? 0) < TICKS_PER_DAY) continue;
+    if (takeFood(w, TAMING.foodPerDay)) {
+      a.fedAt = w.tick;
+      continue;
+    }
+    if (w.tick - (a.fedAt ?? 0) > TAMING.hungryDays * TICKS_PER_DAY) {
+      a.tamed = false;
+      a.leaveAt = w.tick;
+      const def = a.creature ? CREATURES[a.creature] : undefined;
+      w.addLog(`🫏 Sin comida, ${def ? `${def.female ? 'la' : 'el'} ${def.name.toLowerCase()}` : 'un animal'} de carga se escapa.`, 'malo', undefined, a.tile);
+    }
+  }
 }
 
 /** El jabalí herido se vuelve contra los colonos (pasa a atacar como un enemigo). */

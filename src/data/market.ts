@@ -1,7 +1,7 @@
 /** Mercado (bloque 8 del catálogo). Los datos están en `market.json`; aquí, sus tipos y la validación. */
 import raw from './market.json';
 import { RESOURCES, ResourceId } from './resources';
-import { FACTIONS } from './factions';
+import { factionDef } from './factions';
 
 export interface MarketRules {
   /** Lo que puede bajar y subir el precio (× su valor). */
@@ -34,7 +34,7 @@ export function validateMarket(d: unknown): MarketRules {
   if (!(m.recoveryPerDay > 0 && m.recoveryPerDay <= 1) || !(m.perChapa > 0)) fail('recuperación o efecto de las ventas');
   if (!(m.needPremium > 0) || !(m.surplusDiscount > 0 && m.surplusDiscount < 1)) fail('necesidades o sobrantes');
   for (const [f, c] of Object.entries(m.caravans ?? {})) {
-    if (!FACTIONS.some((k) => k.id === f)) fail(`facción desconocida ${f}`);
+    if (!factionDef(f)) fail(`facción desconocida ${f}`);
     for (const r of [...c.needs, ...c.surplus]) if (!RESOURCES.includes(r)) fail(`recurso desconocido ${r}`);
   }
   return m;

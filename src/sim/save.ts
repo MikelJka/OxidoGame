@@ -94,7 +94,7 @@ export interface SaveData {
   /** Colonias ocupadas (desde el 2026-10-21): cada una, su partida entera. */
   outposts?: { name: string; save: unknown }[];
   name?: string;
-  expedition?: { faction: string; members: SavedColonist[]; phase: string; arriveAt: number; loot: Record<string, number>; result?: string; kind?: string; ruin?: string; supplies?: Record<string, number>; vehicles?: { id: number; def: string; x: number; y: number; fuel: number; hp: number }[] };
+  expedition?: { faction: string; members: SavedColonist[]; phase: string; arriveAt: number; loot: Record<string, number>; result?: string; kind?: string; ruin?: string; supplies?: Record<string, number>; vehicles?: { id: number; def: string; x: number; y: number; fuel: number; hp: number }[]; animals?: SavedColonist[] };
   nextEvent?: number;
   /** Tributo pedido y sin responder (desde el 2026-10-21). */
   tribute?: { faction: string; demand: Record<string, number>; value: number; until: number };
@@ -144,7 +144,7 @@ interface SavedColonist {
   raider?: { fleeing: boolean; leaveAt: number; group?: number; leader?: boolean; finish?: boolean; raft?: number };
   /** Criatura (perro mutante…), desde 2026-10-19. */
   creature?: string;
-  trader?: { stock: Record<string, number>; slaves: SavedColonist[]; leaveAt: number; leaving: boolean; traded?: boolean; needs?: string[]; surplus?: string[] };
+  trader?: { stock: Record<string, number>; slaves: SavedColonist[]; leaveAt: number; leaving: boolean; traded?: boolean; needs?: string[]; surplus?: string[]; mules?: number };
   /** Facción (desde el 2026-10-21). */
   faction?: string;
   refugee?: string;
@@ -160,6 +160,9 @@ interface SavedColonist {
   coat?: boolean;
   huntMarked?: boolean;
   leaveAt?: number;
+  tameMarked?: boolean;
+  tamed?: boolean;
+  fedAt?: number;
   armorChoice?: string;
   panic?: { until: number };
   stunnedUntil?: number;
@@ -204,7 +207,7 @@ function savePawn(c: Colonist): SavedColonist {
     raider: c.raider ? { ...c.raider } : undefined,
     ...(c.creature ? { creature: c.creature } : {}),
     trader: c.trader
-      ? { stock: { ...c.trader.stock } as Record<string, number>, slaves: c.trader.slaves.map(savePawn), leaveAt: c.trader.leaveAt, leaving: c.trader.leaving, ...(c.trader.traded ? { traded: true } : {}), ...(c.trader.needs ? { needs: [...c.trader.needs] } : {}), ...(c.trader.surplus ? { surplus: [...c.trader.surplus] } : {}) }
+      ? { stock: { ...c.trader.stock } as Record<string, number>, slaves: c.trader.slaves.map(savePawn), leaveAt: c.trader.leaveAt, leaving: c.trader.leaving, ...(c.trader.traded ? { traded: true } : {}), ...(c.trader.needs ? { needs: [...c.trader.needs] } : {}), ...(c.trader.surplus ? { surplus: [...c.trader.surplus] } : {}), ...(c.trader.mules ? { mules: c.trader.mules } : {}) }
       : undefined,
     ...(c.faction ? { faction: c.faction } : {}),
     ...(c.refugee ? { refugee: c.refugee } : {}),
@@ -218,6 +221,9 @@ function savePawn(c: Colonist): SavedColonist {
     ...(c.coat ? { coat: true } : {}),
     ...(c.huntMarked ? { huntMarked: true } : {}),
     ...(c.leaveAt !== undefined ? { leaveAt: c.leaveAt } : {}),
+    ...(c.tameMarked ? { tameMarked: true } : {}),
+    ...(c.tamed ? { tamed: true } : {}),
+    ...(c.fedAt !== undefined ? { fedAt: c.fedAt } : {}),
     armorChoice: c.armorChoice,
     panic: c.panic ? { ...c.panic } : undefined,
     stunnedUntil: c.stunnedUntil,
@@ -281,7 +287,7 @@ export function serializeWorld(world: World, gameVersion?: string, direct = fals
     ...(world.newFactionAt !== null ? { newFactionAt: world.newFactionAt } : {}),
     ...(world.outposts.length ? { outposts: world.outposts.map((o) => ({ name: o.name, save: serializeWorld(o.world, gameVersion, true) })) } : {}),
     ...(world.name ? { name: world.name } : {}),
-    ...(world.expedition ? { expedition: { faction: world.expedition.faction, members: world.expedition.members.map(savePawn), phase: world.expedition.phase, arriveAt: world.expedition.arriveAt, loot: { ...world.expedition.loot }, ...(world.expedition.result ? { result: world.expedition.result } : {}), ...(world.expedition.kind ? { kind: world.expedition.kind } : {}), ...(world.expedition.ruin ? { ruin: world.expedition.ruin } : {}), ...(world.expedition.supplies ? { supplies: { ...world.expedition.supplies } } : {}), ...(world.expedition.vehicles?.length ? { vehicles: world.expedition.vehicles.map((v) => ({ id: v.id, def: v.def, x: 0, y: 0, fuel: v.fuel, hp: v.hp })) } : {}) } } : {}),
+    ...(world.expedition ? { expedition: { faction: world.expedition.faction, members: world.expedition.members.map(savePawn), phase: world.expedition.phase, arriveAt: world.expedition.arriveAt, loot: { ...world.expedition.loot }, ...(world.expedition.result ? { result: world.expedition.result } : {}), ...(world.expedition.kind ? { kind: world.expedition.kind } : {}), ...(world.expedition.ruin ? { ruin: world.expedition.ruin } : {}), ...(world.expedition.supplies ? { supplies: { ...world.expedition.supplies } } : {}), ...(world.expedition.vehicles?.length ? { vehicles: world.expedition.vehicles.map((v) => ({ id: v.id, def: v.def, x: 0, y: 0, fuel: v.fuel, hp: v.hp })) } : {}), ...(world.expedition.animals?.length ? { animals: world.expedition.animals.map(savePawn) } : {}) } } : {}),
     ...(world.burnt.size ? { burnt: [...world.burnt] } : {}),
     ...(world.plague ? { plague: { ...world.plague } } : {}),
     nextEvent: world.nextEvent,
@@ -477,6 +483,7 @@ function restoreColonist(s: SavedColonist): Colonist {
           ...(s.trader.traded ? { traded: true } : {}),
           ...(Array.isArray(s.trader.needs) ? { needs: s.trader.needs.filter(isResource) } : {}),
           ...(Array.isArray(s.trader.surplus) ? { surplus: s.trader.surplus.filter(isResource) } : {}),
+          ...(typeof s.trader.mules === 'number' && s.trader.mules > 0 ? { mules: Math.floor(s.trader.mules) } : {}),
         }
       : undefined,
     ...(typeof s.faction === 'string' && factionDef(s.faction) ? { faction: factionId(s.faction) } : {}),
@@ -512,6 +519,9 @@ function restoreColonist(s: SavedColonist): Colonist {
     ...(s.coat ? { coat: true } : {}),
     ...(s.huntMarked ? { huntMarked: true } : {}),
     ...(typeof s.leaveAt === 'number' ? { leaveAt: s.leaveAt } : {}),
+    ...(s.tameMarked ? { tameMarked: true } : {}),
+    ...(s.tamed ? { tamed: true } : {}),
+    ...(typeof s.fedAt === 'number' ? { fedAt: s.fedAt } : {}),
     armorChoice: s.armorChoice === 'ninguna' ? 'ninguna' : 'auto',
     // Partidas de antes del pánico: nadie en pánico (al cargar, sin camino: se queda quieto hasta que se le pasa).
     ...(s.panic && typeof s.panic === 'object' ? { panic: { until: num(s.panic.until, 0) } } : {}),
@@ -638,11 +648,12 @@ export function loadWorld(input: string | unknown): World {
       ...(typeof ex.ruin === 'string' ? { ruin: ex.ruin } : {}),
       // Si la batalla no se guardó, lo que llevaban vuelve con ellos.
       supplies: battle ? {} : cleanLoot(ex.supplies),
+      animals: (ex.animals ?? []).map((m) => restoreColonist(m)),
       vehicles: (ex.vehicles ?? []).filter((v) => vehicleDef(String(v.def))).map((v) => ({ id: num(v.id, 0), def: String(v.def), x: 0, y: 0, pos: { x: 0, y: 0 }, path: [], fuel: num(v.fuel, 0), hp: num(v.hp, 1), facing: 1 as const })),
       ...(ex.result === 'victoria' || ex.result === 'derrota' || ex.result === 'retirada' ? { result: ex.result } : battle ? { result: 'retirada' as const } : {}),
     };
   }
-  const ids = [...world.colonists, ...(world.expedition?.members ?? []), ...world.others, ...world.others.flatMap((o) => o.trader?.slaves ?? []), ...(world.offer ? [world.offer.pawn] : [])].map((c) => c.id);
+  const ids = [...world.colonists, ...(world.expedition?.members ?? []), ...(world.expedition?.animals ?? []), ...world.others, ...world.others.flatMap((o) => o.trader?.slaves ?? []), ...(world.offer ? [world.offer.pawn] : [])].map((c) => c.id);
   world.factions = restoreFactions(d.factions, world.map.seed, world.ruins.map((r) => r.faction));
   world.newFactionAt = typeof d.newFactionAt === 'number' ? d.newFactionAt : null;
   if (typeof d.name === 'string') world.name = d.name;

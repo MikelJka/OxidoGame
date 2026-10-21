@@ -6,7 +6,7 @@ import { personValue, RESOURCE_VALUES } from '../data/values';
 import { ammoFor, damageAt, GRENADE, isGear, RAIDER_AMMO, raiderWeaponPool, WEAPONS, WeaponDef } from '../data/weapons';
 import { armorProtection, isArmor, raiderVestPool } from '../data/armor';
 import { MEDICINE_STOCK } from '../data/medicine';
-import { CREATURES, CreatureId, flies, isMachine, MACHINES, PACKS } from '../data/creatures';
+import { CREATURES, CreatureId, flies, isMachine, MACHINES, PACKS, TAMING } from '../data/creatures';
 import type { Colonist } from './colonist';
 import type { Structure } from './structures';
 import { BODY_PARTS, healthLabel, hurt } from './health';
@@ -28,7 +28,7 @@ import { marketTrade, marketValue } from './market';
 import { Rng } from './rng';
 import { researchDef } from '../data/research';
 import { giftPoints } from './factions';
-import { enrage, updateAnimal } from './animals';
+import { enrage, makeAnimal, tameAnimal, updateAnimal } from './animals';
 import { enrichBase } from './worldmap';
 export { canTalk, TALK_HOURS } from './jobs';
 
@@ -667,7 +667,12 @@ export function startTrader(w: World): Colonist | null {
   const nSlaves = w.rng.int(0, 2);
   for (let i = 0; i < nSlaves; i++) slaves.push(w.makePawn('prisionero'));
   t.trader = { stock, slaves, leaveAt: w.tick + Math.round(TICKS_PER_DAY * 0.75), leaving: false };
-  t.faction = TRADER_FACTION;
+  t.faction = caravanFaction(w);
+  // Los Granjeros y los Nómadas traen mulas de carga (elegido por Mikel el 2026-10-21).
+  if (t.faction === 'granjeros' || t.faction === 'nomadas') {
+    const r = new Rng(((w.map.seed ^ 0x1f2e3d4c) + w.day * 0x27d4eb2d) >>> 0);
+    t.trader.mules = r.int(TAMING.mulesForSale[0], TAMING.mulesForSale[1]);
+  }
   caravanWants(w, t);
   w.others.push(t);
   const home = w.colonyPoint();
@@ -675,6 +680,17 @@ export function startTrader(w: World): Colonist | null {
   if (path) t.path = path;
   w.addLog(`🐫 Llega una caravana de ${t.name}${nSlaves ? ` con ${nSlaves} ${nSlaves === 1 ? 'esclavo' : 'esclavos'}` : ''}. Toca al comerciante para comerciar.`, 'bueno', 'caravana', t.tile);
   return t;
+}
+
+/**
+ * De qué facción es la caravana que llega: de las que comercian (Chatarreros, Granjeros, Nómadas…)
+ * y no están en guerra con la colonia; con su propio azar, sacado del día.
+ */
+export function caravanFaction(w: World, day = w.day): string {
+  const ok = w.factions.filter((f) => MARKET.caravans[f.id] && f.relation > RELATION.war && !factionDef(f.id)?.fixed);
+  if (!ok.length) return TRADER_FACTION;
+  const r = new Rng(((w.map.seed ^ 0x7f4a7c15) + day * 0x9e3779b1) >>> 0);
+  return ok[r.int(0, ok.length - 1)].id;
 }
 
 /** Azar de las necesidades de la caravana que llega ese día (el mismo antes y después de llegar). */
@@ -707,12 +723,14 @@ export function caravanWants(w: World, t: Colonist): void {
 }
 
 /** Lo que necesitará la próxima caravana (la que toca por el calendario), para verlo con «Rutas comerciales». */
-export function nextCaravanNeeds(w: World): { day: number; needs: ResourceId[] } | null {
-  const pools = MARKET.caravans[TRADER_FACTION];
+export function nextCaravanNeeds(w: World): { day: number; needs: ResourceId[]; faction: string } | null {
   const at = w.schedule.nextTrader;
-  if (!pools || !Number.isFinite(at)) return null;
+  if (!Number.isFinite(at)) return null;
   const day = w.dayOf(at);
-  return { day, needs: pickSome(caravanRng(w, day), pools.needs, MARKET.needs) };
+  const faction = caravanFaction(w, day);
+  const pools = MARKET.caravans[faction];
+  if (!pools) return null;
+  return { day, faction, needs: pickSome(caravanRng(w, day), pools.needs, MARKET.needs) };
 }
 
 /** Lo que cobra la caravana por una unidad: su precio de mercado, más su margen; lo que le sobra, −30 %. */
@@ -1520,6 +1538,8 @@ export interface TradeDeal {
   slaves: number[];
   /** Prisioneros (ids) que la colonia vende. */
   sellPrisoners: number[];
+  /** Mulas de carga que compra (caravanas de los Granjeros y los Nómadas). */
+  mules?: number;
 }
 
 /** El comerciante cobra un poco más de lo que paga. */
@@ -1543,6 +1563,7 @@ export function dealBalance(w: World, trader: Colonist, d: TradeDeal): number {
     const s = trader.trader?.slaves.find((k) => k.id === id);
     if (s) take += slaveValue(s) * TRADER_MARGIN;
   }
+  take += Math.min(d.mules ?? 0, trader.trader?.mules ?? 0) * TAMING.mulePrice * TRADER_MARGIN;
   return give - take;
 }
 
@@ -1597,6 +1618,20 @@ export function makeDeal(w: World, trader: Colonist, d: TradeDeal): string | nul
     s.prisoner!.mode = 'convencer';
     w.others.push(s);
     w.addLog(`⛓ Compráis a ${s.name}: ahora es prisionero de la colonia. Convencedlo para que se una.`, 'info');
+  }
+  // Mulas de carga compradas: aparecen junto al comerciante, ya domadas.
+  const mules = Math.min(d.mules ?? 0, t.mules ?? 0);
+  for (let k = 0; k < mules; k++) {
+    const m = makeAnimal(w, 'mula');
+    const spot = nearFree(w, trader.tile) ?? trader.tile;
+    m.tile = { ...spot };
+    m.pos = { x: spot.x + 0.5, y: spot.y + 0.5 };
+    tameAnimal(w, m);
+    w.others.push(m);
+  }
+  if (mules > 0) {
+    t.mules = (t.mules ?? 0) - mules;
+    w.addLog(`🫏 Compráis ${mules} ${mules === 1 ? 'mula' : 'mulas'} de carga (+${TAMING.cargo} kg cada una en las expediciones). Hay que darles de comer.`, 'bueno');
   }
   // La base de su facción se enriquece con el comercio.
   enrichBase(w, trader.faction, dealValue(w, trader, d));

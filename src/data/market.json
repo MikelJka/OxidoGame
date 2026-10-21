@@ -4,20 +4,86 @@
   "max": 2,
   "recoveryPerDay": 0.1,
   "perChapa": 0.002,
-  "shocks": { "perDay": [0, 2], "size": [0.1, 0.3] },
+  "shocks": {
+    "perDay": [
+      0,
+      2
+    ],
+    "size": [
+      0.1,
+      0.3
+    ]
+  },
   "needPremium": 0.5,
   "surplusDiscount": 0.3,
-  "needs": [2, 3],
-  "surplus": [2, 3],
+  "needs": [
+    2,
+    3
+  ],
+  "surplus": [
+    2,
+    3
+  ],
   "trendResearch": "rutas_comerciales",
   "caravans": {
     "chatarreros": {
-      "needs": ["comida", "medicina", "madera", "piedra", "patata", "maiz", "fibra", "hierba", "flechas", "balas", "pescado"],
-      "surplus": ["chatarra", "componentes", "metal", "hormigon", "fibra", "flechas", "balas", "setas"]
+      "needs": [
+        "comida",
+        "medicina",
+        "madera",
+        "piedra",
+        "patata",
+        "maiz",
+        "fibra",
+        "hierba",
+        "flechas",
+        "balas",
+        "pescado"
+      ],
+      "surplus": [
+        "chatarra",
+        "componentes",
+        "metal",
+        "hormigon",
+        "fibra",
+        "flechas",
+        "balas",
+        "setas"
+      ]
     },
     "granjeros": {
-      "needs": ["chatarra", "componentes", "metal", "medicina", "flechas", "balas"],
-      "surplus": ["patata", "maiz", "setas", "comida", "fibra", "hierba"]
+      "needs": [
+        "chatarra",
+        "componentes",
+        "metal",
+        "medicina",
+        "flechas",
+        "balas"
+      ],
+      "surplus": [
+        "patata",
+        "maiz",
+        "setas",
+        "comida",
+        "fibra",
+        "hierba"
+      ]
+    },
+    "nomadas": {
+      "needs": [
+        "madera",
+        "metal",
+        "medicina",
+        "balas",
+        "componentes"
+      ],
+      "surplus": [
+        "carne",
+        "cuero",
+        "fibra",
+        "hierba",
+        "combustible"
+      ]
     }
   }
 }

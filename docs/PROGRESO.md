@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (52) — Animales de carga: domarlos y comprar mulas
+
+- Elegido por Mikel (las dos cosas). **Al tocar un animal**, la marca va cambiando: 🎯 cazar → 🤝 **domar** (ciervos mutados y jabalíes; las ratas, no) → sin marca.
+- **Domar**: va quien tenga «Cazar». Se acerca, le da **2 de comida** del almacén y lo intenta. La probabilidad es del 15 % + 2 % por punto de **Supervivencia** (hasta el 60 %). Al jabalí, si sale mal, puede darle por atacar.
+- Domado es **animal de carga**: no se va del mapa, pasea cerca de la colonia y **come 2 de comida al día** del almacén. Si pasa 2 días sin comer, **se escapa**.
+- Las **caravanas** pueden ser ahora de los Chatarreros, los Granjeros o los Nómadas (las que no están en guerra). Las de los **Granjeros** y los **Nómadas** venden 1–2 **🫏 mulas** (60 chapas, más el margen).
+- En las **expediciones**, cada animal de carga lleva **+80 kg**. Va con ellos y espera fuera de la batalla.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): las probabilidades, lo que comen, cuándo se escapan y el precio de la mula.
+- Qué probar: tocar dos veces un ciervo (🤝 a domar) con comida en el almacén; comprar una mula a una caravana de los Granjeros; llevarla en un ataque.
+- Sin npm en el entorno: tests con Bun (657) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+- Con esto queda hecho «Llevar recursos a los ataques».
+
 ## 2026-10-21 (51) — x1 ante ataques y sucesos, y el tiempo no se para en las batallas
 
 - Pedido por Mikel. Cuando llega un **ataque** (raid, manada, máquinas, un jabalí que se revuelve) o pasa un **suceso** en cualquiera de vuestras colonias, la partida **vuelve a x1** si iba más deprisa. No se para.

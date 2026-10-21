@@ -1,7 +1,7 @@
 // Gente: diario de la colonia, prisioneros, comercio con caravanas, supervivientes que piden
 // unirse y fin de partida. Solo interfaz: las reglas están en src/sim/people.ts.
-import { CREATURES } from '../data/creatures';
-import { toggleHunt } from '../sim/animals';
+import { CREATURES, TAMING } from '../data/creatures';
+import { cycleAnimalMark, packAnimals } from '../sim/animals';
 import type { World } from '../sim/world';
 import type { Colonist } from '../sim/colonist';
 import { buyPrice, callAllies, callCaravan, dealBalance, nextCaravanNeeds, sellPrice, makeDeal, payTribute, radioProblem, refuseTribute, slaveValue, TRADER_MARGIN, TradeDeal } from '../sim/people';
@@ -226,7 +226,7 @@ export function mountPeople(opts: Options): PeopleUI {
 
   // --- Facciones ---------------------------------------------------------------------
   /** Colonos elegidos para atacar una base (mientras se eligen). */
-  let attackPick: { faction: string; ids: number[]; load?: Partial<Record<ResourceId, number>>; vehicles?: number[] } | null = null;
+  let attackPick: { faction: string; ids: number[]; load?: Partial<Record<ResourceId, number>>; vehicles?: number[]; animals?: number[] } | null = null;
   function renderFactions(w: World): HTMLElement[] {
     const out: HTMLElement[] = [];
     out.push(el('p', 'muted', `La relación va de ${RELATION.min} a ${RELATION.max}: con ${RELATION.war} o menos son hostiles (y os mandan sus raids), con ${RELATION.ally} o más, aliados. Sube al comerciar con sus caravanas (+${RELATION.tradeCaravan}), al darles de más en un trato (+1 cada ${RELATION.giftValuePerPoint} chapas), al curar a sus heridos y al liberar a sus prisioneros (+${RELATION.releasePrisoner}); baja al matar o retener a los suyos (${RELATION.killOrHold}). Los Piratas del Óxido son siempre hostiles.`));
@@ -346,7 +346,7 @@ export function mountPeople(opts: Options): PeopleUI {
           const go = el('div', 'zp-row');
           go.append(
             button(`⚔️ Enviar (${attackPick.ids.length})`, () => {
-              const why = startExpedition(w, f.id, attackPick!.ids, attackPick!.load ?? {}, attackPick!.vehicles ?? []);
+              const why = startExpedition(w, f.id, attackPick!.ids, attackPick!.load ?? {}, attackPick!.vehicles ?? [], attackPick!.animals ?? []);
               opts.toast(why ?? `⚔️ La expedición sale hacia ${f.settlement}`, why ? 3000 : 2500);
               if (!why) attackPick = null;
               rerender();
@@ -360,7 +360,8 @@ export function mountPeople(opts: Options): PeopleUI {
           const ap = attackPick;
           ap.load ??= {};
           ap.vehicles ??= [];
-          const cap = expeditionCapacity(w, ap.ids.length, ap.vehicles);
+          ap.animals ??= [];
+          const cap = expeditionCapacity(w, ap.ids.length, ap.vehicles, ap.animals);
           const kg = loadWeight(ap.load);
           const cargo = el('div', 'trade-table');
           const inv = w.inventory();
@@ -389,6 +390,15 @@ export function mountPeople(opts: Options): PeopleUI {
             const d = vehicleDef(v.def)!;
             const btn = button(`${on ? '☑' : '☐'} ${d.name} (+${d.cargo} kg${d.travel ? ', viaje más corto' : ''})`, () => {
               ap.vehicles = on ? ap.vehicles!.filter((i) => i !== v.id) : [...ap.vehicles!, v.id];
+              rerender();
+            });
+            if (on) btn.classList.add('active');
+            vrow.append(btn);
+          }
+          for (const a of packAnimals(w)) {
+            const on = ap.animals.includes(a.id);
+            const btn = button(`${on ? '☑' : '☐'} ${CREATURES[a.creature!].emoji} ${a.name} (+${TAMING.cargo} kg)`, () => {
+              ap.animals = on ? ap.animals!.filter((i) => i !== a.id) : [...ap.animals!, a.id];
               rerender();
             });
             if (on) btn.classList.add('active');
@@ -520,7 +530,7 @@ export function mountPeople(opts: Options): PeopleUI {
       const out = [empty('🐫', 'No hay ninguna caravana. Pasan de vez en cuando; cuando llegue una, tócala en el mapa o vuelve aquí.')];
       // Con «Rutas comerciales» se sabe antes qué necesitará la próxima.
       const next = isResearched(w.research, MARKET.trendResearch) ? nextCaravanNeeds(w) : null;
-      if (next) out.push(el('p', 'pp-hint', `🗺 La próxima caravana (hacia el día ${next.day}) necesitará: ${next.needs.map((r) => `${RESOURCE_ICONS[r]} ${RESOURCE_NAMES[r].toLowerCase()}`).join(', ')}.`));
+      if (next) out.push(el('p', 'pp-hint', `🗺 La próxima caravana (${factionDef(next.faction)?.name ?? next.faction}, hacia el día ${next.day}) necesitará: ${next.needs.map((r) => `${RESOURCE_ICONS[r]} ${RESOURCE_NAMES[r].toLowerCase()}`).join(', ')}.`));
       return out;
     }
     if (dealTrader !== trader.id) {
@@ -573,6 +583,25 @@ export function mountPeople(opts: Options): PeopleUI {
       table.append(row);
     }
     out.push(table);
+    // Mulas de carga (caravanas de los Granjeros y los Nómadas).
+    if ((t.mules ?? 0) > 0) {
+      out.push(el('div', 'menu-sec', '🫏 Mulas de carga'));
+      const row = el('div', 'trade-row');
+      const n = deal.mules ?? 0;
+      const qty = el('span', 'trade-qty');
+      const set = (v: number) => {
+        deal.mules = Math.max(0, Math.min(t.mules ?? 0, v));
+        rerender();
+      };
+      const minus = button('−', () => set(n - 1), 'Quitar una');
+      const plus = button('+', () => set(n + 1), 'Añadir una');
+      minus.disabled = n <= 0;
+      plus.disabled = n >= (t.mules ?? 0);
+      qty.append(minus, el('span', 'num', String(n)), plus);
+      row.append(el('span', 'trade-name', `🫏 Mula · tiene ${t.mules} · ${Math.round(TAMING.mulePrice * TRADER_MARGIN)} c/u · lleva +${TAMING.cargo} kg y come cada día`), qty);
+      if (n) row.classList.add('on');
+      out.push(row);
+    }
     if (t.slaves.length) {
       out.push(el('div', 'menu-sec', '⛓ Esclavos en venta'));
       out.push(el('p', 'pp-hint', 'Pasan a ser prisioneros; luego hay que convencerlos para que se unan.'));
@@ -603,7 +632,7 @@ export function mountPeople(opts: Options): PeopleUI {
     }
     // Pie fijo: el saldo y el botón siempre a la vista, aunque la lista sea larga.
     const balance = dealBalance(w, trader, deal);
-    const none = !Object.keys(deal.buy).length && !Object.keys(deal.sell).length && !deal.slaves.length && !deal.sellPrisoners.length;
+    const none = !Object.keys(deal.buy).length && !Object.keys(deal.sell).length && !deal.slaves.length && !deal.sellPrisoners.length && !deal.mules;
     const info = el('div', none ? 'trade-balance' : balance >= 0 ? 'trade-balance ok' : 'trade-balance bad',
       none ? 'Elige qué comprar o vender' : `Saldo ${balance >= 0 ? '+' : ''}${Math.round(balance)} · ${balance >= 0 ? 'acepta' : 'no le compensa'}`);
     const clear = button('↺', () => {
@@ -787,9 +816,14 @@ export function mountPeople(opts: Options): PeopleUI {
   return {
     openFor(c: Colonist): void {
       // Un animal: al tocarlo se marca (o desmarca) para cazarlo.
-      if (c.creature && CREATURES[c.creature].animal) {
-        const on = toggleHunt(c);
-        opts.toast(`${CREATURES[c.creature].emoji} ${c.name} · ${on ? '🎯 marcado para cazar: irá quien tenga «Cazar»' : 'ya no se caza'}`, 2500);
+      if (c.creature && CREATURES[c.creature].animal && c.role === 'animal') {
+        const d = CREATURES[c.creature];
+        if (c.tamed) {
+          opts.toast(`${d.emoji} ${c.name} de carga · ${healthLabel(c).toLowerCase()} · lleva +${TAMING.cargo} kg en las expediciones y come cada día`, 3000);
+          return;
+        }
+        const mark = cycleAnimalMark(c);
+        opts.toast(`${d.emoji} ${c.name} · ${mark === 'cazar' ? `🎯 a cazar: irá quien tenga «Cazar»${d.tamable ? ' (tócalo otra vez para domarlo)' : ''}` : mark === 'domar' ? '🤝 a domar: irá quien tenga «Cazar», con comida (mejor con Supervivencia)' : 'sin marca'}`, 3000);
         return;
       }
       if (c.creature) {

@@ -72,3 +72,56 @@ describe('animales y caza', () => {
     expect(recipeDef('fabricar_chaleco_cuero')!.research).toBe('sastreria');
   });
 });
+
+describe('animales de carga', () => {
+  it('al tocarlo: cazar → domar → nada', async () => {
+    const { cycleAnimalMark } = await import('../src/sim/animals');
+    const w = flatWorld(0);
+    const a = put(w, 'ciervo_mutado', 10, 10);
+    expect(cycleAnimalMark(a)).toBe('cazar');
+    expect(cycleAnimalMark(a)).toBe('domar');
+    expect(cycleAnimalMark(a)).toBeNull();
+    const r = put(w, 'rata_gigante', 12, 12);
+    expect(cycleAnimalMark(r)).toBe('cazar');
+    expect(cycleAnimalMark(r)).toBeNull(); // las ratas no se doman
+  });
+
+  it('un colono con comida lo doma; luego come cada día y va en las expediciones (+80 kg)', async () => {
+    const { packAnimals } = await import('../src/sim/animals');
+    const { expeditionCapacity } = await import('../src/sim/expedition');
+    const w = flatWorld(1);
+    w.map.start = { x: 15, y: 15 };
+    w.items.drop(4, 4, 'patata', 75);
+    w.colonists[0].skills.supervivencia = 20;
+    const a = put(w, 'ciervo_mutado', 12, 12);
+    a.tameMarked = true;
+    for (let t = 0; t < 30000 && !a.tamed; t++) {
+      w.step();
+      if (w.others.includes(a)) a.leaveAt = Infinity;
+    }
+    expect(a.tamed).toBe(true);
+    expect(packAnimals(w)).toContain(a);
+    expect(expeditionCapacity(w, 1, [], [a.id])).toBe(35 + 80);
+    expect(loadWorld(serializeWorld(w)).others.find((o) => o.id === a.id)?.tamed).toBe(true);
+    // Sin comida se escapa.
+    for (const s of w.items.list()) w.items.take(s.x, s.y, s.amount);
+    w.tick += 3 * TICKS_PER_DAY;
+    w.tick -= w.tick % 450;
+    w.step();
+    for (let k = 0; k < 450; k++) w.step();
+    expect(a.tamed).toBe(false);
+  });
+
+  it('las caravanas de los Granjeros venden mulas', async () => {
+    const { startTrader, makeDeal } = await import('../src/sim/people');
+    const w = flatWorld(1);
+    w.map.start = { x: 15, y: 15 };
+    w.factions.splice(w.factions.findIndex((f) => f.id === 'chatarreros'), 1);
+    w.items.drop(6, 6, 'componentes', 25);
+    const t = startTrader(w)!;
+    expect(t.faction).toBe('granjeros');
+    expect(t.trader!.mules).toBeGreaterThanOrEqual(1);
+    expect(makeDeal(w, t, { buy: {}, sell: { componentes: 10 }, slaves: [], sellPrisoners: [], mules: 1 })).toBeNull();
+    expect(w.others.filter((o) => o.tamed && o.creature === 'mula').length).toBe(1);
+  });
+});

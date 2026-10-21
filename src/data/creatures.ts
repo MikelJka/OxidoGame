@@ -5,7 +5,7 @@
  */
 import data from './creatures.json';
 
-export type CreatureId = 'perro_mutante' | 'bruto_mutante' | 'arana_chatarra' | 'dron_vigilancia' | 'ciervo_mutado' | 'jabali' | 'rata_gigante';
+export type CreatureId = 'perro_mutante' | 'bruto_mutante' | 'arana_chatarra' | 'dron_vigilancia' | 'ciervo_mutado' | 'jabali' | 'rata_gigante' | 'mula';
 
 export interface CreatureDef {
   id: CreatureId;
@@ -42,6 +42,8 @@ export interface CreatureDef {
   fightsBack?: boolean;
   /** Roba comida de los almacenes sin muros (la rata gigante). */
   stealsFood?: boolean;
+  /** Se puede domar como animal de carga. */
+  tamable?: boolean;
 }
 
 export const CREATURES: Record<CreatureId, CreatureDef> = Object.fromEntries(
@@ -101,3 +103,10 @@ export const CORPSES = {
 
 /** Animales (bloque 10): cuántos como mucho, cuántos llegan al día, de qué tipo, cuánto se quedan y cuánto roba una rata. */
 export const ANIMALS = data.animals as unknown as { max: number; perDay: [number, number]; weights: Partial<Record<CreatureId, number>>; stayDays: number; ratSteals: number };
+
+/** Animales de carga: domarlos, darles de comer y lo que llevan. */
+export const TAMING = data.taming as unknown as {
+  chance: number; chancePerSkill: number; maxChance: number; foodPerTry: number; workPerTry: number;
+  foodPerDay: number; cargo: number; leash: number; hungryDays: number; enrageOnFail: number;
+  mulePrice: number; mulesForSale: [number, number];
+};

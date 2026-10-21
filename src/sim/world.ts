@@ -5,7 +5,7 @@ import { ActiveEvent, firstEventTick, runEvents, solarFactor } from './events';
 import { burning, extinguish, threatens, updateFires } from './fire';
 import { checkNewFaction, growBases, placeBases } from './worldmap';
 import { coldNow, isWinter, updateCold } from './seasons';
-import { animalDrops, spawnAnimals } from './animals';
+import { animalDrops, feedPackAnimals, spawnAnimals, tryTame } from './animals';
 import { ROOMS } from '../data/roomRules';
 import { seasonOf } from '../data/seasons';
 import { BattleInfo, checkBattle, Expedition, Outpost, Ruin, updateExpedition } from './expedition';
@@ -391,6 +391,8 @@ export class World implements JobContext {
     // Cada día, los precios del mercado se acercan a su valor y alguno cambia.
     // Lo que es de todo el mundo (precios, bases, facciones nuevas) lo lleva la colonia principal.
     if (this.tick % TICKS_PER_DAY === 0 && !this.battle && !this.outpostHome) marketDay(this.market, this.map.seed, this.day);
+    // Los animales de carga comen una vez al día (y sin comida se escapan).
+    if (this.tick % TICKS_PER_HOUR === 0) feedPackAnimals(this);
     // Animales: cada día llegan algunos por los bordes (con los sucesos activados).
     if (this.tick % TICKS_PER_DAY === TICKS_PER_HOUR && this.eventsEnabled && !this.battle) spawnAnimals(this);
     // Y las bases de las facciones crecen.
@@ -1386,7 +1388,7 @@ export class World implements JobContext {
     const h = j.haul;
     if (j.kind === 'cazar') {
       const o = this.others.find((k) => k.id === j.pid);
-      return !!o && !o.downed && !!o.huntMarked;
+      return !!o && !o.downed && (j.tame ? !!o.tameMarked && !o.tamed : !!o.huntMarked);
     }
     if (j.kind === 'curar' || j.kind === 'carcelero') {
       const o = this.pawns().find((k) => k.id === j.pid);
@@ -1968,6 +1970,34 @@ export class World implements JobContext {
   private updateHuntJob(c: Colonist): void {
     const j = c.job!;
     const a = this.others.find((k) => k.id === j.pid);
+    if (j.tame) {
+      // Domar: se acerca, le da de comer un rato y lo intenta.
+      if (!a || a.downed || !a.tameMarked || a.tamed) {
+        this.dropJob(c);
+        return;
+      }
+      if (Math.abs(a.tile.x - c.tile.x) + Math.abs(a.tile.y - c.tile.y) <= 1) {
+        c.path = [];
+        c.activity = 'working';
+        a.path = [];
+        j.progress += 1;
+        if (j.progress >= j.work) {
+          tryTame(this, c, a);
+          this.dropJob(c);
+          this.nextJobScan.set(c.id, this.tick + JOB_RETRY_TICKS);
+        }
+        return;
+      }
+      if (c.path.length === 0 || (this.tick + c.id) % 30 === 0) {
+        const path = findPath(this.map, c.tile, a.tile, JOB_PATH_NODES);
+        if (!path) {
+          this.dropJob(c);
+          return;
+        }
+        c.path = path.slice(0, Math.max(1, path.length - 1));
+      }
+      return;
+    }
     if (!a || a.downed || !a.huntMarked) {
       this.dropJob(c);
       return;

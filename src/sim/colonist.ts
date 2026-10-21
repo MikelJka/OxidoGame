@@ -61,6 +61,8 @@ export interface ColonistJob {
   fire?: boolean;
   /** Poner el tejado en la casilla (x, y). */
   roof?: boolean;
+  /** Domar al animal `pid` (no cazarlo). */
+  tame?: boolean;
   /** Mover un mueble: primero se desmonta; luego se lleva y se monta en el destino. */
   move?: 'desmontar' | 'montar';
   /** Construcción a la que va el trabajo (construir, demoler, fabricar). */
@@ -174,6 +176,11 @@ export interface Colonist {
   coat?: boolean;
   /** Animal marcado para cazarlo (⚒ → 🎯 Cazar). */
   huntMarked?: boolean;
+  /** Animal marcado para domarlo, y si ya es de la colonia (de carga). */
+  tameMarked?: boolean;
+  tamed?: boolean;
+  /** Animal de carga: tick de la última vez que comió. */
+  fedAt?: number;
   /** Animal: tick en que se va del mapa (o la rata que ya ha robado). */
   leaveAt?: number;
   /** Armadura: la mejor libre («auto») o ninguna. */
@@ -233,6 +240,8 @@ export interface TraderInfo {
   /** Tick en que se marcha. */
   leaveAt: number;
   leaving: boolean;
+  /** Mulas de carga que vende (caravanas de los Granjeros y los Nómadas). */
+  mules?: number;
   /** Ya se ha hecho algún trato con esta caravana (sube la relación una vez). */
   traded?: boolean;
   /** Lo que necesita (lo paga a +50 %) y lo que le sobra (a −30 %), según su facción. */

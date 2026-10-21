@@ -4,6 +4,7 @@
 import type { Skill } from '../data/colonists';
 import { eventDef } from '../data/events';
 import { FIRE } from '../data/fire';
+import { TAMING } from '../data/creatures';
 import { ROOMS } from '../data/roomRules';
 import { depositOf } from '../data/buildings';
 import { MAX_STACK, RESOURCES, ResourceId } from '../data/resources';
@@ -664,14 +665,15 @@ function huntCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   if (c.priorities.cazar === 0) return [];
   const out: Candidate[] = [];
   for (const a of ctx.others) {
-    if (!a.huntMarked || a.downed) continue;
+    if ((!a.huntMarked && !(a.tameMarked && !a.tamed)) || a.downed) continue;
     if (ctx.colonists.some((k) => k !== c && k.job?.kind === 'cazar' && k.job.pid === a.id)) continue;
+    const tame = !a.huntMarked;
     out.push({
       kind: 'cazar', x: a.tile.x, y: a.tile.y, dist: manhattan(c.tile, a.tile.x, a.tile.y),
       make: () => {
         const route = pathToNearest(ctx.map, c.tile, [a.tile, ...sideTiles(ctx.map, a.tile.x, a.tile.y)]);
         if (!route) return null;
-        return { job: { kind: 'cazar', pid: a.id, x: a.tile.x, y: a.tile.y, stand: route.stand, progress: 0, work: 1 }, path: [] };
+        return { job: { kind: 'cazar', pid: a.id, x: a.tile.x, y: a.tile.y, stand: route.stand, progress: 0, work: tame ? TAMING.workPerTry : 1, ...(tame ? { tame: true } : {}) }, path: [] };
       },
     });
   }
