@@ -2,6 +2,14 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (57) — Nevera y comida que se pone mala
+
+- Pedido por Mikel. **La comida se pone mala**: cada día se pierde una parte de cada montón — carne y pescado 20 %, leche 30 %, raciones 10 %, huevos y setas 8 %, patatas 3 %, maíz 2 %. **Con frío** (de noche en invierno o en una ola de frío) no se pierde nada. A las 20:00, el diario dice cuánto se ha echado a perder ese día.
+- **Nevera** (🏗 → Muebles, 🔩20 🔗6 ⚙️3, 2×1, 80 W): guarda **solo comida**, **6 montones por casilla** (hasta 900 raciones de carne en las dos), y **con corriente** lo que hay dentro no se estropea. Se pone un almacén encima para que los colonos la llenen.
+- Decidido en esta sesión (Mikel puede cambiarlo): lo que se pierde de cada cosa, el coste y el consumo.
+- Qué probar: dejar carne fuera y verla bajar; poner una nevera con cable y un almacén encima.
+- Sin npm en el entorno: tests con Bun (671) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+
 ## 2026-10-21 (56) — Espantapájaros, compostera, leche y huevos
 
 - Pedido por Mikel. En **Granja**: **espantapájaros** (🪵4 🌿3): las plantas a 5 casillas o menos **no enferman** con las plagas (si todo el huerto está guardado, no hay plaga). **Compostera** (🪵12, con «Agricultura mejorada»): cada mañana deja **2 🟤 abono** a su lado. Lo **abonado** da +25 % de cosecha y ahora además **crece un 25 % más deprisa**.

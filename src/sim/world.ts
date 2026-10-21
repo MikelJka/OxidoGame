@@ -6,6 +6,7 @@ import { burning, extinguish, threatens, updateFires } from './fire';
 import { checkNewFaction, growBases, placeBases } from './worldmap';
 import { coldNow, frostNow, updateCold } from './seasons';
 import { updateHydroponics } from './hydroponics';
+import { spoilHour } from './spoilage';
 import { animalDrops, feedPackAnimals, spawnAnimals, tryTame } from './animals';
 import { ROOMS } from '../data/roomRules';
 import { seasonOf } from '../data/seasons';
@@ -53,7 +54,7 @@ import type { TileRect } from './designations';
 import { BUILDINGS, buildingDef, kitOf, depositOf } from '../data/buildings';
 import { RECIPES, RecipeDef } from '../data/recipes';
 import { CROPS, CropDef } from '../data/crops';
-import { RESOURCES, ResourceId, STARTING_SUPPLIES } from '../data/resources';
+import { FOOD_RESOURCES, RESOURCES, ResourceId, STARTING_SUPPLIES } from '../data/resources';
 
 import { TICKS_PER_DAY, TICKS_PER_HOUR, TICKS_PER_SECOND } from './time';
 export { TICKS_PER_DAY, TICKS_PER_HOUR, TICKS_PER_SECOND };
@@ -95,6 +96,8 @@ export interface WorldOptions {
   needs?: boolean;
   /** Sucesos del narrador: supervivientes, raids, caravanas (por defecto, sí). */
   events?: boolean;
+  /** La comida se pone mala (por defecto, sí; los tests la quitan). */
+  spoilage?: boolean;
   /** Dureza y días sin raids (por defecto, Normal con 5 días). */
   difficulty?: Partial<Difficulty>;
 }
@@ -149,6 +152,9 @@ export class World implements JobContext {
   readonly raidGroups: RaidGroup[] = [];
   /** Diario: lo que ha pasado (el más reciente al final). */
   readonly log: LogEntry[] = [];
+  /** Comida echada a perder desde el último aviso del diario (no se guarda). */
+  spoiled = 0;
+  spoilageEnabled = true;
   /** Colonos muertos: nombre, causa y día. */
   readonly graveyard: { name: string; cause: string; day: number }[] = [];
   /** La partida ha terminado (no queda nadie). */
@@ -266,6 +272,7 @@ export class World implements JobContext {
   constructor(opts: WorldOptions) {
     this.needsEnabled = opts.needs ?? true;
     this.eventsEnabled = opts.events ?? true;
+    this.spoilageEnabled = opts.spoilage ?? true;
     this.difficulty = makeDifficulty(opts.difficulty);
     this.schedule = initialSchedule(TICKS_PER_DAY, 0, this.difficulty.graceDays);
     this.map = opts.map ?? generateMap({ width: opts.width ?? MAP_SIZE, height: opts.height ?? MAP_SIZE, seed: opts.seed });
@@ -281,6 +288,8 @@ export class World implements JobContext {
       if (!s || !s.built || !s.def.storage) return 1;
       // El armero solo guarda armas y munición: lo demás no cabe en sus casillas.
       if (s.def.storageFor === 'armas' && resource && !isGear(resource)) return 0;
+      // La nevera solo guarda comida.
+      if (s.def.storageFor === 'comida' && resource && !FOOD_RESOURCES.includes(resource)) return 0;
       return s.def.storage;
     };
     this.designations = new Designations(this.map);
@@ -401,7 +410,15 @@ export class World implements JobContext {
     // Si quedan pocas facciones, llega una nueva a los pocos días.
     if (this.tick % TICKS_PER_HOUR === 0 && !this.battle && !this.outpostHome) checkNewFaction(this);
     // Cada día, las trampas de pesca dejan su 🐟 en el muelle de al lado.
-    if (this.tick % TICKS_PER_HOUR === 0) this.emptyFishTraps();
+    if (this.tick % TICKS_PER_HOUR === 0) {
+      this.emptyFishTraps();
+      if (this.spoilageEnabled) spoilHour(this);
+      // Una vez al día, en el diario, lo que se ha echado a perder.
+      if (Math.round(this.hour) % 24 === 20 && this.spoiled > 0) {
+        this.addLog(`🤢 Hoy se han echado a perder ${this.spoiled} de comida. Una nevera con corriente la conserva.`, 'info');
+        this.spoiled = 0;
+      }
+    }
     // Las plantas crecen a saltos de un segundo (basta y cuesta poco).
     if (this.tick % TICKS_PER_SECOND === 0) {
       const h = this.hour;

@@ -1036,6 +1036,35 @@
     ]
   },
   {
+    "id": "nevera",
+    "movable": true,
+    "name": "Nevera",
+    "category": "mueble",
+    "cost": {
+      "chatarra": 20,
+      "metal": 6,
+      "componentes": 3
+    },
+    "work": 400,
+    "hp": 150,
+    "blocks": false,
+    "moveCost": 1.5,
+    "height": 1,
+    "storage": 6,
+    "storageFor": "comida",
+    "fridge": true,
+    "power": -80,
+    "colors": {
+      "top": "#d8dee4",
+      "face": "#aab4be",
+      "dark": "#5a646e"
+    },
+    "size": [
+      2,
+      1
+    ]
+  },
+  {
     "id": "cama_prision",
     "movable": true,
     "name": "Cama de prisionero",

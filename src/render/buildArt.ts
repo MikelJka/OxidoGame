@@ -45,6 +45,18 @@ export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, ti
     drawTower(ctx, def, tile, tileH, wallH);
     return;
   }
+  if (def.fridge) {
+    // Nevera: arcón blanco con la tapa, la junta, el tirador y una luz azul.
+    px(1, 1, tile - 2, tileH - 2, top);
+    px(1, 1, tile - 2, 1, '#ffffff');
+    px(2, Math.floor(tileH / 2), tile - 4, 1, dark);
+    px(1, tileH - 1, tile - 2, wallH, face);
+    px(1, tileH - 1, tile - 2, 1, dark);
+    px(Math.floor(tile / 2) - 3, tileH + 2, 6, 1, dark); // tirador
+    px(tile - 5, tileH + 2, 2, 1, '#7ad0ff'); // piloto
+    px(1, h - 2, tile - 2, 1, dark);
+    return;
+  }
   if (def.storage) {
     drawShelf(ctx, def, tile, tileH, wallH);
     return;

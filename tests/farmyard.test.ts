@@ -191,3 +191,42 @@ describe('espantapájaros, compostera, leche y huevos', () => {
     expect(w.items.at(14, 10)).toEqual(expect.objectContaining({ resource: 'huevos', amount: 2 }));
   });
 });
+
+describe('nevera y comida que se pone mala', () => {
+  it('fuera de la nevera la carne se pone mala; en la nevera con corriente, no; con frío, tampoco', async () => {
+    const { spoilHour, inFridge } = await import('../src/sim/spoilage');
+    const d = buildingDef('nevera')!;
+    expect(d.storage).toBe(6);
+    expect(d.storageFor).toBe('comida');
+    expect(d.power).toBe(-80);
+    const w = flatWorld(1, { spoilage: true });
+    build(w, 10, 10, 'nevera');
+    const fridge = w.structures.at(10, 10)!;
+    // Solo guarda comida, y mucha.
+    expect(w.items.maxAt(10, 10, 'carne')).toBe(6 * 75);
+    expect(w.items.maxAt(10, 10, 'madera')).toBe(0);
+    w.items.drop(10, 10, 'carne', 100);
+    w.items.drop(3, 3, 'carne', 60);
+    w.tick = 12 * TICKS_PER_DAY; // verano
+    // Sin corriente, se pone mala igual.
+    expect(inFridge(w, 10, 10)).toBe(false);
+    fridge.powered = true;
+    expect(inFridge(w, 10, 10)).toBe(true);
+    for (let h = 0; h < 24; h++) spoilHour(w);
+    expect(w.items.at(10, 10)!.amount).toBe(100);
+    const left = w.items.at(3, 3)!.amount;
+    // −20 % al día (unos 11 de 60).
+    expect(left).toBeLessThan(55);
+    expect(left).toBeGreaterThan(40);
+    // El maíz aguanta mucho más.
+    w.items.drop(5, 5, 'maiz', 50);
+    for (let h = 0; h < 24; h++) spoilHour(w);
+    expect(w.items.at(5, 5)!.amount).toBeGreaterThanOrEqual(47);
+    // En una ola de frío, nada.
+    const { startEvent } = await import('../src/sim/events');
+    startEvent(w, 'ola_frio');
+    const before = w.items.at(3, 3)!.amount;
+    for (let h = 0; h < 24; h++) spoilHour(w);
+    expect(w.items.at(3, 3)!.amount).toBe(before);
+  });
+});

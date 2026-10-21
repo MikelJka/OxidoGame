@@ -1,0 +1,13 @@
+{
+  "_": "Comida que se pone mala (pedido de Mikel del 2026-10-21, con la nevera): parte de cada montón que se pierde al día si no está en una nevera con corriente. Con frío (de noche en invierno o con una ola de frío) no se pierde nada. Las cantidades las ha puesto la sesión del 2026-10-21.",
+  "perDay": {
+    "carne": 0.2,
+    "pescado": 0.2,
+    "leche": 0.3,
+    "comida": 0.1,
+    "huevos": 0.08,
+    "setas": 0.08,
+    "patata": 0.03,
+    "maiz": 0.02
+  }
+}

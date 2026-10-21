@@ -43,8 +43,10 @@ export interface BuildingDef {
   nearWater?: boolean;
   /** Estantería: cuántos montones normales caben en su casilla. */
   storage?: number;
-  /** Solo guarda esto (armero: armas y munición). */
-  storageFor?: 'armas';
+  /** Solo guarda esto (armero: armas y munición; nevera: comida). */
+  storageFor?: 'armas' | 'comida';
+  /** Nevera (pedido de Mikel del 2026-10-21): con corriente, la comida guardada en ella no se pone mala. */
+  fridge?: boolean;
   /** Cable eléctrico: va en su propia capa, debajo de suelos, muros y máquinas. */
   conduit?: boolean;
   /** Vatios: positivo si produce, negativo si consume. */
@@ -268,6 +270,7 @@ export function validateBuilding(d: unknown): BuildingDef {
   if (b.platform !== undefined && (b.category !== 'suelo' || b.blocks || b.bridge !== undefined || typeof b.platform.deepWater !== 'boolean')) fail('plataforma no válida');
   if (b.drawbridge !== undefined && (b.drawbridge !== true || b.category !== 'defensa' || b.blocks || b.height !== 0 || !((b.power ?? 0) < 0) || b.bridge !== undefined || b.onWater !== undefined)) fail('puente levadizo no válido');
   if (b.onWater !== undefined && (b.onWater !== true || b.category === 'suelo' || b.nearWater)) fail('«onWater» no válido');
+  if (b.fridge && (!b.storage || b.storageFor !== 'comida' || !((b.power ?? 0) < 0))) fail('una nevera guarda comida y gasta corriente');
   if (b.scarecrow && (b.blocks || !Number.isInteger(b.scarecrow.radius) || b.scarecrow.radius < 1 || b.scarecrow.radius > 15)) fail('espantapájaros no válido');
   if (b.compost && (!Number.isInteger(b.compost.perDay) || b.compost.perDay < 1 || !Number.isInteger(b.compost.hour) || b.compost.hour < 0 || b.compost.hour > 23)) fail('compostera no válida');
   if (b.hydroponics && (!((b.power ?? 0) < 0) || !(b.hydroponics.speed > 0) || !Array.isArray(b.hydroponics.crops) || !b.hydroponics.crops.length)) fail('bandeja hidropónica no válida');

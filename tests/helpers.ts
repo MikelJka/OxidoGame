@@ -6,9 +6,9 @@ import { World } from '../src/sim/world';
  * Partida en un mapa llano de 30 × 30, sin objetos ni provisiones, colonos quietos, con una
  * charca de agua limpia en (1, 1) para que no mueran de sed, y sin sucesos del narrador.
  */
-export function flatWorld(colonists = 1, opts: { needs?: boolean } = {}): World {
+export function flatWorld(colonists = 1, opts: { needs?: boolean; spoilage?: boolean } = {}): World {
   // Sin hambre ni sed salvo que el test vaya de eso (si no, en los tests largos morirían).
-  const world = new World({ seed: 7, width: 30, height: 30, colonists, events: false, needs: opts.needs ?? false });
+  const world = new World({ seed: 7, width: 30, height: 30, colonists, events: false, needs: opts.needs ?? false, spoilage: opts.spoilage ?? false });
   const map = world.map;
   map.terrain.fill(Terrain.Soil);
   map.props.fill(Prop.None);
