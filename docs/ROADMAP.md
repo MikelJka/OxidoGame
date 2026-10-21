@@ -86,7 +86,7 @@ Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed 
 
 ## Fase 6 — Facciones y economía
 
-- [ ] Facciones con relaciones y diplomacia
+- [ ] Facciones con relaciones y diplomacia (hechas las tres facciones con su asentamiento y su relación, que sube y baja, y la pestaña 📜 → 🏳 Facciones; faltan la alianza, la guerra, el tributo y la radio)
 - [ ] Caravanas y trueque por valor
 - [ ] Mercado global simulado con oferta y demanda
 - [ ] Eventos, arte definitivo y equilibrio

@@ -128,6 +128,9 @@ try {
     await page.click('#pp-tabs button:nth-child(4)');
     await sleep(600);
     await page.screenshot({ path: `smoke/${d.name}-gente-investigacion.png` });
+    await page.click('#pp-tabs button:nth-child(5)');
+    await sleep(600);
+    await page.screenshot({ path: `smoke/${d.name}-gente-facciones.png` });
     await page.click('#pp-close');
     // Modo Dios: abrir el panel, dejar metal en el centro y terminar obras.
     // Antes se quitan los avisos: en el móvil, cuatro avisos largos tapan el botón 🪄.

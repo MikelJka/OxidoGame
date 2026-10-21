@@ -1,4 +1,6 @@
 import { Colonist, createColonist, RaidGroup, Stance, walkSpeedMultiplier } from './colonist';
+import { createFactions, FactionState, RELATION_LEVEL_NAMES, shiftRelation } from './factions';
+import { factionDef, RELATION } from '../data/factions';
 import { countReachable, GameMap, generateMap, inBounds, isPassable, TRENCH_FLOODED, isWater, Prop, PROP_INFO, Terrain, TERRAIN_INFO, tileMoveCost } from './map';
 import { findPath, isWalkable, Point } from './pathfinding';
 import { Rng } from './rng';
@@ -202,6 +204,8 @@ export class World implements JobContext {
   readonly grenades: Grenade[] = [];
   /** Explosiones recientes (para el dibujado; no se guardan). */
   readonly blasts: Blast[] = [];
+  /** Facciones (bloque 7): sus asentamientos y su relación con la colonia. */
+  factions: FactionState[];
   tick = 0;
   speed: GameSpeed = 1;
   private accumulator = 0;
@@ -213,6 +217,7 @@ export class World implements JobContext {
     this.schedule = initialSchedule(TICKS_PER_DAY, 0, this.difficulty.graceDays);
     this.map = opts.map ?? generateMap({ width: opts.width ?? MAP_SIZE, height: opts.height ?? MAP_SIZE, seed: opts.seed });
     this.rng = new Rng(opts.seed ^ 0x51ed270b);
+    this.factions = createFactions(this.map.seed);
     if (!opts.map) this.spawnColonists(opts.colonists ?? 3);
     this.nextPawnId = this.colonists.length + 1;
     this.items = new GroundItems(this.map);
@@ -436,6 +441,8 @@ export class World implements JobContext {
       }
       const who = c.role === 'saqueador' ? 'Un saqueador' : c.role === 'prisionero' ? 'El prisionero' : 'Alguien';
       this.addLog(`${who} (${c.name}) ha muerto (${cause}).`, 'info');
+      // Matar a los suyos baja la relación con su facción.
+      if (c.faction && (c.role === 'saqueador' || c.role === 'prisionero')) this.changeRelation(c.faction, RELATION.killOrHold);
     }
   }
 
@@ -553,6 +560,7 @@ export class World implements JobContext {
     this.reservations.releaseAll(c.id);
     c.role = 'colono';
     c.prisoner = undefined;
+    c.faction = undefined;
     c.drafted = false;
     c.job = null;
     c.need = null;
@@ -619,6 +627,27 @@ export class World implements JobContext {
       const dock = this.structures.dockBeside(s.x, s.y, undefined, true);
       if (dock) this.items.dropAll(dock.x, dock.y, { pescado: trap.perDay });
     }
+  }
+
+  /** Facción con ese id. */
+  faction(id: string): FactionState | undefined {
+    return this.factions.find((f) => f.id === id);
+  }
+
+  /**
+   * Sube o baja la relación con una facción (`why`: el motivo para el diario; sin él, no se
+   * anota salvo que cambie de nivel, p. ej. de «Hostil» a «En guerra»).
+   */
+  changeRelation(id: string | undefined, delta: number, why?: string): void {
+    if (!id || delta === 0) return;
+    const before = this.faction(id)?.relation;
+    const change = shiftRelation(this.factions, id, delta);
+    const f = this.faction(id);
+    const def = factionDef(id);
+    if (!f || !def || before === undefined || f.relation === before) return;
+    const sign = f.relation > before ? `+${f.relation - before}` : `${f.relation - before}`;
+    if (why) this.addLog(`${def.icon} ${def.name}: ${sign} de relación (${why}). Ahora: ${f.relation}.`, f.relation > before ? 'bueno' : 'info');
+    if (change) this.addLog(`${def.icon} ${def.name} de ${f.settlement}: ${RELATION_LEVEL_NAMES[change.to].toLowerCase()} con la colonia (${f.relation}).`, change.to === 'alianza' || change.to === 'amistosa' ? 'bueno' : 'malo');
   }
 
   /** Hora del día en horas decimales (0–24). */
@@ -1654,6 +1683,8 @@ export class World implements JobContext {
       }
       makePrisoner(o, 0.45 + this.rng.next() * 0.45);
       this.addLog(`⛓ ${c.name} captura a ${o.name}. Está en 👥 → Prisioneros.`, 'bueno');
+      // Retener a los suyos también baja la relación con su facción.
+      this.changeRelation(o.faction, RELATION.killOrHold);
       o.carriedBy = c.id;
       j.escorting = true;
       j.x = bed.x;

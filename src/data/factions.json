@@ -1,0 +1,42 @@
+{
+  "_": "Bloque 7 del catálogo (aprobado por Mikel el 2026-10-18): tres asentamientos fijos en cada partida, con su nombre al azar, y relación de −100 a 100.",
+  "factions": [
+    {
+      "id": "chatarreros",
+      "name": "Chatarreros",
+      "icon": "🐫",
+      "start": 20,
+      "description": "Comerciantes: traen las caravanas.",
+      "settlements": ["Puerto Herrumbre", "La Chatarrería", "Villatornillo", "El Desguace", "Cruce de las Latas", "Mercado Viejo"]
+    },
+    {
+      "id": "granjeros",
+      "name": "Granjeros del valle",
+      "icon": "🌾",
+      "start": 0,
+      "description": "Venden comida y semillas; posibles aliados.",
+      "settlements": ["Valle Verde", "Los Bancales", "Huerta del Pozo", "Prado Limpio", "La Acequia", "Molinos Altos"]
+    },
+    {
+      "id": "hijos_oxido",
+      "name": "Hijos del Óxido",
+      "icon": "☠",
+      "start": -60,
+      "description": "Hostiles: sus raids son los saqueadores.",
+      "settlements": ["La Fundición", "Torre Roña", "El Vertedero", "Fosa Negra", "Ciudad Ceniza", "El Horno"]
+    }
+  ],
+  "relation": {
+    "min": -100,
+    "max": 100,
+    "ally": 60,
+    "war": -50,
+    "giftValuePerPoint": 20,
+    "releasePrisoner": 15,
+    "tradeCaravan": 2,
+    "killOrHold": -10,
+    "refuseTribute": -20
+  },
+  "traderFaction": "chatarreros",
+  "raiderFaction": "hijos_oxido"
+}

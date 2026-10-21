@@ -20,6 +20,8 @@ import { maybePanic, witnessFall } from './panic';
 import { tryThrowGrenade } from './grenades';
 import { mortarManned, mortarShots } from './mortar';
 import { TICKS_PER_DAY } from './time';
+import { RAIDER_FACTION, RELATION, TRADER_FACTION } from '../data/factions';
+import { giftPoints } from './factions';
 export { canTalk, TALK_HOURS } from './jobs';
 
 /** Ticks entre golpes. */
@@ -234,6 +236,7 @@ export function startRaid(w: World, n: number, withBuggy?: boolean, withRaft?: b
   // escopetas y rifles desde el día 25; subfusiles y rifles de francotirador desde el día 35.
   const pool = raiderWeaponPool(w.day);
   for (const r of out) {
+    r.faction = RAIDER_FACTION;
     r.skills.combate = Math.max(r.skills.combate, w.rng.int(3, 10));
     r.weapon = pool[w.rng.int(0, pool.length - 1)];
     r.ammo = ammoFor(r.weapon) ? RAIDER_AMMO : 0;
@@ -447,6 +450,7 @@ export function startTrader(w: World): Colonist | null {
   const nSlaves = w.rng.int(0, 2);
   for (let i = 0; i < nSlaves; i++) slaves.push(w.makePawn('prisionero'));
   t.trader = { stock, slaves, leaveAt: w.tick + Math.round(TICKS_PER_DAY * 0.75), leaving: false };
+  t.faction = TRADER_FACTION;
   w.others.push(t);
   const home = w.colonyPoint();
   const path = home ? findPath(w.map, t.tile, nearFree(w, home) ?? home, 60000) : null;
@@ -974,6 +978,8 @@ export function dropGear(w: World, c: Colonist): void {
 export function leaveMap(w: World, o: Colonist, why: string): void {
   const i = w.others.indexOf(o);
   if (i >= 0) w.others.splice(i, 1);
+  // Liberar a un prisionero sube la relación con su facción.
+  if (i >= 0 && o.role === 'prisionero' && o.prisoner?.mode === 'liberar') w.changeRelation(o.faction, RELATION.releasePrisoner, `liberáis a ${o.name}`);
   // Un saqueador que se escapa no cuenta como caído para la moral de su raid.
   const g = o.raider?.group !== undefined ? w.raidGroups.find((k) => k.id === o.raider!.group) : undefined;
   if (g && !g.escaped.includes(o.id)) g.escaped.push(o.id);
@@ -1260,7 +1266,8 @@ export function makeDeal(w: World, trader: Colonist, d: TradeDeal): string | nul
   const inv = w.inventory();
   for (const [r, n] of Object.entries(d.sell) as [ResourceId, number][]) if (n > inv[r]) return `No hay tanto de ${r}`;
   for (const [r, n] of Object.entries(d.buy) as [ResourceId, number][]) if (n > (t.stock[r] ?? 0)) return `No tiene tanto de ${r}`;
-  if (dealBalance(w, trader, d) < 0) return 'No le compensa: ofrece más o pide menos';
+  const balance = dealBalance(w, trader, d);
+  if (balance < 0) return 'No le compensa: ofrece más o pide menos';
   // Lo vendido sale de los montones de la colonia (los más cercanos al comerciante).
   for (const [r, n] of Object.entries(d.sell) as [ResourceId, number][]) {
     let left = n;
@@ -1296,5 +1303,12 @@ export function makeDeal(w: World, trader: Colonist, d: TradeDeal): string | nul
     w.others.push(s);
     w.addLog(`⛓ Compráis a ${s.name}: ahora es prisionero de la colonia. Convencedlo para que se una.`, 'info');
   }
+  // Facciones: el primer trato con cada caravana sube la relación, y lo que se da de más cuenta como regalo.
+  if (!t.traded) {
+    t.traded = true;
+    w.changeRelation(trader.faction, RELATION.tradeCaravan, 'comerciáis con su caravana');
+  }
+  const gift = giftPoints(balance);
+  if (gift > 0) w.changeRelation(trader.faction, gift, `regalo de ${Math.floor(balance)} chapas`);
   return null;
 }

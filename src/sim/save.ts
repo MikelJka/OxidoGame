@@ -17,6 +17,8 @@ import type { StoragePriority } from './zones';
 import { ALERT_KINDS, GameSpeed, LogEntry, TICKS_PER_DAY, World } from './world';
 import { initialSchedule, makeDifficulty, WANDERER_GAP } from './storyteller';
 import { vehicleDef } from '../data/vehicles';
+import { factionDef } from '../data/factions';
+import { restoreFactions } from './factions';
 import { GRENADE, isWeapon } from '../data/weapons';
 import { ARMORS, isArmor } from '../data/armor';
 
@@ -68,6 +70,8 @@ export interface SaveData {
   gameOver?: { day: number; cause: string } | null;
   offer?: { pawn: SavedColonist; until: number } | null;
   schedule?: { nextWanderer: number; nextRaid: number; nextTrader: number; nextRadio?: number };
+  /** Facciones (desde el 2026-10-21); las partidas antiguas las sacan de la semilla. */
+  factions?: { id: string; settlement: string; relation: number }[];
   nextPawnId?: number;
   /** Vehículos (desde el buggy, 2026-10-19). Se guardan parados. */
   vehicles?: { id: number; def: string; x: number; y: number; fuel: number; hp: number; facing?: number }[];
@@ -114,7 +118,9 @@ interface SavedColonist {
   raider?: { fleeing: boolean; leaveAt: number; group?: number; leader?: boolean; finish?: boolean; raft?: number };
   /** Criatura (perro mutante…), desde 2026-10-19. */
   creature?: string;
-  trader?: { stock: Record<string, number>; slaves: SavedColonist[]; leaveAt: number; leaving: boolean };
+  trader?: { stock: Record<string, number>; slaves: SavedColonist[]; leaveAt: number; leaving: boolean; traded?: boolean };
+  /** Facción (desde el 2026-10-21). */
+  faction?: string;
   /** Arma, la que prefiere y munición (desde que hay armas). */
   weapon?: string | null;
   weaponChoice?: string;
@@ -168,8 +174,9 @@ function savePawn(c: Colonist): SavedColonist {
     raider: c.raider ? { ...c.raider } : undefined,
     ...(c.creature ? { creature: c.creature } : {}),
     trader: c.trader
-      ? { stock: { ...c.trader.stock } as Record<string, number>, slaves: c.trader.slaves.map(savePawn), leaveAt: c.trader.leaveAt, leaving: c.trader.leaving }
+      ? { stock: { ...c.trader.stock } as Record<string, number>, slaves: c.trader.slaves.map(savePawn), leaveAt: c.trader.leaveAt, leaving: c.trader.leaving, ...(c.trader.traded ? { traded: true } : {}) }
       : undefined,
+    ...(c.faction ? { faction: c.faction } : {}),
     weapon: c.weapon,
     weaponChoice: c.weaponChoice,
     ammo: c.ammo,
@@ -227,6 +234,7 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     gameOver: world.gameOver ? { ...world.gameOver } : null,
     offer: world.offer ? { pawn: savePawn(world.offer.pawn), until: world.offer.until } : null,
     schedule: { ...world.schedule },
+    factions: world.factions.map((f) => ({ ...f })),
     nextPawnId: world.nextPawnId,
     vehicles: world.vehicles.map((v) => ({ id: v.id, def: v.def, x: v.x, y: v.y, fuel: v.fuel, hp: v.hp, facing: v.facing })),
     nextVehicleId: world.nextVehicleId,
@@ -412,8 +420,10 @@ function restoreColonist(s: SavedColonist): Colonist {
           slaves: (s.trader.slaves ?? []).map(restoreColonist),
           leaveAt: num(s.trader.leaveAt, 0),
           leaving: !!s.trader.leaving,
+          ...(s.trader.traded ? { traded: true } : {}),
         }
       : undefined,
+    ...(typeof s.faction === 'string' && factionDef(s.faction) ? { faction: s.faction } : {}),
     needs: {
       food: Math.max(0, Math.min(1, num(s.needs?.food, 0.8))),
       water: Math.max(0, Math.min(1, num(s.needs?.water, 0.85))),
@@ -545,6 +555,7 @@ export function loadWorld(input: string | unknown): World {
   // no tarda más que la espera nueva más larga.
   world.schedule.nextWanderer = Math.min(world.schedule.nextWanderer, world.tick + Math.round(WANDERER_GAP[1] * TICKS_PER_DAY));
   const ids = [...world.colonists, ...world.others, ...world.others.flatMap((o) => o.trader?.slaves ?? []), ...(world.offer ? [world.offer.pawn] : [])].map((c) => c.id);
+  world.factions = restoreFactions(d.factions, world.map.seed);
   world.eventsEnabled = d.events !== false;
   world.bringHomeStranded(); // #12: supervivientes que se quedaron en la esquina (0, 0)
   world.difficulty = makeDifficulty(d.difficulty);

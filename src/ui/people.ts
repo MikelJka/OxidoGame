@@ -15,6 +15,8 @@ import { RESEARCH, RESEARCH_BENCH, researchDef } from '../data/research';
 import { BUILDINGS, buildingDef } from '../data/buildings';
 import { RECIPES } from '../data/recipes';
 import { canResearch, isResearched, researchFraction, unlockedBy } from '../sim/research';
+import { factionDef, RELATION } from '../data/factions';
+import { relationLevel, RELATION_LEVEL_NAMES } from '../sim/factions';
 
 export interface PeopleUI {
   /** Abre la pestaña de una persona tocada en el mapa (prisionero o comerciante). */
@@ -29,7 +31,7 @@ interface Options {
   focus: (x: number, y: number) => void;
 }
 
-type Tab = 'diario' | 'prisioneros' | 'comercio' | 'investigacion';
+type Tab = 'diario' | 'prisioneros' | 'comercio' | 'investigacion' | 'facciones';
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] => {
   const e = document.createElement(tag);
@@ -209,6 +211,26 @@ export function mountPeople(opts: Options): PeopleUI {
     return out;
   }
 
+  // --- Facciones ---------------------------------------------------------------------
+  function renderFactions(w: World): HTMLElement[] {
+    const out: HTMLElement[] = [];
+    out.push(el('p', 'muted', `La relación va de ${RELATION.min} a ${RELATION.max}. Sube al comerciar con sus caravanas (+${RELATION.tradeCaravan}), al darles de más en un trato (+1 cada ${RELATION.giftValuePerPoint} chapas) y al liberar a sus prisioneros (+${RELATION.releasePrisoner}); baja al matar o retener a los suyos (${RELATION.killOrHold}). Con ${RELATION.ally} o más, alianza; con ${RELATION.war} o menos, guerra.`));
+    for (const f of w.factions) {
+      const def = factionDef(f.id);
+      if (!def) continue;
+      const level = relationLevel(f.relation);
+      const card = el('div', 'pp-card');
+      const head = el('div', 'pp-head');
+      head.append(el('strong', undefined, `${def.icon} ${def.name}`), el('span', 'muted', `${RELATION_LEVEL_NAMES[level]} · ${f.relation > 0 ? '+' : ''}${f.relation}`));
+      const row = el('div', 'need');
+      const color = level === 'guerra' || level === 'hostil' ? '#c05040' : level === 'neutral' ? '#b0a070' : '#6aa060';
+      row.append(el('span', undefined, 'Relación'), bar((f.relation - RELATION.min) / (RELATION.max - RELATION.min), color), el('span', 'num', String(f.relation)));
+      card.append(head, el('div', 'muted', `Asentamiento: ${f.settlement}`), el('div', undefined, def.description), row);
+      out.push(card);
+    }
+    return out;
+  }
+
   // --- Prisioneros -------------------------------------------------------------------
   function renderPrisoners(w: World): HTMLElement[] {
     const list = w.others.filter((o) => o.role === 'prisionero');
@@ -380,6 +402,7 @@ export function mountPeople(opts: Options): PeopleUI {
       tab, logFilter, w.research.current, w.log.length, w.log[w.log.length - 1]?.tick, trader, w.colonists.length, w.day,
       prisoners.map((p) => `${p.id}:${p.prisoner!.mode}:${Math.round(p.prisoner!.resistance * 100)}:${Math.round(p.needs.food * 20)}:${Math.round(p.needs.water * 20)}:${Math.round(p.health * 20)}`).join(','),
       tab === 'comercio' ? `${JSON.stringify(w.inventory())}:${Math.floor(w.tick / TICKS_PER_HOUR)}` : '',
+      tab === 'facciones' ? w.factions.map((f) => f.relation).join(',') : '',
       tab === 'investigacion' ? `${w.research.current}:${w.research.done.join(',')}:${w.research.current ? Math.floor(researchFraction(w.research, w.research.current) * 100) : ''}:${w.structures.stations().length}:${w.colonists.map((c) => c.priorities.investigar).join('')}` : '',
     ].join('|');
     if (key === lastKey) return;
@@ -390,6 +413,7 @@ export function mountPeople(opts: Options): PeopleUI {
       ['prisioneros', '⛓', 'Prisioneros', prisoners.length || ''],
       ['comercio', '🐫', 'Comercio', trader ? '!' : ''],
       ['investigacion', '🔬', 'Investigación', w.research.current ? '' : w.structures.stations().some((s) => s.def.id === RESEARCH_BENCH) ? '!' : ''],
+      ['facciones', '🏳', 'Facciones', ''],
     ];
     tabs.replaceChildren(...TABS.map(([t, icon, label, badge]) => {
       const b = button('', () => setTab(t), label);
@@ -401,7 +425,7 @@ export function mountPeople(opts: Options): PeopleUI {
       return b;
     }));
     foot.hidden = true;
-    body.replaceChildren(...(tab === 'diario' ? renderLog(w) : tab === 'prisioneros' ? renderPrisoners(w) : tab === 'investigacion' ? renderResearch(w) : renderTrade(w)));
+    body.replaceChildren(...(tab === 'diario' ? renderLog(w) : tab === 'prisioneros' ? renderPrisoners(w) : tab === 'investigacion' ? renderResearch(w) : tab === 'facciones' ? renderFactions(w) : renderTrade(w)));
   }
 
   // --- Superviviente que pide unirse ---------------------------------------------------

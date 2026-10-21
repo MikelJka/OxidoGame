@@ -143,6 +143,8 @@ export interface Colonist {
   creature?: CreatureId;
   /** Comerciante: lo que vende, a quién vende y cuándo se va. */
   trader?: TraderInfo;
+  /** Facción a la que pertenece (id de `factions.json`): saqueadores y caravanas. */
+  faction?: string;
   /** Ticks hasta poder volver a golpear. */
   attackCooldown?: number;
   /** Lo lleva a cuestas un colono (id): se mueve con él. */
@@ -217,6 +219,8 @@ export interface TraderInfo {
   /** Tick en que se marcha. */
   leaveAt: number;
   leaving: boolean;
+  /** Ya se ha hecho algún trato con esta caravana (sube la relación una vez). */
+  traded?: boolean;
 }
 
 export type PawnRole = 'colono' | 'saqueador' | 'prisionero' | 'comerciante';

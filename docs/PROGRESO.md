@@ -2,6 +2,23 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (32) — Fase 6: las facciones y su relación con la colonia
+
+- **Fase 5 cerrada** por decisión de Mikel (2026-10-21, opciones A + B + D). Lo que quedaba espera a otros bloques: la Sastrería y la Calefacción van con las estaciones, las Rutas comerciales con el mercado y el lanzallamas con el fuego. Empieza la **fase 6** por las **facciones** (bloque 7), por partes.
+- Primera parte: en cada partida hay tres facciones, cada una con un **asentamiento de nombre al azar** (sale siempre el mismo con la misma semilla):
+  - 🐫 **Chatarreros**: empiezan con relación 20 y traen las caravanas.
+  - 🌾 **Granjeros del valle**: empiezan con 0.
+  - ☠ **Hijos del Óxido**: empiezan con −60 y son los saqueadores de los raids.
+- La relación va de −100 a 100.
+  - **Sube** al comerciar con una caravana (+2 la primera vez), al darle de más en un trato (cuenta como **regalo**: +1 cada 20 chapas) y al **liberar** a un prisionero suyo cuando sale del mapa (+15).
+  - **Baja** al **matar** a uno de los suyos o al **capturarlo** (−10).
+  - Con 60 o más hay alianza y con −50 o menos, guerra; al cambiar de nivel sale en el diario.
+- Pestaña nueva **📜 → 🏳 Facciones** con cada facción, su asentamiento y su barra de relación. En el móvil, las pestañas de 📜 enseñan solo el icono, salvo la abierta.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): el regalo es lo que se da de más en un trato con una caravana (o un trato en el que solo se da); «retener» cuenta al capturar.
+- Qué probar: abrir 📜 → 🏳 Facciones; comerciar con una caravana y ver que los Chatarreros suben 2; regalarles algo sin pedir nada; capturar o liberar a un saqueador y mirar a los Hijos del Óxido.
+- Sin npm en el entorno: tests con Bun (597, 6 nuevos en `tests/factions.test.ts`) y tipos con `tsc`; la prueba de humo pasa también por la pestaña nueva. La prueba completa, en GitHub Actions.
+- Siguiente: la alianza (con 60 o más mandan 2–4 combatientes si te atacan, una vez cada 10 días).
+
 ## 2026-10-21 (31) — Saqueadores que llegan en balsa por el río
 
 - Con las reglas que eligió Mikel: desde el **día 15**, en **1 de cada 2 raids**, si el río deja remar hasta **15 casillas o menos** de la colonia, parte del grupo llega en **🛶 balsa**. Va **1 balsa por cada 3 saqueadores**, con 2 dentro: uno rema y el otro dispara.

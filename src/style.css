@@ -484,7 +484,8 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 .pp-tabs { padding-bottom: 8px; border-bottom: 1px solid var(--border); }
 .pp-tabs button { flex: 1 1 auto; min-width: 0; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 13px; padding: 4px 6px; }
 .pp-tabs .tab-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-@media (max-width: 420px) { .pp-tabs button { font-size: 12px; } .pp-tabs .tab-icon { display: none; } }
+/* Con cinco pestañas, en pantallas estrechas solo caben los iconos (el nombre sale al pasar o en la de la pestaña activa). */
+@media (max-width: 420px) { .pp-tabs button { font-size: 12px; } .pp-tabs button:not(.active) .tab-label { display: none; } .pp-tabs .tab-icon { font-size: 16px; } }
 .pp-card .need { grid-template-columns: 84px 1fr 28px; }
 .pp-tabs .badge { flex: none; display: inline-block; min-width: 18px; margin-left: 4px; padding: 0 5px; border-radius: 9px; background: #6a2c1a; color: var(--text); font-size: 11px; line-height: 18px; }
 #pp-body { font-size: 13px; gap: 6px; }
