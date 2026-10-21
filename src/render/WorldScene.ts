@@ -24,6 +24,7 @@ import { drawBuilding, faceHeight, wallHeight } from './buildArt';
 import { paintVehicle, VEHICLE_H, VEHICLE_W } from './vehicleArt';
 import { defOf, occupant, Vehicle } from '../sim/vehicles';
 import { CHAR, CHAR_POSES, charKey, paintCharSheet } from './charArt';
+import { BEAST, BEAST_POSES, hasBeastArt, paintBeastSheet } from './creatureArt';
 import { isTallProp, paintPropAtlas, PROP_BASE, PROP_H, PROP_VARIANTS, PROP_W, propFrame, propVariant, TALL_PROPS } from './propArt';
 import { colonistLookKey, COLONIST_SIZE, CROP_SIZE, ITEM_H, ITEM_W, paintColonist, paintCorpse, paintCrop, paintItem } from './spriteArt';
 import { rotOf } from '../sim/corpses';
@@ -1100,10 +1101,11 @@ export class WorldScene extends Phaser.Scene {
   /** Sprite de una persona (colono, saqueador, prisionero, comerciante); lo crea o cambia si hace falta. */
   private ensureSprite(c: Colonist): Phaser.GameObjects.Image {
     // Las personas: tira de fotogramas a doble resolución (se dibujan a la mitad). Las criaturas, como antes.
-    const human = !c.creature;
-    const key = human ? charKey(c) : `colonist-${this.map.seed}-${colonistLookKey(c)}`;
+    const human = !c.creature || hasBeastArt(c.creature);
+    const key = !c.creature ? charKey(c) : hasBeastArt(c.creature) ? `beast2x-${c.creature}` : `colonist-${this.map.seed}-${colonistLookKey(c)}`;
     if (!this.textures.exists(key)) {
-      if (human) drawCharSheet(this, key, c);
+      if (!c.creature) drawCharSheet(this, key, c);
+      else if (hasBeastArt(c.creature)) drawBeastSheet(this, key, c.creature);
       else drawColonistTexture(this, key, c);
     }
     let img = this.sprites.get(c.id);
@@ -1139,14 +1141,14 @@ export class WorldScene extends Phaser.Scene {
       const walking = c.path.length > 0 && this.world.speed > 0;
       const working = c.activity === 'working' && this.world.speed > 0;
       // Al trabajar, golpes cortos (hacha, pico o palanca); al andar, el paso.
-      const human = !c.creature;
+      const human = !c.creature || hasBeastArt(c.creature);
       const lying = c.activity === 'sleeping' || c.downed || c.carriedBy !== undefined;
       // Las personas se animan con sus fotogramas; las criaturas, con un saltito.
       const bob = human ? 0 : walking ? Math.abs(Math.sin(t / 90 + c.id)) * -1.5 : working ? -Math.max(0, Math.sin(t / 70 + c.id)) * 2 : 0;
       if (human) {
         const frame = lying ? 'down'
           : walking ? `walk${Math.floor(t / 140 + c.id) % 4}`
-          : working ? `${c.drafted || c.role === 'saqueador' ? 'hit' : 'work'}${Math.floor(t / 260 + c.id) % 2}`
+          : working ? `${c.drafted || c.role === 'saqueador' || c.creature ? 'hit' : 'work'}${Math.floor(t / 260 + c.id) % 2}`
           : `idle${Math.floor(t / 800 + c.id) % 2}`;
         if (img.frame.name !== frame) img.setFrame(frame);
       }
@@ -2162,6 +2164,15 @@ function drawCharSheet(scene: Phaser.Scene, key: string, c: Colonist): void {
   if (!tex) return;
   paintCharSheet(tex.getContext(), c);
   CHAR_POSES.forEach((pose, i) => tex.add(pose, 0, i * CHAR, 0, CHAR, CHAR));
+  tex.refresh();
+}
+
+/** Tira de fotogramas de una criatura (`creatureArt.ts`). */
+function drawBeastSheet(scene: Phaser.Scene, key: string, id: NonNullable<Colonist['creature']>): void {
+  const tex = scene.textures.createCanvas(key, BEAST * BEAST_POSES.length, BEAST);
+  if (!tex) return;
+  paintBeastSheet(tex.getContext(), id);
+  BEAST_POSES.forEach((pose, i) => tex.add(pose, 0, i * BEAST, 0, BEAST, BEAST));
   tex.refresh();
 }
 
