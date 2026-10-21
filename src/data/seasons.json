@@ -1,0 +1,12 @@
+{
+  "_": "Bloque 11 del catálogo (aprobado por Mikel el 2026-10-18): estaciones de 10 días; en invierno no crece nada al aire libre y de noche hace frío: sin estar en una habitación con estufa o sin abrigo, −10 % de ánimo y riesgo de hipotermia. Cuándo empieza la hipotermia y lo que quita los ha puesto la sesión del 2026-10-21.",
+  "daysPerSeason": 10,
+  "seasons": [
+    { "id": "primavera", "name": "Primavera", "icon": "🌸" },
+    { "id": "verano", "name": "Verano", "icon": "☀️" },
+    { "id": "otono", "name": "Otoño", "icon": "🍂" },
+    { "id": "invierno", "name": "Invierno", "icon": "❄️" }
+  ],
+  "cold": { "mood": -0.1, "text": "Pasa frío" },
+  "hypothermia": { "afterHours": 4, "healthPerHour": 0.03, "floor": 0.15, "mood": -0.1, "text": "Hipotermia" }
+}

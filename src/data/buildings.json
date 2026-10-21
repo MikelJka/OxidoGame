@@ -1080,6 +1080,31 @@
     }
   },
   {
+    "id": "estufa",
+    "name": "Estufa",
+    "category": "mueble",
+    "research": "calefaccion",
+    "cost": {
+      "piedra": 10,
+      "chatarra": 6
+    },
+    "work": 300,
+    "hp": 120,
+    "blocks": true,
+    "height": 1,
+    "fuel": {
+      "resource": "madera",
+      "hoursPerUnit": 3,
+      "capacity": 10
+    },
+    "heater": true,
+    "colors": {
+      "top": "#6a6460",
+      "face": "#4a4440",
+      "dark": "#2a2420"
+    }
+  },
+  {
     "id": "cocina",
     "movable": true,
     "name": "Cocina",

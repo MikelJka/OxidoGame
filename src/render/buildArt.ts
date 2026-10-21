@@ -508,6 +508,16 @@ function drawFlat(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number,
     }
     return;
   }
+  if (def.id === 'estufa') {
+    // Estufa: caja de piedra con la boca del fuego y el tubo de chapa.
+    px(2, 2, tile - 4, tileH - 3, '#1a1410');
+    px(3, 3, tile - 6, tileH - 5, top);
+    px(4, tileH - 6, tile - 8, 3, '#2a1a10');
+    px(5, tileH - 5, tile - 10, 1, '#e67e22');
+    px(tile - 6, 0, 2, 5, '#8a9096');
+    px(tile - 6, 0, 2, 1, '#5a6066');
+    return;
+  }
   if (def.id === 'hoguera') {
     // Hoguera: un corro de piedras con dos troncos cruzados y brasas en medio.
     const cx = Math.floor(tile / 2);

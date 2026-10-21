@@ -40,6 +40,7 @@ export const RESOURCE_VALUES: Record<ResourceId, number> = {
   combustible: 6,
   hierba: 3,
   pescado: 2,
+  abrigo: 18,
 };
 
 /** Valor de una persona en venta (un esclavo) según sus habilidades. */

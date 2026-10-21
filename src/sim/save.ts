@@ -157,6 +157,7 @@ interface SavedColonist {
   grenadeReadyAt?: number;
   vest?: string | null;
   helmet?: string | null;
+  coat?: boolean;
   armorChoice?: string;
   panic?: { until: number };
   stunnedUntil?: number;
@@ -212,6 +213,7 @@ function savePawn(c: Colonist): SavedColonist {
     ...(c.grenadeReadyAt ? { grenadeReadyAt: c.grenadeReadyAt } : {}),
     vest: c.vest,
     helmet: c.helmet,
+    ...(c.coat ? { coat: true } : {}),
     armorChoice: c.armorChoice,
     panic: c.panic ? { ...c.panic } : undefined,
     stunnedUntil: c.stunnedUntil,
@@ -500,6 +502,7 @@ function restoreColonist(s: SavedColonist): Colonist {
     // Partidas de antes de las armaduras: sin nada puesto, eligiendo sola la mejor.
     vest: typeof s.vest === 'string' && isArmor(s.vest) && ARMORS[s.vest].slot === 'chaleco' ? s.vest : null,
     helmet: typeof s.helmet === 'string' && isArmor(s.helmet) && ARMORS[s.helmet].slot === 'casco' ? s.helmet : null,
+    ...(s.coat ? { coat: true } : {}),
     armorChoice: s.armorChoice === 'ninguna' ? 'ninguna' : 'auto',
     // Partidas de antes del pánico: nadie en pánico (al cargar, sin camino: se queda quieto hasta que se le pasa).
     ...(s.panic && typeof s.panic === 'object' ? { panic: { until: num(s.panic.until, 0) } } : {}),

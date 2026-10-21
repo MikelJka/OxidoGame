@@ -1,7 +1,7 @@
 /** Recursos de la colonia y trabajos para obtenerlos del mapa. Ampliar aquí, no en la lógica. */
 import type { Skill } from './colonists';
 
-export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra', 'metal', 'hormigon', 'comida', 'palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'ballesta', 'lanza_metal', 'flechas', 'pistola', 'escopeta', 'rifle', 'subfusil', 'francotirador', 'balas', 'granadas', 'chaleco_cuero', 'chaleco_chapa', 'chaleco_metal', 'chaleco_tactico', 'casco_chapa', 'casco_metal', 'casco_tactico', 'medicina', 'combustible', 'hierba', 'pescado'] as const;
+export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra', 'metal', 'hormigon', 'comida', 'palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'ballesta', 'lanza_metal', 'flechas', 'pistola', 'escopeta', 'rifle', 'subfusil', 'francotirador', 'balas', 'granadas', 'chaleco_cuero', 'chaleco_chapa', 'chaleco_metal', 'chaleco_tactico', 'casco_chapa', 'casco_metal', 'casco_tactico', 'medicina', 'combustible', 'hierba', 'pescado', 'abrigo'] as const;
 
 export type ResourceId = (typeof RESOURCES)[number];
 
@@ -44,6 +44,7 @@ export const RESOURCE_NAMES: Record<ResourceId, string> = {
   combustible: 'Combustible',
   hierba: 'Hierba curativa',
   pescado: 'Pescado',
+  abrigo: 'Abrigo',
 };
 
 /** Recursos que se muestran siempre en el inventario (los demás, solo si hay). */
@@ -93,6 +94,7 @@ export const RESOURCE_ICONS: Record<ResourceId, string> = {
   combustible: '⛽',
   hierba: '🌿',
   pescado: '🐟',
+  abrigo: '🧥',
 };
 
 /** Tipo de trabajo con el que se aprovecha un objeto del mapa. */
@@ -163,6 +165,7 @@ export const MAX_STACK: Record<ResourceId, number> = {
   combustible: 50,
   hierba: 75,
   pescado: 75,
+  abrigo: 10,
 };
 
 /** Provisiones con las que llega la colonia: se dejan en el suelo junto al punto de inicio. */

@@ -2,6 +2,8 @@
 // Funciones puras (sin azar): la decisión de ir a comer o a dormir la toma `World`.
 import { FOOD_RESOURCES, RAW_FOOD, ResourceId } from '../data/resources';
 import { ROOMS } from '../data/roomRules';
+import { SEASONS } from '../data/seasons';
+import { TICKS_PER_HOUR as TICKS_PER_HOUR_NEEDS } from './time';
 import type { Colonist } from './colonist';
 import { INFECTION } from '../data/medicine';
 import { FINISH_MOOD } from '../data/morale';
@@ -60,6 +62,9 @@ export interface Needs {
   sawCorpseUntil?: number;
   /** Estuvo de noche junto a una hoguera encendida: el ánimo de más le dura hasta este tick. */
   fireUntil?: number;
+  /** Pasa frío ahora (invierno, de noche, sin abrigo ni estufa) y cuánto lleva así (ticks). */
+  cold?: boolean;
+  coldTicks?: number;
   /** Está en una habitación con tejado: su belleza y su limpieza (0–1). No se guarda: se mira cada segundo. */
   room?: { beauty: number; clean: number };
 }
@@ -125,6 +130,11 @@ export function moodOf(c: Colonist, tick = 0): { mood: number; reasons: MoodReas
   else if (n.sleptIn === 'habitacion') reasons.push({ text: 'Durmió en una cama bajo techo', value: 0.08 });
   else if (n.sleptIn === 'cama') reasons.push({ text: 'Durmió en una cama', value: 0.04 });
   if (n.inLight) reasons.push({ text: 'Habitación con luz', value: LIGHT_MOOD });
+  // Frío de invierno y, si dura, hipotermia.
+  if (n.cold) {
+    reasons.push({ text: SEASONS.cold.text, value: SEASONS.cold.mood });
+    if ((n.coldTicks ?? 0) >= SEASONS.hypothermia.afterHours * TICKS_PER_HOUR_NEEDS) reasons.push({ text: SEASONS.hypothermia.text, value: SEASONS.hypothermia.mood });
+  }
   // En una habitación con tejado, su belleza y su limpieza le cambian el ánimo mientras está dentro.
   if (n.room) {
     const M = ROOMS.mood;

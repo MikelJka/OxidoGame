@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (46) — Estaciones, frío, estufa y abrigo
+
+- Bloque 11. **Estaciones de 10 días**: 🌸 primavera, ☀️ verano, 🍂 otoño y ❄️ invierno. El icono sale junto al día, arriba.
+- En **invierno no crece nada al aire libre**; bajo techo, sí.
+- **De noche en invierno hace frío**: quien no está en una **habitación con tejado y una estufa encendida**, ni lleva **abrigo**, «Pasa frío» (−10 % de ánimo). Con **4 horas** seguidas así, **hipotermia**: −10 % más de ánimo y pierde salud cada hora, sin bajar del 15 %. Al entrar en calor se le pasa.
+- **Estufa** (🪨10 🔩6, con «Calefacción», en 🏗 → Muebles): los colonos le llevan leña. Solo la gasta cuando hace frío, 🪵1 cada 3 h.
+- **Abrigo** (🧵10 en el banco de trabajo, con «Sastrería»): cada colono coge uno libre y lo lleva siempre. Si cae, lo suelta.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): que el frío sea solo de noche en invierno, cuándo empieza la hipotermia y cuánto quita, y que la estufa solo gaste leña cuando hace frío.
+- Qué probar: con 🪄 adelantar al día 31 (invierno) y ver de noche quién pasa frío; investigar «Sastrería» y fabricar abrigos; con «Calefacción», una estufa en un cuarto con tejado.
+- Sin npm en el entorno: tests con Bun (642, 4 nuevos en `tests/seasons.test.ts`) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+- Siguiente: la caza (bloque 10) y el ocio (bloque 12).
+
 ## 2026-10-21 (45) — Ocupar las ruinas: una colonia más
 
 - Opción 3A de Mikel. Las **🏚 ruinas** de una base destruida salen en **📜 → 🏳 Facciones** con **Ocupar**: se elige quién va (alguien tiene que quedarse) y salen de viaje.

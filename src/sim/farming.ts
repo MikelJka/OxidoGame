@@ -198,11 +198,13 @@ export class GrowZones {
    * Hace crecer las plantas `ticks` ticks. `daylight` dice si es de día; `ticksPerDay` la duración de un día.
    * De noche solo crecen las que pueden (setas).
    */
-  grow(ticks: number, daylight: boolean, ticksPerDay: number): void {
+  grow(ticks: number, daylight: boolean, ticksPerDay: number, frozen?: (x: number, y: number) => boolean): void {
     // Solo se crece de día: para madurar en `growDays` días hay que contar solo esas horas.
     const dayFraction = 14 / 24;
     for (const [i, p] of this.plants) {
       if (p.growth >= 1) continue;
+      // En invierno, lo que está al aire libre no crece.
+      if (frozen && frozen(i % this.map.width, Math.floor(i / this.map.width))) continue;
       if (!daylight && !p.crop.growsInDark) continue;
       const hours = p.crop.growsInDark ? 1 : dayFraction;
       const f = fertilityAt(this.map, i % this.map.width, Math.floor(i / this.map.width));

@@ -117,6 +117,6 @@ describe('World', () => {
 
   it('el reloj empieza el día 1 a las 7:00', () => {
     const world = new World({ seed: 1 });
-    expect(world.clockLabel()).toBe('Día 1 · 07:00');
+    expect(world.clockLabel()).toBe('Día 1 🌸 · 07:00');
   });
 });

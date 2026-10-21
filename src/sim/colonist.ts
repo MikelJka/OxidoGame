@@ -170,6 +170,8 @@ export interface Colonist {
   /** Chaleco y casco puestos. */
   vest: ArmorId | null;
   helmet: ArmorId | null;
+  /** Lleva abrigo (bloque 11): de noche en invierno no pasa frío. */
+  coat?: boolean;
   /** Armadura: la mejor libre («auto») o ninguna. */
   armorChoice: 'auto' | 'ninguna';
   /** Va a recoger un arma, munición o armadura del suelo o del almacén. */

@@ -18,10 +18,19 @@ export function isLitBonfire(s: Structure): boolean {
  * Cada segundo (`hours` de juego): la leña que han traído pasa al depósito y la que arde se gasta.
  * `powered` queda a true mientras está encendida (lo lee el dibujo y la información de la casilla).
  */
-export function updateBonfires(st: Structures, hours: number): void {
+export function updateBonfires(st: Structures, hours: number, heating = false): void {
   for (const s of st.all()) {
     const f = s.def.fuel;
-    if (!s.def.burnsCorpses || !f || !s.built) continue;
+    if ((!s.def.burnsCorpses && !s.def.heater) || !f || !s.built) continue;
+    // La estufa solo gasta leña cuando hace frío (de noche en invierno); mientras, la guarda.
+    if (s.def.heater && !heating) {
+      if (s.delivered[f.resource]) {
+        s.fuel = Math.min(f.capacity, (s.fuel ?? 0) + (s.delivered[f.resource] ?? 0));
+        delete s.delivered[f.resource];
+      }
+      s.powered = false;
+      continue;
+    }
     if (s.delivered[f.resource]) {
       s.fuel = Math.min(f.capacity, (s.fuel ?? 0) + (s.delivered[f.resource] ?? 0));
       delete s.delivered[f.resource];

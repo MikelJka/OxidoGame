@@ -4,6 +4,8 @@ import { marketDay, MarketState, newMarket } from './market';
 import { ActiveEvent, firstEventTick, runEvents, solarFactor } from './events';
 import { burning, extinguish, threatens, updateFires } from './fire';
 import { checkNewFaction, growBases, placeBases } from './worldmap';
+import { coldNow, isWinter, updateCold } from './seasons';
+import { seasonOf } from '../data/seasons';
 import { BattleInfo, checkBattle, Expedition, Outpost, Ruin, updateExpedition } from './expedition';
 import { factionDef, RELATION } from '../data/factions';
 import { countReachable, GameMap, generateMap, inBounds, isPassable, TRENCH_FLOODED, isWater, Prop, PROP_INFO, Terrain, TERRAIN_INFO, tileMoveCost } from './map';
@@ -377,7 +379,8 @@ export class World implements JobContext {
     // Las plantas crecen a saltos de un segundo (basta y cuesta poco).
     if (this.tick % TICKS_PER_SECOND === 0) {
       const h = this.hour;
-      this.farms.grow(TICKS_PER_SECOND, h >= 6 && h < 20, TICKS_PER_DAY);
+      // En invierno no crece nada al aire libre (bajo techo, sí).
+      this.farms.grow(TICKS_PER_SECOND, h >= 6 && h < 20, TICKS_PER_DAY, isWinter(this) ? (x, y) => !roofed(this, x, y) : undefined);
     }
     // Salud: cada segundo (hambre, sed, heridas y recuperación).
     if (this.tick % TICKS_PER_SECOND === 0) {
@@ -411,7 +414,7 @@ export class World implements JobContext {
     // Electricidad: cada segundo se reparte la corriente y se encienden o apagan las lámparas.
     if (this.tick % TICKS_PER_SECOND === 0) {
       this.powerNets = updatePower(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR, { hour: this.hour, wind: this.wind, batteryMultiplier: batteryMultiplier(this.research), solar: solarFactor(this) });
-      updateBonfires(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR);
+      updateBonfires(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR, coldNow(this));
       this.lit = litTiles(this.structures);
       // Puertas automáticas: con corriente, se cierran a los saqueadores mientras dura el raid.
       const raid = this.others.some((o) => o.role === 'saqueador' && !o.downed && !o.raider?.fleeing);
@@ -428,6 +431,7 @@ export class World implements JobContext {
         const on = night && (c.activity === 'sleeping' || c.activity === 'working') && this.lit.has(c.tile.y * this.map.width + c.tile.x);
         if (on) c.needs.inLight = true;
         else delete c.needs.inLight;
+        // (El frío, más abajo, para todos a la vez.)
         // Dentro de una habitación con tejado: su belleza y su limpieza le cambian el ánimo.
         // (Si se ha abierto alguna, aquí se cae su tejado.)
         roofRooms(this);
@@ -436,6 +440,8 @@ export class World implements JobContext {
         else delete c.needs.room;
       }
     }
+    // Frío de invierno: quien no está a cubierto con estufa ni lleva abrigo lo pasa mal.
+    if (this.tick % TICKS_PER_SECOND === 0 && this.needsEnabled) updateCold(this, TICKS_PER_SECOND);
     // Zonas por despejar: lo que ya está libre se suma a su almacén o huerto.
     if (this.tick % TICKS_PER_SECOND === 0 && this.clearing.count > 0) this.updateClearing();
     for (const c of this.colonists) this.updateColonist(c);
@@ -776,7 +782,7 @@ export class World implements JobContext {
     const m = Math.floor((this.hour - h) * 60);
     // Con una tormenta de polvo (o lo que dure), su icono al lado de la hora.
     const sky = this.weather.some((e) => e.id === 'tormenta_polvo' && this.tick < e.until) ? ' · 🌪' : '';
-    return `Día ${this.day} · ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}${sky}`;
+    return `Día ${this.day} ${seasonOf(this.day).icon} · ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}${sky}`;
   }
 
   /** Deja las provisiones iniciales junto al punto de inicio (sin azar: no cambia el resto de la partida). */
@@ -913,6 +919,8 @@ export class World implements JobContext {
     if (ammo && c.ammo < AMMO_LOW && inv[ammo] > 0) return ammo;
     // Granadas: lleva 2 aparte de su arma (no quien va desarmado; eso ya ha salido arriba).
     if (grenadesOf(c) < GRENADE.carry && inv.granadas > 0) return 'granadas';
+    // Abrigo (bloque 11): si hay alguno libre, lo coge y ya lo lleva siempre.
+    if (!c.coat && inv.abrigo > 0) return 'abrigo';
     // Armadura: el chaleco y el casco que más protegen de los que hay libres.
     if (c.armorChoice === 'auto') {
       for (const slot of ['chaleco', 'casco'] as const) {
@@ -990,6 +998,10 @@ export class World implements JobContext {
       if (t.resource === 'granadas') {
         const got = this.items.at(t.x, t.y)?.resource === 'granadas' ? this.items.take(t.x, t.y, GRENADE.carry - grenadesOf(c)) : null;
         if (got) c.grenades = grenadesOf(c) + got.amount;
+        return;
+      }
+      if (t.resource === 'abrigo') {
+        if (!c.coat && this.items.at(t.x, t.y)?.resource === 'abrigo' && this.items.take(t.x, t.y, 1)) c.coat = true;
         return;
       }
       if (isAmmo(t.resource)) {

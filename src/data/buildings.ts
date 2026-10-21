@@ -125,6 +125,11 @@ export interface BuildingDef {
    */
   burnsCorpses?: boolean;
   /**
+   * Estufa (bloque 11, aprobado por Mikel): en invierno, de noche, con leña dentro calienta la
+   * habitación con tejado en la que está (gasta su combustible solo entonces).
+   */
+  heater?: boolean;
+  /**
    * Ánimo de estar cerca de noche (hoguera, elegido por Mikel el 2026-10-20): a quien está despierto
    * a `radius` casillas o menos mientras arde le suma `mood`, que le dura `hours` horas tras alejarse.
    */

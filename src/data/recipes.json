@@ -506,5 +506,19 @@
     },
     "work": 900,
     "description": "Un 🐟 cada 2 horas con Supervivencia 0 y cada hora con 20. Crudo alimenta poco y sienta peor: en la cocina, «Pescado asado»."
+  },
+  {
+    "id": "fabricar_abrigo",
+    "name": "Abrigo",
+    "station": "banco_trabajo",
+    "inputs": {
+      "fibra": 10
+    },
+    "outputs": {
+      "abrigo": 1
+    },
+    "work": 400,
+    "research": "sastreria",
+    "description": "Abrigo de fibra: en invierno, de noche, quita el frío aunque se esté fuera. Los colonos cogen uno solos."
   }
 ]

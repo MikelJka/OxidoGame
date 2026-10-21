@@ -1247,6 +1247,8 @@ export function dropGear(w: World, c: Colonist): void {
   c.grenades = 0;
   if (c.vest) w.items.drop(c.tile.x, c.tile.y, c.vest, 1);
   if (c.helmet) w.items.drop(c.tile.x, c.tile.y, c.helmet, 1);
+  if (c.coat) w.items.drop(c.tile.x, c.tile.y, 'abrigo', 1);
+  c.coat = false;
   c.weapon = null;
   c.ammo = 0;
   c.vest = null;
