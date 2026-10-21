@@ -833,3 +833,8 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 /* Construcciones que aún piden investigación (🔒). */
 #build-list button.locked { opacity: 0.55; }
 #sp-recipes .ps-card.locked { opacity: 0.6; }
+
+/* Barra de la batalla (en el mapa de una base): cuántos defensores quedan y «Retirarse». */
+#battle-bar { position: fixed; top: calc(62px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 7; display: flex; gap: 8px; align-items: center; padding: 6px 10px; background: rgba(60, 20, 14, 0.92); border: 1px solid #a04030; border-radius: 8px; color: #f0e0d0; font-size: 13px; max-width: calc(100% - 16px); }
+#battle-bar[hidden] { display: none; }
+#battle-bar button { min-height: 36px; }

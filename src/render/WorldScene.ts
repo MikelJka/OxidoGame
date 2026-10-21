@@ -95,6 +95,8 @@ export interface WorldSceneData {
   events?: boolean;
   /** Dureza y días sin raids (mapa nuevo; por defecto, Normal). */
   difficulty?: Difficulty;
+  /** Un mundo ya hecho (el mapa de una batalla, o la colonia al volver de ella). */
+  world?: World;
 }
 
 /** Punto continuo de la vista (en casillas). */
@@ -202,7 +204,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   create(data: WorldSceneData): void {
-    this.world = data.save ? loadOrNew(data.save, data.seed, this.game) : new World({ seed: data.seed, colonists: data.colonists, events: data.events, difficulty: data.difficulty });
+    this.world = data.world ?? (data.save ? loadOrNew(data.save, data.seed, this.game) : new World({ seed: data.seed, colonists: data.colonists, events: data.events, difficulty: data.difficulty }));
     this.map = this.world.map;
     this.selectedId = null;
     this.sprites.clear();

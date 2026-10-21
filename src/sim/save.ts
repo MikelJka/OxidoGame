@@ -24,6 +24,7 @@ import { restoreMarket } from './market';
 import { restoreWeather } from './events';
 import { restoreFires } from './fire';
 import { restoreRoofs } from './roofs';
+import { cleanLoot } from './expedition';
 import { GRENADE, isWeapon } from '../data/weapons';
 import { ARMORS, isArmor } from '../data/armor';
 
@@ -87,6 +88,9 @@ export interface SaveData {
   burnt?: [number, number][];
   /** Casillas con tejado (desde el 2026-10-21). */
   roofs?: number[];
+  /** Bases destruidas y expedición fuera (desde el 2026-10-21). */
+  ruins?: { faction: string; name: string; x: number; y: number; day: number }[];
+  expedition?: { faction: string; members: SavedColonist[]; phase: string; arriveAt: number; loot: Record<string, number>; result?: string };
   nextEvent?: number;
   /** Tributo pedido y sin responder (desde el 2026-10-21). */
   tribute?: { faction: string; demand: Record<string, number>; value: number; until: number };
@@ -231,6 +235,8 @@ function base64ToBytes(b64: string): Uint8Array {
 // --- Guardar --------------------------------------------------------------------
 
 export function serializeWorld(world: World, gameVersion?: string): SaveData {
+  // En un mapa de batalla se guarda la colonia (la batalla no se guarda: al cargar, la expedición vuelve).
+  if (world.battle) return serializeWorld(world.battle.home, gameVersion);
   const m = world.map;
   const u8: Partial<Record<U8Field, string>> = {};
   for (const f of U8_FIELDS) u8[f] = bytesToBase64(m[f]);
@@ -259,6 +265,8 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     weather: world.weather.map((e) => ({ ...e })),
     ...(world.fires.size ? { fires: [...world.fires] } : {}),
     ...(world.roofs.size ? { roofs: [...world.roofs] } : {}),
+    ...(world.ruins.length ? { ruins: world.ruins.map((r) => ({ ...r })) } : {}),
+    ...(world.expedition ? { expedition: { faction: world.expedition.faction, members: world.expedition.members.map(savePawn), phase: world.expedition.phase, arriveAt: world.expedition.arriveAt, loot: { ...world.expedition.loot }, ...(world.expedition.result ? { result: world.expedition.result } : {}) } } : {}),
     ...(world.burnt.size ? { burnt: [...world.burnt] } : {}),
     ...(world.plague ? { plague: { ...world.plague } } : {}),
     nextEvent: world.nextEvent,
@@ -591,7 +599,21 @@ export function loadWorld(input: string | unknown): World {
   // #21 A: en partidas guardadas con la espera antigua (4-8 días), el próximo superviviente
   // no tarda más que la espera nueva más larga.
   world.schedule.nextWanderer = Math.min(world.schedule.nextWanderer, world.tick + Math.round(WANDERER_GAP[1] * TICKS_PER_DAY));
-  const ids = [...world.colonists, ...world.others, ...world.others.flatMap((o) => o.trader?.slaves ?? []), ...(world.offer ? [world.offer.pawn] : [])].map((c) => c.id);
+  for (const r of d.ruins ?? []) if (r && typeof r.name === 'string') world.ruins.push({ faction: String(r.faction), name: r.name, x: num(r.x, 0), y: num(r.y, 0), day: num(r.day, 1) });
+  if (d.expedition && Array.isArray(d.expedition.members)) {
+    const ex = d.expedition;
+    const members = ex.members.map((m) => ({ ...restoreColonist(m), role: 'colono' as const, drafted: false, job: null, path: [] }));
+    // Si se guardó en mitad de una batalla, vuelven a casa (la batalla no se guarda).
+    const battle = ex.phase === 'batalla';
+    world.expedition = {
+      faction: factionId(String(ex.faction)), members,
+      phase: ex.phase === 'ida' ? 'ida' : 'vuelta',
+      arriveAt: battle ? world.tick + TICKS_PER_DAY : num(ex.arriveAt, world.tick),
+      loot: cleanLoot(ex.loot),
+      ...(ex.result === 'victoria' || ex.result === 'derrota' || ex.result === 'retirada' ? { result: ex.result } : battle ? { result: 'retirada' as const } : {}),
+    };
+  }
+  const ids = [...world.colonists, ...(world.expedition?.members ?? []), ...world.others, ...world.others.flatMap((o) => o.trader?.slaves ?? []), ...(world.offer ? [world.offer.pawn] : [])].map((c) => c.id);
   world.factions = restoreFactions(d.factions, world.map.seed);
   placeBases(world.factions, world.map.seed, world.tick);
   world.market = restoreMarket(d.market);

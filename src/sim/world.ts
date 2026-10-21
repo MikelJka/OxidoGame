@@ -4,6 +4,7 @@ import { marketDay, MarketState, newMarket } from './market';
 import { ActiveEvent, firstEventTick, runEvents, solarFactor } from './events';
 import { burning, extinguish, threatens, updateFires } from './fire';
 import { growBases, placeBases } from './worldmap';
+import { BattleInfo, checkBattle, Expedition, Ruin, updateExpedition } from './expedition';
 import { factionDef, RELATION } from '../data/factions';
 import { countReachable, GameMap, generateMap, inBounds, isPassable, TRENCH_FLOODED, isWater, Prop, PROP_INFO, Terrain, TERRAIN_INFO, tileMoveCost } from './map';
 import { findPath, isWalkable, Point } from './pathfinding';
@@ -228,6 +229,12 @@ export class World implements JobContext {
   readonly fires = new Map<number, number>();
   readonly burnt = new Map<number, number>();
   fireVersion = 0;
+  /** Expedición de colonos fuera (atacando una base), el mapa de batalla que está por abrirse y las ruinas de las bases destruidas. */
+  expedition: Expedition | null = null;
+  pendingBattle: World | null = null;
+  readonly ruins: Ruin[] = [];
+  /** Solo en un mapa de batalla: de qué colonia es y contra quién. */
+  battle?: BattleInfo;
   /** Tejados: casillas bajo techo, versión para el dibujado y habitaciones que se pueden tejar (caché). */
   readonly roofs = new Set<number>();
   roofVersion = 0;
@@ -383,6 +390,10 @@ export class World implements JobContext {
     }
     if (this.eventsEnabled && this.tick % TICKS_PER_HOUR === 0) runStoryteller(this);
     if (this.eventsEnabled && this.tick % TICKS_PER_HOUR === 0) runEvents(this);
+    // La expedición llega a la base o vuelve a casa.
+    if (this.expedition && this.tick % TICKS_PER_HOUR === 0) updateExpedition(this);
+    // En un mapa de batalla: ¿se ha acabado?
+    if (this.battle && this.tick % TICKS_PER_SECOND === 0) checkBattle(this);
     if (this.tick % RESCUE_TICKS === 0) this.rescueTrapped();
     if (this.tick % TICKS_PER_SECOND === 0) this.medicalPriority();
     // Cadáveres: se pudren y a quien los ve cerca le pesa.
@@ -463,7 +474,8 @@ export class World implements JobContext {
       if (i >= 0) this.colonists.splice(i, 1);
       this.graveyard.push({ name: c.name, cause, day: this.day });
       this.addLog(`💀 ${c.name} «${c.nickname}» ha muerto (${cause}).`, 'malo', 'muerte', c.tile);
-      if (this.colonists.length === 0 && !this.gameOver) {
+      // En un mapa de batalla no se acaba la partida: la colonia sigue en casa.
+      if (this.colonists.length === 0 && !this.gameOver && !this.battle) {
         this.gameOver = { day: this.day, cause };
         this.addLog('La colonia ha caído: no queda nadie.', 'malo', 'muerte');
       }
@@ -605,6 +617,19 @@ export class World implements JobContext {
     if (!this.offer) return;
     this.addLog(`${this.offer.pawn.name} sigue su camino.`, 'info');
     this.offer = null;
+  }
+
+  /** Saca a un colono de la colonia sin que muera (se va de expedición). */
+  removeFromColony(c: Colonist): void {
+    const i = this.colonists.indexOf(c);
+    if (i < 0) return;
+    if (c.vehicle) this.leaveVehicle(c);
+    this.dropJob(c);
+    if (c.need) this.endNeed(c);
+    this.colonists.splice(i, 1);
+    this.reservations.releaseAll(c.id);
+    c.drafted = false;
+    c.path = [];
   }
 
   /** Un colono se va de la colonia (el refugiado ya curado que vuelve con los suyos): se marcha andando por un borde. */

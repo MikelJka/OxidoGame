@@ -2,6 +2,22 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (43) — Atacar la base de una facción
+
+- Segunda parte de las bases (opción 1C). En **📜 → 🏳 Facciones**, cada facción tiene **⚔️ Atacar su base**: se elige quién va y se pulsa **Enviar**.
+  - Los elegidos **salen de la colonia** y viajan los días que diga la tarjeta. Atacarles os pone **en guerra** con ellos.
+  - Mientras están fuera, la tarjeta dice cuánto les falta.
+- Al llegar se abre el **mapa de batalla**: la base a la derecha, con **muros** (de madera en una aldea, de piedra en un pueblo y de hormigón en una fortaleza), **torres** según sus defensas, **defensores** armados según el día (tantos como su gente, hasta 18) y su **botín** dentro. Los colonos entran por la izquierda, **reclutados**.
+  - Arriba sale una barra con los defensores que quedan y **🏳 Retirarse**.
+  - Mientras dura la batalla, la colonia de casa se para.
+- **Victoria** (no queda ningún defensor en pie): la facción **desaparece**, quedan sus **🏚 ruinas** en el mapa del mundo y los colonos vuelven con **lo que había en la base**.
+- **Derrota** o **retirada**: vuelven sin botín, con sus heridas. Los que mueren allí van al cementerio de la colonia.
+- Si se guarda la partida en mitad de una batalla, se guarda la colonia; al cargarla, la expedición vuelve a casa como si se hubiera retirado.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): el tamaño del mapa de batalla, cómo es la base según su nivel, el máximo de defensores, el botín (la mitad de su riqueza y algo por habitante) y la guerra al atacar.
+- Qué probar: en 📜 → 🏳 Facciones, «⚔️ Atacar su base» con dos o tres colonos armados, acelerar hasta que lleguen y pelear (o retirarse).
+- Sin npm en el entorno: tests con Bun (636, 4 nuevos en `tests/expedition.test.ts`) y tipos con `tsc`. El cambio de mapa no se ha podido probar en el navegador desde aquí: la prueba completa, en GitHub Actions.
+- Siguiente: ocupar las ruinas como segunda colonia y las facciones nuevas cuando queden menos de 3.
+
 ## 2026-10-21 (42) — Bases de las facciones: el mapa del mundo
 
 - Primera parte de lo que eligió Mikel (1C, 2A+2B, 3A, 4B). En **📜 → 🏳 Facciones** sale un **🗺 mapa del mundo** con vuestra colonia 🏠 en el centro y la **base** de cada facción a unos días de viaje.

@@ -20,6 +20,7 @@ import { healthLabel, infectionLabel } from './sim/health';
 import { downloadWorld, pickSaveFile, readBackupSave, readStoredSave, storeWorld } from './ui/saveGame';
 import { mountCloudSync } from './ui/cloudSync';
 import { parseSave } from './sim/save';
+import { finishBattle, retreat } from './sim/expedition';
 import { reachableResources } from './sim/resources';
 import { BASE_RESOURCES, HarvestJob, RESOURCE_ICONS, RESOURCE_NAMES, RESOURCES } from './data/resources';
 import { isWeapon, WEAPON_IDS, WEAPONS } from './data/weapons';
@@ -106,7 +107,50 @@ speedButtons.forEach((b) =>
 game.events.on('clock', (label: string, speed: GameSpeed) => {
   clock.textContent = speed === 0 ? `${label} · en pausa` : label;
   speedButtons.forEach((b) => b.classList.toggle('active', Number(b.dataset.speed) === speed));
+  checkBattleSwitch();
 });
+
+// --- Batallas en las bases de las facciones ------------------------------------
+// Al llegar una expedición se abre el mapa de batalla; al acabar se vuelve a la colonia.
+const battleBar = document.createElement('div');
+battleBar.id = 'battle-bar';
+battleBar.hidden = true;
+const battleText = document.createElement('span');
+const retreatBtn = document.createElement('button');
+retreatBtn.type = 'button';
+retreatBtn.textContent = '🏳 Retirarse';
+retreatBtn.title = 'Volver a casa con los heridos (sin botín)';
+retreatBtn.addEventListener('click', () => {
+  const w = scene().world;
+  if (w.battle) retreat(w);
+});
+battleBar.append(battleText, retreatBtn);
+document.body.append(battleBar);
+
+function checkBattleSwitch(): void {
+  const sc = scene();
+  const w = sc.world;
+  if (!w) return;
+  if (!w.battle && w.pendingBattle) {
+    const b = w.pendingBattle;
+    w.pendingBattle = null;
+    sc.scene.restart({ seed: b.map.seed, world: b });
+    showToast('⚔️ ¡Empieza la batalla!', 2500);
+    return;
+  }
+  if (w.battle) {
+    const foes = w.others.filter((o) => o.role === 'saqueador' && !o.downed && !o.raider?.fleeing).length;
+    battleText.textContent = `⚔️ Batalla · quedan ${foes} defensores`;
+    battleBar.hidden = false;
+    if (w.battle.result) {
+      const r = w.battle.result;
+      const home = finishBattle(w);
+      battleBar.hidden = true;
+      sc.scene.restart({ seed: home.map.seed, world: home });
+      showToast(r === 'victoria' ? '🏚 ¡Victoria! La base ha caído' : r === 'derrota' ? '☠ Derrota: los vuestros vuelven a casa' : '🏳 Os retiráis', 3000);
+    }
+  } else battleBar.hidden = true;
+}
 
 // --- Giro de la vista -------------------------------------------------------
 // --- Vista 3D (en pruebas) ------------------------------------------------------

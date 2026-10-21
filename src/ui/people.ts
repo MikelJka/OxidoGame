@@ -22,6 +22,7 @@ import { marketTrend } from '../sim/market';
 import { relationLevel, RELATION_LEVEL_NAMES } from '../sim/factions';
 import { baseLevel, WORLD_MAP } from '../data/worldmap';
 import { colonyCell, travelDays } from '../sim/worldmap';
+import { expeditionHours, startExpedition } from '../sim/expedition';
 
 export interface PeopleUI {
   /** Abre la pestaña de una persona tocada en el mapa (prisionero o comerciante). */
@@ -218,11 +219,20 @@ export function mountPeople(opts: Options): PeopleUI {
   }
 
   // --- Facciones ---------------------------------------------------------------------
+  /** Colonos elegidos para atacar una base (mientras se eligen). */
+  let attackPick: { faction: string; ids: number[] } | null = null;
   function renderFactions(w: World): HTMLElement[] {
     const out: HTMLElement[] = [];
     out.push(el('p', 'muted', `La relación va de ${RELATION.min} a ${RELATION.max}: con ${RELATION.war} o menos son hostiles (y os mandan sus raids), con ${RELATION.ally} o más, aliados. Sube al comerciar con sus caravanas (+${RELATION.tradeCaravan}), al darles de más en un trato (+1 cada ${RELATION.giftValuePerPoint} chapas), al curar a sus heridos y al liberar a sus prisioneros (+${RELATION.releasePrisoner}); baja al matar o retener a los suyos (${RELATION.killOrHold}). Los Piratas del Óxido son siempre hostiles.`));
     // Mapa del mundo: la colonia en el centro y la base de cada facción.
     out.push(drawWorldMap(w));
+    if (w.expedition) {
+      const e = w.expedition;
+      const def = factionDef(e.faction);
+      const where = w.faction(e.faction)?.settlement ?? def?.name ?? e.faction;
+      out.push(el('p', 'pp-hint', e.phase === 'ida' ? `⚔️ Expedición de camino a ${where} (${e.members.map((c) => c.name).join(', ')}): llega en ${expeditionHours(w)} h.` : e.phase === 'vuelta' ? `🏠 La expedición vuelve de ${where}: llega en ${expeditionHours(w)} h.` : `⚔️ Batalla en ${where}.`));
+    }
+    for (const r of w.ruins) out.push(el('div', 'muted', `🏚 Ruinas de ${r.name} (cayó el día ${r.day}).`));
     // Radio: llamar a una caravana o pedir ayuda a los aliados.
     const radio = el('div', 'pp-card');
     radio.append(el('strong', undefined, '📻 Radio'));
@@ -259,6 +269,40 @@ export function mountPeople(opts: Options): PeopleUI {
       const b = f.base;
       const baseText = b ? `${def.icon} ${f.settlement} · ${baseLevel(b.population).name.toLowerCase()} de ${b.population} habitantes · defensas ${b.defenses} · a ${String(travelDays(b)).replace('.', ',')} días de viaje` : `Asentamiento: ${f.settlement}`;
       card.append(head, el('div', 'muted', baseText), el('div', undefined, def.description), row);
+      // Atacar su base: elegir quién va y mandarlos (bases, segunda parte).
+      if (b && !w.expedition && !w.battle) {
+        if (attackPick?.faction === f.id) {
+          const pick = el('div', 'pp-modes');
+          for (const c of w.colonists.filter((k) => !k.downed)) {
+            const on = attackPick.ids.includes(c.id);
+            const btn = button(`${on ? '☑' : '☐'} ${c.name}`, () => {
+              attackPick!.ids = on ? attackPick!.ids.filter((i) => i !== c.id) : [...attackPick!.ids, c.id];
+              rerender();
+            }, `Combate ${c.skills.combate}`);
+            if (on) btn.classList.add('active');
+            pick.append(btn);
+          }
+          const go = el('div', 'zp-row');
+          go.append(
+            button(`⚔️ Enviar (${attackPick.ids.length})`, () => {
+              const why = startExpedition(w, f.id, attackPick!.ids);
+              opts.toast(why ?? `⚔️ La expedición sale hacia ${f.settlement}`, why ? 3000 : 2500);
+              if (!why) attackPick = null;
+              rerender();
+            }, 'Salen ahora; tras los días de viaje empieza la batalla en su base'),
+            button('✖', () => {
+              attackPick = null;
+              rerender();
+            }, 'Cancelar'),
+          );
+          card.append(el('div', 'pp-hint', `¿Quién va? Llegan en ${String(travelDays(b)).replace('.', ',')} días; allí se pelea en directo. Atacarles os pone en guerra con ellos.`), pick, go);
+        } else {
+          card.append(button('⚔️ Atacar su base', () => {
+            attackPick = { faction: f.id, ids: [] };
+            rerender();
+          }, 'Elegir colonos y mandarlos a atacar'));
+        }
+      }
       out.push(card);
     }
     return out;
@@ -491,7 +535,7 @@ export function mountPeople(opts: Options): PeopleUI {
       tab, logFilter, w.research.current, w.log.length, w.log[w.log.length - 1]?.tick, trader, w.colonists.length, w.day,
       prisoners.map((p) => `${p.id}:${p.prisoner!.mode}:${Math.round(p.prisoner!.resistance * 100)}:${Math.round(p.needs.food * 20)}:${Math.round(p.needs.water * 20)}:${Math.round(p.health * 20)}`).join(','),
       tab === 'comercio' ? `${JSON.stringify(w.inventory())}:${Math.floor(w.tick / TICKS_PER_HOUR)}` : '',
-      tab === 'facciones' ? `${w.factions.map((f) => `${f.relation}:${f.calledAt ?? ''}:${f.helpAt ?? ''}:${f.base?.population ?? ''}:${f.base?.defenses ?? ''}`).join(',')}:${radioProblem(w) ?? ''}` : '',
+      tab === 'facciones' ? `${JSON.stringify(attackPick)}:${w.expedition?.phase ?? ''}:${expeditionHours(w)}:${w.ruins.length}:${w.colonists.length}:${w.factions.map((f) => `${f.relation}:${f.calledAt ?? ''}:${f.helpAt ?? ''}:${f.base?.population ?? ''}:${f.base?.defenses ?? ''}`).join(',')}:${radioProblem(w) ?? ''}` : '',
       tab === 'investigacion' ? `${w.research.current}:${w.research.done.join(',')}:${w.research.current ? Math.floor(researchFraction(w.research, w.research.current) * 100) : ''}:${w.structures.stations().length}:${w.colonists.map((c) => c.priorities.investigar).join('')}` : '',
     ].join('|');
     if (key === lastKey) return;
