@@ -40,7 +40,7 @@ const PROP_ATLAS = 'props-2x';
 const MAX_ZOOM = 4;
 const COLONIST_DEPTH = 10;
 /** Escala a la que se dibujan personas y animales (su arte es a doble resolución). */
-const PAWN_SCALE = 0.6;
+const PAWN_SCALE = 0.72;
 /** Marcas de designación: encima de los montones, debajo de los colonos. */
 const DESIGN_DEPTH = COLONIST_DEPTH - 1.5;
 

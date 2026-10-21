@@ -94,6 +94,8 @@ export function paintGround(map: GameMap, img: { data: Uint8ClampedArray }, rast
   const rng = new Rng(map.seed ^ 0x9e3779b9);
   const warp = new ValueNoise(rng);
   const grain = new ValueNoise(rng);
+  // Manchas grandes del terreno (zonas más secas, más oscuras, más claras) y grietas.
+  const patch = new ValueNoise(rng);
 
   const solid = (k: Terrain) => k === Terrain.Water || k === Terrain.DeepWater || k === Terrain.Rock;
   /** Tipo de suelo que se ve en un píxel, con bordes deformados por ruido. */
@@ -218,6 +220,57 @@ export function paintGround(map: GameMap, img: { data: Uint8ClampedArray }, rast
     }
   }
 
+  /** Detalle del suelo: manchas, tierra seca agrietada, matas de hierba y piedrecitas. */
+  function groundDetail(c: RGB, t: Terrain, pxl: number, py: number, m: number): RGB {
+    const big = patch.fbm(pxl / 56, py / 56, 3, 0.5);
+    const dry = patch.fbm(pxl / 110 + 200, py / 110 + 200, 2, 0.5);
+    const lit = (big - 0.5) * 30;
+    c = [c[0] + lit, c[1] + lit * 0.9, c[2] + lit * 0.7];
+    const soil = t === Terrain.Soil || t === Terrain.Gravel;
+    if (soil) {
+      if (dry > 0.55) c = mix(c, [142, 120, 80], Math.min(0.45, (dry - 0.55) * 2.2));
+      else if (dry < 0.42) c = mix(c, [84, 72, 56], Math.min(0.35, (0.42 - dry) * 2));
+      // Grietas de tierra reseca.
+      if (dry > 0.58 && m < 0.45 && Math.abs(patch.fbm(pxl / 7 + 90, py / 7, 2, 0.5) - 0.5) < 0.009) c = mix(c, [62, 50, 38], 0.5);
+    }
+    if (t === Terrain.Sand) {
+      // Ondas de arena que deja el viento.
+      const wave = Math.sin(py * 0.9 + patch.sample(pxl / 14, py / 14) * 9);
+      if (wave > 0.82) c = mix(c, [188, 168, 128], 0.35);
+      else if (wave < -0.86) c = mix(c, [130, 112, 82], 0.3);
+    }
+    // Matas de hierba (más donde hay humedad): cada celda de 5×4 píxeles puede tener una.
+    if (soil || t === Terrain.Sand) {
+      const cx = Math.floor(pxl / 5);
+      const cy = Math.floor(py / 4);
+      const h = hash01(cx, cy, map.seed + 7);
+      const density = t === Terrain.Sand ? 0.03 : Math.max(0.02, (m - 0.25) * 0.8) * (dry > 0.6 ? 0.4 : 1);
+      if (h < density) {
+        const bx = cx * 5 + 1 + Math.floor(hash01(cx, cy, map.seed + 8) * 3);
+        const ly = cy * 4 + 3 - py;
+        const lx = pxl - bx;
+        const tall = 2 + Math.floor(hash01(cx, cy, map.seed + 9) * 2);
+        const blade = (lx === 0 && ly <= tall) || (Math.abs(lx) === 1 && ly <= tall - 1 - ((lx + cx) & 1));
+        if (blade) {
+          const green = Math.min(1, Math.max(0, (m - 0.3) * 2.5));
+          const base = mix([136, 126, 72], [88, 112, 56], green);
+          return mix(base, [24, 22, 14], ly === 0 ? 0.35 : ly >= tall ? -0.25 : 0);
+        }
+      }
+      // Piedrecitas: luz arriba, sombra abajo.
+      const sx = Math.floor(pxl / 4);
+      const sy = Math.floor(py / 4);
+      const k = hash01(sx, sy, map.seed + 11);
+      if (k < (t === Terrain.Gravel ? 0.3 : 0.05)) {
+        const px0 = sx * 4 + 1 + Math.floor(hash01(sx, sy, map.seed + 12) * 2);
+        const py0 = sy * 4 + 1;
+        if (pxl >= px0 && pxl <= px0 + 1 && py === py0) return mix(c, [182, 172, 156], 0.55);
+        if (pxl >= px0 && pxl <= px0 + 1 && py === py0 + 1) return mix(c, [50, 44, 38], 0.5);
+      }
+    }
+    return c;
+  }
+
   function surfaceColor(pxl: number, py: number): RGB {
     const fx = (pxl + 0.5) / TILE;
     const fy = (py + 0.5) / TILE;
@@ -252,6 +305,7 @@ export function paintGround(map: GameMap, img: { data: Uint8ClampedArray }, rast
         if (groundAt(pxl, py - 3).t !== Terrain.Rock) c = mix(c, [150, 142, 130], 0.55);
         else if (groundAt(pxl, py + 4).t !== Terrain.Rock) c = mix(c, [40, 36, 34], 0.6);
       }
+      if (t !== Terrain.Rock) c = groundDetail(c, t, pxl, py, m);
       c = shadeRelief(map, c, pxl, py, g);
       // Grano del suelo.
       const shade = (g - 0.5) * 18 + (hash01(pxl, py, map.seed) < 0.04 ? -14 : 0);
