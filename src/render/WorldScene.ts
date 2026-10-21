@@ -1774,7 +1774,7 @@ export class WorldScene extends Phaser.Scene {
     for (const img of this.structSprites) img.destroy();
     this.structSprites = [];
     for (const s of st.all()) {
-      const img = this.buildingImage(s.def, st.tilesOf(s), !!s.raised);
+      const img = this.buildingImage(s.def, st.tilesOf(s), !!s.raised, s.def.fence ? this.fenceLinks(s.x, s.y) : 0);
       if (!s.built) img.setAlpha(0.45).setTint(0x8fc0ff); // plano: translúcido y azulado
       else if (s.demolish) img.setTint(0xff8a7a); // marcada para demoler: rojiza
       this.structSprites.push(img);
@@ -1791,15 +1791,29 @@ export class WorldScene extends Phaser.Scene {
   }
 
   /** Imagen de una construcción que ocupa esas casillas reales (vista con el giro actual). */
-  private buildingImage(def: BuildingDef, tiles: { x: number; y: number }[], raised = false): Phaser.GameObjects.Image {
+  /**
+   * Con qué vallas vecinas se une una valla, en la vista: 1 este, 2 oeste, 4 norte (arriba), 8 sur.
+   * Así una hilera de norte a sur se dibuja con los travesaños hacia arriba y abajo.
+   */
+  private fenceLinks(x: number, y: number): number {
+    const v = this.viewTile(x, y);
+    const fence = (vx: number, vy: number) => {
+      if (vx < 0 || vy < 0 || vx >= this.view.width || vy >= this.view.height) return false;
+      const t = tileFromView(vx, vy, this.map.width, this.map.height, this.rotation);
+      return !!this.world.structures.at(t.x, t.y)?.def.fence;
+    };
+    return (fence(v.x + 1, v.y) ? 1 : 0) | (fence(v.x - 1, v.y) ? 2 : 0) | (fence(v.x, v.y - 1) ? 4 : 0) | (fence(v.x, v.y + 1) ? 8 : 0);
+  }
+
+  private buildingImage(def: BuildingDef, tiles: { x: number; y: number }[], raised = false, links = 0): Phaser.GameObjects.Image {
     const unitH = wallHeight(LIFT);
     const vt = tiles.map((t) => this.viewTile(t.x, t.y));
     const vx0 = Math.min(...vt.map((t) => t.x));
     const vy0 = Math.min(...vt.map((t) => t.y));
     const vw = Math.max(...vt.map((t) => t.x)) - vx0 + 1;
     const vh = Math.max(...vt.map((t) => t.y)) - vy0 + 1;
-    const key = `build-${def.id}${raised ? '-alzado' : ''}-${TILE_H}-${unitH}-${vw}x${vh}`;
-    if (!this.textures.exists(key)) drawBuildingTexture(this, key, def, unitH, vw, vh, raised);
+    const key = `build-${def.id}${raised ? '-alzado' : ''}${links ? `-l${links}` : ''}-${TILE_H}-${unitH}-${vw}x${vh}`;
+    if (!this.textures.exists(key)) drawBuildingTexture(this, key, def, unitH, vw, vh, raised, links);
     const top = vy0 * TILE_H - liftOf(this.view, vx0, vy0);
     const img = this.add.image(vx0 * TILE, top - faceHeight(def, LIFT), key).setOrigin(0, 0);
     // Delante de lo que está en su fila y en las de detrás; detrás de lo que está más al sur.
@@ -2057,10 +2071,10 @@ function powerLabel(w: World, s: Structure): string {
   return parts.length ? ` (${parts.join(' · ')})` : '';
 }
 
-function drawBuildingTexture(scene: Phaser.Scene, key: string, def: BuildingDef, unitH: number, vw = 1, vh = 1, raised = false): void {
+function drawBuildingTexture(scene: Phaser.Scene, key: string, def: BuildingDef, unitH: number, vw = 1, vh = 1, raised = false, links = 0): void {
   const tex = scene.textures.createCanvas(key, TILE * vw, TILE_H * vh + unitH * def.height);
   if (!tex) return;
-  drawBuilding(tex.getContext(), def, TILE * vw, TILE_H * vh, unitH, raised);
+  drawBuilding(tex.getContext(), def, TILE * vw, TILE_H * vh, unitH, raised, links);
   tex.refresh();
 }
 

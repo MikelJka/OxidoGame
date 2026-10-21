@@ -17,7 +17,7 @@ export function faceHeight(def: BuildingDef, lift: number): number {
  * Dibuja una construcción. `tile` = ancho, `tileH` = alto de la cara de arriba, `wallH` = alto
  * de un piso de muro (la construcción mide `def.height` pisos).
  */
-export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, unitH: number, raised = false): void {
+export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, unitH: number, raised = false, links = 0): void {
   // Puente levadizo: bajado o alzado.
   if (def.drawbridge) {
     drawDrawbridge(ctx, def, tile, tileH, raised);
@@ -37,7 +37,7 @@ export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, ti
   const outline = '#1a1410';
   const h = tileH + wallH;
   if (def.category === 'granja') {
-    drawFarmBuilding(ctx, def, tile, tileH, wallH);
+    drawFarmBuilding(ctx, def, tile, tileH, wallH, links);
     return;
   }
   px(0, 0, tile, h, outline);
@@ -808,7 +808,7 @@ function drawTurret(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: numbe
  * Granja: valla (postes y dos travesaños, transparente entre medias), puerta de valla (lo mismo con
  * bisagras y una diagonal), poste con su cuerda enrollada y establo (suelo de paja con tejado a dos aguas).
  */
-function drawFarmBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, wallH: number): void {
+function drawFarmBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, wallH: number, links: number): void {
   const { top, face, dark } = def.colors;
   const px = (x: number, y: number, w: number, h: number, color: string) => {
     ctx.fillStyle = color;
@@ -819,24 +819,52 @@ function drawFarmBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, tile:
   const base = h - Math.max(2, Math.round(tileH / 2)); // donde se clavan los postes (mitad de la casilla)
   if (def.fence) {
     const postH = Math.max(5, Math.round(wallH * 0.75));
-    // Sombra en el suelo.
-    px(0, base + 1, tile, 1, 'rgba(0,0,0,0.3)');
-    // Dos postes en los extremos.
-    for (const x of [1, tile - 3]) {
+    const cx = Math.floor(tile / 2) - 1;
+    // Hacia dónde va: de este a oeste (lo normal, y si está sola) o de norte a sur.
+    const horizontal = (links & 3) !== 0 || (links & 12) === 0;
+    const vertical = (links & 12) !== 0;
+    const rails = [base - postH + 2, base - Math.round(postH / 2) + 1];
+    const post = (x: number) => {
       px(x - 1, base - postH - 1, 4, postH + 2, outline);
       px(x, base - postH, 2, postH, face);
       px(x, base - postH, 2, 1, top);
+    };
+    if (horizontal) {
+      px(0, base + 1, tile, 1, 'rgba(0,0,0,0.3)'); // sombra en el suelo
+      // Travesaños de lado a lado (o hasta el centro si solo sigue por un lado).
+      const from = links === 0 || links & 2 || !(links & 1) ? 0 : cx;
+      const to = links === 0 || links & 1 || !(links & 2) ? tile : cx + 2;
+      for (const y of rails) {
+        px(from, y - 1, to - from, 3, outline);
+        px(from, y, to - from, 1, top);
+      }
     }
-    // Travesaños.
-    for (const y of [base - postH + 2, base - Math.round(postH / 2) + 1]) {
-      px(0, y - 1, tile, 3, outline);
-      px(0, y, tile, 1, top);
+    if (vertical) {
+      // De norte a sur: un travesaño que sube (hacia la casilla de atrás) y baja (hacia la de delante).
+      const upTo = links & 4 ? 0 : base - postH;
+      const downTo = links & 8 ? h : base;
+      px(cx - 1, upTo, 4, downTo - upTo, outline);
+      px(cx, upTo, 2, downTo - upTo, top);
     }
+    // Sola, un poste en cada punta; en hilera, uno en el centro (así no salen postes dobles).
+    if (links === 0) {
+      post(1);
+      post(tile - 3);
+    } else post(cx);
     if (def.gate) {
-      // Diagonal y bisagras.
-      for (let k = 0; k < tile - 6; k++) px(3 + k, base - Math.round(((k + 1) * (postH - 3)) / (tile - 6)), 1, 1, dark);
-      px(1, base - postH + 2, 1, 1, '#c9ced4');
-      px(1, base - Math.round(postH / 2) + 1, 1, 1, '#c9ced4');
+      // Bisagras y una diagonal (en las de norte a sur, la hoja en el centro, más clara).
+      if (horizontal) {
+        // La hoja: tablas más claras entre los travesaños, con su diagonal y las bisagras.
+        px(2, rails[0] - 1, tile - 4, rails[1] - rails[0] + 3, outline);
+        px(3, rails[0], tile - 6, rails[1] - rails[0] + 1, lighten(top));
+        for (let k = 0; k < tile - 6; k++) px(3 + k, rails[1] - Math.round((k * (rails[1] - rails[0])) / (tile - 7)), 1, 1, dark);
+        px(2, rails[0], 1, 1, '#c9ced4');
+        px(2, rails[1], 1, 1, '#c9ced4');
+      } else {
+        px(cx - 2, base - postH, 6, postH, face);
+        px(cx - 2, base - postH, 6, 1, top);
+        for (let k = 0; k < postH - 1; k++) px(cx - 2 + Math.round((k * 5) / postH), base - postH + k + 1, 1, 1, dark);
+      }
     }
     return;
   }
