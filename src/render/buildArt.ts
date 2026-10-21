@@ -508,6 +508,40 @@ function drawFlat(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number,
     }
     return;
   }
+  if (def.id === 'mesa' || def.id === 'mesa_juego') {
+    // Mesa: tablero con sus patas; la de juego, con el tapete verde y unas fichas.
+    px(1, 2, tile - 2, tileH - 4, '#1a1410');
+    px(2, 3, tile - 4, tileH - 6, def.id === 'mesa_juego' ? '#3e6a4a' : top);
+    px(2, tileH - 3, 2, 2, dark);
+    px(tile - 4, tileH - 3, 2, 2, dark);
+    if (def.id === 'mesa_juego') {
+      px(5, 5, 2, 2, '#e8e0c8');
+      px(9, 6, 2, 2, '#c04040');
+    }
+    return;
+  }
+  if (def.id === 'silla') {
+    px(5, 4, 6, 6, '#1a1410');
+    px(6, 5, 4, 4, top);
+    px(6, 2, 4, 2, face); // respaldo
+    return;
+  }
+  if (def.id === 'alfombra') {
+    px(1, 2, tile - 2, tileH - 4, dark);
+    px(2, 3, tile - 4, tileH - 6, top);
+    px(4, 5, tile - 8, tileH - 10, '#c8a050');
+    return;
+  }
+  if (def.id === 'cuadro') {
+    // Cuadro apoyado en un caballete.
+    px(4, 1, 8, 8, '#1a1410');
+    px(5, 2, 6, 6, top);
+    px(6, 3, 4, 2, '#5a8ac0');
+    px(6, 5, 4, 2, '#5a9a5a');
+    px(5, 9, 1, 4, face);
+    px(10, 9, 1, 4, face);
+    return;
+  }
   if (def.id === 'estufa') {
     // Estufa: caja de piedra con la boca del fuego y el tubo de chapa.
     px(2, 2, tile - 4, tileH - 3, '#1a1410');

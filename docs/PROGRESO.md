@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (48) — Ocio y calidad de las habitaciones
+
+- Bloque 12. Muebles nuevos en 🏗 → Muebles: **mesa** (🪵8), **silla** (🪵4), **alfombra** (🧵6), **cuadro** (🪵2 🧵2) y **mesa de juego** (🪵15, 2×1).
+- La **calidad** de una habitación con tejado sale de su belleza (suelo, muebles, cada uno con sus puntos, luz), de su **tamaño** (menos de 6 casillas agobia, 16 o más gusta) y de lo tirado. Da de **−5 % a +10 %** de ánimo mientras se está dentro («Habitación fea / normal / bonita»). La limpieza sigue aparte.
+- **Ratos libres**: quien no tiene nada que hacer y pasa junto a una **mesa de juego** o una **hoguera encendida** se distrae. Si lleva medio día sin ninguno, al pasear va solo a una. **Sin ratos libres en 2 días: −8 %** de ánimo.
+- En las partidas guardadas, los 2 días empiezan a contar al cargar.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): los precios de la mesa, la silla, la alfombra y el cuadro, sus puntos de belleza, lo del tamaño y a qué distancia cuenta el rato libre.
+- Qué probar: amueblar un cuarto con tejado y tocarlo para ver su belleza; poner una mesa de juego y mirar el ánimo.
+- Sin npm en el entorno: tests con Bun (649) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+- Con esto queda hecho todo el catálogo aprobado salvo el fuego aparcado (armas incendiarias y explosiones) y la 3D.
+
 ## 2026-10-21 (47) — Animales y caza
 
 - Bloque 10. Cada día llegan por los bordes **🦌 ciervos mutados**, **🐗 jabalíes** y **🐀 ratas gigantes** (8 como mucho). Pasean por el mapa y a los 3 días se van.

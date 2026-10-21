@@ -62,6 +62,8 @@ export interface Needs {
   sawCorpseUntil?: number;
   /** Estuvo de noche junto a una hoguera encendida: el ánimo de más le dura hasta este tick. */
   fireUntil?: number;
+  /** Tick de su último rato libre (en una mesa de juego o junto a una hoguera). */
+  funAt?: number;
   /** Pasa frío ahora (invierno, de noche, sin abrigo ni estufa) y cuánto lleva así (ticks). */
   cold?: boolean;
   coldTicks?: number;
@@ -130,6 +132,8 @@ export function moodOf(c: Colonist, tick = 0): { mood: number; reasons: MoodReas
   else if (n.sleptIn === 'habitacion') reasons.push({ text: 'Durmió en una cama bajo techo', value: 0.08 });
   else if (n.sleptIn === 'cama') reasons.push({ text: 'Durmió en una cama', value: 0.04 });
   if (n.inLight) reasons.push({ text: 'Habitación con luz', value: LIGHT_MOOD });
+  // Sin ratos libres en 2 días (mesa de juego u hoguera), peor ánimo.
+  if (tick - (n.funAt ?? 0) > ROOMS.leisure.days * TICKS_PER_HOUR_NEEDS * 24) reasons.push({ text: ROOMS.leisure.text, value: ROOMS.leisure.mood });
   // Frío de invierno y, si dura, hipotermia.
   if (n.cold) {
     reasons.push({ text: SEASONS.cold.text, value: SEASONS.cold.mood });
@@ -138,8 +142,10 @@ export function moodOf(c: Colonist, tick = 0): { mood: number; reasons: MoodReas
   // En una habitación con tejado, su belleza y su limpieza le cambian el ánimo mientras está dentro.
   if (n.room) {
     const M = ROOMS.mood;
-    if (n.room.beauty >= M.beautiful.atLeast!) reasons.push({ text: M.beautiful.text, value: M.beautiful.value });
-    else if (n.room.beauty < M.ugly.below!) reasons.push({ text: M.ugly.text, value: M.ugly.value });
+    // La calidad (belleza, tamaño y muebles) va de −5 % a +10 % (bloque 12).
+    const q = M.quality.min + (M.quality.max - M.quality.min) * n.room.beauty;
+    const text = n.room.beauty >= M.beautiful.atLeast! ? M.beautiful.text : n.room.beauty < M.ugly.below! ? M.ugly.text : 'Habitación normal';
+    if (Math.abs(q) >= 0.005) reasons.push({ text, value: Math.round(q * 100) / 100 });
     if (n.room.clean < M.dirty.below!) reasons.push({ text: M.dirty.text, value: M.dirty.value });
     else if (n.room.clean >= M.clean.atLeast!) reasons.push({ text: M.clean.text, value: M.clean.value });
   }

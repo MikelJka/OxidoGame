@@ -129,7 +129,7 @@ interface SavedColonist {
   priorities: Record<string, number>;
   carrying: { resource: string; amount: number } | null;
   drafted?: boolean;
-  needs?: { food: number; rest: number; sleptIn: string | null; water?: number; badWaterUntil?: number; lastMeal?: string | null; inLight?: boolean; finishedUntil?: number; sawFinishUntil?: number; sawCorpseUntil?: number; fireUntil?: number };
+  needs?: { food: number; rest: number; sleptIn: string | null; water?: number; badWaterUntil?: number; lastMeal?: string | null; inLight?: boolean; finishedUntil?: number; sawFinishUntil?: number; sawCorpseUntil?: number; fireUntil?: number; funAt?: number };
   health?: number;
   wounds?: { part: string; severity: number; bleeding: boolean; treated: boolean; medicine?: boolean; self?: boolean; age?: number; infectRolled?: boolean }[];
   /** Infección (desde las medicinas). */
@@ -494,6 +494,7 @@ function restoreColonist(s: SavedColonist): Colonist {
       // Partidas de antes de los cadáveres: no han visto ninguno.
       ...(num(s.needs?.sawCorpseUntil, 0) > 0 ? { sawCorpseUntil: num(s.needs?.sawCorpseUntil, 0) } : {}),
       ...(num(s.needs?.fireUntil, 0) > 0 ? { fireUntil: num(s.needs?.fireUntil, 0) } : {}),
+      ...(typeof s.needs?.funAt === 'number' ? { funAt: s.needs.funAt } : {}),
     },
     need: null,
     // Partidas de antes de las armas: sin arma, eligiendo sola la mejor.
@@ -732,6 +733,8 @@ export function loadWorld(input: string | unknown): World {
   for (const c of world.colonists) {
     if (!isPassable(world.map, c.tile.x, c.tile.y)) world.moveOutOfTheWay(c);
   }
+  // Ratos libres (desde el 2026-10-21): en las partidas de antes, cuentan desde que se carga.
+  for (const c of world.colonists) if (c.needs.funAt === undefined) c.needs.funAt = world.tick;
   // Las colonias ocupadas comparten con la principal las facciones, las ruinas y el mercado.
   for (const o of world.outposts) {
     o.world.factions = world.factions;

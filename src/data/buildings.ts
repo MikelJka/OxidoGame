@@ -129,6 +129,10 @@ export interface BuildingDef {
    * habitación con tejado en la que está (gasta su combustible solo entonces).
    */
   heater?: boolean;
+  /** Puntos de belleza que da a la habitación con tejado en la que está (bloque 12); los muebles sin esto, 2. */
+  beauty?: number;
+  /** Para los ratos libres (bloque 12): la mesa de juego (la hoguera encendida también vale). */
+  recreation?: boolean;
   /**
    * Ánimo de estar cerca de noche (hoguera, elegido por Mikel el 2026-10-20): a quien está despierto
    * a `radius` casillas o menos mientras arde le suma `mood`, que le dura `hours` horas tras alejarse.

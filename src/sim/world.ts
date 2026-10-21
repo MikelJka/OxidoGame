@@ -6,6 +6,7 @@ import { burning, extinguish, threatens, updateFires } from './fire';
 import { checkNewFaction, growBases, placeBases } from './worldmap';
 import { coldNow, isWinter, updateCold } from './seasons';
 import { animalDrops, spawnAnimals } from './animals';
+import { ROOMS } from '../data/roomRules';
 import { seasonOf } from '../data/seasons';
 import { BattleInfo, checkBattle, Expedition, Outpost, Ruin, updateExpedition } from './expedition';
 import { factionDef, RELATION } from '../data/factions';
@@ -441,6 +442,17 @@ export class World implements JobContext {
         const info = roomInfoAt(this, c.tile.x, c.tile.y);
         if (info) c.needs.room = { beauty: info.beauty, clean: info.clean };
         else delete c.needs.room;
+      }
+    }
+    // Ratos libres: quien está sin hacer nada junto a una mesa de juego o una hoguera encendida, se distrae.
+    if (this.tick % TICKS_PER_SECOND === 0) {
+      const spots = this.leisureSpots();
+      if (spots.length) {
+        const R = ROOMS.leisure.radius;
+        for (const c of this.colonists) {
+          if (c.job || c.drafted || c.need || (c.activity !== 'idle' && c.activity !== 'wandering')) continue;
+          if (spots.some((p) => Math.abs(p.x - c.tile.x) <= R && Math.abs(p.y - c.tile.y) <= R)) c.needs.funAt = this.tick;
+        }
       }
     }
     // Frío de invierno: quien no está a cubierto con estufa ni lleva abrigo lo pasa mal.
@@ -2793,7 +2805,29 @@ export class World implements JobContext {
     }
   }
 
+  /** Sitios para los ratos libres: casillas junto a una mesa de juego o a una hoguera encendida. */
+  leisureSpots(): Point[] {
+    const out: Point[] = [];
+    for (const s of this.structures.all()) {
+      if (!s.built || !(s.def.recreation || (s.def.burnsCorpses && (s.fuel ?? 0) > 0))) continue;
+      out.push(...this.structures.sidesOf(s));
+    }
+    return out;
+  }
+
   private startWander(c: Colonist): void {
+    // Si hace mucho de su último rato libre y hay mesa de juego u hoguera, va allí.
+    if (this.tick - (c.needs.funAt ?? 0) > ROOMS.leisure.dueHours * TICKS_PER_HOUR) {
+      const spots = this.leisureSpots();
+      if (spots.length) {
+        const route = pathToNearest(this.map, c.tile, spots);
+        if (route && route.path.length > 0) {
+          c.path = route.path;
+          c.activity = 'wandering';
+          return;
+        }
+      }
+    }
     for (let tries = 0; tries < 8; tries++) {
       const target = {
         x: c.tile.x + this.rng.int(-10, 10),

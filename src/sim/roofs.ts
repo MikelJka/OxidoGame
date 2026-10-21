@@ -122,7 +122,7 @@ export function roomInfoAt(w: World, x: number, y: number): RoomInfo | null {
     const s = w.structures.mainAt(tx, ty);
     if (s?.built && (s.def.category === 'mueble' || s.def.category === 'taller') && !s.def.storage && !furniture.has(s.id)) {
       furniture.add(s.id);
-      points += B.furniture;
+      points += s.def.beauty ?? B.furniture;
     }
     if (w.lit.has(i)) points += B.light;
     // Lo tirado por el suelo (fuera de estanterías y almacenes) afea y ensucia.
@@ -133,7 +133,10 @@ export function roomInfoAt(w: World, x: number, y: number): RoomInfo | null {
     }
   }
   const n = Math.max(1, room.tiles.length);
-  const beauty = Math.max(0, Math.min(1, (points / n) * B.scale));
+  // El tamaño cuenta: un cuarto muy pequeño agobia y uno amplio gusta (bloque 12).
+  const Z = ROOMS.size;
+  const size = n < Z.small ? Z.smallPoints : n >= Z.big ? Z.bigPoints : 0;
+  const beauty = Math.max(0, Math.min(1, (points / n) * B.scale + size));
   const clean = Math.max(0, Math.min(1, 1 - (noFloor / n) * C.noFloor - (clutter / n) * C.clutter));
   return { room, beauty, clean };
 }

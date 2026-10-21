@@ -1105,6 +1105,110 @@
     }
   },
   {
+    "id": "mesa",
+    "name": "Mesa",
+    "category": "mueble",
+    "movable": true,
+    "cost": {
+      "madera": 8
+    },
+    "work": 150,
+    "hp": 80,
+    "blocks": true,
+    "height": 1,
+    "beauty": 2,
+    "colors": {
+      "top": "#9c7446",
+      "face": "#6a4c2e",
+      "dark": "#3a2716"
+    }
+  },
+  {
+    "id": "silla",
+    "name": "Silla",
+    "category": "mueble",
+    "movable": true,
+    "cost": {
+      "madera": 4
+    },
+    "work": 80,
+    "hp": 40,
+    "blocks": false,
+    "moveCost": 1.2,
+    "height": 0,
+    "beauty": 1,
+    "colors": {
+      "top": "#8a6a44",
+      "face": "#5e4630",
+      "dark": "#2a1e14"
+    }
+  },
+  {
+    "id": "alfombra",
+    "name": "Alfombra",
+    "category": "mueble",
+    "movable": true,
+    "cost": {
+      "fibra": 6
+    },
+    "work": 80,
+    "hp": 30,
+    "blocks": false,
+    "moveCost": 1,
+    "height": 0,
+    "beauty": 2,
+    "colors": {
+      "top": "#9a3d3d",
+      "face": "#6a2a2a",
+      "dark": "#3a1a1a"
+    }
+  },
+  {
+    "id": "cuadro",
+    "name": "Cuadro",
+    "category": "mueble",
+    "movable": true,
+    "cost": {
+      "madera": 2,
+      "fibra": 2
+    },
+    "work": 100,
+    "hp": 20,
+    "blocks": false,
+    "moveCost": 1,
+    "height": 0,
+    "beauty": 3,
+    "colors": {
+      "top": "#c8a050",
+      "face": "#8a6a30",
+      "dark": "#4a3a1a"
+    }
+  },
+  {
+    "id": "mesa_juego",
+    "name": "Mesa de juego",
+    "category": "mueble",
+    "movable": true,
+    "cost": {
+      "madera": 15
+    },
+    "work": 250,
+    "hp": 80,
+    "blocks": true,
+    "height": 1,
+    "size": [
+      2,
+      1
+    ],
+    "beauty": 1,
+    "recreation": true,
+    "colors": {
+      "top": "#3e6a4a",
+      "face": "#6a4c2e",
+      "dark": "#3a2716"
+    }
+  },
+  {
     "id": "cocina",
     "movable": true,
     "name": "Cocina",

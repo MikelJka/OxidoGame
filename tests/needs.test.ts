@@ -119,7 +119,7 @@ describe('necesidades', () => {
     const world = flatWorld(1, { needs: true });
     world.colonists[0].needs = { food: 0.33, water: 0.5, badWaterUntil: 0, rest: 0.44, sleptIn: 'cama', lastMeal: 'cocinada' };
     const loaded = loadWorld(JSON.stringify(serializeWorld(world)));
-    expect(loaded.colonists[0].needs).toEqual({ food: 0.33, water: 0.5, badWaterUntil: 0, rest: 0.44, sleptIn: 'cama', lastMeal: 'cocinada' });
+    expect(loaded.colonists[0].needs).toEqual({ food: 0.33, water: 0.5, badWaterUntil: 0, rest: 0.44, sleptIn: 'cama', lastMeal: 'cocinada', funAt: world.tick });
   });
 });
 
