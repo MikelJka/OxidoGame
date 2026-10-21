@@ -1541,6 +1541,38 @@
     }
   },
   {
+    "id": "bandeja_hidroponica",
+    "research": "hidroponica",
+    "name": "Bandeja hidropónica",
+    "category": "granja",
+    "hydroponics": {
+      "speed": 1.5,
+      "crops": [
+        "patata",
+        "maiz",
+        "hierba"
+      ]
+    },
+    "size": [
+      1,
+      2
+    ],
+    "cost": {
+      "chatarra": 10,
+      "componentes": 2
+    },
+    "power": -100,
+    "work": 300,
+    "hp": 80,
+    "blocks": true,
+    "height": 1,
+    "colors": {
+      "top": "#3a8a5a",
+      "face": "#8a9098",
+      "dark": "#4a4e54"
+    }
+  },
+  {
     "id": "banco_investigacion",
     "movable": true,
     "name": "Banco de investigación",

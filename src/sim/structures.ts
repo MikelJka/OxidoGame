@@ -37,6 +37,9 @@ export interface Structure {
   stored?: number;
   /** Generador: unidades de combustible dentro (se gastan poco a poco). */
   fuel?: number;
+  /** Bandeja hidropónica: qué cultiva (id de cultivo) y cuánto le falta (0 recién sembrada … 1 madura). */
+  crop?: string;
+  growth?: number;
   /** Taller electrificado: gasta corriente y, si le llega, trabaja el doble de rápido. */
   electric?: boolean;
   /** Electrificación pedida y aún sin terminar: material ya traído y trabajo hecho. */

@@ -2,6 +2,14 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (55) — Abono y bandeja hidropónica
+
+- Contenido aprobado del catálogo que faltaba (bloques 3 y 5): con **«Agricultura mejorada»**, receta de **🟤 abono** en el banco de trabajo (🍄2 + 🪨1 → 3). Al **sembrar**, si hay abono en el almacén se echa 1 y esa planta da **+25 %** de cosecha (al tocarla pone «abonada»).
+- Con **«Hidropónica»**, la **bandeja hidropónica** (🏗 → Granja, 🔩10 ⚙️2, 1×2, 100 W): cultiva **sola** patatas, maíz o hierba, **×1,5 más rápido** que un huerto y sin fertilidad, si está **bajo techo y con corriente**. Al madurar deja la cosecha a su lado y vuelve a sembrar. Al tocarla se ve el cultivo, el % y por qué no crece; «🌱 Cambiar cultivo» la pasa al siguiente.
+- Decidido en esta sesión (Mikel puede cambiarlo): que el abono se coja solo del almacén al sembrar, y que la bandeja se siembre y coseche sola.
+- Qué probar: investigar «Agricultura mejorada», hacer abono y sembrar; investigar «Hidropónica», poner una bandeja en una habitación con tejado y cable.
+- Sin npm en el entorno: tests con Bun (667) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+
 ## 2026-10-21 (54) — Ola de frío
 
 - Último suceso del bloque 9 (aprobado; iba con las estaciones). **🥶 Ola de frío**: durante **48 horas**, en cualquier estación, hace frío **a todas horas** como en una noche de invierno (sin abrigo ni habitación con tejado y estufa encendida: −10 % de ánimo y, con 4 h seguidas, hipotermia) y **no crece nada al aire libre**. Las estufas se encienden también entonces.

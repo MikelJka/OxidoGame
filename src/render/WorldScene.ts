@@ -1010,7 +1010,7 @@ export class WorldScene extends Phaser.Scene {
       this.selectZone(z ? z.id : null);
       this.selectFarm(f ? f.id : null);
       this.selectStation(st && st.built && st.def.category === 'taller' ? st : null);
-      this.selectPiece(st && st.built && (st.def.movable || st.def.drawbridge || kitOf(st.def)) && st.def.category !== 'taller' ? st : null);
+      this.selectPiece(st && st.built && (st.def.movable || st.def.drawbridge || st.def.hydroponics || kitOf(st.def)) && st.def.category !== 'taller' ? st : null);
       return;
     }
     const tile = t;

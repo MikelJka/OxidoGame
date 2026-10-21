@@ -881,6 +881,17 @@ function drawFarmBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, tile:
     px(cx + 4, base - postH + 6, 2, 1, dark);
     return;
   }
+  if (def.hydroponics) {
+    // Bandeja hidropónica: mesa de chapa con su pila de agua y filas de brotes, y la luz encima.
+    px(0, 0, tile, h, outline);
+    px(1, 1, tile - 2, tileH - 2, dark);
+    px(2, 2, tile - 4, tileH - 4, '#2a5a6a'); // agua
+    for (let y = 3; y < tileH - 3; y += 3) for (let x = 3; x < tile - 3; x += 3) px(x, y, 2, 2, top);
+    px(1, tileH - 1, tile - 2, wallH, face);
+    px(1, h - 2, tile - 2, 1, dark);
+    px(2, tileH + 1, tile - 4, 1, '#c8e8ff'); // tubo de luz
+    return;
+  }
   // Establo: suelo de paja, paredes bajas de tablas atrás y a los lados y tejado rojo a dos aguas.
   px(0, 0, tile, h, outline);
   px(1, wallH + 1, tile - 2, tileH - 2, dark); // paja

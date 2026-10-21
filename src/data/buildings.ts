@@ -195,6 +195,11 @@ export interface BuildingDef {
    * (tienen forraje y no pasan frío).
    */
   stable?: { animals: number; foodMult: number };
+  /**
+   * Bandeja hidropónica (bloque 5 del catálogo, aprobado): cultiva sola uno de `crops` (ids de
+   * `crops.json`) bajo techo y con corriente, `speed` veces más rápido que un huerto, sin fertilidad.
+   */
+  hydroponics?: { speed: number; crops: string[] };
   /** Colores del dibujo: cara de arriba, frente y sombra. */
   colors: { top: string; face: string; dark: string };
 }
@@ -259,6 +264,7 @@ export function validateBuilding(d: unknown): BuildingDef {
   if (b.platform !== undefined && (b.category !== 'suelo' || b.blocks || b.bridge !== undefined || typeof b.platform.deepWater !== 'boolean')) fail('plataforma no válida');
   if (b.drawbridge !== undefined && (b.drawbridge !== true || b.category !== 'defensa' || b.blocks || b.height !== 0 || !((b.power ?? 0) < 0) || b.bridge !== undefined || b.onWater !== undefined)) fail('puente levadizo no válido');
   if (b.onWater !== undefined && (b.onWater !== true || b.category === 'suelo' || b.nearWater)) fail('«onWater» no válido');
+  if (b.hydroponics && (!((b.power ?? 0) < 0) || !(b.hydroponics.speed > 0) || !Array.isArray(b.hydroponics.crops) || !b.hydroponics.crops.length)) fail('bandeja hidropónica no válida');
   if ((b.fence || b.gate || b.tiePost || b.stable) && b.category !== 'granja') fail('vallas, postes y establos van en «Granja»');
   if (b.gate && (!b.fence || b.blocks)) fail('una puerta de valla es una valla que se pisa');
   if (b.fence && !b.gate && !b.blocks) fail('una valla no se pisa');

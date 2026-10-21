@@ -5,6 +5,7 @@ import { ActiveEvent, firstEventTick, runEvents, solarFactor } from './events';
 import { burning, extinguish, threatens, updateFires } from './fire';
 import { checkNewFaction, growBases, placeBases } from './worldmap';
 import { coldNow, frostNow, updateCold } from './seasons';
+import { updateHydroponics } from './hydroponics';
 import { animalDrops, feedPackAnimals, spawnAnimals, tryTame } from './animals';
 import { ROOMS } from '../data/roomRules';
 import { seasonOf } from '../data/seasons';
@@ -440,6 +441,7 @@ export class World implements JobContext {
     if (this.tick % TICKS_PER_SECOND === 0) {
       this.powerNets = updatePower(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR, { hour: this.hour, wind: this.wind, batteryMultiplier: batteryMultiplier(this.research), solar: solarFactor(this) });
       updateBonfires(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR, coldNow(this));
+      updateHydroponics(this, TICKS_PER_SECOND);
       this.lit = litTiles(this.structures);
       // Puertas automáticas: con corriente, se cierran a los saqueadores mientras dura el raid.
       const raid = this.others.some((o) => o.role === 'saqueador' && !o.downed && !o.raider?.fleeing);

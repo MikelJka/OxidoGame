@@ -58,7 +58,7 @@ export interface SaveData {
   items: { x: number; y: number; resource: string; amount: number }[];
   designations: { x: number; y: number; job: string }[];
   zones: { id: number; name: string; priority: number; accepts: Record<string, boolean>; tiles: number[] }[];
-  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number; demolish?: boolean; bill?: { recipe: string; target: number; paused: boolean; mode?: string }; rot?: number; raised?: boolean; wantUp?: boolean; autoRaised?: boolean; stored?: number; fuel?: number; electric?: boolean; upgrade?: { delivered: Record<string, number>; progress: number }; repair?: { need: Record<string, number>; work: number; delivered: Record<string, number>; progress: number }; fromKit?: boolean; pack?: boolean; moveTo?: { x: number; y: number; rot: number } }[];
+  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number; demolish?: boolean; bill?: { recipe: string; target: number; paused: boolean; mode?: string }; rot?: number; raised?: boolean; wantUp?: boolean; autoRaised?: boolean; stored?: number; fuel?: number; crop?: string; growth?: number; electric?: boolean; upgrade?: { delivered: Record<string, number>; progress: number }; repair?: { need: Record<string, number>; work: number; delivered: Record<string, number>; progress: number }; fromKit?: boolean; pack?: boolean; moveTo?: { x: number; y: number; rot: number } }[];
   /** Obras de terreno pendientes (desde que existen). */
   terrain?: { x: number; y: number; job: string }[];
   /** Huertos (desde que existe el cultivo; las partidas anteriores no los tienen). */
@@ -325,6 +325,7 @@ export function serializeWorld(world: World, gameVersion?: string, direct = fals
       autoRaised: s.autoRaised || undefined,
       stored: s.stored || undefined,
       fuel: s.fuel || undefined,
+      ...(s.def.hydroponics ? { crop: s.crop, growth: s.growth || undefined } : {}),
       electric: s.electric || undefined,
       upgrade: s.upgrade ? { delivered: { ...s.upgrade.delivered } as Record<string, number>, progress: s.upgrade.progress } : undefined,
       ...(s.repair ? { repair: { need: { ...s.repair.need } as Record<string, number>, work: s.repair.work, delivered: { ...s.repair.delivered } as Record<string, number>, progress: s.repair.progress } } : {}),
@@ -567,6 +568,10 @@ export function loadWorld(input: string | unknown): World {
     // Electricidad (desde que existe): carga de las baterías y combustible de los generadores.
     if (def.battery) restored.stored = Math.max(0, Math.min(def.battery * batteryMult, num(s.stored, 0)));
     if (def.fuel) restored.fuel = Math.max(0, Math.min(def.fuel.capacity, num(s.fuel, 0)));
+    if (def.hydroponics) {
+      if (typeof s.crop === 'string' && def.hydroponics.crops.includes(s.crop)) restored.crop = s.crop;
+      restored.growth = Math.max(0, Math.min(1, num(s.growth, 0)));
+    }
     // Puente levadizo (desde el 2026-10-20; antes no había): alzado o no, y si lo alzó el raid.
     if (def.drawbridge && restored.built) {
       restored.wantUp = !!s.wantUp;

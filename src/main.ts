@@ -34,6 +34,7 @@ import { billPending, type Structure } from './sim/structures';
 import { occupant, VEHICLE_SEATS, type Vehicle, type VehicleSeat } from './sim/vehicles';
 import { usesFuel, vehicleDef } from './data/vehicles';
 import type { GrowZone } from './sim/farming';
+import { cycleTrayCrop, trayBlocked, trayCrop } from './sim/hydroponics';
 import { BUILDING_CATEGORY_NAMES, BuildingCategory, BUILDINGS, buildingDef, kitOf } from './data/buildings';
 import { STORAGE_PRIORITIES, STORAGE_PRIORITY_NAMES, StorageZone } from './sim/zones';
 import type { DesignMode } from './render/WorldScene';
@@ -108,6 +109,8 @@ game.events.on('clock', (label: string, speed: GameSpeed) => {
   clock.textContent = speed === 0 ? `${label} · en pausa` : label;
   speedButtons.forEach((b) => b.classList.toggle('active', Number(b.dataset.speed) === speed));
   checkBattleSwitch();
+  // La bandeja hidropónica abierta: su % va subiendo.
+  if (selectedPiece?.def.hydroponics) renderPiece();
 });
 
 // --- Batallas en las bases de las facciones ------------------------------------
@@ -824,6 +827,19 @@ function renderPiece(): void {
   $('pc-name').textContent = s.def.name;
   const raise = $('pc-raise');
   raise.hidden = !s.def.drawbridge;
+  $('pc-crop').hidden = !s.def.hydroponics;
+  if (s.def.hydroponics) {
+    // Bandeja hidropónica: qué cultiva, cómo va y por qué no crece (si no crece).
+    const w = scene().world;
+    const crop = trayCrop(s);
+    const why = trayBlocked(w, s);
+    $('pc-status').textContent = `🌱 ${crop?.name ?? '—'} · ${Math.floor((s.growth ?? 0) * 100)} %${why ? ` · ⛔ ${why}` : ` · crece ×${s.def.hydroponics.speed} y deja la cosecha al lado`}`;
+    $('pc-move').hidden = true;
+    $('pc-unmove').hidden = true;
+    $('pc-pack').hidden = true;
+    $('pc-unpack').hidden = true;
+    return;
+  }
   if (s.def.drawbridge) {
     // Puente levadizo: su estado y el botón de alzar o bajar (no se mueve).
     $('pc-status').textContent = `${s.raised ? '⬆️ Alzado: no pasa nadie' : s.wantUp ? '⏳ Se alza en cuanto no haya nadie encima' : '⬇️ Bajado: se cruza andando'} · ${s.powered ? 'con corriente se alza solo ante un raid' : 'sin corriente: solo a mano'}`;
@@ -853,6 +869,10 @@ game.events.on('piece-select', (s: Structure | null) => {
 $('pc-close').addEventListener('click', () => scene().selectPiece(null));
 $('pc-move').addEventListener('click', () => {
   if (selectedPiece) scene().startMove(selectedPiece);
+});
+$('pc-crop').addEventListener('click', () => {
+  if (selectedPiece) cycleTrayCrop(selectedPiece);
+  renderPiece();
 });
 $('pc-raise').addEventListener('click', () => {
   if (selectedPiece) scene().world.toggleDrawbridge(selectedPiece);
