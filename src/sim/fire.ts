@@ -7,7 +7,8 @@ import { index, inBounds, isWater, Prop, Terrain } from './map';
 import { Rng } from './rng';
 import { TICKS_PER_DAY, TICKS_PER_SECOND } from './time';
 import type { World } from './world';
-import { hurt } from './health';
+import { DOWNED } from './health';
+import type { Colonist } from './colonist';
 
 const SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
 
@@ -106,7 +107,7 @@ export function updateFires(w: World): void {
     // Quien está dentro se quema.
     for (const c of w.pawns()) {
       if (c.tile.x !== x || c.tile.y !== y || c.vehicle?.boarded) continue;
-      hurt(c, FIRE.harmPerSecond, 'quemaduras', c.role !== 'colono');
+      burn(c, FIRE.harmPerSecond);
       if (c.role === 'colono') w.combatAlert(c, 'herido', `🔥 ${c.name} se está quemando.`);
     }
     // Lo construido con madera pierde vida hasta romperse.
@@ -176,4 +177,13 @@ export function restoreFires(w: World, fires: unknown, burnt: unknown): void {
   const n = w.map.width * w.map.height;
   if (Array.isArray(fires)) for (const f of fires) if (Array.isArray(f) && f[0] >= 0 && f[0] < n) w.fires.set(Math.floor(f[0]), Math.max(0, Math.floor(f[1] ?? 0)));
   if (Array.isArray(burnt)) for (const b of burnt) if (Array.isArray(b) && b[0] >= 0 && b[0] < n) w.burnt.set(Math.floor(b[0]), Math.floor(b[1] ?? 0));
+}
+
+/** Quemadura: quita salud y deja una herida que no sangra (una por cada vez que pisa el fuego). */
+function burn(c: Colonist, amount: number): void {
+  c.health = Math.max(0, c.health - amount);
+  const w = c.wounds.find((k) => k.part === 'quemaduras' && !k.treated);
+  if (w) w.severity = Math.min(1, w.severity + amount * 2.5);
+  else c.wounds.push({ part: 'quemaduras', severity: Math.min(1, amount * 2.5), bleeding: false, treated: false });
+  if (c.health < DOWNED) c.downed = true;
 }
