@@ -2,6 +2,14 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (58) — Más barcos y comercio por barco
+
+- Elegido por Mikel. Dos barcos nuevos: **barcaza de carga** (🪵40 🌿10 🔩10, con «Navegación»; lenta, sin blindaje, **600 kg**) y **lancha blindada** (🔗25 🔩20 ⚙️6, con «Motores» y «Blindaje avanzado»; blindaje −50 %, 800 de vida, gasta ⛽).
+- **Comercio por barco** (📜 → 🏳 Facciones → ⛵ Comerciar por barco, en las facciones que no están en guerra): se elige barco, tripulación (alguien se queda), lo que se lleva y qué traer a cambio. Por el río se tarda **la mitad** que andando. Allí venden a **precio de mercado** (+25 % por lo que esa facción suele necesitar) y compran lo pedido con el margen de las caravanas (−15 % si a ellos les sobra). Cada viaje: **+3 de relación** y la base se enriquece. A la vuelta, **10 %** de que los Piratas del Óxido asalten el barco (se llevan el 30 % y la tripulación vuelve herida).
+- Decidido en esta sesión (Mikel puede cambiarlo): todos los números.
+- Qué probar: investigar «Navegación», hacer una barcaza en el río y mandarla a los Granjeros con chatarra a por patatas.
+- Siguiente: el fuego y luego el equilibrio.
+
 ## 2026-10-21 (57) — Nevera y comida que se pone mala
 
 - Pedido por Mikel. **La comida se pone mala**: cada día se pierde una parte de cada montón — carne y pescado 20 %, leche 30 %, raciones 10 %, huevos y setas 8 %, patatas 3 %, maíz 2 %. **Con frío** (de noche en invierno o en una ola de frío) no se pierde nada. A las 20:00, el diario dice cuánto se ha echado a perder ese día.

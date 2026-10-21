@@ -94,6 +94,7 @@ export interface SaveData {
   /** Colonias ocupadas (desde el 2026-10-21): cada una, su partida entera. */
   outposts?: { name: string; save: unknown }[];
   name?: string;
+  boatTrips?: { id: number; faction: string; vehicle: { id: number; def: string; fuel: number; hp: number }; crew: SavedColonist[]; phase: string; arriveAt: number; goods: Record<string, number>; want: string; back: Record<string, number> }[];
   expedition?: { faction: string; members: SavedColonist[]; phase: string; arriveAt: number; loot: Record<string, number>; result?: string; kind?: string; ruin?: string; supplies?: Record<string, number>; vehicles?: { id: number; def: string; x: number; y: number; fuel: number; hp: number }[]; animals?: SavedColonist[] };
   nextEvent?: number;
   /** Tributo pedido y sin responder (desde el 2026-10-21). */
@@ -287,6 +288,7 @@ export function serializeWorld(world: World, gameVersion?: string, direct = fals
     ...(world.newFactionAt !== null ? { newFactionAt: world.newFactionAt } : {}),
     ...(world.outposts.length ? { outposts: world.outposts.map((o) => ({ name: o.name, save: serializeWorld(o.world, gameVersion, true) })) } : {}),
     ...(world.name ? { name: world.name } : {}),
+    ...(world.boatTrips.length ? { boatTrips: world.boatTrips.map((t) => ({ id: t.id, faction: t.faction, vehicle: { id: t.vehicle.id, def: t.vehicle.def, fuel: t.vehicle.fuel, hp: t.vehicle.hp }, crew: t.crew.map(savePawn), phase: t.phase, arriveAt: t.arriveAt, goods: { ...t.goods } as Record<string, number>, want: t.want, back: { ...t.back } as Record<string, number> })) } : {}),
     ...(world.expedition ? { expedition: { faction: world.expedition.faction, members: world.expedition.members.map(savePawn), phase: world.expedition.phase, arriveAt: world.expedition.arriveAt, loot: { ...world.expedition.loot }, ...(world.expedition.result ? { result: world.expedition.result } : {}), ...(world.expedition.kind ? { kind: world.expedition.kind } : {}), ...(world.expedition.ruin ? { ruin: world.expedition.ruin } : {}), ...(world.expedition.supplies ? { supplies: { ...world.expedition.supplies } } : {}), ...(world.expedition.vehicles?.length ? { vehicles: world.expedition.vehicles.map((v) => ({ id: v.id, def: v.def, x: 0, y: 0, fuel: v.fuel, hp: v.hp })) } : {}), ...(world.expedition.animals?.length ? { animals: world.expedition.animals.map(savePawn) } : {}) } } : {}),
     ...(world.burnt.size ? { burnt: [...world.burnt] } : {}),
     ...(world.plague ? { plague: { ...world.plague } } : {}),
@@ -658,7 +660,17 @@ export function loadWorld(input: string | unknown): World {
       ...(ex.result === 'victoria' || ex.result === 'derrota' || ex.result === 'retirada' ? { result: ex.result } : battle ? { result: 'retirada' as const } : {}),
     };
   }
-  const ids = [...world.colonists, ...(world.expedition?.members ?? []), ...(world.expedition?.animals ?? []), ...world.others, ...world.others.flatMap((o) => o.trader?.slaves ?? []), ...(world.offer ? [world.offer.pawn] : [])].map((c) => c.id);
+  for (const t of d.boatTrips ?? []) {
+    if (!t || !Array.isArray(t.crew) || !vehicleDef(String(t.vehicle?.def)) || !isResource(t.want)) continue;
+    world.boatTrips.push({
+      id: num(t.id, world.nextBoatTripId), faction: factionId(String(t.faction)),
+      vehicle: { id: num(t.vehicle.id, 0), def: String(t.vehicle.def), x: 0, y: 0, pos: { x: 0, y: 0 }, path: [], fuel: num(t.vehicle.fuel, 0), hp: num(t.vehicle.hp, 1), facing: 1 },
+      crew: t.crew.map((m) => ({ ...restoreColonist(m), role: 'colono' as const, drafted: false, job: null, path: [] })),
+      phase: t.phase === 'vuelta' ? 'vuelta' : 'ida', arriveAt: num(t.arriveAt, world.tick), goods: cleanLoot(t.goods), want: t.want, back: cleanLoot(t.back),
+    });
+    world.nextBoatTripId = Math.max(world.nextBoatTripId, num(t.id, 0) + 1);
+  }
+  const ids = [...world.colonists, ...world.boatTrips.flatMap((t) => t.crew), ...(world.expedition?.members ?? []), ...(world.expedition?.animals ?? []), ...world.others, ...world.others.flatMap((o) => o.trader?.slaves ?? []), ...(world.offer ? [world.offer.pawn] : [])].map((c) => c.id);
   world.factions = restoreFactions(d.factions, world.map.seed, world.ruins.map((r) => r.faction));
   world.newFactionAt = typeof d.newFactionAt === 'number' ? d.newFactionAt : null;
   if (typeof d.name === 'string') world.name = d.name;

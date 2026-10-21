@@ -465,7 +465,7 @@ export function parkVehicle(w: World, v: Vehicle): void {
   const def = vehicleDef(v.def);
   const home = w.colonyPoint();
   if (!def || !home) return;
-  for (let r = 1; r <= 40; r++) {
+  for (let r = 1; r <= Math.max(w.map.width, w.map.height); r++) {
     for (let dy = -r; dy <= r; dy++) {
       for (let dx = -r; dx <= r; dx++) {
         if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;

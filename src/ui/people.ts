@@ -27,6 +27,7 @@ import { allColonies, expeditionCapacity, expeditionHours, expeditionVehicles, s
 import { CARRY_PER_COLONIST, loadWeight, weightOf } from '../data/weights';
 import { vehicleDef } from '../data/vehicles';
 import type { ResourceId } from '../data/resources';
+import { boatBuyPrice, boatDays, boatSellPrice, boatWares, startBoatTrip, tradeBoats } from '../sim/boatTrade';
 
 export interface PeopleUI {
   /** Abre la pestaña de una persona tocada en el mapa (prisionero o comerciante). */
@@ -226,6 +227,7 @@ export function mountPeople(opts: Options): PeopleUI {
 
   // --- Facciones ---------------------------------------------------------------------
   /** Colonos elegidos para atacar una base (mientras se eligen). */
+  let tradePick: { faction: string; boat: number | null; crew: number[]; goods: Partial<Record<ResourceId, number>>; want: ResourceId } | null = null;
   let attackPick: { faction: string; ids: number[]; load?: Partial<Record<ResourceId, number>>; vehicles?: number[]; animals?: number[] } | null = null;
   function renderFactions(w: World): HTMLElement[] {
     const out: HTMLElement[] = [];
@@ -237,6 +239,11 @@ export function mountPeople(opts: Options): PeopleUI {
       const def = factionDef(e.faction);
       const where = w.faction(e.faction)?.settlement ?? def?.name ?? e.faction;
       out.push(el('p', 'pp-hint', e.phase === 'ida' ? `⚔️ Expedición de camino a ${where} (${e.members.map((c) => c.name).join(', ')}): llega en ${expeditionHours(w)} h.` : e.phase === 'vuelta' ? `🏠 La expedición vuelve de ${where}: llega en ${expeditionHours(w)} h.` : `⚔️ Batalla en ${where}.`));
+    }
+    for (const t of w.boatTrips) {
+      const where = w.faction(t.faction)?.settlement ?? factionDef(t.faction)?.name ?? t.faction;
+      const h = Math.max(0, Math.ceil((t.arriveAt - w.tick) / TICKS_PER_HOUR));
+      out.push(el('p', 'pp-hint', t.phase === 'ida' ? `⛵ ${vehicleDef(t.vehicle.def)?.name} de camino a ${where} (${t.crew.map((c) => c.name).join(', ')}): llega en ${h} h.` : `⛵ ${vehicleDef(t.vehicle.def)?.name} vuelve de ${where}: llega en ${h} h.`));
     }
     // Vuestras colonias (la principal y las ruinas ocupadas): se ve y avanza solo la que está abierta.
     const colonies = allColonies(w);
@@ -414,6 +421,95 @@ export function mountPeople(opts: Options): PeopleUI {
             attackPick = { faction: f.id, ids: [] };
             rerender();
           }, 'Elegir colonos y mandarlos a atacar'));
+        }
+      }
+      // Comercio por barco: llevar mercancía por el río y volver con lo que se pida.
+      const boats = tradeBoats(w);
+      if (b && !def.fixed && level !== 'hostil' && !w.battle && boats.length) {
+        if (tradePick?.faction === f.id) {
+          const tp = tradePick;
+          const brow = el('div', 'pp-modes');
+          for (const v of boats) {
+            const d = vehicleDef(v.def)!;
+            const on = tp.boat === v.id;
+            const btn = button(`${on ? '◉' : '○'} ${d.name} (${d.cargo} kg)`, () => {
+              tp.boat = v.id;
+              rerender();
+            });
+            if (on) btn.classList.add('active');
+            brow.append(btn);
+          }
+          const crow = el('div', 'pp-modes');
+          for (const c of w.colonists.filter((k) => !k.downed)) {
+            const on = tp.crew.includes(c.id);
+            const btn = button(`${on ? '☑' : '☐'} ${c.name}`, () => {
+              tp.crew = on ? tp.crew.filter((i) => i !== c.id) : [...tp.crew, c.id];
+              rerender();
+            });
+            if (on) btn.classList.add('active');
+            crow.append(btn);
+          }
+          const cap = tp.boat !== null ? vehicleDef(boats.find((v) => v.id === tp.boat)?.def ?? '')?.cargo ?? 0 : 0;
+          const kg = loadWeight(tp.goods);
+          const inv = w.inventory();
+          const table = el('div', 'trade-table');
+          let value = 0;
+          for (const r of RESOURCES) {
+            if (inv[r] <= 0 || r.startsWith('kit_')) continue;
+            const n = tp.goods[r] ?? 0;
+            const price = boatSellPrice(w, f.id, r);
+            value += n * price;
+            const step = inv[r] >= 50 ? 10 : inv[r] >= 10 ? 5 : 1;
+            const row = el('div', 'trade-row');
+            const qty = el('span', 'trade-qty');
+            const set = (x: number) => {
+              tp.goods[r] = Math.max(0, Math.min(inv[r], x));
+              if (!tp.goods[r]) delete tp.goods[r];
+              rerender();
+            };
+            const minus = button('−', () => set(n - step), `Quitar ${step}`);
+            const plus = button('+', () => set(n + step), `Añadir ${step}`);
+            minus.disabled = n <= 0;
+            plus.disabled = n >= inv[r];
+            qty.append(minus, el('span', 'num', String(n)), plus);
+            row.append(el('span', 'trade-name', `${RESOURCE_ICONS[r]} ${RESOURCE_NAMES[r]} · pagan ${price.toFixed(1)} · ${weightOf(r)} kg · tenéis ${inv[r]}`), qty);
+            table.append(row);
+          }
+          const wants = el('div', 'pp-modes');
+          for (const r of boatWares(f.id).slice(0, 8)) {
+            const on = tp.want === r;
+            const btn = button(`${on ? '◉' : '○'} ${RESOURCE_ICONS[r]} ${RESOURCE_NAMES[r]} (${boatBuyPrice(w, f.id, r).toFixed(1)})`, () => {
+              tp.want = r;
+              rerender();
+            });
+            if (on) btn.classList.add('active');
+            wants.append(btn);
+          }
+          const bring = Math.floor(value / boatBuyPrice(w, f.id, tp.want));
+          const go = el('div', 'zp-row');
+          go.append(
+            button(`⛵ Zarpar`, () => {
+              const why = tp.boat === null ? 'Elegid un barco.' : startBoatTrip(w, tp.boat, tp.crew, f.id, tp.goods, tp.want);
+              opts.toast(why ?? `⛵ El barco sale hacia ${f.settlement}`, why ? 3000 : 2500);
+              if (!why) tradePick = null;
+              rerender();
+            }, 'Salen ahora; venden allí y vuelven con lo pedido'),
+            button('✖', () => {
+              tradePick = null;
+              rerender();
+            }, 'Cancelar'),
+          );
+          card.append(
+            el('div', 'pp-hint', `⛵ Por el río: ${String(boatDays(w, f.id)).replace('.', ',')} días de ida y otros tantos de vuelta. Pagan más por lo que necesitan. En el río hay piratas.`),
+            el('div', 'pp-hint', 'Barco:'), brow, el('div', 'pp-hint', 'Tripulación (alguien tiene que quedarse):'), crow,
+            el('div', kg > cap ? 'warn' : 'pp-hint', `Carga: ${kg} de ${cap} kg · valor ${Math.round(value)} chapas`), table,
+            el('div', 'pp-hint', `Traer a cambio (unos ${bring}):`), wants, go,
+          );
+        } else {
+          card.append(button('⛵ Comerciar por barco', () => {
+            tradePick = { faction: f.id, boat: boats[0].id, crew: [], goods: {}, want: boatWares(f.id)[0] };
+            rerender();
+          }, 'Llevar mercancía por el río a su base'));
         }
       }
       out.push(card);

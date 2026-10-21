@@ -1,0 +1,10 @@
+{
+  "_": "Comercio por barco (pedido por Mikel el 2026-10-21): un barco de la colonia con su tripulación lleva mercancía por el río a la base de una facción no hostil, la vende a precio de mercado (lo que esa facción suele necesitar, con `needPremium` más) y vuelve con lo que se le pide, pagado a precio de mercado con el margen de las caravanas (y con `surplusDiscount` menos si a esa facción le sobra). Por el río se tarda `travelFactor` de lo que se tarda andando; cada viaje sube la relación `relation` y en la vuelta hay `pirateChance` de que los Piratas del Óxido asalten el barco y se lleven `pirateLoss` de la carga. Números de la sesión del 2026-10-21.",
+  "travelFactor": 0.5,
+  "minDays": 0.5,
+  "needPremium": 0.25,
+  "surplusDiscount": 0.15,
+  "relation": 3,
+  "pirateChance": 0.1,
+  "pirateLoss": 0.3
+}

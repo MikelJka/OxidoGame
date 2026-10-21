@@ -1964,5 +1964,58 @@
       2,
       2
     ]
+  },
+  {
+    "id": "barcaza",
+    "research": "navegacion",
+    "name": "Barcaza de carga",
+    "category": "vehiculo",
+    "vehicle": "barcaza",
+    "cost": {
+      "madera": 40,
+      "fibra": 10,
+      "chatarra": 10
+    },
+    "work": 900,
+    "hp": 300,
+    "blocks": true,
+    "height": 1,
+    "onWater": true,
+    "colors": {
+      "top": "#8a6a3e",
+      "face": "#5e4630",
+      "dark": "#2a1e14"
+    },
+    "size": [
+      2,
+      2
+    ]
+  },
+  {
+    "id": "lancha_blindada",
+    "research": "motores",
+    "name": "Lancha blindada",
+    "category": "vehiculo",
+    "vehicle": "lancha_blindada",
+    "cost": {
+      "metal": 25,
+      "chatarra": 20,
+      "componentes": 6
+    },
+    "work": 1400,
+    "hp": 800,
+    "blocks": true,
+    "height": 1,
+    "onWater": true,
+    "colors": {
+      "top": "#4a4e54",
+      "face": "#2e3236",
+      "dark": "#16181a"
+    },
+    "size": [
+      2,
+      2
+    ],
+    "researchAlso": "blindaje"
   }
 ]

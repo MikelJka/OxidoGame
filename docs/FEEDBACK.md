@@ -4,6 +4,7 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 ## Pendiente
 
+- [ ] **Más barcos y comercio por barco, fuego y equilibrio** (2026-10-21, elegido por Mikel en el chat de entre las propuestas D, C y A). Por partes: **hecha** (2026-10-21) la primera: barcaza de carga (600 kg) y lancha blindada (−50 %), y el comercio por barco (📜 → 🏳 Facciones → ⛵: llevar mercancía por el río a una base que no esté en guerra, venderla a precio de mercado y volver con lo que se pida; piratas en el río). Sigue el **fuego** (C: incendios que se extienden según el clima, rayos, explosiones de vehículos y el lanzallamas) y luego el **equilibrio** con muchas partidas simuladas (A).
 - [x] **Neveras** (2026-10-21, pedido por Mikel en el chat): para guardar mucha comida a baja temperatura sin que se ponga mala. Hecho: la comida se pone mala poco a poco (la carne, el pescado y la leche deprisa; las patatas y el maíz, casi nada; con frío, nada) y la **nevera** (🏗 → Muebles, 🔩20 🔗6 ⚙️3, 2×1, 80 W) guarda solo comida, 6 montones por casilla, y con corriente no se estropea.
 - [x] **Espantapájaros, compostera, leche y huevos** (2026-10-21, pedido por Mikel en el chat). Hecho: espantapájaros (🪵4 🌿3: a 5 casillas o menos las plantas no enferman con las plagas), compostera (🪵12, con «Agricultura mejorada»: 2 🟤 abono cada día; lo abonado crece también un 25 % más deprisa), la vaca de dos cabezas domada da 3 🥛 leche al día y la gallina mutada nueva (fácil de domar) 2 🥚 huevos; tortilla en la cocina (4 🥚 → 2 raciones).
 - [x] **Doma con dificultad, más animales y granja** (2026-10-21, pedido por Mikel en el chat): los ciervos y los jabalíes no se doman fácilmente; más animales y cada uno con su dificultad; más construibles para los huertos: que el huerto parezca un huerto de verdad, vallas, puertas de valla, cuerdas para animales y establos cerrados. Hecho: cabra salvaje (fácil), vaca de dos cabezas (media), caballo salvaje (difícil), ciervo (difícil) y jabalí (muy difícil), cada uno con su carga; el huerto con surcos; y la pestaña «Granja» con valla, puerta de valla, poste con cuerda y establo.
@@ -47,16 +48,7 @@ Lo que Mikel ha pedido dejar para más adelante. No se trabaja en ello salvo par
 
 Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat o con 🐞).
 
-### ¿Qué hacemos ahora que el catálogo está terminado? (2026-10-21, sesión automática)
-
-Todo el contenido aprobado del catálogo (bloques 1–13) ya está en el juego y no hay incidencias 🐞 abiertas, así que las sesiones automáticas se quedan sin nada aprobado que hacer. En el roadmap solo queda «arte definitivo y equilibrio» (fase 6) y lo aparcado. Elige una o varias (y el orden):
-
-- **A. Equilibrio con partidas simuladas**: una sesión juega en la simulación (sin pantalla) muchas partidas de 60 días con distintas semillas y dificultades y escribe un informe: de qué mueren los colonos, cuándo llegan los raids, si sobra o falta comida, chapas o munición, qué investigaciones salen antes. **No cambia ningún número**: te propone los cambios con opciones y tú eliges.
-- **B. Arte definitivo en 2D**: repasar los dibujos por partes (primero colonos y enemigos, luego edificios, luego terreno y objetos) para que todo tenga el mismo estilo de pixel art, con más detalle y animaciones de andar, golpear y disparar. Sin cambiar reglas.
-- **C. Sacar el fuego de «Aparcado»**: incendios que se extienden según el clima, rayos, explosiones de vehículos y el lanzallamas (ya aprobado en el bloque 13). Antes de hacerlo te mandaría las reglas y los números con opciones.
-- **D. Más barcos y comercio por barco** (quedó abierto en la update del agua): barco de transporte, lancha blindada y llevar mercancía por el río a otros asentamientos o al mercado. Te mandaría primero la lista con números.
-
-Si no hay respuesta, las sesiones siguientes no tocarán el juego (solo arreglarán bugs que lleguen por 🐞).
+(Sin propuestas abiertas.)
 
 ## Hecho
 

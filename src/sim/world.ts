@@ -7,6 +7,7 @@ import { checkNewFaction, growBases, placeBases } from './worldmap';
 import { coldNow, frostNow, updateCold } from './seasons';
 import { updateHydroponics } from './hydroponics';
 import { spoilHour } from './spoilage';
+import { BoatTrip, updateBoatTrips } from './boatTrade';
 import { animalDrops, feedPackAnimals, spawnAnimals, tryTame } from './animals';
 import { ROOMS } from '../data/roomRules';
 import { seasonOf } from '../data/seasons';
@@ -155,6 +156,9 @@ export class World implements JobContext {
   /** Comida echada a perder desde el último aviso del diario (no se guarda). */
   spoiled = 0;
   spoilageEnabled = true;
+  /** Barcos fuera comerciando (comercio por barco). */
+  boatTrips: BoatTrip[] = [];
+  nextBoatTripId = 1;
   /** Colonos muertos: nombre, causa y día. */
   readonly graveyard: { name: string; cause: string; day: number }[] = [];
   /** La partida ha terminado (no queda nadie). */
@@ -448,6 +452,7 @@ export class World implements JobContext {
     if (this.eventsEnabled && this.tick % TICKS_PER_HOUR === 0) runEvents(this);
     // La expedición llega a la base o vuelve a casa.
     if (this.expedition && this.tick % TICKS_PER_HOUR === 0) updateExpedition(this);
+    if (this.boatTrips.length && this.tick % TICKS_PER_HOUR === 0) updateBoatTrips(this);
     // En un mapa de batalla: ¿se ha acabado?
     if (this.battle && this.tick % TICKS_PER_SECOND === 0) checkBattle(this);
     if (this.tick % RESCUE_TICKS === 0) this.rescueTrapped();

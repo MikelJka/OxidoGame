@@ -132,6 +132,38 @@ export function paintVehicle(ctx: CanvasRenderingContext2D, id: string, w = VEHI
     px(16, 5, 5, 5, '#2a2826');
     px(20, 6, 8, 1, '#1a1410');
     px(27, 5, 2, 3, '#4a4844');
+  } else if (id === 'barcaza') {
+    // Barcaza de carga: casco ancho de tablas, cajas y sacos encima, mástil con vela remendada.
+    ctx.fillStyle = 'rgba(200,230,240,0.35)';
+    ctx.fillRect(0, 22, 32, 2);
+    px(1, 9, 30, 13, '#1a1410');
+    px(2, 10, 28, 11, '#7a5a38');
+    for (let y = 11; y < 20; y += 3) px(2, y, 28, 1, '#5e4630');
+    px(2, 10, 28, 1, '#a07a4a');
+    px(4, 12, 5, 4, '#a07a4a'); // cajas
+    px(4, 12, 5, 1, '#c8a070');
+    px(10, 13, 4, 3, '#c8b88a'); // sacos
+    px(22, 12, 6, 5, '#8a6a3e');
+    px(22, 12, 6, 1, '#b08e5a');
+    px(17, 0, 1, 14, '#4a3a2a'); // mástil
+    px(18, 1, 7, 9, '#d8d0b8'); // vela
+    px(20, 4, 2, 2, '#b0a890'); // remiendo
+  } else if (id === 'lancha_blindada') {
+    // Lancha blindada: casco gris oscuro con planchas remachadas, cabina cerrada y doble motor.
+    ctx.fillStyle = 'rgba(200,230,240,0.4)';
+    ctx.fillRect(0, 21, 30, 2);
+    px(3, 9, 22, 12, '#1a1410');
+    px(25, 11, 4, 8, '#1a1410');
+    px(4, 10, 21, 10, '#4a4e54');
+    px(25, 12, 3, 6, '#4a4e54');
+    for (let x = 6; x < 25; x += 4) px(x, 12, 1, 1, '#8a9098'); // remaches
+    for (let x = 6; x < 25; x += 4) px(x, 17, 1, 1, '#8a9098');
+    px(12, 4, 8, 7, '#1a1410'); // cabina
+    px(13, 5, 6, 5, '#2e3236');
+    px(14, 6, 4, 1, '#7ad0ff'); // tronera
+    px(20, 6, 8, 1, '#1a1410'); // cañón
+    px(0, 11, 3, 3, '#2a2a26'); // motores
+    px(0, 16, 3, 3, '#2a2a26');
   } else {
     px(2, 4, VEHICLE_W - 4, VEHICLE_H - 8, '#7a6a4a');
   }
