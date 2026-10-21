@@ -36,6 +36,12 @@ export interface VehicleDef {
   /** De los saqueadores: día desde el que llega con los raids y probabilidad de que traigan uno. */
   fromDay?: number;
   raidChance?: number;
+  /**
+   * Balsa de los saqueadores (elegido por Mikel el 2026-10-21): solo llega si la colonia está a
+   * `nearRiver` casillas o menos del agua; 1 balsa por cada `raidersPerRaft` saqueadores del raid;
+   * al huir, vuelven a ella si la tienen a `reboardRange` casillas o menos.
+   */
+  raft?: { nearRiver: number; raidersPerRaft: number; reboardRange: number };
 }
 
 export function validateVehicle(d: unknown): VehicleDef {
@@ -52,6 +58,7 @@ export function validateVehicle(d: unknown): VehicleDef {
   if (!(v.armor >= 0 && v.armor < 1) || !(v.runOverDamage >= 0)) fail('armadura o atropello');
   if (!(v.damageScale >= 0)) fail('damageScale');
   if (v.hostile && !(v.fromDay! >= 0 && v.raidChance! >= 0 && v.raidChance! <= 1)) fail('día o probabilidad del raid');
+  if (v.raft !== undefined && (!v.hostile || !v.water || !(v.raft.nearRiver > 0) || !(v.raft.raidersPerRaft >= 2) || !(v.raft.reboardRange >= 0))) fail('balsa de saqueadores no válida');
   for (const r of Object.keys(v.wreck ?? {})) if (!RESOURCES.includes(r as ResourceId)) fail(`recurso desconocido ${r}`);
   return v;
 }
@@ -59,7 +66,9 @@ export function validateVehicle(d: unknown): VehicleDef {
 export const VEHICLES: readonly VehicleDef[] = (raw as unknown[]).map(validateVehicle);
 
 /** El buggy con el que llegan los saqueadores (si hay). */
-export const RAIDER_VEHICLE: VehicleDef | undefined = VEHICLES.find((v) => v.hostile);
+export const RAIDER_VEHICLE: VehicleDef | undefined = VEHICLES.find((v) => v.hostile && !v.water);
+/** La balsa con la que llegan algunos saqueadores por el río (si hay). */
+export const RAIDER_RAFT: VehicleDef | undefined = VEHICLES.find((v) => v.hostile && v.water && v.raft);
 
 /** Gasta ⛽ (si no, anda siempre: la balsa se rema). */
 export function usesFuel(d: VehicleDef): boolean {

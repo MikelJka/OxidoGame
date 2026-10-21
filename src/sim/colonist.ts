@@ -193,6 +193,8 @@ export interface RaiderInfo {
   leader?: boolean;
   /** En el suelo: el jugador ha mandado rematarlo en vez de capturarlo (#22). */
   finish?: boolean;
+  /** Llegó en esta balsa (id del vehículo): al huir vuelve a ella si la tiene cerca. */
+  raft?: number;
 }
 
 /** Un raid en marcha: cuántos llegaron, quién lo dirige y quién se ha escapado ya. */

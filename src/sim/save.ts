@@ -111,7 +111,7 @@ interface SavedColonist {
   vehicle?: { id: number; seat: string; boarded: boolean };
   role?: string;
   prisoner?: { resistance: number; mode: string; lastTalk: number };
-  raider?: { fleeing: boolean; leaveAt: number; group?: number; leader?: boolean; finish?: boolean };
+  raider?: { fleeing: boolean; leaveAt: number; group?: number; leader?: boolean; finish?: boolean; raft?: number };
   /** Criatura (perro mutante…), desde 2026-10-19. */
   creature?: string;
   trader?: { stock: Record<string, number>; slaves: SavedColonist[]; leaveAt: number; leaving: boolean };
@@ -402,6 +402,7 @@ function restoreColonist(s: SavedColonist): Colonist {
           ...(s.raider.group !== undefined ? { group: num(s.raider.group, 0) } : {}),
           ...(s.raider.leader ? { leader: true } : {}),
           ...(s.raider.finish ? { finish: true } : {}),
+          ...(s.raider.raft !== undefined ? { raft: num(s.raider.raft, 0) } : {}),
         }
       : undefined,
     ...(isCreature(s.creature) ? { creature: s.creature } : {}),

@@ -12,8 +12,8 @@ import type { Structure } from './structures';
 import { BODY_PARTS, healthLabel, hurt } from './health';
 import { findPath, flightPath, Point } from './pathfinding';
 import { BLOCK_SOLID, inBounds, isPassable, isWater, Prop, PROP_INFO, RADIATION_THRESHOLD, Terrain, TERRAIN_INFO } from './map';
-import { absorbHit, VEHICLE_SIZE } from './vehicles';
-import { RAIDER_VEHICLE, vehicleDef } from '../data/vehicles';
+import { absorbHit, besideTiles, fits, nearRaft, nextTo, occupant, raftLanding, riders, VEHICLE_SIZE } from './vehicles';
+import { RAIDER_RAFT, RAIDER_VEHICLE, vehicleDef } from '../data/vehicles';
 import { DIFFICULTIES, RADIO_GAP_DAYS, raidGap, raidSize, TRADER_GAP, WANDERER_GAP } from './storyteller';
 import type { World } from './world';
 import { maybePanic, witnessFall } from './panic';
@@ -115,7 +115,7 @@ export function offerWanderer(w: World, byRadio = false): void {
  * ★ prefiere ir a pie). false si no cabe.
  */
 function raiderBuggy(w: World, raid: Colonist[], defId: string): boolean {
-  const t = raid[0].tile;
+  const t = (raid.find((r) => !r.vehicle) ?? raid[0]).tile;
   let anchor: Point | null = null;
   for (let r = 0; r <= 3 && !anchor; r++) {
     for (let dy = -r; dy <= r && !anchor; dy++) {
@@ -130,7 +130,9 @@ function raiderBuggy(w: World, raid: Colonist[], defId: string): boolean {
   const v = w.addVehicle(defId, anchor.x, anchor.y);
   // Lo traen lleno (y no gasta).
   v.fuel = vehicleDef(defId)!.fuelCapacity;
-  const crew = [...raid.filter((r) => !r.raider?.leader), ...raid.filter((r) => r.raider?.leader)].slice(0, 2);
+  const free = raid.filter((r) => !r.vehicle);
+  if (free.length < 2) return false;
+  const crew = [...free.filter((r) => !r.raider?.leader), ...free.filter((r) => r.raider?.leader)].slice(0, 2);
   crew.forEach((c, i) => {
     c.vehicle = { id: v.id, seat: i === 0 ? 'conductor' : 'tirador', boarded: true };
     c.tile = { x: anchor!.x + 1, y: anchor!.y + 1 };
@@ -140,8 +142,80 @@ function raiderBuggy(w: World, raid: Colonist[], defId: string): boolean {
   return true;
 }
 
-/** Llega un raid de `n` saqueadores por un mismo borde (`withBuggy`: fuerza que traigan o no buggy). */
-export function startRaid(w: World, n: number, withBuggy?: boolean): Colonist[] {
+/** Esquinas de agua en el borde del mapa donde cabe la balsa, de la más cercana a `home` a la más lejana. */
+function edgeWaterAnchors(w: World, home: Point): Point[] {
+  const def = RAIDER_RAFT!;
+  const maxX = w.map.width - VEHICLE_SIZE;
+  const maxY = w.map.height - VEHICLE_SIZE;
+  const out: Point[] = [];
+  for (let x = 0; x <= maxX; x++) for (const y of [0, maxY]) if (fits(w, x, y, def)) out.push({ x, y });
+  for (let y = 1; y < maxY; y++) for (const x of [0, maxX]) if (fits(w, x, y, def)) out.push({ x, y });
+  return out.sort((a, b) => Math.hypot(a.x - home.x, a.y - home.y) - Math.hypot(b.x - home.x, b.y - home.y));
+}
+
+/**
+ * Saqueadores en balsa (elegido por Mikel el 2026-10-21): 1 balsa por cada 3 saqueadores del raid,
+ * con 2 dentro (uno rema y otro dispara), que entran por el río desde el borde. Solo si el río deja
+ * remar hasta 15 casillas o menos de la colonia. Devuelve cuántos van en balsa.
+ */
+export function raiderRafts(w: World, raid: Colonist[]): number {
+  const def = RAIDER_RAFT;
+  const home = w.colonyPoint();
+  if (!def?.raft || !home) return 0;
+  const count = Math.floor(raid.length / def.raft.raidersPerRaft);
+  if (count < 1) return 0;
+  // La entrada del río más cercana desde la que se llega remando cerca de la colonia.
+  let launch: Point | null = null;
+  const tried: Point[] = [];
+  for (const a of edgeWaterAnchors(w, home)) {
+    if (tried.length >= 8) break;
+    // Las de al lado de una ya probada van al mismo sitio.
+    if (tried.some((t) => Math.abs(t.x - a.x) + Math.abs(t.y - a.y) <= 6)) continue;
+    tried.push(a);
+    const path = raftLanding(w, a, home, def);
+    if (!path) continue;
+    const end = path.length ? path[path.length - 1] : a;
+    if (Math.hypot(end.x + 1 - home.x, end.y + 1 - home.y) <= def.raft.nearRiver) {
+      launch = a;
+      break;
+    }
+  }
+  if (!launch) return 0;
+  const crew = [...raid.filter((r) => !r.raider?.leader), ...raid.filter((r) => r.raider?.leader)];
+  // Las balsas, una detrás de otra en el agua desde la entrada del río (sin pisarse).
+  const spots: Point[] = [launch];
+  const seen = new Set([launch.y * w.map.width + launch.x]);
+  let placed = 0;
+  for (let q = 0, i = 0; q < spots.length && q < 400 && i < count; q++) {
+    const at = spots[q];
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const n = { x: at.x + dx, y: at.y + dy };
+      const k = n.y * w.map.width + n.x;
+      if (seen.has(k) || !fits(w, n.x, n.y, def)) continue;
+      seen.add(k);
+      spots.push(n);
+    }
+    if (w.vehicles.some((v) => Math.abs(v.x - at.x) < VEHICLE_SIZE && Math.abs(v.y - at.y) < VEHICLE_SIZE)) continue;
+    const v = w.addVehicle(def.id, at.x, at.y);
+    v.path = raftLanding(w, at, home, def) ?? [];
+    crew.slice(i * 2, i * 2 + 2).forEach((c, k) => {
+      c.vehicle = { id: v.id, seat: k === 0 ? 'conductor' : 'tirador', boarded: true };
+      c.raider!.raft = v.id;
+      c.tile = { x: at.x + 1, y: at.y + 1 };
+      c.pos = { x: at.x + 1, y: at.y + 1 };
+      c.path = [];
+      placed++;
+    });
+    i++;
+  }
+  return placed;
+}
+
+/**
+ * Llega un raid de `n` saqueadores por un mismo borde (`withBuggy`: fuerza que traigan o no buggy;
+ * `withRaft`: que parte llegue o no en balsa por el río).
+ */
+export function startRaid(w: World, n: number, withBuggy?: boolean, withRaft?: boolean): Colonist[] {
   const out: Colonist[] = [];
   const first = w.makePawn('saqueador');
   if (!w.placeAtEdge(first)) return out;
@@ -175,12 +249,17 @@ export function startRaid(w: World, n: number, withBuggy?: boolean): Colonist[] 
   for (const r of out) r.raider!.group = first.id;
   w.raidGroups.push({ id: first.id, size: out.length, leaderId: leader.id, escaped: [], routed: false });
   const lead = out.length > 1 ? `, con ${leader.name} ★ al frente` : '';
+  // Desde el día 15, en 1 de cada 2 raids, parte del grupo llega en balsa por el río.
+  const raftDef = RAIDER_RAFT;
+  const raft = withRaft ?? (!!raftDef && w.day >= (raftDef.fromDay ?? 0) && w.rng.chance(raftDef.raidChance ?? 0));
+  const byRaft = raft ? raiderRafts(w, out) : 0;
+  const river = byRaft ? `, ${byRaft} por el río en 🛶 balsa` : '';
   // Desde el día 20, llegan en buggy (vehículos, tercera parte): dos van dentro, conductor y tirador.
   const def = RAIDER_VEHICLE;
-  const buggy = withBuggy ?? (!!def && out.length >= 2 && w.day >= (def.fromDay ?? 0) && w.rng.chance(def.raidChance ?? 0));
+  const buggy = withBuggy ?? (!!def && out.length - byRaft >= 2 && w.day >= (def.fromDay ?? 0) && w.rng.chance(def.raidChance ?? 0));
   const inBuggy = buggy && def ? raiderBuggy(w, out, def.id) : false;
   const how = inBuggy ? `, dos de ellos en un 🚙 ${def!.name.toLowerCase()}` : '';
-  w.addLog(`⚔️ ¡Raid! ${n} ${n === 1 ? 'saqueador llega' : 'saqueadores llegan'}${lead}${how}. Recluta a los colonos (🎖) para defenderos.`, 'malo', 'raid', first.tile);
+  w.addLog(`⚔️ ¡Raid! ${n} ${n === 1 ? 'saqueador llega' : 'saqueadores llegan'}${lead}${how}${river}. Recluta a los colonos (🎖) para defenderos.`, 'malo', 'raid', first.tile);
   return out;
 }
 
@@ -948,6 +1027,45 @@ function dropShutPath(w: World, o: Colonist): void {
   if (o.path.some((p) => w.shutDoors.has(p.y * w.map.width + p.x))) o.path = [];
 }
 
+/**
+ * Al huir, el que llegó en balsa vuelve a ella si la tiene a 8 casillas o menos y le queda sitio, y
+ * se sube. true si va hacia ella (o ya se ha subido); si no puede, la olvida y se va a pie.
+ */
+function backToRaft(w: World, o: Colonist): boolean {
+  const r = o.raider!;
+  const v = w.vehicle(r.raft!);
+  const def = v ? vehicleDef(v.def) : undefined;
+  if (!v || !def?.raft || !nearRaft(v, o, def) || riders(w, v).length >= 2) {
+    r.raft = undefined;
+    return false;
+  }
+  if (nextTo(v, o.tile)) {
+    const seat = occupant(w, v, 'conductor') ? 'tirador' : 'conductor';
+    o.vehicle = { id: v.id, seat, boarded: true };
+    o.path = [];
+    o.activity = 'idle';
+    return true;
+  }
+  const last = o.path[o.path.length - 1];
+  if (!last || !nextTo(v, last)) {
+    const spots = besideTiles(w, v).sort((a, b) => Math.abs(a.x - o.tile.x) + Math.abs(a.y - o.tile.y) - (Math.abs(b.x - o.tile.x) + Math.abs(b.y - o.tile.y)));
+    let path: Point[] | null = null;
+    for (const p of spots.slice(0, 4)) {
+      path = findPath(w.map, o.tile, p, 4000, w.shutDoors);
+      if (path) break;
+    }
+    if (!path) {
+      r.raft = undefined;
+      return false;
+    }
+    o.path = path;
+  }
+  dropShutPath(w, o);
+  if (o.path.length) w.moveAlongPath(o);
+  o.activity = 'moving';
+  return true;
+}
+
 function updateRaider(w: World, o: Colonist): void {
   const r = (o.raider ??= { fleeing: false, leaveAt: w.tick + TICKS_PER_DAY });
   // Las máquinas no tienen moral: ni heridas ni cansadas de esperar se van.
@@ -957,6 +1075,7 @@ function updateRaider(w: World, o: Colonist): void {
     w.addLog(`${foeLabel(o)} huye.`, 'bueno');
   }
   if (r.fleeing) {
+    if (r.raft !== undefined && backToRaft(w, o)) return;
     goAway(w, o, '');
     return;
   }

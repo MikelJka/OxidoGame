@@ -72,10 +72,24 @@ export function canFloat(w: World, x: number, y: number): boolean {
 }
 
 /**
+ * La balsa de los saqueadores pasa por debajo de un puente levadizo bajado (elegido por Mikel el
+ * 2026-10-21); los puentes, las plataformas y el levadizo alzado la paran.
+ */
+function underDrawbridge(w: World, x: number, y: number): boolean {
+  const m = w.map;
+  if (!inBounds(m, x, y)) return false;
+  const i = index(m, x, y);
+  if (!isWater(m.terrain[i] as Terrain) || PROP_INFO[m.props[i] as Prop].blocks) return false;
+  const s = w.structures.at(x, y);
+  return !!s && s.built && !!s.def.drawbridge && !s.raised && !w.structures.floorAt(x, y);
+}
+
+/**
  * Cabe con la esquina en (x, y): todas sus casillas se pueden pisar (un barco, todas de agua
  * libre). Sin `def`, como un vehículo de tierra.
  */
 export function fits(w: World, x: number, y: number, def?: VehicleDef): boolean {
+  if (def?.water && def.hostile) return footprint(x, y).every((t) => canFloat(w, t.x, t.y) || underDrawbridge(w, t.x, t.y));
   if (def?.water) return footprint(x, y).every((t) => canFloat(w, t.x, t.y));
   return footprint(x, y).every((t) => isPassable(w.map, t.x, t.y));
 }
@@ -408,6 +422,129 @@ function edgePath(w: World, v: Vehicle): Point[] | null {
   return null;
 }
 
+/** Casillas de tierra (no de agua) que se pisan pegadas al vehículo con la esquina en (x, y). */
+function shoreBeside(w: World, x: number, y: number): boolean {
+  const m = w.map;
+  for (let ty = y - 1; ty <= y + VEHICLE_SIZE; ty++) {
+    for (let tx = x - 1; tx <= x + VEHICLE_SIZE; tx++) {
+      if (tx >= x && tx < x + VEHICLE_SIZE && ty >= y && ty < y + VEHICLE_SIZE) continue;
+      if (!inBounds(m, tx, ty) || !isPassable(m, tx, ty)) continue;
+      if (!isWater(m.terrain[index(m, tx, ty)] as Terrain) || m.bridge[index(m, tx, ty)]) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Camino de una balsa de los saqueadores desde `from` hasta el sitio del agua, pegado a la orilla,
+ * más cercano a `home` al que llega remando (si un puente corta el río, se para antes). null si no
+ * hay ninguno.
+ */
+export function raftLanding(w: World, from: Point, home: Point, def: VehicleDef): Point[] | null {
+  const W = w.map.width;
+  const key = (x: number, y: number) => y * W + x;
+  const start = key(from.x, from.y);
+  const prev = new Map<number, number>([[start, -1]]);
+  const queue = [start];
+  let best = -1;
+  let bestD = Infinity;
+  for (let q = 0; q < queue.length && q < VEHICLE_PATH_NODES; q++) {
+    const k = queue[q];
+    const x = k % W;
+    const y = (k - x) / W;
+    if (shoreBeside(w, x, y)) {
+      const d = Math.hypot(x + 1 - home.x, y + 1 - home.y);
+      if (d < bestD) {
+        bestD = d;
+        best = k;
+      }
+    }
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx;
+      const ny = y + dy;
+      const nk = key(nx, ny);
+      if (prev.has(nk) || !fits(w, nx, ny, def)) continue;
+      prev.set(nk, k);
+      queue.push(nk);
+    }
+  }
+  if (best < 0) return null;
+  const path: Point[] = [];
+  for (let k = best; k !== start; k = prev.get(k)!) {
+    const x = k % W;
+    path.push({ x, y: (k - x) / W });
+  }
+  return path.reverse();
+}
+
+/** Saqueadores que llegaron en la balsa y aún pueden volver a ella (en pie y en el mapa). */
+export function raftCrew(w: World, v: Vehicle): Colonist[] {
+  return w.others.filter((o) => o.raider?.raft === v.id && !o.downed);
+}
+
+/**
+ * La balsa de los saqueadores (elegido por Mikel el 2026-10-21): rema hasta la orilla más cercana
+ * a la colonia y allí se bajan todos a atacar a pie; la balsa se queda. Al huir, los que vuelven a
+ * ella se van remando por el borde. Sin nadie que pueda volver, se rompe. Devuelve false si ya no está.
+ */
+function driveRaiderRaft(w: World, v: Vehicle): boolean {
+  const def = defOf(v);
+  for (const c of riders(w, v)) if (c.downed) w.leaveVehicle(c);
+  const inside = riders(w, v);
+  if (inside.length === 0) {
+    if (raftCrew(w, v).length === 0) {
+      wreckVehicle(w, v, `🛶 Los saqueadores abandonan ${theName(def)}`);
+      return false;
+    }
+    return true;
+  }
+  const fleeing = inside.some((c) => !c.raider || c.raider.fleeing || w.tick > c.raider.leaveAt);
+  if (!fleeing) {
+    if (v.path.length > 0) return true;
+    const home = w.colonyPoint();
+    const path = home ? raftLanding(w, { x: v.x, y: v.y }, home, def) : null;
+    if (path && path.length > 0) {
+      v.path = path;
+      return true;
+    }
+    // Ha llegado (o no puede ir más allá): se bajan todos a atacar a pie.
+    for (const c of inside) w.leaveVehicle(c);
+    w.addLog(`🛶 Los saqueadores desembarcan de ${theName(def)}.`, 'malo', 'raid', { x: v.x, y: v.y });
+    return true;
+  }
+  for (const c of inside) if (c.raider && !c.raider.fleeing) c.raider.fleeing = true;
+  // Espera a los que vienen hacia ella (mientras quepan).
+  if (inside.length < VEHICLE_SEATS.length && raftCrew(w, v).some((o) => !o.vehicle && o.raider?.fleeing && nearRaft(v, o, def))) return true;
+  const m = w.map;
+  if (v.x <= 0 || v.y <= 0 || v.x >= m.width - VEHICLE_SIZE || v.y >= m.height - VEHICLE_SIZE) {
+    w.vehicles.splice(w.vehicles.indexOf(v), 1);
+    for (const c of inside) {
+      delete c.vehicle;
+      leaveMap(w, c, '');
+    }
+    w.addLog(`🏳 ${theName(def, true)} huye río abajo.`, 'bueno');
+    return false;
+  }
+  if (v.path.length === 0) {
+    const path = edgePath(w, v);
+    if (!path) {
+      // No hay salida por el agua: se bajan y huyen a pie.
+      for (const c of inside) w.leaveVehicle(c);
+      return true;
+    }
+    v.path = path;
+  }
+  return true;
+}
+
+/** El saqueador tiene la balsa a `reboardRange` casillas o menos. */
+export function nearRaft(v: Vehicle, o: Colonist, def: VehicleDef): boolean {
+  const range = def.raft?.reboardRange ?? 0;
+  const dx = Math.max(v.x - o.tile.x, 0, o.tile.x - (v.x + VEHICLE_SIZE - 1));
+  const dy = Math.max(v.y - o.tile.y, 0, o.tile.y - (v.y + VEHICLE_SIZE - 1));
+  return Math.max(dx, dy) <= range;
+}
+
 /**
  * El buggy de los saqueadores: si cae el conductor, el tirador coge el volante; sin nadie dentro,
  * lo abandonan (queda como chatarra). Va a por el colono de pie más cercano para atropellarlo, y al
@@ -415,6 +552,7 @@ function edgePath(w: World, v: Vehicle): Point[] | null {
  */
 function driveRaider(w: World, v: Vehicle): boolean {
   const def = defOf(v);
+  if (def.water) return driveRaiderRaft(w, v);
   // Los que han caído dentro se bajan (quedan en el suelo al lado).
   for (const c of riders(w, v)) if (c.downed) w.leaveVehicle(c);
   const inside = riders(w, v);

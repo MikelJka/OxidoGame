@@ -84,8 +84,8 @@ export function paintVehicle(ctx: CanvasRenderingContext2D, id: string, w = VEHI
     px(3, 0, 1, 10, '#4a3a2a');
     px(4, 0, 4, 3, '#1a1410');
     px(4, 1, 3, 1, '#b02a1a');
-  } else if (id === 'balsa') {
-    // Balsa: troncos atados con cuerda, un remo y ondas en el agua alrededor.
+  } else if (id === 'balsa' || id === 'balsa_saqueadores') {
+    // Balsa: troncos atados con cuerda, un remo y ondas en el agua alrededor (la de los saqueadores, con un trapo rojo).
     ctx.fillStyle = 'rgba(200,230,240,0.35)';
     ctx.fillRect(0, 20, 32, 2);
     ctx.fillRect(2, 23, 28, 1);
@@ -102,6 +102,11 @@ export function paintVehicle(ctx: CanvasRenderingContext2D, id: string, w = VEHI
     // Remo cruzado.
     px(12, 3, 2, 10, '#5e4630');
     px(11, 1, 4, 3, '#7a5a38');
+    if (id === 'balsa_saqueadores') {
+      px(25, 0, 1, 9, '#4a3a2a');
+      px(26, 0, 4, 3, '#1a1410');
+      px(26, 1, 3, 1, '#b02a1a');
+    }
   } else if (id === 'lancha_armada') {
     // Lancha armada: casco de chapa en punta, motor fuera borda atrás, ametralladora delante y estela.
     ctx.fillStyle = 'rgba(200,230,240,0.4)';

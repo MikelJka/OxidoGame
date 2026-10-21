@@ -65,5 +65,30 @@
     "wreck": {
       "chatarra": 20
     }
+  },
+  {
+    "id": "balsa_saqueadores",
+    "name": "Balsa de saqueadores",
+    "feminine": true,
+    "_": "Update del agua (elegido por Mikel el 2026-10-21): desde el día 15, en 1 de cada 2 raids si la colonia está a 15 casillas o menos de un río; 2 por balsa (uno rema y otro dispara) y 1 balsa por cada 3 saqueadores; reman hasta la orilla más cercana a la colonia, desembarcan y atacan a pie, y al huir vuelven a la balsa si la tienen a 8 casillas o menos. No pasan bajo puentes ni plataformas, solo bajo un puente levadizo bajado. Velocidad, vida y lo que deja, como la balsa de los colonos.",
+    "water": true,
+    "hostile": true,
+    "fromDay": 15,
+    "raidChance": 0.5,
+    "raft": {
+      "nearRiver": 15,
+      "raidersPerRaft": 3,
+      "reboardRange": 8
+    },
+    "speed": 0.5,
+    "fuelPerHour": 0,
+    "fuelCapacity": 0,
+    "armor": 0,
+    "hp": 150,
+    "runOverDamage": 0,
+    "wreck": {
+      "madera": 8
+    },
+    "damageScale": 1000
   }
 ]

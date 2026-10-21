@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (31) — Saqueadores que llegan en balsa por el río
+
+- Con las reglas que eligió Mikel: desde el **día 15**, en **1 de cada 2 raids**, si el río deja remar hasta **15 casillas o menos** de la colonia, parte del grupo llega en **🛶 balsa**. Va **1 balsa por cada 3 saqueadores**, con 2 dentro: uno rema y el otro dispara.
+- Entran por el borde del mapa por el río y **reman hasta la orilla más cercana a la colonia**. Allí **desembarcan y atacan a pie**, y la balsa se queda en la orilla.
+- Al **huir**, los que tienen su balsa a **8 casillas o menos** vuelven a ella y se van remando por el río. Si no queda nadie que pueda volver, la balsa se rompe y deja 🪵8.
+- Un **puente, una plataforma o un muelle** cortan el río: la balsa se para antes y desembarcan allí. Un **puente levadizo bajado** los deja pasar por debajo; uno alzado, no. Así se ha entendido lo que eligió Mikel; si quería lo contrario, se cambia en un momento.
+- Qué probar: en una partida con la colonia cerca de un río, adelantar el tiempo con 🪄 hasta el día 15 o más y esperar a los raids. Más o menos 1 de cada 2 dirá «… por el río en 🛶 balsa».
+- Sin npm en el entorno: tests con Bun (591, 8 nuevos en `tests/raiderRaft.test.ts`) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+- Con esto queda terminada la update del agua. Siguiente: la fase 6, empezando por las facciones (bloque 7).
+
 ## 2026-10-21 (30) — El muelle, la pesca y la trampa de pesca
 
 - Mikel contestó las tres propuestas (muelle, saqueadores en balsa y fase 5) y pidió trabajar sin parar hasta las 13:00. Se empieza por el **muelle y la pesca**.
@@ -13,7 +23,7 @@ Diario de sesiones, la más reciente arriba.
 - Sin npm en el entorno: tests con Bun (583, 7 nuevos en `tests/dock.test.ts`) y tipos con `tsc` (sin errores nuevos). La prueba completa, en GitHub Actions.
 - **Trampa de pesca** (🪵6 🧵2, con «Puentes», en 🏗 → Muebles): va en el agua poco profunda o normal, pegada a un muelle, y cada día a las 6:00 deja 1 🐟 en el muelle. Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): la hora (las 6:00) y que el pescado lo recogen luego los que tienen «Transportar».
 - Qué probar también: poner una trampa de pesca junto al muelle y mirar al día siguiente que ha dejado un 🐟.
-- Siguiente: los saqueadores en balsa.
+- Siguiente: los saqueadores en balsa (hecho en la entrada 31).
 
 ## 2026-10-21 — Decisiones de Mikel anotadas (sin cambiar el juego)
 
