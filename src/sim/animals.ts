@@ -57,16 +57,25 @@ export function makeAnimal(w: World, kind: CreatureId): Colonist {
 export function updateAnimal(w: World, a: Colonist, goAway: (w: World, o: Colonist, why: string) => void): void {
   const def = a.creature ? CREATURES[a.creature] : undefined;
   if (!def) return;
-  // De carga: no se va; pasea cerca de la colonia.
+  // De carga: no se va; pasea cerca de la colonia, de su poste o de su establo (y de noche duerme en él).
+  const tie = a.tamed ? tetherOf(w, a) : undefined;
   if (a.tamed) {
     if (a.path.length) {
       w.moveAlongPath(a);
       return;
     }
-    const home = w.colonyPoint();
-    if (home && Math.abs(home.x - a.tile.x) + Math.abs(home.y - a.tile.y) > TAMING.leash && (w.tick + a.id) % 60 === 0) {
-      const path = findPath(w.map, a.tile, home, 8000);
-      if (path) a.path = path.slice(0, Math.max(1, path.length - 3));
+    if (tie?.sleep && isNightHour(w.hour)) {
+      if ((a.tile.x !== tie.sleep.x || a.tile.y !== tie.sleep.y) && (w.tick + a.id) % 30 === 0) {
+        const path = findPath(w.map, a.tile, tie.sleep, 8000, w.structures.gateTiles());
+        if (path) a.path = path;
+      }
+      return;
+    }
+    const home = tie ?? w.colonyPoint();
+    const leash = tie?.leash ?? TAMING.leash;
+    if (home && Math.abs(home.x - a.tile.x) + Math.abs(home.y - a.tile.y) > leash && (w.tick + a.id) % 60 === 0) {
+      const path = findPath(w.map, a.tile, home, 8000, w.structures.gateTiles());
+      if (path) a.path = tie ? path : path.slice(0, Math.max(1, path.length - 3));
       return;
     }
   } else if (w.tick > (a.leaveAt ?? Infinity)) {
@@ -88,7 +97,7 @@ export function updateAnimal(w: World, a: Colonist, goAway: (w: World, o: Coloni
     }
     if ((w.tick + a.id) % 300 === 0) {
       const food = w.items.list().find((s) => FOOD_RESOURCES.includes(s.resource) && !w.rooms.at(s.x, s.y));
-      const path = food ? findPath(w.map, a.tile, { x: food.x, y: food.y }, 8000) : null;
+      const path = food ? findPath(w.map, a.tile, { x: food.x, y: food.y }, 8000, w.structures.gateTiles()) : null;
       if (path) {
         a.path = path;
         return;
@@ -102,7 +111,8 @@ export function updateAnimal(w: World, a: Colonist, goAway: (w: World, o: Coloni
     const x = a.tile.x + rng.int(-5, 5);
     const y = a.tile.y + rng.int(-5, 5);
     if (!isPassable(w.map, x, y)) continue;
-    const path = findPath(w.map, a.tile, { x, y }, 400);
+    if (tie && Math.abs(tie.x - x) + Math.abs(tie.y - y) > tie.leash) continue;
+    const path = findPath(w.map, a.tile, { x, y }, 400, w.structures.gateTiles());
     if (path) {
       a.path = path;
       return;
@@ -190,7 +200,8 @@ export function packAnimals(w: World): Colonist[] {
 export function feedPackAnimals(w: World): void {
   for (const a of packAnimals(w)) {
     if (w.tick - (a.fedAt ?? 0) < TICKS_PER_DAY) continue;
-    if (takeFood(w, TAMING.foodPerDay)) {
+    const stable = tetherOf(w, a)?.stable;
+    if (takeFood(w, Math.ceil(TAMING.foodPerDay * (stable ?? 1)))) {
       a.fedAt = w.tick;
       continue;
     }
@@ -221,4 +232,57 @@ export function animalDrops(w: World, a: Colonist): void {
   const leather = def.leather ? w.rng.int(def.leather[0], def.leather[1]) : 0;
   w.items.dropAll(a.tile.x, a.tile.y, { carne: meat, cuero: leather });
   w.addLog(`${def.emoji} ${def.name} cazad${def.female ? 'a' : 'o'}: deja 🥩${meat} y 🟫${leather}.`, 'bueno', undefined, a.tile);
+}
+
+/** De noche (de 20:00 a 6:00) los animales con establo duermen en él. */
+export function isNightHour(hour: number): boolean {
+  return hour >= 20 || hour < 6;
+}
+
+/** Adónde está atado un animal de carga: un sitio, cuánto se puede alejar y, con establo, dónde duerme. */
+export interface Tether {
+  x: number;
+  y: number;
+  leash: number;
+  /** Casilla del establo donde duerme. */
+  sleep?: { x: number; y: number };
+  /** Parte de la comida de cada día que gasta (con establo, menos). */
+  stable?: number;
+}
+
+const tetherCache = new WeakMap<World, { key: string; map: Map<number, Tether> }>();
+
+/**
+ * Reparto de los animales de carga (de menor a mayor id): primero en los establos (4 cada uno),
+ * luego en los postes con cuerda (2 cada uno). Los que no caben pasean cerca de la colonia.
+ */
+export function tethers(w: World): Map<number, Tether> {
+  const animals = packAnimals(w).sort((p, q) => p.id - q.id);
+  const key = `${w.structures.version}|${animals.map((p) => p.id).join(',')}`;
+  const cached = tetherCache.get(w);
+  if (cached?.key === key) return cached.map;
+  const map = new Map<number, Tether>();
+  const built = w.structures.all().filter((s) => s.built).sort((p, q) => p.id - q.id);
+  const slots: Tether[] = [];
+  for (const s of built) {
+    if (!s.def.stable) continue;
+    const tiles = w.structures.tilesOf(s);
+    for (let k = 0; k < s.def.stable.animals; k++) {
+      const t = tiles[k % tiles.length];
+      slots.push({ x: t.x, y: t.y, leash: TAMING.leash, sleep: { x: t.x, y: t.y }, stable: s.def.stable.foodMult });
+    }
+  }
+  for (const s of built) {
+    if (!s.def.tiePost) continue;
+    for (let k = 0; k < s.def.tiePost.animals; k++) slots.push({ x: s.x, y: s.y, leash: s.def.tiePost.leash });
+  }
+  animals.forEach((p, k) => {
+    if (slots[k]) map.set(p.id, slots[k]);
+  });
+  tetherCache.set(w, { key, map });
+  return map;
+}
+
+export function tetherOf(w: World, a: Colonist): Tether | undefined {
+  return a.tamed ? tethers(w).get(a.id) : undefined;
 }

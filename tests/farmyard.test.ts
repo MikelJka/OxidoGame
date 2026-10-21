@@ -1,0 +1,114 @@
+// Granja (pedido de Mikel del 2026-10-21): vallas, puertas de valla, postes con cuerda y establos.
+import { describe, expect, it } from 'vitest';
+import { flatWorld } from './helpers';
+import { buildingDef } from '../src/data/buildings';
+import { feedPackAnimals, isNightHour, makeAnimal, tameAnimal, tethers, updateAnimal } from '../src/sim/animals';
+import { findPath } from '../src/sim/pathfinding';
+import { loadWorld, serializeWorld } from '../src/sim/save';
+import { TICKS_PER_DAY } from '../src/sim/time';
+import type { World } from '../src/sim/world';
+
+function build(w: World, x: number, y: number, id: string): void {
+  expect(w.structures.place(x, y, id)).toBe(true);
+  w.completeStructure(w.structures.at(x, y)!);
+}
+
+/** Corral de 3 × 3 por dentro (de 11 a 13) con la puerta de valla en (12, 10). */
+function pen(w: World): void {
+  for (let x = 10; x <= 14; x++)
+    for (let y = 10; y <= 14; y++) {
+      if (x > 10 && x < 14 && y > 10 && y < 14) continue;
+      build(w, x, y, x === 12 && y === 10 ? 'puerta_valla' : 'valla_madera');
+    }
+}
+
+function put(w: World, kind: Parameters<typeof makeAnimal>[1], x: number, y: number) {
+  const a = makeAnimal(w, kind);
+  a.tile = { x, y };
+  a.pos = { x: x + 0.5, y: y + 0.5 };
+  w.others.push(a);
+  return a;
+}
+
+const noLeave = () => undefined;
+
+describe('granja', () => {
+  it('las cuatro piezas están en «Granja»', () => {
+    for (const id of ['valla_madera', 'puerta_valla', 'poste_atar', 'establo']) expect(buildingDef(id)?.category).toBe('granja');
+    expect(buildingDef('valla_madera')!.blocks).toBe(true);
+    expect(buildingDef('puerta_valla')!.blocks).toBe(false);
+  });
+
+  it('un corral de vallas no es una habitación (no se le pone tejado)', () => {
+    const w = flatWorld(1);
+    pen(w);
+    expect(w.rooms.at(12, 12)).toBeNull();
+  });
+
+  it('los animales no cruzan la puerta de valla, pero los colonos sí', () => {
+    const w = flatWorld(1);
+    w.map.start = { x: 25, y: 25 };
+    pen(w);
+    const goat = put(w, 'cabra_salvaje', 12, 12);
+    goat.leaveAt = Infinity;
+    const seen = new Set<string>();
+    for (let t = 0; t < 6000; t++) {
+      seen.add(`${goat.tile.x},${goat.tile.y}`);
+      updateAnimal(w, goat, noLeave);
+      w.tick++;
+      expect(goat.tile.x >= 11 && goat.tile.x <= 13 && goat.tile.y >= 11 && goat.tile.y <= 13).toBe(true);
+    }
+    expect(seen.size).toBeGreaterThan(1);
+    // Un colono entra por la puerta.
+    const c = w.colonists[0];
+    expect(findPath(w.map, c.tile, { x: 12, y: 12 })).not.toBeNull();
+  });
+
+  it('el poste ata a dos animales de carga, que no se alejan', () => {
+    const w = flatWorld(1);
+    w.map.start = { x: 5, y: 5 };
+    build(w, 20, 20, 'poste_atar');
+    const a = put(w, 'cabra_salvaje', 20, 21);
+    const b = put(w, 'cabra_salvaje', 21, 20);
+    const c = put(w, 'cabra_salvaje', 6, 6);
+    for (const p of [a, b, c]) tameAnimal(w, p);
+    const t = tethers(w);
+    expect(t.get(a.id)?.x).toBe(20);
+    expect(t.get(b.id)?.x).toBe(20);
+    expect(t.has(c.id)).toBe(false);
+    const moved = new Set<string>();
+    for (let k = 0; k < 6000; k++) {
+      updateAnimal(w, a, noLeave);
+      w.tick++;
+      moved.add(`${a.tile.x},${a.tile.y}`);
+      expect(Math.abs(a.tile.x - 20) + Math.abs(a.tile.y - 20)).toBeLessThanOrEqual(2);
+    }
+    // Pasea, pero cerca.
+    expect(moved.size).toBeGreaterThan(1);
+  });
+
+  it('con establo duermen dentro de noche y comen la mitad', () => {
+    const w = flatWorld(1);
+    w.map.start = { x: 5, y: 5 };
+    build(w, 18, 18, 'establo');
+    const a = put(w, 'vaca_dos_cabezas', 10, 10);
+    tameAnimal(w, a);
+    // De noche va al establo.
+    while (!isNightHour(w.hour)) w.tick++;
+    for (let k = 0; k < 1500 && isNightHour(w.hour); k++) {
+      updateAnimal(w, a, noLeave);
+      w.tick++;
+    }
+    const s = w.structures.at(18, 18)!;
+    const tiles = w.structures.tilesOf(s);
+    expect(tiles.some((t) => t.x === a.tile.x && t.y === a.tile.y)).toBe(true);
+    // Come 1 en lugar de 2.
+    w.items.drop(3, 3, 'patata', 10);
+    a.fedAt = w.tick - TICKS_PER_DAY;
+    feedPackAnimals(w);
+    expect(w.items.at(3, 3)?.amount).toBe(9);
+    // Se guarda.
+    const back = loadWorld(serializeWorld(w));
+    expect(back.structures.all().some((x) => x.def.id === 'establo')).toBe(true);
+  });
+});

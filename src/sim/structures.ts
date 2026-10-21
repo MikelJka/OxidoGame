@@ -204,6 +204,19 @@ export class Structures {
   constructor(readonly map: GameMap) {}
 
   /** Lo construido en una casilla: la construcción o, si no hay, el suelo. */
+  private gatesFor = -1;
+  private gates = new Set<number>();
+
+  /** Casillas con puerta de valla construida: los animales no las cruzan. */
+  gateTiles(): ReadonlySet<number> {
+    if (this.gatesFor !== this.version) {
+      this.gatesFor = this.version;
+      this.gates = new Set();
+      for (const s of this.all()) if (s.built && s.def.gate) for (const t of this.tilesOf(s)) this.gates.add(index(this.map, t.x, t.y));
+    }
+    return this.gates;
+  }
+
   at(x: number, y: number): Structure | undefined {
     if (!inBounds(this.map, x, y)) return undefined;
     const i = index(this.map, x, y);

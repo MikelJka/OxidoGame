@@ -4,7 +4,7 @@ import { RESOURCES, ResourceId } from './resources';
 import { SKILLS, type Skill } from './colonists';
 import { vehicleDef } from './vehicles';
 
-export type BuildingCategory = 'muro' | 'puerta' | 'porton' | 'torre' | 'suelo' | 'defensa' | 'mueble' | 'taller' | 'agua' | 'electricidad' | 'vehiculo';
+export type BuildingCategory = 'muro' | 'puerta' | 'porton' | 'torre' | 'suelo' | 'defensa' | 'mueble' | 'taller' | 'agua' | 'electricidad' | 'vehiculo' | 'granja';
 
 export const BUILDING_CATEGORY_NAMES: Record<BuildingCategory, string> = {
   muro: 'Muros',
@@ -18,6 +18,7 @@ export const BUILDING_CATEGORY_NAMES: Record<BuildingCategory, string> = {
   agua: 'Agua',
   electricidad: 'Electricidad',
   vehiculo: 'Vehículos',
+  granja: 'Granja',
 };
 
 export interface BuildingDef {
@@ -181,6 +182,19 @@ export interface BuildingDef {
    * normal pegada a un muelle y cada día, a esta hora, deja `perDay` 🐟 en el muelle de al lado.
    */
   fishTrap?: { perDay: number; hour: number };
+  /**
+   * Granja (pedido de Mikel del 2026-10-21): valla. No cuenta como pared de una habitación (no se le
+   * pone tejado) y, con `gate`, es la puerta de valla: los colonos pasan y los animales no.
+   */
+  fence?: boolean;
+  gate?: boolean;
+  /** Poste con cuerda: ata hasta `animals` animales de carga, que no se alejan más de `leash` casillas. */
+  tiePost?: { animals: number; leash: number };
+  /**
+   * Establo: hasta `animals` animales de carga duermen dentro de noche y comen `foodMult` de lo normal
+   * (tienen forraje y no pasan frío).
+   */
+  stable?: { animals: number; foodMult: number };
   /** Colores del dibujo: cara de arriba, frente y sombra. */
   colors: { top: string; face: string; dark: string };
 }
@@ -245,6 +259,11 @@ export function validateBuilding(d: unknown): BuildingDef {
   if (b.platform !== undefined && (b.category !== 'suelo' || b.blocks || b.bridge !== undefined || typeof b.platform.deepWater !== 'boolean')) fail('plataforma no válida');
   if (b.drawbridge !== undefined && (b.drawbridge !== true || b.category !== 'defensa' || b.blocks || b.height !== 0 || !((b.power ?? 0) < 0) || b.bridge !== undefined || b.onWater !== undefined)) fail('puente levadizo no válido');
   if (b.onWater !== undefined && (b.onWater !== true || b.category === 'suelo' || b.nearWater)) fail('«onWater» no válido');
+  if ((b.fence || b.gate || b.tiePost || b.stable) && b.category !== 'granja') fail('vallas, postes y establos van en «Granja»');
+  if (b.gate && (!b.fence || b.blocks)) fail('una puerta de valla es una valla que se pisa');
+  if (b.fence && !b.gate && !b.blocks) fail('una valla no se pisa');
+  if (b.tiePost && (b.blocks || !Number.isInteger(b.tiePost.animals) || b.tiePost.animals < 1 || !Number.isInteger(b.tiePost.leash) || b.tiePost.leash < 1)) fail('poste no válido');
+  if (b.stable && (b.blocks || !Number.isInteger(b.stable.animals) || b.stable.animals < 1 || !(b.stable.foodMult > 0 && b.stable.foodMult <= 1))) fail('establo no válido');
   if (!b.colors?.top || !b.colors.face || !b.colors.dark) fail('faltan colores');
   return b;
 }

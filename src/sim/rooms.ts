@@ -56,7 +56,11 @@ export class Rooms {
         const j = index(this.map, nx, ny);
         if (seen.has(j)) continue;
         seen.add(j);
-        if (!isPassable(this.map, nx, ny)) continue;
+        if (!isPassable(this.map, nx, ny)) {
+          // Una valla no cierra una habitación: lo de dentro sigue al aire libre (un corral).
+          if (this.isFence(nx, ny)) open = true;
+          continue;
+        }
         if (this.isDoor(nx, ny)) {
           doors.add(j);
           continue;
@@ -72,6 +76,11 @@ export class Rooms {
     if (room) for (const t of tiles) this.roomOf.set(t, room);
     else this.roomOf.set(i, null);
     return room;
+  }
+
+  private isFence(x: number, y: number): boolean {
+    const s = this.structures.at(x, y);
+    return !!s && s.built && !!s.def.fence;
   }
 
   private isDoor(x: number, y: number): boolean {

@@ -629,7 +629,7 @@ export function breakCost(w: World, x: number, y: number, perHit: number): numbe
   return 4 + 3 * Math.ceil(s.hp / perHit);
 }
 
-const BREAKABLE: ReadonlySet<string> = new Set(['muro', 'puerta', 'porton']);
+const BREAKABLE: ReadonlySet<string> = new Set(['muro', 'puerta', 'porton', 'granja']);
 
 /** Un golpe de quien rompe muros a la construcción que le corta el paso. */
 export function smashStructure(w: World, o: Colonist, s: Structure): void {

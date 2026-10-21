@@ -1453,6 +1453,94 @@
     }
   },
   {
+    "id": "valla_madera",
+    "name": "Valla de madera",
+    "category": "granja",
+    "fence": true,
+    "cost": {
+      "madera": 2
+    },
+    "work": 80,
+    "hp": 60,
+    "blocks": true,
+    "height": 1,
+    "colors": {
+      "top": "#a8804e",
+      "face": "#7a5634",
+      "dark": "#4e3520"
+    }
+  },
+  {
+    "id": "puerta_valla",
+    "name": "Puerta de valla",
+    "category": "granja",
+    "fence": true,
+    "gate": true,
+    "cost": {
+      "madera": 4
+    },
+    "work": 100,
+    "hp": 50,
+    "blocks": false,
+    "moveCost": 1.2,
+    "height": 1,
+    "colors": {
+      "top": "#a8804e",
+      "face": "#7a5634",
+      "dark": "#4e3520"
+    }
+  },
+  {
+    "id": "poste_atar",
+    "name": "Poste con cuerda",
+    "category": "granja",
+    "tiePost": {
+      "animals": 2,
+      "leash": 2
+    },
+    "cost": {
+      "madera": 3,
+      "fibra": 2
+    },
+    "work": 60,
+    "hp": 40,
+    "blocks": false,
+    "moveCost": 1.2,
+    "height": 1,
+    "colors": {
+      "top": "#8a6a44",
+      "face": "#5e4630",
+      "dark": "#c8b07a"
+    }
+  },
+  {
+    "id": "establo",
+    "name": "Establo",
+    "category": "granja",
+    "stable": {
+      "animals": 4,
+      "foodMult": 0.5
+    },
+    "size": [
+      2,
+      2
+    ],
+    "cost": {
+      "madera": 30,
+      "fibra": 6
+    },
+    "work": 500,
+    "hp": 200,
+    "blocks": false,
+    "moveCost": 1.5,
+    "height": 1,
+    "colors": {
+      "top": "#8a3a2a",
+      "face": "#6a4a2c",
+      "dark": "#d8c070"
+    }
+  },
+  {
     "id": "banco_investigacion",
     "movable": true,
     "name": "Banco de investigación",

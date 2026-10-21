@@ -36,6 +36,10 @@ export function drawBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, ti
   };
   const outline = '#1a1410';
   const h = tileH + wallH;
+  if (def.category === 'granja') {
+    drawFarmBuilding(ctx, def, tile, tileH, wallH);
+    return;
+  }
   px(0, 0, tile, h, outline);
   if (def.category === 'torre') {
     drawTower(ctx, def, tile, tileH, wallH);
@@ -798,4 +802,67 @@ function drawTurret(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: numbe
   }
   // Piloto (se ve si hay corriente; el dibujo es el mismo, la luz ayuda a reconocerla).
   px(cx + 1, cy + 1, 2, 1, '#7fe07a');
+}
+
+/**
+ * Granja: valla (postes y dos travesaños, transparente entre medias), puerta de valla (lo mismo con
+ * bisagras y una diagonal), poste con su cuerda enrollada y establo (suelo de paja con tejado a dos aguas).
+ */
+function drawFarmBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number, tileH: number, wallH: number): void {
+  const { top, face, dark } = def.colors;
+  const px = (x: number, y: number, w: number, h: number, color: string) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h)));
+  };
+  const outline = '#1a1410';
+  const h = tileH + wallH;
+  const base = h - Math.max(2, Math.round(tileH / 2)); // donde se clavan los postes (mitad de la casilla)
+  if (def.fence) {
+    const postH = Math.max(5, Math.round(wallH * 0.75));
+    // Sombra en el suelo.
+    px(0, base + 1, tile, 1, 'rgba(0,0,0,0.3)');
+    // Dos postes en los extremos.
+    for (const x of [1, tile - 3]) {
+      px(x - 1, base - postH - 1, 4, postH + 2, outline);
+      px(x, base - postH, 2, postH, face);
+      px(x, base - postH, 2, 1, top);
+    }
+    // Travesaños.
+    for (const y of [base - postH + 2, base - Math.round(postH / 2) + 1]) {
+      px(0, y - 1, tile, 3, outline);
+      px(0, y, tile, 1, top);
+    }
+    if (def.gate) {
+      // Diagonal y bisagras.
+      for (let k = 0; k < tile - 6; k++) px(3 + k, base - Math.round(((k + 1) * (postH - 3)) / (tile - 6)), 1, 1, dark);
+      px(1, base - postH + 2, 1, 1, '#c9ced4');
+      px(1, base - Math.round(postH / 2) + 1, 1, 1, '#c9ced4');
+    }
+    return;
+  }
+  if (def.tiePost) {
+    const cx = Math.floor(tile / 2) - 1;
+    const postH = Math.max(6, wallH);
+    px(cx - 2, base + 1, 6, 1, 'rgba(0,0,0,0.3)');
+    px(cx - 1, base - postH - 1, 4, postH + 2, outline);
+    px(cx, base - postH, 2, postH, face);
+    px(cx, base - postH, 2, 1, top);
+    // Cuerda enrollada y un cabo suelto.
+    px(cx - 1, base - postH + 2, 4, 2, dark);
+    px(cx + 3, base - postH + 3, 1, 3, dark);
+    px(cx + 4, base - postH + 6, 2, 1, dark);
+    return;
+  }
+  // Establo: suelo de paja, paredes bajas de tablas atrás y a los lados y tejado rojo a dos aguas.
+  px(0, 0, tile, h, outline);
+  px(1, wallH + 1, tile - 2, tileH - 2, dark); // paja
+  for (let x = 3; x < tile - 2; x += 4) for (let y = wallH + 3; y < h - 2; y += 3) px(x + (y % 2), y, 2, 1, '#b8a050');
+  // Tejado (cara de arriba) con su cumbrera.
+  const roofH = Math.max(4, Math.round(tileH * 0.45));
+  px(1, 1, tile - 2, roofH, top);
+  px(1, 1, tile - 2, 1, lighten(top));
+  px(1, Math.round(roofH / 2), tile - 2, 1, outline);
+  // Frente abierto: pilares y viga.
+  px(1, roofH + 1, tile - 2, 2, face);
+  for (const x of [1, Math.floor(tile / 2) - 1, tile - 3]) px(x, roofH + 1, 2, h - roofH - 2, face);
 }

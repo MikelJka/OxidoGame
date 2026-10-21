@@ -1716,10 +1716,9 @@ export class WorldScene extends Phaser.Scene {
     g.clear();
     for (const f of farms.all()) {
       const sel = f.id === this.selectedFarmId;
-      // Surcos: tierra más oscura con el borde verde.
-      g.fillStyle(0x4a3a24, sel ? 0.5 : 0.35);
-      for (const i of f.tiles) this.fillTile(g, i % this.map.width, Math.floor(i / this.map.width), 0.5);
-      g.lineStyle(1, 0x8fc060, sel ? 1 : 0.7);
+      // Tierra labrada con surcos en filas (caballones claros y surcos oscuros), como un huerto de verdad.
+      for (const i of f.tiles) this.drawFurrows(g, i % this.map.width, Math.floor(i / this.map.width), sel);
+      g.lineStyle(1, sel ? 0x8fc060 : 0x6a5030, sel ? 1 : 0.8);
       for (const i of f.tiles) this.strokeZoneEdges(g, (x, y) => this.world.farms.at(x, y)?.id === f.id, i % this.map.width, Math.floor(i / this.map.width));
     }
     for (const z of zones.all()) {
@@ -1729,6 +1728,24 @@ export class WorldScene extends Phaser.Scene {
       // Borde donde la casilla vecina no es de la misma zona.
       g.lineStyle(1, ZONE_COLORS[z.priority], sel ? 1 : 0.7);
       for (const i of z.tiles) this.strokeZoneEdges(g, (x, y) => this.world.zones.at(x, y)?.id === z.id, i % this.map.width, Math.floor(i / this.map.width));
+    }
+  }
+
+  /** Una casilla de huerto: tierra labrada y tres surcos a lo ancho (en la vista, siempre horizontales). */
+  private drawFurrows(g: Phaser.GameObjects.Graphics, x: number, y: number, sel: boolean): void {
+    const v = this.viewTile(x, y);
+    const left = v.x * TILE;
+    const top = v.y * TILE_H - liftOf(this.view, v.x, v.y);
+    g.fillStyle(0x5a4128, sel ? 0.95 : 0.85);
+    g.fillRect(left, top, TILE, TILE_H);
+    const rows = 3;
+    const step = TILE_H / rows;
+    for (let r = 0; r < rows; r++) {
+      const ry = top + r * step;
+      g.fillStyle(0x7a5a38, 0.9); // caballón (tierra amontonada, al sol)
+      g.fillRect(left + 1, ry + step * 0.15, TILE - 2, Math.max(1, step * 0.35));
+      g.fillStyle(0x3a2a18, 0.9); // surco (hondo, a la sombra)
+      g.fillRect(left + 1, ry + step * 0.55, TILE - 2, Math.max(1, step * 0.3));
     }
   }
 

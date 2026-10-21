@@ -1,7 +1,7 @@
 // Gente: diario de la colonia, prisioneros, comercio con caravanas, supervivientes que piden
 // unirse y fin de partida. Solo interfaz: las reglas están en src/sim/people.ts.
 import { animalCargo, CREATURES, TAMING, tameDifficulty } from '../data/creatures';
-import { cycleAnimalMark, packAnimals } from '../sim/animals';
+import { cycleAnimalMark, packAnimals, tetherOf } from '../sim/animals';
 import type { World } from '../sim/world';
 import type { Colonist } from '../sim/colonist';
 import { buyPrice, callAllies, callCaravan, dealBalance, nextCaravanNeeds, sellPrice, makeDeal, payTribute, radioProblem, refuseTribute, slaveValue, TRADER_MARGIN, TradeDeal } from '../sim/people';
@@ -819,7 +819,7 @@ export function mountPeople(opts: Options): PeopleUI {
       if (c.creature && CREATURES[c.creature].animal && c.role === 'animal') {
         const d = CREATURES[c.creature];
         if (c.tamed) {
-          opts.toast(`${d.emoji} ${c.name} de carga · ${healthLabel(c).toLowerCase()} · lleva +${animalCargo(c.creature)} kg en las expediciones y come cada día`, 3000);
+          opts.toast(`${d.emoji} ${c.name} de carga · ${healthLabel(c).toLowerCase()} · lleva +${animalCargo(c.creature)} kg en las expediciones y come cada día${tetherNote(opts.getWorld(), c)}`, 3000);
           return;
         }
         const mark = cycleAnimalMark(c);
@@ -844,4 +844,11 @@ export function mountPeople(opts: Options): PeopleUI {
       setOpen(true);
     },
   };
+}
+
+/** Dónde está atado un animal de carga, para el aviso al tocarlo. */
+function tetherNote(w: World | null, c: Colonist): string {
+  const t = w ? tetherOf(w, c) : undefined;
+  if (!t) return ' · suelto (con un poste con cuerda o un establo en «Granja» no se aleja)';
+  return t.sleep ? ' · duerme en el establo y come la mitad' : ' · atado a un poste';
 }

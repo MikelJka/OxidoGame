@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (53) — Doma con dificultad, animales nuevos y granja
+
+- Pedido por Mikel. **Cada animal se doma con su dificultad** y carga distinto en las expediciones: 🐐 cabra salvaje (fácil, 30 %, 30 kg), 🫏 mula (fácil, 25 %, 80 kg, se compra), 🐄 vaca de dos cabezas (media, 15 %, 100 kg), 🐎 caballo salvaje (difícil, 6 %, 120 kg; herido ataca), 🦌 ciervo mutado (difícil, 5 %, 50 kg) y 🐗 jabalí (muy difícil, 3 %, 60 kg). Supervivencia sigue sumando un 2 % por punto. Al tocarlo para domarlo se ve lo difícil que es.
+- **El huerto parece un huerto**: tierra labrada con surcos y caballones en filas.
+- Nueva pestaña **«Granja»** en construir: **valla de madera** (🪵2, no la cruza nadie; un corral no es una habitación ni lleva tejado), **puerta de valla** (🪵4: los colonos pasan, los animales no), **poste con cuerda** (🪵3 🌿2: ata a 2 animales de carga, que no se alejan más de 2 casillas) y **establo** (2×2, 🪵30 🌿6: 4 animales duermen dentro de noche y comen la mitad).
+- Decidido en esta sesión (Mikel puede cambiarlo): las probabilidades, las cargas, los costes y lo que dan el poste y el establo.
+- Qué probar: hacer un corral con valla y puerta de valla, domar una cabra y ver que se queda dentro; poner un poste y un establo y tocar el animal (dice dónde está atado).
+- Sin npm en el entorno: tests con Bun (663) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+
 ## 2026-10-21 (52) — Animales de carga: domarlos y comprar mulas
 
 - Elegido por Mikel (las dos cosas). **Al tocar un animal**, la marca va cambiando: 🎯 cazar → 🤝 **domar** (ciervos mutados y jabalíes; las ratas, no) → sin marca.
