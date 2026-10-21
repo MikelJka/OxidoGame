@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (63) — Montones del suelo con detalle
+
+- Siguiente parte del salto de calidad del 2D (pedido por Mikel). Los **montones del suelo** se dibujan a **doble resolución** (`src/render/itemArt.ts`) y en **tres tamaños** según lo llenos que están: unos pocos troncos sueltos, media pila o la pila entera.
+- **Materiales**: pila de troncos con la punta cortada y sus anillos; piedras redondeadas; chapas oxidadas con un tubo y un engranaje; cajas de componentes; lingotes de metal; bloques de hormigón con varilla; manojos de fibra y de hierba curativa.
+- **Comida**: cesto de patatas, maíz o setas (con un saco al lado si está lleno); olla de guiso humeante con cuencos; carne sobre una tela; pescado en una tabla; cántaros de leche; huevos en un cesto con paja.
+- **Lo demás**: botiquín con frascos; bidones rojos de ⛽ y latas de napalm; sacos de abono; pieles de cuero; abrigo doblado; caja de munición; carcaj de flechas; granadas; todas las armas y la ropa de protección redibujadas; y los **kits** de defensas y energía como cajas con su franja de color y un dibujo (antes no se veían: solo la sombra). La 💊, el ⛽, la carne, el cuero y el abrigo tampoco tenían dibujo; ahora sí.
+- Lo que lleva un colono a cuestas usa el mismo dibujo, en pequeño. Sin cambios en las reglas ni en la partida guardada.
+- Qué probar: mirar un almacén con varios montones (madera, piedra, comida) e ir viendo cómo crecen; dejar en el suelo una 💊 o un bidón de ⛽.
+- Qué sigue: el resto de edificios (defensas, electricidad, pozo, cantera, muelle).
+- Sin npm en el entorno: tests con Bun (678) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+
 ## 2026-10-21 (62) — Muebles y talleres con detalle
 
 - Siguiente parte del salto de calidad del 2D (pedido por Mikel). Los **muebles y talleres** se dibujan a **doble resolución** (`src/render/furnitureArt.ts`), como las personas.

@@ -33,7 +33,8 @@ import { BEAST, BEAST_POSES, hasBeastArt, paintBeastSheet } from './creatureArt'
 import { FOLIAGE_PROPS, isTallProp, paintPropAtlas, PROP_ATLAS_COLS, PROP_BASE, PROP_H, PROP_W, propFrame, propVariant, TALL_PROPS } from './propArt';
 import { foliageAt, snowCover, yearFraction } from '../sim/seasons';
 import { outdoorTemp } from '../sim/climate';
-import { colonistLookKey, COLONIST_SIZE, CROP_SIZE, ITEM_H, ITEM_W, paintColonist, paintCorpse, paintCrop, paintItem } from './spriteArt';
+import { colonistLookKey, COLONIST_SIZE, CROP_SIZE, paintColonist, paintCorpse, paintCrop } from './spriteArt';
+import { ITEM_HI_H, ITEM_HI_W, paintItemHi, pileLevel } from './itemArt';
 import { rotOf } from '../sim/corpses';
 import { TICKS_PER_DAY } from '../sim/time';
 import { canvasPropRasterizer, paintGround, PropRasterizer, TILE } from './mapArt';
@@ -2226,10 +2227,11 @@ export class WorldScene extends Phaser.Scene {
       carry?.setVisible(false);
       return;
     }
-    const key = itemTextureKey(c.carrying.resource);
-    if (!this.textures.exists(key)) drawItemTexture(this, key, c.carrying.resource);
+    // Lo que lleva a cuestas, como un montón pequeño (doble resolución, a menos de la mitad).
+    const key = itemTextureKey(c.carrying.resource, 1);
+    if (!this.textures.exists(key)) drawItemTexture(this, key, c.carrying.resource, 1);
     if (!carry) {
-      carry = this.add.image(0, 0, key).setOrigin(0.5, 1).setScale(0.7);
+      carry = this.add.image(0, 0, key).setOrigin(0.5, 0.9).setScale(0.4);
       this.carrySprites.set(c.id, carry);
     }
     carry.setTexture(key).setVisible(true).setPosition(img.x, img.y - 11).setDepth(img.depth + 0.00001).setAlpha(img.alpha);
@@ -2243,14 +2245,15 @@ export class WorldScene extends Phaser.Scene {
     for (const img of this.itemSprites) img.destroy();
     this.itemSprites = [];
     for (const s of items.list()) {
-      const key = itemTextureKey(s.resource);
-      if (!this.textures.exists(key)) drawItemTexture(this, key, s.resource);
+      // Tres tamaños de montón según lo lleno que está (unos troncos sueltos o una pila entera).
+      const level = pileLevel(s.amount, MAX_STACK[s.resource]);
+      const key = itemTextureKey(s.resource, level);
+      if (!this.textures.exists(key)) drawItemTexture(this, key, s.resource, level);
       const v = this.viewTile(s.x, s.y);
       const cx = (v.x + 0.5) * TILE;
       const cy = rowY(v.y + 0.5) - liftOf(this.view, v.x, v.y);
-      // Un montón casi vacío se ve más pequeño que uno lleno.
-      const scale = 0.7 + 0.3 * Math.min(1, s.amount / MAX_STACK[s.resource]);
-      const img = this.add.image(cx, cy + 2, key).setOrigin(0.5, 0.8).setScale(scale);
+      // Dibujado al doble de resolución: se pone a la mitad.
+      const img = this.add.image(cx, cy + 2, key).setOrigin(0.5, 19 / ITEM_HI_H).setScale(0.5);
       // Por filas, como colonos y muros: lo de delante tapa lo de detrás.
       img.setDepth(COLONIST_DEPTH + (v.y + 0.4) / 1000);
       // Detrás de una meseta o pared: casi transparente, como los colonos.
@@ -2423,8 +2426,8 @@ function isTyping(): boolean {
 }
 
 
-function itemTextureKey(r: ResourceId): string {
-  return `item-${r}`;
+function itemTextureKey(r: ResourceId, level: 1 | 2 | 3): string {
+  return `item-hd-${r}-${level}`;
 }
 
 
@@ -2524,10 +2527,10 @@ function drawColonistTexture(scene: Phaser.Scene, key: string, c: Colonist): voi
   tex.refresh();
 }
 
-function drawItemTexture(scene: Phaser.Scene, key: string, r: ResourceId): void {
-  const tex = scene.textures.createCanvas(key, ITEM_W, ITEM_H);
+function drawItemTexture(scene: Phaser.Scene, key: string, r: ResourceId, level: 1 | 2 | 3): void {
+  const tex = scene.textures.createCanvas(key, ITEM_HI_W, ITEM_HI_H);
   if (!tex) return;
-  paintItem(tex.getContext(), r);
+  paintItemHi(tex.getContext(), r, level);
   tex.refresh();
 }
 
