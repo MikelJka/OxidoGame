@@ -182,6 +182,9 @@ export class WorldScene extends Phaser.Scene {
   private zoneVersion = -1;
   private structSprites: Phaser.GameObjects.Image[] = [];
   private structVersion = -1;
+  /** Sombras que proyectan las construcciones (cambian con la hora: el sol va de este a oeste). */
+  private shadowGfx: Phaser.GameObjects.Graphics | null = null;
+  private shadowKey = '';
   private carrySprites = new Map<number, Phaser.GameObjects.Image>();
   /** Dibujo de cada vehículo, por id. */
   private vehicleSprites = new Map<number, Phaser.GameObjects.Image>();
@@ -294,6 +297,7 @@ export class WorldScene extends Phaser.Scene {
     this.syncZones();
     this.syncStructures();
     this.syncPlants();
+    this.drawShadows();
     if (this.roofDrawn !== this.world.roofVersion) this.drawRoofs();
     this.fireTimer += delta;
     if (this.fireTimer >= 120) {
@@ -1867,6 +1871,53 @@ export class WorldScene extends Phaser.Scene {
     // Lo que un colono está llevando: el fantasma en su sitio nuevo.
     for (const s of st.liftedList()) {
       this.structSprites.push(this.buildingImage(s.def, st.tilesOf(s)).setTintFill(0xffffff).setAlpha(0.35));
+    }
+  }
+
+  /**
+   * Sombras en el suelo junto a lo construido: de mañana caen al oeste, por la tarde al este, cortas a
+   * mediodía y ninguna de noche. Además, una franja oscura al pie de cada pared (oclusión).
+   */
+  private drawShadows(): void {
+    const hour = this.world.hour;
+    const night = hour < 6 || hour >= 20;
+    const step = night ? -1 : Math.floor(hour * 2);
+    const key = `${this.world.structures.version}|${step}|${this.rotation}|${tiltIndex}`;
+    if (key === this.shadowKey) return;
+    this.shadowKey = key;
+    if (!this.shadowGfx) this.shadowGfx = this.add.graphics().setDepth(ZONE_DEPTH + 0.05);
+    const g = this.shadowGfx;
+    g.clear();
+    const tall = new Set<number>();
+    const vw = this.view.width;
+    for (const s of this.world.structures.all()) {
+      if (!s.built || s.def.height <= 0 || s.def.category === 'suelo' || s.def.conduit || s.def.fence) continue;
+      for (const t of this.world.structures.tilesOf(s)) {
+        const v = this.viewTile(t.x, t.y);
+        tall.add(v.y * vw + v.x);
+      }
+    }
+    // En la vista girada el este y el oeste cambian: el sol sigue al mapa, no a la pantalla.
+    const sunEast = this.viewTile(1, 0).x - this.viewTile(0, 0).x;
+    const len = night ? 0 : Math.min(11, 3 + Math.abs(hour - 13) * 1.4);
+    const side = hour < 13 ? -sunEast : sunEast; // hacia dónde cae la sombra en la vista
+    const alpha = night ? 0 : 0.26;
+    for (const i of tall) {
+      const vx = i % vw;
+      const vy = (i - vx) / vw;
+      // Pie de la pared: oscurece un poco el suelo de la casilla de abajo.
+      const below = (vy + 1) * vw + vx;
+      if (vy + 1 < this.view.height && !tall.has(below)) {
+        const top = (vy + 1) * TILE_H - liftOf(this.view, vx, vy + 1);
+        g.fillStyle(0x000000, 0.22).fillRect(vx * TILE, top, TILE, 2);
+        g.fillStyle(0x000000, 0.1).fillRect(vx * TILE, top + 2, TILE, 2);
+      }
+      if (!len || !side) continue;
+      const nx = vx + Math.sign(side);
+      if (nx < 0 || nx >= vw || tall.has(vy * vw + nx)) continue;
+      const top = vy * TILE_H - liftOf(this.view, nx, vy);
+      const x = side > 0 ? nx * TILE : (nx + 1) * TILE - len;
+      g.fillStyle(0x10141c, alpha).fillRect(x, top, len, TILE_H);
     }
   }
 
