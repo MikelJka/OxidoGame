@@ -5,6 +5,7 @@
 import { eventDef } from '../data/events';
 import { FoliageStage, SEASONS, seasonOf } from '../data/seasons';
 import { isDaylight } from './power';
+import { CLIMATE, tileTemp } from './climate';
 import { roofed } from './roofs';
 import { TICKS_PER_HOUR } from './time';
 import type { World } from './world';
@@ -92,7 +93,11 @@ export function updateCold(w: World, ticks: number): void {
   const H = SEASONS.hypothermia;
   for (const c of w.colonists) {
     const n = c.needs;
-    const freezing = cold && !c.coat && !c.vehicle?.boarded && !warm.has(c.tile.y * w.map.width + c.tile.x);
+    // Con frío fuera, se libra quien está en una habitación caliente: con estufa o con su calefactor
+    // a una temperatura agradable (pedido por Mikel el 2026-10-21).
+    const here = c.tile.y * w.map.width + c.tile.x;
+    const heated = warm.has(here) || (cold && tileTemp(w, c.tile.x, c.tile.y) >= CLIMATE.coldBelow);
+    const freezing = cold && !c.coat && !c.vehicle?.boarded && !heated;
     if (!freezing) {
       delete n.cold;
       delete n.coldTicks;

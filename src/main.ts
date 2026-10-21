@@ -1,5 +1,7 @@
 import { TICKS_PER_HOUR } from './sim/time';
 import { VOLUME_STEPS } from './audio/sound';
+import { setTarget, targetOf, tileTemp } from './sim/climate';
+import { roofed } from './sim/roofs';
 import Phaser from 'phaser';
 import { WorldScene } from './render/WorldScene';
 import { northLabel, Rotation } from './render/rotation';
@@ -830,6 +832,8 @@ function renderPiece(): void {
   const raise = $('pc-raise');
   raise.hidden = !s.def.drawbridge;
   $('pc-crop').hidden = !s.def.hydroponics;
+  $('pc-cooler').hidden = !s.def.climate;
+  $('pc-warmer').hidden = !s.def.climate;
   if (s.def.hydroponics) {
     // Bandeja hidropónica: qué cultiva, cómo va y por qué no crece (si no crece).
     const w = scene().world;
@@ -850,6 +854,15 @@ function renderPiece(): void {
     $('pc-unmove').hidden = true;
     return;
   }
+  if (s.def.climate) {
+    // Calefactor o aire acondicionado: temperatura elegida, la de la habitación y si trabaja.
+    const w = scene().world;
+    const room = tileTemp(w, s.x, s.y);
+    const state = !roofed(w, s.x, s.y) || !w.rooms.at(s.x, s.y) ? '⚠️ Necesita una habitación cerrada con tejado'
+      : !s.climateOn ? '💤 En reposo (no gasta)'
+      : s.powered ? (s.def.climate.mode === 'calor' ? '🔥 Calentando' : '❄️ Enfriando') : '⚡ Sin corriente';
+    $('pc-status').textContent = `🎯 ${targetOf(s)} °C · 🌡 ahora ${Math.round(room)} °C · ${state}`;
+  }
   const canKit = !!kitOf(s.def) && s.built;
   $('pc-pack').hidden = !canKit || !!s.pack;
   $('pc-unpack').hidden = !canKit || !s.pack;
@@ -860,7 +873,7 @@ function renderPiece(): void {
     $('pc-unmove').hidden = true;
     return;
   }
-  $('pc-status').textContent = s.lifted ? '✋ Un colono lo está llevando' : s.moveTo ? '✋ Esperando a que un colono lo lleve' : s.pack ? '📦 Esperando a que un colono lo desmonte' : 'Se puede llevar a otro sitio sin gastar nada';
+  if (!s.def.climate || s.lifted || s.moveTo || s.pack) $('pc-status').textContent = s.lifted ? '✋ Un colono lo está llevando' : s.moveTo ? '✋ Esperando a que un colono lo lleve' : s.pack ? '📦 Esperando a que un colono lo desmonte' : 'Se puede llevar a otro sitio sin gastar nada';
   $('pc-move').hidden = !!s.moveTo || !!s.pack;
   $('pc-unmove').hidden = !s.moveTo || !!s.lifted;
 }
@@ -871,6 +884,14 @@ game.events.on('piece-select', (s: Structure | null) => {
 $('pc-close').addEventListener('click', () => scene().selectPiece(null));
 $('pc-move').addEventListener('click', () => {
   if (selectedPiece) scene().startMove(selectedPiece);
+});
+$('pc-cooler').addEventListener('click', () => {
+  if (selectedPiece) setTarget(selectedPiece, targetOf(selectedPiece) - 1);
+  renderPiece();
+});
+$('pc-warmer').addEventListener('click', () => {
+  if (selectedPiece) setTarget(selectedPiece, targetOf(selectedPiece) + 1);
+  renderPiece();
 });
 $('pc-crop').addEventListener('click', () => {
   if (selectedPiece) cycleTrayCrop(selectedPiece);

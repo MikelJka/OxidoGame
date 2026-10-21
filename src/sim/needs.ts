@@ -1,5 +1,6 @@
 // Necesidades de los colonos: comida (cruda o cocinada), agua y descanso, y el ánimo que sale de ellas.
 // Funciones puras (sin azar): la decisión de ir a comer o a dormir la toma `World`.
+import { CLIMATE } from './climate';
 import { FOOD_RESOURCES, RAW_FOOD, ResourceId } from '../data/resources';
 import { ROOMS } from '../data/roomRules';
 import { SEASONS } from '../data/seasons';
@@ -67,6 +68,8 @@ export interface Needs {
   /** Pasa frío ahora (invierno, de noche, sin abrigo ni estufa) y cuánto lleva así (ticks). */
   cold?: boolean;
   coldTicks?: number;
+  /** Pasa calor ahora (no se guarda: se recalcula cada segundo). */
+  hot?: boolean;
   /** Está en una habitación con tejado: su belleza y su limpieza (0–1). No se guarda: se mira cada segundo. */
   room?: { beauty: number; clean: number };
 }
@@ -139,6 +142,7 @@ export function moodOf(c: Colonist, tick = 0): { mood: number; reasons: MoodReas
     reasons.push({ text: SEASONS.cold.text, value: SEASONS.cold.mood });
     if ((n.coldTicks ?? 0) >= SEASONS.hypothermia.afterHours * TICKS_PER_HOUR_NEEDS) reasons.push({ text: SEASONS.hypothermia.text, value: SEASONS.hypothermia.mood });
   }
+  if (n.hot) reasons.push({ text: CLIMATE.hot.text, value: CLIMATE.hot.mood });
   // En una habitación con tejado, su belleza y su limpieza le cambian el ánimo mientras está dentro.
   if (n.room) {
     const M = ROOMS.mood;

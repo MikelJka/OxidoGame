@@ -58,6 +58,28 @@ function drawBuildingBase(ctx: CanvasRenderingContext2D, def: BuildingDef, tile:
     drawTower(ctx, def, tile, tileH, wallH);
     return;
   }
+  if (def.climate) {
+    if (def.climate.mode === 'calor') {
+      // Calefactor: radiador de aletas con la rejilla caliente y un piloto naranja.
+      px(1, 1, tile - 2, tileH - 2, top);
+      for (let x = 2; x < tile - 2; x += 2) px(x, 2, 1, tileH - 4, dark);
+      px(1, tileH - 1, tile - 2, wallH, face);
+      for (let x = 2; x < tile - 2; x += 2) px(x, tileH, 1, wallH - 2, dark);
+      px(3, tileH + 1, tile - 6, 1, '#e07a2a'); // resistencia al rojo
+      px(tile - 4, h - 4, 2, 1, '#ffb040'); // piloto
+      px(1, h - 2, tile - 2, 1, dark);
+    } else {
+      // Aire acondicionado: caja blanca con rejilla, ventilador y piloto azul.
+      px(1, 1, tile - 2, tileH - 2, top);
+      px(3, 3, tile - 6, tileH - 6, dark);
+      px(Math.floor(tile / 2) - 2, Math.floor(tileH / 2) - 1, 4, 2, face); // aspas
+      px(1, tileH - 1, tile - 2, wallH, face);
+      for (let y = tileH + 1; y < h - 3; y += 2) px(2, y, tile - 4, 1, dark);
+      px(tile - 4, h - 4, 2, 1, '#7ad0ff');
+      px(1, h - 2, tile - 2, 1, dark);
+    }
+    return;
+  }
   if (def.fridge) {
     // Nevera: arcón blanco con la tapa, la junta, el tirador y una luz azul.
     px(1, 1, tile - 2, tileH - 2, top);

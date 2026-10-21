@@ -85,6 +85,8 @@ function naturalOutput(st: Structures, s: Structure, env: PowerEnv): number {
 
 /** Vatios de una construcción: positivo si produce, negativo si consume (un taller electrificado, su mejora). */
 export function powerOf(s: Structure): number {
+  // Calefactor o aire acondicionado: solo pide corriente mientras trabaja.
+  if (s.def.climate && !s.climateOn) return 0;
   if (s.def.power) return s.def.power;
   return s.electric && s.def.electrify ? -s.def.electrify.power : 0;
 }
@@ -105,6 +107,8 @@ export function stationSpeed(s: Structure): number {
 /** Necesita corriente para funcionar (recicladora, depuradora, lámpara…) y ahora no le llega. */
 export function lacksPower(s: Structure): boolean {
   // Una máquina averiada está parada aunque le llegue corriente.
+  // Un calefactor o aire acondicionado en reposo no pide corriente: no le falta.
+  if (s.def.climate && !s.climateOn) return false;
   return (s.def.power ?? 0) < 0 && (!s.powered || !!s.repair);
 }
 
@@ -172,6 +176,7 @@ export function updatePower(st: Structures, hours: number, env: PowerEnv = { hou
     nets.set(id, { id, tiles: list, producers: [], consumers: [], batteries: [], production: 0, demand: 0, supplied: 0, stored: 0, capacity: 0 });
   }
   for (const s of st.all()) {
+    if (s.def.climate && !s.climateOn) s.powered = false;
     if (!isElectric(s)) continue;
     s.powered = false;
     s.output = 0;

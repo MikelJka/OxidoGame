@@ -1,0 +1,46 @@
+{
+  "_": "Temperatura (pedido por Mikel el 2026-10-21: calefactores y aires acondicionados con temperatura configurable). Números puestos por la sesión del 2026-10-21; Mikel puede cambiarlos.",
+  "seasons": {
+    "primavera": {
+      "base": 14,
+      "swing": 6
+    },
+    "verano": {
+      "base": 25,
+      "swing": 7
+    },
+    "otono": {
+      "base": 12,
+      "swing": 6
+    },
+    "invierno": {
+      "base": 3,
+      "swing": 5
+    }
+  },
+  "warmestHour": 15,
+  "coldWaveMax": -5,
+  "roofed": {
+    "buffer": 0.5,
+    "shelter": 2
+  },
+  "stoveDegrees": 16,
+  "refRoomTiles": 20,
+  "target": {
+    "default": 21,
+    "min": 10,
+    "max": 30
+  },
+  "hot": {
+    "above": 30,
+    "mood": -0.05,
+    "text": "Pasa calor"
+  },
+  "heatstroke": {
+    "above": 38,
+    "healthPerHour": 0.03,
+    "floor": 0.35,
+    "text": "Golpe de calor"
+  },
+  "coldBelow": 8
+}

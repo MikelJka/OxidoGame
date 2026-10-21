@@ -5,6 +5,7 @@ import { ActiveEvent, firstEventTick, runEvents, solarFactor } from './events';
 import { burning, extinguish, threatens, updateFires } from './fire';
 import { checkNewFaction, growBases, placeBases } from './worldmap';
 import { coldNow, frostNow, updateCold } from './seasons';
+import { updateClimate, updateHeat } from './climate';
 import { updateHydroponics } from './hydroponics';
 import { spoilHour } from './spoilage';
 import { BoatTrip, updateBoatTrips } from './boatTrade';
@@ -240,6 +241,8 @@ export class World implements JobContext {
   factions: FactionState[];
   /** Sucesos que duran (tormenta de polvo…) y tick del siguiente suceso. */
   weather: ActiveEvent[] = [];
+  /** Grados de cada habitación con tejado que tiene estufa o aparatos (id de habitación → °C). No se guarda: se recalcula cada segundo. */
+  roomTemps = new Map<number, number>();
   /** Fuego: casillas que arden (índice → segundos ardiendo), las quemadas (índice → tick) y versión para el dibujado. */
   readonly fires = new Map<number, number>();
   readonly burnt = new Map<number, number>();
@@ -462,6 +465,8 @@ export class World implements JobContext {
     if (this.tick % TICKS_PER_SECOND === 0 && this.corpses.length > 0) updateCorpses(this.corpses, this.colonists, this.tick, TICKS_PER_HOUR, TICKS_PER_DAY);
     // Electricidad: cada segundo se reparte la corriente y se encienden o apagan las lámparas.
     if (this.tick % TICKS_PER_SECOND === 0) {
+      // Temperatura de las habitaciones y qué calefactores o aires acondicionados trabajan.
+      updateClimate(this);
       this.powerNets = updatePower(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR, { hour: this.hour, wind: this.wind, batteryMultiplier: batteryMultiplier(this.research), solar: solarFactor(this) });
       updateBonfires(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR, coldNow(this));
       updateHydroponics(this, TICKS_PER_SECOND);
@@ -502,7 +507,10 @@ export class World implements JobContext {
       }
     }
     // Frío de invierno: quien no está a cubierto con estufa ni lleva abrigo lo pasa mal.
-    if (this.tick % TICKS_PER_SECOND === 0 && this.needsEnabled) updateCold(this, TICKS_PER_SECOND);
+    if (this.tick % TICKS_PER_SECOND === 0 && this.needsEnabled) {
+      updateCold(this, TICKS_PER_SECOND);
+      updateHeat(this, TICKS_PER_SECOND);
+    }
     // Zonas por despejar: lo que ya está libre se suma a su almacén o huerto.
     if (this.tick % TICKS_PER_SECOND === 0 && this.clearing.count > 0) this.updateClearing();
     for (const c of this.colonists) this.updateColonist(c);

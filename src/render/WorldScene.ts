@@ -31,6 +31,7 @@ import { CHAR, CHAR_POSES, charKey, paintCharSheet } from './charArt';
 import { BEAST, BEAST_POSES, hasBeastArt, paintBeastSheet } from './creatureArt';
 import { FOLIAGE_PROPS, isTallProp, paintPropAtlas, PROP_ATLAS_COLS, PROP_BASE, PROP_H, PROP_W, propFrame, propVariant, TALL_PROPS } from './propArt';
 import { foliageAt, snowCover, yearFraction } from '../sim/seasons';
+import { outdoorTemp } from '../sim/climate';
 import { colonistLookKey, COLONIST_SIZE, CROP_SIZE, ITEM_H, ITEM_W, paintColonist, paintCorpse, paintCrop, paintItem } from './spriteArt';
 import { rotOf } from '../sim/corpses';
 import { TICKS_PER_DAY } from '../sim/time';
@@ -1226,7 +1227,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private emitClock(): void {
-    this.game.events.emit('clock', this.world.clockLabel(), this.world.speed);
+    this.game.events.emit('clock', `${this.world.clockLabel()} · ${Math.round(outdoorTemp(this.world))}°`, this.world.speed);
     this.game.events.emit('inventory', this.world.inventory());
   }
 

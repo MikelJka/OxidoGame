@@ -1,6 +1,7 @@
 // Guardar y cargar partidas. El formato lleva versión y se lee de forma tolerante, para que
 // una partida guardada siga sirviendo cuando se publica una versión nueva del juego:
 // lo que ya no existe se descarta y lo nuevo toma su valor por defecto.
+import { setTarget } from './climate';
 import { batteryMultiplier, loadResearch } from './research';
 import { isCreature } from '../data/creatures';
 import { SKILLS, Skill, TRAITS } from '../data/colonists';
@@ -58,7 +59,7 @@ export interface SaveData {
   items: { x: number; y: number; resource: string; amount: number }[];
   designations: { x: number; y: number; job: string }[];
   zones: { id: number; name: string; priority: number; accepts: Record<string, boolean>; tiles: number[] }[];
-  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number; demolish?: boolean; bill?: { recipe: string; target: number; paused: boolean; mode?: string }; rot?: number; raised?: boolean; wantUp?: boolean; autoRaised?: boolean; stored?: number; fuel?: number; crop?: string; growth?: number; electric?: boolean; upgrade?: { delivered: Record<string, number>; progress: number }; repair?: { need: Record<string, number>; work: number; delivered: Record<string, number>; progress: number }; fromKit?: boolean; pack?: boolean; moveTo?: { x: number; y: number; rot: number } }[];
+  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number; demolish?: boolean; bill?: { recipe: string; target: number; paused: boolean; mode?: string }; rot?: number; raised?: boolean; wantUp?: boolean; autoRaised?: boolean; stored?: number; fuel?: number; crop?: string; growth?: number; target?: number; electric?: boolean; upgrade?: { delivered: Record<string, number>; progress: number }; repair?: { need: Record<string, number>; work: number; delivered: Record<string, number>; progress: number }; fromKit?: boolean; pack?: boolean; moveTo?: { x: number; y: number; rot: number } }[];
   /** Obras de terreno pendientes (desde que existen). */
   terrain?: { x: number; y: number; job: string }[];
   /** Huertos (desde que existe el cultivo; las partidas anteriores no los tienen). */
@@ -328,6 +329,7 @@ export function serializeWorld(world: World, gameVersion?: string, direct = fals
       stored: s.stored || undefined,
       fuel: s.fuel || undefined,
       ...(s.def.hydroponics ? { crop: s.crop, growth: s.growth || undefined } : {}),
+      ...(s.def.climate && s.target !== undefined ? { target: s.target } : {}),
       electric: s.electric || undefined,
       upgrade: s.upgrade ? { delivered: { ...s.upgrade.delivered } as Record<string, number>, progress: s.upgrade.progress } : undefined,
       ...(s.repair ? { repair: { need: { ...s.repair.need } as Record<string, number>, work: s.repair.work, delivered: { ...s.repair.delivered } as Record<string, number>, progress: s.repair.progress } } : {}),
@@ -570,6 +572,8 @@ export function loadWorld(input: string | unknown): World {
     // Electricidad (desde que existe): carga de las baterías y combustible de los generadores.
     if (def.battery) restored.stored = Math.max(0, Math.min(def.battery * batteryMult, num(s.stored, 0)));
     if (def.fuel) restored.fuel = Math.max(0, Math.min(def.fuel.capacity, num(s.fuel, 0)));
+    // Calefactor o aire acondicionado (desde el 2026-10-21): la temperatura elegida.
+    if (def.climate && s.target !== undefined) setTarget(restored, num(s.target, 21));
     if (def.hydroponics) {
       if (typeof s.crop === 'string' && def.hydroponics.crops.includes(s.crop)) restored.crop = s.crop;
       restored.growth = Math.max(0, Math.min(1, num(s.growth, 0)));

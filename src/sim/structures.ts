@@ -40,6 +40,10 @@ export interface Structure {
   /** Bandeja hidropónica: qué cultiva (id de cultivo) y cuánto le falta (0 recién sembrada … 1 madura). */
   crop?: string;
   growth?: number;
+  /** Calefactor o aire acondicionado: temperatura elegida (°C; sin ella, la de por defecto). */
+  target?: number;
+  /** Calefactor o aire acondicionado: está trabajando (pide corriente). No se guarda. */
+  climateOn?: boolean;
   /** Taller electrificado: gasta corriente y, si le llega, trabaja el doble de rápido. */
   electric?: boolean;
   /** Electrificación pedida y aún sin terminar: material ya traído y trabajo hecho. */
