@@ -344,13 +344,22 @@ export class World implements JobContext {
     if (this.speed === 0) return 0;
     this.accumulator += (deltaMs / 1000) * TICKS_PER_SECOND * this.speed;
     let steps = 0;
-    // Las demás colonias (la principal y las ocupadas) corren a la vez (pedido por Mikel el 2026-10-21).
-    const others = this.battle ? [] : this.otherColonies();
+    // Las demás colonias (la principal y las ocupadas) corren a la vez, también durante una batalla
+    // (pedido por Mikel el 2026-10-21).
+    const others = this.otherColonies();
     while (this.accumulator >= 1 && steps < MAX_TICKS_PER_UPDATE) {
       this.step();
       for (const o of others) o.step();
       this.accumulator -= 1;
       steps++;
+      // Un ataque o un suceso en cualquiera de ellas: todo vuelve a x1 (sin pararse).
+      if ([this, ...others].some((k) => k.slowDown)) {
+        for (const k of [this, ...others]) k.slowDown = false;
+        if (this.speed > 1) {
+          this.speed = 1;
+          this.accumulator = Math.min(this.accumulator, 1);
+        }
+      }
     }
     if (steps === MAX_TICKS_PER_UPDATE) this.accumulator = 0; // descarta el atraso
     return steps;
@@ -358,7 +367,7 @@ export class World implements JobContext {
 
   /** Las otras colonias del jugador (sin esta): la principal y las ruinas ocupadas. */
   otherColonies(): World[] {
-    const main = this.outpostHome ?? this;
+    const main = this.battle ? (this.battle.home.outpostHome ?? this.battle.home) : (this.outpostHome ?? this);
     return [main, ...main.outposts.map((o) => o.world)].filter((k) => k !== this);
   }
 
@@ -485,7 +494,12 @@ export class World implements JobContext {
     if (at) entry.at = { x: at.x, y: at.y };
     this.log.push(entry);
     if (this.log.length > 200) this.log.splice(0, this.log.length - 200);
+    // Un ataque (raid, manada, máquinas, un animal que ataca): la partida vuelve a x1 (pedido por Mikel).
+    if (alert === 'raid' || (alert === 'combate' && kind === 'malo')) this.slowDown = true;
   }
+
+  /** Ha pasado algo (un ataque, un suceso) y hay que volver a velocidad x1 (lo mira quien avanza el tiempo). */
+  slowDown = false;
 
   /** Último aviso de pelea o herida por colono (clave `tipo:id`); no se guarda: solo evita repetir avisos. */
   private readonly combatAlerts = new Map<string, number>();

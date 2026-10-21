@@ -2,6 +2,13 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (51) — x1 ante ataques y sucesos, y el tiempo no se para en las batallas
+
+- Pedido por Mikel. Cuando llega un **ataque** (raid, manada, máquinas, un jabalí que se revuelve) o pasa un **suceso** en cualquiera de vuestras colonias, la partida **vuelve a x1** si iba más deprisa. No se para.
+- **Durante una batalla**, el tiempo **sigue corriendo** en la colonia principal y en las ocupadas.
+- Qué probar: poner ⏩⏩ y esperar a un raid o un suceso; mandar una expedición y ver que en casa sigue pasando el tiempo mientras se pelea.
+- Sin npm en el entorno: tests con Bun (654) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+
 ## 2026-10-21 (50) — Kits: desmontar defensas y energía
 
 - Elegido por Mikel. Las **barricadas**, los **sacos de arena**, las **torretas** (ligera, pesada y rotativa), el **mortero**, el **generador de leña**, la **placa solar**, el **molino de viento**, la **batería** y la **lámpara** se pueden **desmontar en kit**: al tocarlas sale **📦 Desmontar en kit**, un colono con «Construir» la desmonta y queda el objeto («Kit: Torreta ligera»…), que se guarda en el almacén.
@@ -17,7 +24,7 @@ Diario de sesiones, la más reciente arriba.
 - Pedido por Mikel. Al mandar una expedición (⚔️ Atacar su base) se elige también **qué llevan**: comida, armas, munición, medicinas o lo que haya. Va **por peso**: cada colono 35 kg; se ve «🎒 Carga: X de Y kg».
 - Se pueden llevar **vehículos**: el **buggy** (+300 kg, y el viaje dura la mitad), la **balsa** (+120 kg) y la **lancha armada** (+250 kg). Los pesos de cada cosa están en `src/data/weights.ts`.
 - En la batalla, lo que llevan aparece en el suelo junto a la entrada y el buggy aparcado al lado. Al acabar, **lo suyo que quede fuera de la base vuelve con ellos**, y los vehículos vuelven junto a la colonia.
-- **Las colonias corren a la vez** (pedido por Mikel): el tiempo pasa en la principal y en las ocupadas a la vez, se esté viendo la que se esté viendo. Los precios, el crecimiento de las bases y las facciones nuevas los lleva la principal, para que no cuenten dos veces. La batalla sigue parando las colonias mientras dura.
+- **Las colonias corren a la vez** (pedido por Mikel): el tiempo pasa en la principal y en las ocupadas a la vez, se esté viendo la que se esté viendo. Los precios, el crecimiento de las bases y las facciones nuevas los lleva la principal, para que no cuenten dos veces.
 - Mikel ha elegido también los **kits** (desmontar defensas y energía para llevarlas) y los **animales de carga** (domarlos y comprarlos): son las siguientes partes.
 - Qué probar: «⚔️ Atacar su base» con un buggy y comida y munición; ocupar unas ruinas y ver que el día avanza en las dos colonias.
 - Sin npm en el entorno: tests con Bun (651) y tipos con `tsc`. La prueba completa, en GitHub Actions.

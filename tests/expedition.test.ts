@@ -168,3 +168,21 @@ describe('colonias a la vez', () => {
     expect(w.tick).toBe(m0 + 30);
   });
 });
+
+describe('ataques y sucesos: vuelta a x1 sin pararse', () => {
+  it('un raid en cualquier colonia pone la partida a x1; durante una batalla, la colonia sigue', async () => {
+    const { startRaid } = await import('../src/sim/people');
+    const w = flatWorld(2);
+    w.map.start = { x: 15, y: 15 };
+    w.speed = 3;
+    startRaid(w, 1, false, false);
+    w.update(100);
+    expect(w.speed).toBe(1);
+    startExpedition(w, 'granjeros', [w.colonists[0].id]);
+    const b = arrive(w);
+    const t0 = w.tick;
+    b.speed = 1;
+    b.update(1000);
+    expect(w.tick).toBe(t0 + 30);
+  });
+});

@@ -75,6 +75,8 @@ export function runEvents(w: World): void {
 export function startEvent(w: World, id: string): boolean {
   const ev = eventDef(id);
   if (!ev) return false;
+  // Un suceso: la partida vuelve a x1 (pedido por Mikel el 2026-10-21).
+  w.slowDown = true;
   if (ev.id === 'alijo') return dropCache(w, ev);
   if (ev.id === 'incendio') return startWildfire(w, eventRng(w, 8));
   if (ev.repair) return breakMachine(w, ev);
