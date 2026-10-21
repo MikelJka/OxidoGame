@@ -4,6 +4,7 @@
 import type { Skill } from '../data/colonists';
 import { eventDef } from '../data/events';
 import { FIRE } from '../data/fire';
+import { ROOMS } from '../data/roomRules';
 import { depositOf } from '../data/buildings';
 import { MAX_STACK, RESOURCES, ResourceId } from '../data/resources';
 import { BLUEPRINT_SHARE_RADIUS, FINISH_WORK, WORK_SKILL, WORK_TYPES, WorkType } from '../data/work';
@@ -126,6 +127,8 @@ export interface JobContext {
   wantsCarryToBed(p: Colonist): boolean;
   /** Casillas que arden cerca de la colonia (hay que apagarlas). */
   fireThreats(): Point[];
+  /** Casillas de habitaciones cerradas que piden tejado. */
+  roofTodo(): Point[];
 }
 
 /** Colono que necesita que le atiendan ya: sangra. */
@@ -523,6 +526,19 @@ function wardenCandidates(ctx: JobContext, c: Colonist): Candidate[] {
 function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   if (c.priorities.construir === 0) return [];
   const out: Candidate[] = [];
+  // Tejados: los colonos cubren las habitaciones cerradas, casilla a casilla.
+  for (const t of ctx.roofTodo()) {
+    const holder = ctx.reservations.holder(t.x, t.y);
+    if (holder !== undefined && holder !== c.id) continue;
+    out.push({
+      kind: 'construir', x: t.x, y: t.y, dist: manhattan(c.tile, t.x, t.y),
+      make: () => {
+        const route = c.tile.x === t.x && c.tile.y === t.y ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, [t]);
+        if (!route) return null;
+        return { job: { kind: 'construir', x: t.x, y: t.y, stand: route.stand, progress: 0, work: ROOMS.roofWork, roof: true }, path: route.path };
+      },
+    });
+  }
   for (const s of ctx.structures.toDemolish()) {
     const holder = ctx.reservations.holder(s.x, s.y);
     if (holder !== undefined && holder !== c.id) continue;

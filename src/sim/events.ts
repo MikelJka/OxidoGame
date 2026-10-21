@@ -8,6 +8,7 @@ import { findPath, Point } from './pathfinding';
 import { Rng } from './rng';
 import { factionDef, RAIDER_FACTION } from '../data/factions';
 import { startWildfire } from './fire';
+import { roofed } from './roofs';
 import { TICKS_PER_DAY, TICKS_PER_HOUR } from './time';
 import type { World } from './world';
 
@@ -82,7 +83,7 @@ export function startEvent(w: World, id: string): boolean {
   if (ev.hours && !activeEvent(w, ev.id)) {
     w.weather.push({ id: ev.id, until: w.tick + Math.round(ev.hours * TICKS_PER_HOUR) });
     if (ev.cropYield !== undefined) {
-      w.addLog(`☔ ¡Lluvia ácida! Durante ${ev.hours} horas estropea lo plantado al aire libre (−${Math.round((1 - ev.cropYield) * 100)} % de cosecha) y quema a quien esté fuera de una habitación.`, 'malo');
+      w.addLog(`☔ ¡Lluvia ácida! Durante ${ev.hours} horas estropea lo plantado al aire libre (−${Math.round((1 - ev.cropYield) * 100)} % de cosecha) y quema a quien no esté bajo techo.`, 'malo');
       acidRainHour(w, ev);
       return true;
     }
@@ -125,10 +126,10 @@ function dropCache(w: World, ev: EventDef): boolean {
 /** Una hora de lluvia ácida. */
 function acidRainHour(w: World, ev: EventDef): void {
   for (const { x, y, plant } of w.farms.plantList()) {
-    if (!plant.harm && !w.rooms.at(x, y)) plant.harm = ev.cropYield;
+    if (!plant.harm && !roofed(w, x, y)) plant.harm = ev.cropYield;
   }
   for (const c of w.colonists) {
-    if (c.vehicle?.boarded || w.rooms.at(c.tile.x, c.tile.y)) continue;
+    if (c.vehicle?.boarded || roofed(w, c.tile.x, c.tile.y)) continue;
     c.health = Math.max(Math.min(c.health, ev.harmFloor ?? 0.5), c.health - (ev.harmPerHour ?? 0));
   }
 }

@@ -1,0 +1,12 @@
+{
+  "_": "Tejados y habitaciones (pedido por Mikel el 2026-10-21): al cerrar del todo un espacio con paredes (no con muros altos), los colonos ponen el tejado; bajo techo no llueve y cuenta como habitación, con su belleza y su limpieza, que afectan al ánimo de quien está dentro mientras está. Los números los ha puesto la sesión del 2026-10-21.",
+  "roofWork": 30,
+  "beauty": { "floor": 1, "furniture": 2, "light": 1, "clutter": -1, "scale": 0.5 },
+  "cleanliness": { "noFloor": 0.5, "clutter": 1 },
+  "mood": {
+    "beautiful": { "atLeast": 0.6, "value": 0.06, "text": "Habitación bonita" },
+    "ugly": { "below": 0.15, "value": -0.04, "text": "Habitación fea" },
+    "dirty": { "below": 0.6, "value": -0.05, "text": "Habitación sucia" },
+    "clean": { "atLeast": 0.95, "value": 0.02, "text": "Habitación limpia" }
+  }
+}

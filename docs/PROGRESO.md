@@ -2,6 +2,21 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (41) — Tejados y habitaciones
+
+- Pedido por Mikel. Un espacio **cerrado del todo** con paredes de un piso (de madera, piedra, chatarra, metal, hormigón o con aspilleras) y puertas o portones **pide tejado**. Con muros altos no.
+- Los colonos con **«Construir»** lo ponen casilla a casilla, sin material. Se ve una sombra suave donde hay techo. Si se quita una pared y la habitación se abre, **se cae el tejado**.
+- **Bajo techo** no cae la lluvia ácida (ni quema ni estropea lo plantado), y dormir en una cama bajo techo da su ánimo de más.
+- Cada habitación con tejado tiene **belleza** y **limpieza**, que se ven al tocar una de sus casillas («🏠 Habitación con tejado… belleza 61 % · limpieza 100 %»):
+  - Suben con el **suelo** construido, los **muebles** y la **luz**; bajan con lo que está **tirado por el suelo** fuera de estanterías y almacenes.
+  - Mientras un colono está dentro: «Habitación bonita» (+6 %) o «fea» (−4 %), y «limpia» (+2 %) o «sucia» (−5 %).
+- La **temperatura** llegará con las estaciones (bloque 11): el tejado ya está para que guarde mejor el calor.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): que el tejado no gaste material, lo que tarda, cómo se calculan la belleza y la limpieza (no hay suciedad todavía: ensucia no tener suelo y lo tirado) y cuánto ánimo dan.
+- **Bases de las facciones**: Mikel ha elegido (1C, 2A+2B, 3A, 4B). Queda apuntado en «Pendiente» de `FEEDBACK.md` y se hará por partes.
+- Qué probar: cerrar un cuarto con muros de madera y una puerta, esperar a que lo tejen, poner suelo y una cama y tocarlo para ver su belleza y su limpieza.
+- Sin npm en el entorno: tests con Bun (629, 3 nuevos en `tests/roofs.test.ts`) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+- Siguiente: las bases de las facciones (primera parte: el mapa del mundo con las bases).
+
 ## 2026-10-21 (40) — Incendio grande
 
 - Pedido por Mikel: suceso **🔥 Incendio**. Prende en un sitio al azar con árboles o matorrales, a 35 casillas o más de la colonia, y **se extiende** cada segundo a las casillas de al lado:

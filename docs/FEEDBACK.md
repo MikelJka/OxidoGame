@@ -5,9 +5,9 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 ## Pendiente
 
 - [x] **Facciones cambiadas por Mikel** (2026-10-21, en el chat): los Chatarreros y los Granjeros empiezan neutrales y su relación puede mejorar o empeorar (hostiles, neutrales o aliados); los Hijos del Óxido pasan a llamarse **Piratas del Óxido**, son siempre hostiles y lanzan los raids. Hecho.
-- [ ] **Bases de las facciones** (2026-10-21, pedido por Mikel en el chat): cada facción tiene su base, que se genera y crece; los colonos pueden atacarla; si se destruye, la facción desaparece y se puede mandar a colonos a vivir allí y ocuparla; más facciones para no quedarse sin ninguna. Falta decidir cómo funciona: propuesta en «Propuestas para Mikel».
+- [ ] **Bases de las facciones** (2026-10-21, pedido por Mikel en el chat; **elegido por Mikel el 2026-10-21: 1C, 2A+2B, 3A, 4B**). Cada facción tiene su base en un **mapa del mundo**; al atacarla se carga un **mapa de batalla** con su base para pelear en directo (1C). Las bases **crecen** cada pocos días (más gente, muros, torres o talleres según la facción) y más deprisa cuanto más ricas son, por el comercio y por los raids que les salen bien (2A+2B). Al destruir una base **desaparece la facción** y queda en ruinas; se puede mandar a colonos a **ocuparla como segunda colonia** (3A). Si quedan **menos de 3 facciones**, aparece una nueva a los pocos días (4B). Se hará por partes: el mapa del mundo con las bases, su crecimiento, el ataque con el mapa de batalla, la ocupación y las facciones nuevas.
 - [x] **Incendio grande** (2026-10-21, pedido por Mikel en el chat): un suceso de fuego que empieza en un punto al azar del mapa, se extiende y puede llegar a quemar la colonia. Hecho (2026-10-21).
-- [ ] **Tejados y habitaciones** (2026-10-21, pedido por Mikel en el chat): al cerrar del todo un espacio con paredes (no muros altos), los colonos ponen el tejado; dentro no llueve, se guarda mejor la temperatura y cuenta como habitación, con sus valores (limpieza, belleza…) que afectan al ánimo de quien está dentro.
+- [x] **Tejados y habitaciones** (2026-10-21, pedido por Mikel en el chat; hecho el 2026-10-21; la temperatura llegará con las estaciones): al cerrar del todo un espacio con paredes (no muros altos), los colonos ponen el tejado; dentro no llueve, se guarda mejor la temperatura y cuenta como habitación, con sus valores (limpieza, belleza…) que afectan al ánimo de quien está dentro.
 
 - [x] **Decisiones de Mikel del 2026-10-21 (muelle, balsas y fase 5)** — aprobado, se implementa sin volver a preguntar:
   - **Pesca y muelle:** habilidad nueva **Supervivencia** (todos los colonos, de 0 a 20, valdrá también para la caza); el muelle es un puesto al que se le encarga «pescar hasta tener N 🐟»; el 🐟 crudo alimenta poco y sienta peor, y en la cocina «Pescado asado» (4 🐟 → 2 🍲); en el muelle se puede construir encima **si no hay otra estructura sobre el agua en la que se pueda construir todo tipo de estructuras** (si las plataformas ya lo permiten, el muelle solo sirve para pescar). Casillas de madera 🪵10, pegadas a la orilla o a otro muelle, sobre agua poco profunda o normal. **Hecho** (2026-10-21): la habilidad Supervivencia, el muelle (encima no se construye: para eso están las plataformas), «Pescar» y el «Pescado asado». **Hecha** (2026-10-21): la trampa de pesca (🪵6 🧵2): va en el agua pegada a un muelle y cada día a las 6:00 deja 1 🐟 en él. Muelle y pesca, terminados.
@@ -41,11 +41,7 @@ Lo que Mikel ha pedido dejar para más adelante. No se trabaja en ello salvo par
 
 Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat o con 🐞).
 
-- **Bases de las facciones** (2026-10-21, pedido por Mikel). Elige una opción de cada:
-  - **Dónde están**: **A**: en el mismo mapa, un recinto amurallado por facción, lejos de la colonia, al que se va andando con los reclutados. **B**: en un mapa del mundo aparte; atacar es mandar una expedición que se resuelve sola (días fuera, según armas, Combate y número). **C**: mixto; en el mapa del mundo y, al atacar, un mapa de batalla con su base para pelear en directo.
-  - **Cómo crecen**: **A**: cada X días ganan gente y añaden muros, torres o talleres según su facción. **B**: según su riqueza (comercio, raids que les salen bien). **C**: por niveles: aldea, pueblo y fortaleza (más defensores, caravanas y raids más grandes).
-  - **Al destruirla**: **A**: desaparece la facción y la base queda en ruinas; se puede mandar a colonos a ocuparla como segunda colonia. **B**: igual, pero la ocupada va sola y manda recursos cada pocos días.
-  - **Para no quedarse sin facciones**: **A**: cada X días puede llegar una nueva de una lista (Mercenarios de la autopista, Culto del Reactor, Nómadas del desierto, Hermandad de la Chatarra…). **B**: si quedan menos de 3, aparece una nueva a los pocos días.
+(Sin propuestas abiertas.)
 
 ## Hecho
 

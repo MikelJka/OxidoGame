@@ -17,6 +17,7 @@ import { missingResearch } from '../sim/research';
 import { canZone, STORAGE_PRIORITY_NAMES } from '../sim/zones';
 import { footprintTiles, PlaceShape, Structure, Structures } from '../sim/structures';
 import { fertilityAt, plantStage } from '../sim/farming';
+import { roomInfoAt } from '../sim/roofs';
 import { TERRAIN_JOB_NAMES, terrainBlocker, TerrainJob } from '../sim/terrain';
 import { CropDef } from '../data/crops';
 import { drawBuilding, faceHeight, wallHeight } from './buildArt';
@@ -161,6 +162,9 @@ export class WorldScene extends Phaser.Scene {
   private zoneGfx!: Phaser.GameObjects.Graphics;
   /** Llamas de los incendios (se repinta a menudo para que parpadeen). */
   private fireGfx!: Phaser.GameObjects.Graphics;
+  /** Sombra de los tejados (se ve por dónde hay techo). */
+  private roofGfx!: Phaser.GameObjects.Graphics;
+  private roofDrawn = -1;
   private fireTimer = 0;
   private zoneVersion = -1;
   private structSprites: Phaser.GameObjects.Image[] = [];
@@ -236,6 +240,8 @@ export class WorldScene extends Phaser.Scene {
     this.designGfx = this.add.graphics().setDepth(DESIGN_DEPTH);
     this.zoneGfx = this.add.graphics().setDepth(ZONE_DEPTH);
     this.fireGfx = this.add.graphics().setDepth(COLONIST_DEPTH + 1);
+    this.roofGfx = this.add.graphics().setDepth(ZONE_DEPTH + 0.1);
+    this.roofDrawn = -1;
     this.designPreview = this.add.graphics().setDepth(COLONIST_DEPTH + 2);
     this.createColonistSprites();
 
@@ -268,6 +274,7 @@ export class WorldScene extends Phaser.Scene {
     this.syncZones();
     this.syncStructures();
     this.syncPlants();
+    if (this.roofDrawn !== this.world.roofVersion) this.drawRoofs();
     this.fireTimer += delta;
     if (this.fireTimer >= 120) {
       this.fireTimer = 0;
@@ -364,6 +371,7 @@ export class WorldScene extends Phaser.Scene {
       this.zoneVersion = -1;
       this.structVersion = -1;
       this.plantsVersion = -1;
+      this.roofDrawn = -1;
       this.spriteLift.clear();
     }
     const ctx = this.mapTexture.getContext();
@@ -500,6 +508,7 @@ export class WorldScene extends Phaser.Scene {
     this.zoneVersion = -1;
     this.structVersion = -1;
     this.plantsVersion = -1;
+    this.roofDrawn = -1;
     this.drawDesignPreview();
   }
 
@@ -1635,6 +1644,21 @@ export class WorldScene extends Phaser.Scene {
     this.game.events.emit('farm-select', f ?? null);
   }
 
+  /** Sombra suave en las casillas con tejado (sin taparlas: se ve lo de dentro). */
+  private drawRoofs(): void {
+    this.roofDrawn = this.world.roofVersion;
+    const g = this.roofGfx;
+    g.clear();
+    g.fillStyle(0x1a1410, 0.18);
+    for (const i of this.world.roofs) {
+      const x = i % this.map.width;
+      const y = (i - x) / this.map.width;
+      const v = this.viewTile(x, y);
+      const bottom = (v.y + 1) * TILE_H - liftOf(this.view, v.x, v.y);
+      g.fillRect(v.x * TILE, bottom - TILE_H, TILE, TILE_H);
+    }
+  }
+
   /** Pinta las llamas de las casillas que arden y lo quemado (tierra negra), parpadeando. */
   private drawFires(): void {
     const g = this.fireGfx;
@@ -1898,7 +1922,9 @@ export class WorldScene extends Phaser.Scene {
     const zone = this.world.zones.at(tile.x, tile.y);
     if (zone) text = `${zone.name} (${STORAGE_PRIORITY_NAMES[zone.priority].toLowerCase()}) · ${text}`;
     const room = this.world.rooms.at(tile.x, tile.y);
-    if (room) text = `Habitación (${room.tiles.length} casillas, ${room.doors} ${room.doors === 1 ? 'puerta' : 'puertas'}) · ${text}`;
+    const info = roomInfoAt(this.world, tile.x, tile.y);
+    if (info) text = `🏠 Habitación con tejado (${info.room.tiles.length} casillas · belleza ${Math.round(info.beauty * 100)} % · limpieza ${Math.round(info.clean * 100)} %) · ${text}`;
+    else if (room) text = `Habitación sin tejado todavía (${room.tiles.length} casillas, ${room.doors} ${room.doors === 1 ? 'puerta' : 'puertas'}) · ${text}`;
     const farm = this.world.farms.at(tile.x, tile.y);
     const plant = this.world.farms.plantAt(tile.x, tile.y);
     if (plant) text = `${plant.crop.name} ${plant.growth >= 1 ? 'maduras' : `${Math.floor(plant.growth * 100)} %`} · ${text}`;

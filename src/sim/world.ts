@@ -15,7 +15,8 @@ import { StorageZones } from './zones';
 import { ZoneClearing } from './clearing';
 import { fertilityAt, GrowZones } from './farming';
 import { regrowNature } from './nature';
-import { Rooms } from './rooms';
+import { Room, Rooms } from './rooms';
+import { putRoof, roofed, roofRooms, roofTodo, roomInfoAt } from './roofs';
 import { giveDose, needsDose, tickHealth, tickInfection, treatWounds } from './health';
 import { Difficulty, initialSchedule, makeDifficulty, scaledSupplies, StorySchedule } from './storyteller';
 import { findRefuge, updatePanic } from './panic';
@@ -226,6 +227,10 @@ export class World implements JobContext {
   readonly fires = new Map<number, number>();
   readonly burnt = new Map<number, number>();
   fireVersion = 0;
+  /** Tejados: casillas bajo techo, versión para el dibujado y habitaciones que se pueden tejar (caché). */
+  readonly roofs = new Set<number>();
+  roofVersion = 0;
+  roofCache: { key: string; rooms: Room[] } = { key: '', rooms: [] };
   /** Plaga en un huerto: cuál y hasta cuándo hay para arrancar las enfermas. */
   plague: { zone: number; until: number } | null = null;
   nextEvent = firstEventTick();
@@ -398,6 +403,12 @@ export class World implements JobContext {
         const on = night && (c.activity === 'sleeping' || c.activity === 'working') && this.lit.has(c.tile.y * this.map.width + c.tile.x);
         if (on) c.needs.inLight = true;
         else delete c.needs.inLight;
+        // Dentro de una habitación con tejado: su belleza y su limpieza le cambian el ánimo.
+        // (Si se ha abierto alguna, aquí se cae su tejado.)
+        roofRooms(this);
+        const info = roomInfoAt(this, c.tile.x, c.tile.y);
+        if (info) c.needs.room = { beauty: info.beauty, clean: info.clean };
+        else delete c.needs.room;
       }
     }
     // Zonas por despejar: lo que ya está libre se suma a su almacén o huerto.
@@ -1223,14 +1234,14 @@ export class World implements JobContext {
     // Se despierta descansado (o, de día, bastante descansado) o si el hambre aprieta.
     const rested = c.needs.rest >= 0.99 || (!this.isNight && c.needs.rest >= 0.85);
     if (rested || c.needs.food < STARVING) {
-      c.needs.sleptIn = t.bed ? (this.rooms.at(t.x, t.y) ? 'habitacion' : 'cama') : 'suelo';
+      c.needs.sleptIn = t.bed ? (roofed(this, t.x, t.y) ? 'habitacion' : 'cama') : 'suelo';
       this.endNeed(c);
     }
   }
 
   /** Busca trabajo (si toca) y lo empieza. true si ahora tiene uno. */
   private tryStartJob(c: Colonist): boolean {
-    const people = this.others.length > 0 || this.fires.size > 0 || this.colonists.some((k) => k.wounds.some((w) => w.bleeding) || needsDose(k) || k.downed);
+    const people = this.others.length > 0 || this.fires.size > 0 || roofTodo(this).length > 0 || this.colonists.some((k) => k.wounds.some((w) => w.bleeding) || needsDose(k) || k.downed);
     if (!people && this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.structures.toMove().length === 0 && this.structures.repairs().length === 0 && this.structures.stations().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0 && this.corpses.length === 0 && !this.structures.all().some((s) => s.built && !!depositOf(s.def))) return false;
     if (this.tick < (this.nextJobScan.get(c.id) ?? 0)) return false;
     const plan = findJob(this, c);
@@ -1296,6 +1307,7 @@ export class World implements JobContext {
     }
     if (j.kind === 'construir') {
       if (j.fire) return burning(this, j.x, j.y);
+      if (j.roof) return roofTodo(this).some((p) => p.x === j.x && p.y === j.y);
       const s = this.jobStructure(j);
       if (j.demolish) return !!s && s.built && !!s.demolish;
       if (j.move === 'desmontar') return !!s && !!s.moveTo && this.structures.canMove(s);
@@ -1385,6 +1397,10 @@ export class World implements JobContext {
     }
     if (j.fire) {
       this.updateFireJob(c);
+      return;
+    }
+    if (j.roof) {
+      this.updateRoofJob(c);
       return;
     }
     const building = j.kind === 'construir' || j.kind === 'fabricar' || j.kind === 'cocinar';
@@ -1848,6 +1864,34 @@ export class World implements JobContext {
   }
   private fireThreatKey = -1;
   private fireThreatCache: Point[] = [];
+
+  /** Casillas de habitaciones cerradas que piden tejado. */
+  roofTodo(): Point[] {
+    return roofTodo(this);
+  }
+
+  /** Va a la casilla y pone el tejado. */
+  private updateRoofJob(c: Colonist): void {
+    const j = c.job!;
+    if (c.tile.x !== j.x || c.tile.y !== j.y) {
+      if (c.path.length === 0) {
+        const path = findPath(this.map, c.tile, { x: j.x, y: j.y }, JOB_PATH_NODES);
+        if (!path || path.length === 0) {
+          this.dropJob(c);
+          this.nextJobScan.set(c.id, this.tick + JOB_RETRY_TICKS);
+          return;
+        }
+        c.path = path;
+      }
+      return;
+    }
+    c.activity = 'working';
+    j.progress += workSpeed(c, 'construir') * this.lightFactor(c.tile);
+    if (j.progress >= j.work) {
+      putRoof(this, j.x, j.y);
+      this.dropJob(c);
+    }
+  }
 
   /** Va a la casilla que arde y la apaga. */
   private updateFireJob(c: Colonist): void {

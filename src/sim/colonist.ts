@@ -59,6 +59,8 @@ export interface ColonistJob {
   repair?: boolean;
   /** Apagar el fuego de la casilla (x, y). */
   fire?: boolean;
+  /** Poner el tejado en la casilla (x, y). */
+  roof?: boolean;
   /** Mover un mueble: primero se desmonta; luego se lleva y se monta en el destino. */
   move?: 'desmontar' | 'montar';
   /** Construcción a la que va el trabajo (construir, demoler, fabricar). */
