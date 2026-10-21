@@ -22,6 +22,17 @@ export interface EventDef {
   cropYield?: number;
   harmPerHour?: number;
   harmFloor?: number;
+  /** Plaga: parte de las plantas de un huerto que enferma, lo que se pierde si no se arrancan a tiempo, plantas mínimas y trabajo de arrancar una. */
+  sickShare?: number;
+  loss?: number;
+  minPlants?: number;
+  uprootWork?: number;
+  /** Refugiado herido: horas que espera respuesta, salud con la que llega, salud a la que se da por curado, probabilidad de quedarse y relación que sube con su facción. */
+  waitHours?: number;
+  health?: number;
+  healedAt?: number;
+  stayChance?: number;
+  relation?: number;
 }
 
 interface EventData {

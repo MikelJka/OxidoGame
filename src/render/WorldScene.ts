@@ -1642,6 +1642,8 @@ export class WorldScene extends Phaser.Scene {
       const bottom = (v.y + 1) * TILE_H - liftOf(this.view, v.x, v.y);
       const img = this.add.image(cx, bottom, key).setOrigin(0.5, 1);
       img.setDepth(COLONIST_DEPTH + (v.y + 0.35) / 1000);
+      // Enferma por una plaga: pardusca (hay que arrancarla).
+      if (plant.sick) img.setTint(0x9a7a3a);
       this.plantSprites.push(img);
     }
   }

@@ -6,6 +6,7 @@ import { RESOURCE_VALUES } from '../data/values';
 import { isPassable } from './map';
 import { findPath, Point } from './pathfinding';
 import { Rng } from './rng';
+import { factionDef, RAIDER_FACTION } from '../data/factions';
 import { TICKS_PER_DAY, TICKS_PER_HOUR } from './time';
 import type { World } from './world';
 
@@ -55,6 +56,8 @@ export function runEvents(w: World): void {
   // Lluvia ácida: cada hora estropea lo plantado al aire libre y quema un poco a quien está fuera.
   const acid = w.weather.find((e) => w.tick < e.until && eventDef(e.id)?.cropYield !== undefined);
   if (acid) acidRainHour(w, eventDef(acid.id)!);
+  if (w.plague) checkPlague(w);
+  checkRefugees(w);
   if (w.tick < w.nextEvent) return;
   const rng = eventRng(w, 1);
   w.nextEvent = w.tick + rng.int(Math.round(EVENT_GAP[0] * TICKS_PER_DAY), Math.round(EVENT_GAP[1] * TICKS_PER_DAY));
@@ -72,6 +75,8 @@ export function startEvent(w: World, id: string): boolean {
   if (!ev) return false;
   if (ev.id === 'alijo') return dropCache(w, ev);
   if (ev.repair) return breakMachine(w, ev);
+  if (ev.sickShare !== undefined) return startPlague(w, ev);
+  if (ev.stayChance !== undefined) return refugeeArrives(w, ev);
   if (ev.hours && !activeEvent(w, ev.id)) {
     w.weather.push({ id: ev.id, until: w.tick + Math.round(ev.hours * TICKS_PER_HOUR) });
     if (ev.cropYield !== undefined) {
@@ -136,6 +141,93 @@ function breakMachine(w: World, ev: EventDef): boolean {
   const need = (Object.entries(ev.repair!) as [ResourceId, number][]).map(([r, n]) => `${RESOURCE_ICONS[r]}${n}`).join(' ');
   w.addLog(`🔧 Avería: ${s.def.name.toLowerCase()} se ha parado. Un colono con «Construir» la arreglará con ${need}.`, 'malo', undefined, { x: s.x, y: s.y });
   return true;
+}
+
+/** Plaga: en un huerto enferma una parte de las plantas; los que cultivan las arrancan. */
+function startPlague(w: World, ev: EventDef): boolean {
+  if (w.plague) return false;
+  const rng = eventRng(w, 4);
+  const zones = w.farms.all().filter((z) => [...z.tiles].filter((i) => w.farms.plantAt(i % w.map.width, Math.floor(i / w.map.width))).length >= (ev.minPlants ?? 4));
+  if (!zones.length) return false;
+  const z = zones[rng.int(0, zones.length - 1)];
+  const plants = [...z.tiles].map((i) => w.farms.plantAt(i % w.map.width, Math.floor(i / w.map.width))).filter((p): p is NonNullable<typeof p> => !!p);
+  const n = Math.max(1, Math.ceil(plants.length * (ev.sickShare ?? 0.25)));
+  for (let k = 0; k < n; k++) {
+    const left = plants.filter((p) => !p.sick);
+    left[rng.int(0, left.length - 1)].sick = true;
+  }
+  w.farms.version++;
+  w.plague = { zone: z.id, until: w.tick + Math.round((ev.hours ?? 24) * TICKS_PER_HOUR) };
+  w.addLog(`🐛 ¡Plaga en ${z.name}! ${n} ${n === 1 ? 'planta enferma' : 'plantas enfermas'}: si los que cultivan no las arrancan en un día, el huerto perderá la mitad de sus plantas.`, 'malo', undefined, { x: [...z.tiles][0] % w.map.width, y: Math.floor([...z.tiles][0] / w.map.width) });
+  return true;
+}
+
+/** Cada hora: si ya no quedan enfermas, se acaba; si se acaba el plazo, el huerto pierde la mitad. */
+function checkPlague(w: World): void {
+  const pl = w.plague!;
+  const z = w.farms.get(pl.zone);
+  const at = (i: number) => w.farms.plantAt(i % w.map.width, Math.floor(i / w.map.width));
+  const sick = z ? [...z.tiles].filter((i) => at(i)?.sick) : [];
+  if (!z || sick.length === 0) {
+    w.plague = null;
+    if (z) w.addLog(`🌱 Plaga controlada en ${z.name}: ya no quedan plantas enfermas.`, 'bueno');
+    return;
+  }
+  if (w.tick < pl.until) return;
+  const ev = eventDef('plaga');
+  const rng = eventRng(w, 5);
+  const alive = [...z.tiles].filter((i) => at(i));
+  const lose = Math.ceil(alive.length * (ev?.loss ?? 0.5));
+  // Se pierden primero las enfermas y luego, al azar, las demás.
+  const healthy = alive.filter((i) => !at(i)!.sick);
+  for (let k = healthy.length - 1; k > 0; k--) {
+    const j = rng.int(0, k);
+    [healthy[k], healthy[j]] = [healthy[j], healthy[k]];
+  }
+  for (const i of [...sick, ...healthy].slice(0, lose)) w.farms.uproot(i % w.map.width, Math.floor(i / w.map.width));
+  for (const i of z.tiles) {
+    const p = at(i);
+    if (p) delete p.sick;
+  }
+  w.plague = null;
+  w.addLog(`🐛 La plaga se ha extendido por ${z.name}: se pierden ${lose} plantas.`, 'malo');
+}
+
+/** Refugiado herido: alguien de una facción (no los saqueadores) pide que lo curéis. */
+function refugeeArrives(w: World, ev: EventDef): boolean {
+  if (w.offer) return false;
+  const options = w.factions.filter((f) => f.id !== RAIDER_FACTION);
+  if (!options.length) return false;
+  const rng = eventRng(w, 6);
+  const f = options[rng.int(0, options.length - 1)];
+  const def = factionDef(f.id);
+  const c = w.makePawn('colono');
+  c.faction = f.id;
+  c.health = ev.health ?? 0.35;
+  c.wounds.push({ part: 'el costado', severity: 0.6, bleeding: true, treated: false });
+  w.offer = { kind: 'refugiado', pawn: c, until: w.tick + Math.round((ev.waitHours ?? 12) * TICKS_PER_HOUR) };
+  w.addLog(`🩹 ${c.name}, de ${def?.name ?? f.id}, llega herido y pide que lo curéis. Si se cura, se unirá a la colonia o volverá con los suyos (y ellos os lo agradecerán).`, 'info', 'visita');
+  return true;
+}
+
+/** Los refugiados ya curados deciden: se quedan o vuelven con los suyos. Su facción os lo agradece. */
+function checkRefugees(w: World): void {
+  const ev = eventDef('refugiado');
+  if (!ev) return;
+  for (const c of [...w.colonists]) {
+    if (!c.refugee || c.downed || c.health < (ev.healedAt ?? 0.9) || c.wounds.some((k) => k.bleeding)) continue;
+    const faction = c.refugee;
+    const def = factionDef(faction);
+    const rng = eventRng(w, 7 + c.id);
+    if (rng.chance(ev.stayChance ?? 0.5)) {
+      delete c.refugee;
+      w.addLog(`🙂 ${c.name} ya está curado y decide quedarse en la colonia.`, 'bueno');
+    } else {
+      w.leaveColony(c, faction);
+      w.addLog(`👋 ${c.name} ya está curado y vuelve con ${def?.name ?? 'los suyos'}.`, 'info');
+    }
+    w.changeRelation(faction, ev.relation ?? 10, `curáis a ${c.name}`);
+  }
 }
 
 /** Lee los sucesos de una partida guardada. */

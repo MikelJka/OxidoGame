@@ -1,5 +1,5 @@
 import { Colonist, createColonist, RaidGroup, Stance, walkSpeedMultiplier } from './colonist';
-import { createFactions, FactionState, RELATION_LEVEL_NAMES, shiftRelation } from './factions';
+import { createFactions, FactionState, shiftRelation } from './factions';
 import { marketDay, MarketState, newMarket } from './market';
 import { ActiveEvent, firstEventTick, runEvents, solarFactor } from './events';
 import { factionDef, RELATION } from '../data/factions';
@@ -110,13 +110,14 @@ export const COMBAT_ALERT_GAP = TICKS_PER_HOUR;
 
 /** Algo que el jugador tiene que decidir (p. ej. aceptar a un superviviente). */
 export interface Offer {
-  kind: 'superviviente';
+  /** «refugiado»: un herido de una facción que pide que lo curéis (suceso). */
+  kind: 'superviviente' | 'refugiado';
   pawn: Colonist;
   /** Tick hasta el que espera respuesta. */
   until: number;
 }
 
-/** Una facción pide tributo (los Hijos del Óxido): si se paga, no hay raid; si no, llega y baja la relación. */
+/** Una facción pide tributo (los Piratas del Óxido): si se paga, no hay raid; si no, llega y baja la relación. */
 export interface Tribute {
   faction: string;
   demand: Partial<Record<ResourceId, number>>;
@@ -220,6 +221,8 @@ export class World implements JobContext {
   factions: FactionState[];
   /** Sucesos que duran (tormenta de polvo…) y tick del siguiente suceso. */
   weather: ActiveEvent[] = [];
+  /** Plaga en un huerto: cuál y hasta cuándo hay para arrancar las enfermas. */
+  plague: { zone: number; until: number } | null = null;
   nextEvent = firstEventTick();
   /** Mercado (bloque 8): el precio de cada recurso. */
   market: MarketState = newMarket();
@@ -567,12 +570,35 @@ export class World implements JobContext {
     if (!o) return;
     this.offer = null;
     if (o.kind === 'superviviente') this.joinColony(o.pawn, 'se une a la colonia');
+    else if (o.kind === 'refugiado') {
+      const faction = o.pawn.faction;
+      this.joinColony(o.pawn, 'se queda para que lo curéis');
+      // Al curarse decidirá si se queda o vuelve con los suyos.
+      if (faction) o.pawn.refugee = faction;
+    }
   }
 
   rejectOffer(): void {
     if (!this.offer) return;
     this.addLog(`${this.offer.pawn.name} sigue su camino.`, 'info');
     this.offer = null;
+  }
+
+  /** Un colono se va de la colonia (el refugiado ya curado que vuelve con los suyos): se marcha andando por un borde. */
+  leaveColony(c: Colonist, faction: string): void {
+    const i = this.colonists.indexOf(c);
+    if (i < 0) return;
+    if (c.vehicle) this.leaveVehicle(c);
+    this.dropJob(c);
+    if (c.need) this.endNeed(c);
+    this.colonists.splice(i, 1);
+    this.reservations.releaseAll(c.id);
+    c.role = 'aliado';
+    c.faction = faction;
+    c.drafted = false;
+    c.path = [];
+    delete c.refugee;
+    this.others.push(c);
   }
 
   /** Alguien pasa a ser de la colonia (superviviente, prisionero convencido…). */
@@ -674,7 +700,7 @@ export class World implements JobContext {
     if (!f || !def || before === undefined || f.relation === before) return;
     const sign = f.relation > before ? `+${f.relation - before}` : `${f.relation - before}`;
     if (why) this.addLog(`${def.icon} ${def.name}: ${sign} de relación (${why}). Ahora: ${f.relation}.`, f.relation > before ? 'bueno' : 'info');
-    if (change) this.addLog(`${def.icon} ${def.name} de ${f.settlement}: ${RELATION_LEVEL_NAMES[change.to].toLowerCase()} con la colonia (${f.relation}).`, change.to === 'alianza' || change.to === 'amistosa' ? 'bueno' : 'malo');
+    if (change) this.addLog(`${def.icon} ${def.name} de ${f.settlement}: ahora sois ${change.to === 'aliado' ? 'aliados' : change.to === 'hostil' ? 'enemigos (en guerra)' : 'neutrales'} (${f.relation}).`, change.to === 'hostil' ? 'malo' : 'bueno');
   }
 
   /** Hora del día en horas decimales (0–24). */
@@ -1293,6 +1319,7 @@ export class World implements JobContext {
       return this.terrain.at(j.x, j.y) === j.terrain && !terrainBlocker(this.map, j.x, j.y, j.terrain!, !!this.structures.at(j.x, j.y));
     }
     if (j.kind === 'cultivar') {
+      if (j.farm === 'arrancar') return !!this.farms.plantAt(j.x, j.y)?.sick;
       if (j.farm === 'cosechar') return (this.farms.plantAt(j.x, j.y)?.growth ?? 0) >= 1;
       const z = this.farms.at(j.x, j.y);
       return !!z && !this.farms.plantAt(j.x, j.y) && this.farms.canSow(j.x, j.y, z.crop) && !this.structures.at(j.x, j.y);
@@ -1794,7 +1821,11 @@ export class World implements JobContext {
   }
 
   /** Termina de sembrar o de cosechar una casilla. */
-  private finishFarmWork(x: number, y: number, action: 'sembrar' | 'cosechar'): void {
+  private finishFarmWork(x: number, y: number, action: 'sembrar' | 'cosechar' | 'arrancar'): void {
+    if (action === 'arrancar') {
+      this.farms.uproot(x, y);
+      return;
+    }
     if (action === 'sembrar') {
       this.farms.sow(x, y);
       return;

@@ -41,6 +41,8 @@ export interface Plant {
   growth: number;
   /** Le ha caído lluvia ácida: la cosecha se multiplica por esto (0,7). */
   harm?: number;
+  /** Enferma por una plaga: hay que arrancarla (sin cosecha). */
+  sick?: boolean;
 }
 
 /** Fase visible de una planta: 0 sembrada, 1 brote, 2 creciendo, 3 madura. */
@@ -249,10 +251,18 @@ export class GrowZones {
     this.zoneVersion++;
   }
 
+  /** Arranca una planta (enferma): se pierde sin dar nada. */
+  uproot(x: number, y: number): boolean {
+    if (!this.plantAt(x, y)) return false;
+    this.plants.delete(index(this.map, x, y));
+    this.version++;
+    return true;
+  }
+
   /** Vuelve a poner una planta guardada. */
-  restorePlant(i: number, crop: CropDef, growth: number, harm?: number): void {
+  restorePlant(i: number, crop: CropDef, growth: number, harm?: number, sick?: boolean): void {
     if (i < 0 || i >= this.zoneOf.length) return;
-    this.plants.set(i, { crop, growth: Math.max(0, Math.min(1, growth)), ...(harm !== undefined && harm > 0 && harm < 1 ? { harm } : {}) });
+    this.plants.set(i, { crop, growth: Math.max(0, Math.min(1, growth)), ...(harm !== undefined && harm > 0 && harm < 1 ? { harm } : {}), ...(sick ? { sick: true } : {}) });
     this.version++;
   }
 

@@ -10,6 +10,8 @@ export interface FactionDef {
   description: string;
   /** Nombres posibles de su asentamiento (sale uno al azar en cada partida). */
   settlements: string[];
+  /** Su relación no cambia nunca (los Piratas del Óxido, siempre hostiles). */
+  fixed?: boolean;
 }
 
 export interface RelationRules {
@@ -105,6 +107,15 @@ export const TRADER_FACTION = DATA.traderFaction;
 /** De quién son los saqueadores. */
 export const RAIDER_FACTION = DATA.raiderFaction;
 
+/** Ids antiguos de facciones (partidas guardadas): los Hijos del Óxido pasaron a ser los Piratas del Óxido el 2026-10-21. */
+const OLD_IDS: Record<string, string> = { hijos_oxido: 'piratas_oxido' };
+
+/** Id actual de una facción (traduce los antiguos). */
+export function factionId(id: string): string {
+  return OLD_IDS[id] ?? id;
+}
+
 export function factionDef(id: string): FactionDef | undefined {
-  return FACTIONS.find((f) => f.id === id);
+  const real = factionId(id);
+  return FACTIONS.find((f) => f.id === real);
 }

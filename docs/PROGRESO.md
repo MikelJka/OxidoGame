@@ -2,6 +2,19 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (39) — Sucesos terminados y Piratas del Óxido
+
+- **🐛 Plaga**: en un huerto con 4 o más plantas enferma una cuarta parte, que se ve pardusca. Los que tienen «Cultivar» van antes que nada a **arrancarlas**. Si en **un día** queda alguna enferma, el huerto **pierde la mitad** de sus plantas.
+- **🩹 Refugiado herido**: alguien de los Chatarreros o de los Granjeros llega herido y pide que lo curéis (sale arriba como un superviviente). Si lo acogéis y se cura, **se queda** (1 de cada 2 veces) o **vuelve con los suyos**; en los dos casos su facción sube **10**.
+- **Facciones, cambiado por Mikel**:
+  - Los **Chatarreros** y los **Granjeros** empiezan **neutrales (0)** y su relación sube o baja entre **hostiles** (−50 o menos, con raids propios), **neutrales** y **aliados** (60 o más).
+  - Los **Hijos del Óxido** pasan a ser los **☠ Piratas del Óxido**: siempre hostiles, lanzan los raids y su relación no cambia nunca.
+  - En las partidas guardadas se cambian solos.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): la parte que enferma (1/4), que la plaga necesite huertos de 4 plantas o más, y en el refugiado la probabilidad de quedarse y los +10.
+- Qué probar: 📜 → 🏳 Facciones (nombres y relaciones nuevas). Con huertos, esperar a una plaga.
+- Sin npm en el entorno: tests con Bun (621) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+- Siguiente: el incendio grande y los tejados, que acaba de pedir Mikel; las bases de las facciones esperan su respuesta.
+
 ## 2026-10-21 (38) — Sucesos: avería y lluvia ácida
 
 - **🔧 Avería**: una máquina que gasta corriente (radio, torreta, puerta automática, taller electrificado…) **se para**. Un colono con **«Construir»** le lleva **⚙️1** y la arregla. Al tocarla pone «🔧 averiada».

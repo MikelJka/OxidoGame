@@ -17,7 +17,7 @@ import type { StoragePriority } from './zones';
 import { ALERT_KINDS, GameSpeed, LogEntry, TICKS_PER_DAY, World } from './world';
 import { initialSchedule, makeDifficulty, WANDERER_GAP } from './storyteller';
 import { vehicleDef } from '../data/vehicles';
-import { factionDef } from '../data/factions';
+import { factionDef, factionId } from '../data/factions';
 import { restoreFactions } from './factions';
 import { restoreMarket } from './market';
 import { restoreWeather } from './events';
@@ -59,7 +59,7 @@ export interface SaveData {
   terrain?: { x: number; y: number; job: string }[];
   /** Huertos (desde que existe el cultivo; las partidas anteriores no los tienen). */
   farms?: { id: number; name: string; crop: string; tiles: number[] }[];
-  plants?: { i: number; crop: string; growth: number; harm?: number }[];
+  plants?: { i: number; crop: string; growth: number; harm?: number; sick?: boolean }[];
   /** Casillas de almacenes y huertos por despejar (#14; las partidas anteriores no las tienen). */
   clearing?: { i: number; kind: string; zone: number; prop: number }[];
   /** Saqueadores, prisioneros y comerciantes (desde que existen). */
@@ -70,7 +70,7 @@ export interface SaveData {
   log?: { tick: number; text: string; kind: string; alert?: string; at?: { x: number; y: number } }[];
   graveyard?: { name: string; cause: string; day: number }[];
   gameOver?: { day: number; cause: string } | null;
-  offer?: { pawn: SavedColonist; until: number } | null;
+  offer?: { pawn: SavedColonist; until: number; kind?: string } | null;
   schedule?: { nextWanderer: number; nextRaid: number; nextTrader: number; nextRadio?: number };
   /** Facciones (desde el 2026-10-21); las partidas antiguas las sacan de la semilla. */
   factions?: { id: string; settlement: string; relation: number; helpAt?: number; warRaidAt?: number; calledAt?: number }[];
@@ -78,6 +78,7 @@ export interface SaveData {
   market?: { mult: Record<string, number>; prev: Record<string, number> };
   /** Sucesos que duran y el siguiente (desde el 2026-10-21). */
   weather?: { id: string; until: number }[];
+  plague?: { zone: number; until: number };
   nextEvent?: number;
   /** Tributo pedido y sin responder (desde el 2026-10-21). */
   tribute?: { faction: string; demand: Record<string, number>; value: number; until: number };
@@ -130,6 +131,7 @@ interface SavedColonist {
   trader?: { stock: Record<string, number>; slaves: SavedColonist[]; leaveAt: number; leaving: boolean; traded?: boolean; needs?: string[]; surplus?: string[] };
   /** Facción (desde el 2026-10-21). */
   faction?: string;
+  refugee?: string;
   /** Arma, la que prefiere y munición (desde que hay armas). */
   weapon?: string | null;
   weaponChoice?: string;
@@ -186,6 +188,7 @@ function savePawn(c: Colonist): SavedColonist {
       ? { stock: { ...c.trader.stock } as Record<string, number>, slaves: c.trader.slaves.map(savePawn), leaveAt: c.trader.leaveAt, leaving: c.trader.leaving, ...(c.trader.traded ? { traded: true } : {}), ...(c.trader.needs ? { needs: [...c.trader.needs] } : {}), ...(c.trader.surplus ? { surplus: [...c.trader.surplus] } : {}) }
       : undefined,
     ...(c.faction ? { faction: c.faction } : {}),
+    ...(c.refugee ? { refugee: c.refugee } : {}),
     weapon: c.weapon,
     weaponChoice: c.weaponChoice,
     ammo: c.ammo,
@@ -241,11 +244,12 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     log: world.log.map((l) => ({ ...l })),
     graveyard: world.graveyard.map((g) => ({ ...g })),
     gameOver: world.gameOver ? { ...world.gameOver } : null,
-    offer: world.offer ? { pawn: savePawn(world.offer.pawn), until: world.offer.until } : null,
+    offer: world.offer ? { pawn: savePawn(world.offer.pawn), until: world.offer.until, ...(world.offer.kind !== 'superviviente' ? { kind: world.offer.kind } : {}) } : null,
     schedule: { ...world.schedule },
     factions: world.factions.map((f) => ({ ...f })),
     market: { mult: { ...world.market.mult }, prev: { ...world.market.prev } },
     weather: world.weather.map((e) => ({ ...e })),
+    ...(world.plague ? { plague: { ...world.plague } } : {}),
     nextEvent: world.nextEvent,
     ...(world.tribute ? { tribute: { ...world.tribute, demand: { ...world.tribute.demand } } } : {}),
     nextPawnId: world.nextPawnId,
@@ -265,7 +269,7 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     designations: world.designations.list().map((d) => ({ ...d })),
     zones: world.zones.all().map((z) => ({ id: z.id, name: z.name, priority: z.priority, accepts: { ...z.accepts }, tiles: [...z.tiles] })),
     farms: world.farms.all().map((z) => ({ id: z.id, name: z.name, crop: z.crop.id, tiles: [...z.tiles] })),
-    plants: world.farms.plantList().map(({ x, y, plant }) => ({ i: y * m.width + x, crop: plant.crop.id, growth: plant.growth, ...(plant.harm ? { harm: plant.harm } : {}) })),
+    plants: world.farms.plantList().map(({ x, y, plant }) => ({ i: y * m.width + x, crop: plant.crop.id, growth: plant.growth, ...(plant.harm ? { harm: plant.harm } : {}), ...(plant.sick ? { sick: true } : {}) })),
     clearing: world.clearing.list(),
     // Un mueble que alguien lleva en brazos se guarda en su sitio de antes, con la orden de moverlo.
     structures: [...world.structures.all(), ...world.structures.liftedList()].map((s) => ({
@@ -439,7 +443,8 @@ function restoreColonist(s: SavedColonist): Colonist {
           ...(Array.isArray(s.trader.surplus) ? { surplus: s.trader.surplus.filter(isResource) } : {}),
         }
       : undefined,
-    ...(typeof s.faction === 'string' && factionDef(s.faction) ? { faction: s.faction } : {}),
+    ...(typeof s.faction === 'string' && factionDef(s.faction) ? { faction: factionId(s.faction) } : {}),
+    ...(typeof s.refugee === 'string' && factionDef(s.refugee) ? { refugee: factionId(s.refugee) } : {}),
     needs: {
       food: Math.max(0, Math.min(1, num(s.needs?.food, 0.8))),
       water: Math.max(0, Math.min(1, num(s.needs?.water, 0.85))),
@@ -555,7 +560,7 @@ export function loadWorld(input: string | unknown): World {
   }
   for (const g of d.graveyard ?? []) world.graveyard.push({ name: String(g.name ?? ''), cause: String(g.cause ?? ''), day: num(g.day, 1) });
   world.gameOver = d.gameOver ? { day: num(d.gameOver.day, 1), cause: String(d.gameOver.cause ?? '') } : null;
-  if (d.offer?.pawn) world.offer = { kind: 'superviviente', pawn: { ...restoreColonist(d.offer.pawn), role: 'colono' }, until: num(d.offer.until, world.tick) };
+  if (d.offer?.pawn) world.offer = { kind: d.offer.kind === 'refugiado' ? 'refugiado' : 'superviviente', pawn: { ...restoreColonist(d.offer.pawn), role: 'colono' }, until: num(d.offer.until, world.tick) };
   for (const g of d.raidGroups ?? []) {
     world.raidGroups.push({
       id: num(g.id, 0),
@@ -579,11 +584,12 @@ export function loadWorld(input: string | unknown): World {
   world.factions = restoreFactions(d.factions, world.map.seed);
   world.market = restoreMarket(d.market);
   world.weather = restoreWeather(d.weather);
+  world.plague = d.plague && typeof d.plague.zone === 'number' && typeof d.plague.until === 'number' ? { zone: d.plague.zone, until: d.plague.until } : null;
   // Las partidas antiguas tienen su primer suceso dentro de un día.
   world.nextEvent = typeof d.nextEvent === 'number' && Number.isFinite(d.nextEvent) ? d.nextEvent : world.tick + TICKS_PER_DAY;
   if (d.tribute && factionDef(String(d.tribute.faction))) {
     const demand = Object.fromEntries(Object.entries(d.tribute.demand ?? {}).filter(([r]) => isResource(r)).map(([r, n]) => [r, Math.max(1, Math.round(num(n, 1)))]));
-    world.tribute = { faction: String(d.tribute.faction), demand, value: num(d.tribute.value, 0), until: num(d.tribute.until, world.tick) };
+    world.tribute = { faction: factionId(String(d.tribute.faction)), demand, value: num(d.tribute.value, 0), until: num(d.tribute.until, world.tick) };
   }
   world.eventsEnabled = d.events !== false;
   world.bringHomeStranded(); // #12: supervivientes que se quedaron en la esquina (0, 0)
@@ -650,7 +656,7 @@ export function loadWorld(input: string | unknown): World {
   }
   for (const p of d.plants ?? []) {
     const crop = cropDef(String(p.crop));
-    if (crop) world.farms.restorePlant(num(p.i, -1), crop, num(p.growth, 0), p.harm !== undefined ? num(p.harm, 1) : undefined);
+    if (crop) world.farms.restorePlant(num(p.i, -1), crop, num(p.growth, 0), p.harm !== undefined ? num(p.harm, 1) : undefined, !!p.sick);
   }
   for (const c of d.clearing ?? []) {
     if (c.kind !== 'almacen' && c.kind !== 'huerto') continue;

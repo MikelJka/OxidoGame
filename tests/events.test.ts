@@ -98,3 +98,68 @@ describe('avería y lluvia ácida', () => {
     expect(got.amount).toBeLessThan(10);
   });
 });
+
+describe('plaga', () => {
+  function farmWorld() {
+    const w = flatWorld(1);
+    w.farms.create({ x0: 10, y0: 10, x1: 13, y1: 11 }, cropDef('patata')!);
+    for (let x = 10; x <= 13; x++) for (let y = 10; y <= 11; y++) w.farms.sow(x, y);
+    return w;
+  }
+  const count = (w: ReturnType<typeof flatWorld>) => w.farms.plantList().length;
+  const sick = (w: ReturnType<typeof flatWorld>) => w.farms.plantList().filter((p) => p.plant.sick).length;
+
+  it('enferma una cuarta parte del huerto; si los que cultivan las arrancan a tiempo, se acaba', () => {
+    const w = farmWorld();
+    expect(startEvent(w, 'plaga')).toBe(true);
+    expect(sick(w)).toBe(2);
+    expect(w.plague).not.toBeNull();
+    // Se guarda.
+    const back = loadWorld(serializeWorld(w));
+    expect(back.plague).toEqual(w.plague);
+    expect(back.farms.plantList().filter((p) => p.plant.sick).length).toBe(2);
+    for (let t = 0; t < 6000 && sick(w) > 0; t++) w.step();
+    expect(sick(w)).toBe(0);
+    w.nextEvent = Infinity;
+    runEvents(w);
+    expect(w.plague).toBeNull();
+    expect(count(w)).toBe(6);
+  });
+
+  it('si no se arrancan en un día, el huerto pierde la mitad', () => {
+    const w = farmWorld();
+    w.colonists[0].priorities.cultivar = 0;
+    startEvent(w, 'plaga');
+    w.tick = w.plague!.until;
+    w.nextEvent = Infinity;
+    runEvents(w);
+    expect(w.plague).toBeNull();
+    expect(count(w)).toBe(4);
+    expect(sick(w)).toBe(0);
+  });
+});
+
+describe('refugiado herido', () => {
+  it('pide ayuda; acogido y curado, se queda o vuelve con los suyos, y su facción sube 10', () => {
+    const w = flatWorld(1);
+    w.map.start = { x: 3, y: 3 };
+    expect(startEvent(w, 'refugiado')).toBe(true);
+    expect(w.offer?.kind).toBe('refugiado');
+    const c = w.offer!.pawn;
+    const faction = c.faction!;
+    expect(faction).not.toBe('piratas_oxido');
+    expect(loadWorld(serializeWorld(w)).offer?.kind).toBe('refugiado');
+    const before = w.faction(faction)!.relation;
+    w.acceptOffer();
+    expect(w.colonists).toContain(c);
+    expect(c.refugee).toBe(faction);
+    // Curado.
+    c.wounds = [];
+    c.health = 1;
+    w.nextEvent = Infinity;
+    runEvents(w);
+    expect(c.refugee).toBeUndefined();
+    expect(w.faction(faction)!.relation).toBe(before + 10);
+    expect(w.colonists.includes(c) || w.others.includes(c)).toBe(true);
+  });
+});

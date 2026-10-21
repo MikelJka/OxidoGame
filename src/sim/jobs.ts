@@ -2,6 +2,7 @@
 // las reserva para un colono y elige la siguiente según sus prioridades y la distancia.
 // Determinista: sin azar.
 import type { Skill } from '../data/colonists';
+import { eventDef } from '../data/events';
 import { depositOf } from '../data/buildings';
 import { MAX_STACK, RESOURCES, ResourceId } from '../data/resources';
 import { BLUEPRINT_SHARE_RADIUS, FINISH_WORK, WORK_SKILL, WORK_TYPES, WorkType } from '../data/work';
@@ -639,6 +640,9 @@ function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   return out;
 }
 
+/** Trabajo de arrancar una planta enferma (plaga). */
+const UPROOT_WORK = eventDef('plaga')?.uprootWork ?? 60;
+
 function farmCandidates(ctx: JobContext, c: Colonist): Candidate[] {
   if (c.priorities.cultivar === 0) return [];
   const out: Candidate[] = [];
@@ -646,13 +650,17 @@ function farmCandidates(ctx: JobContext, c: Colonist): Candidate[] {
     const h = ctx.reservations.holder(x, y);
     return h === undefined || h === c.id;
   };
-  const plan = (x: number, y: number, farm: 'sembrar' | 'cosechar', work: number): JobPlan | null => {
+  const plan = (x: number, y: number, farm: 'sembrar' | 'cosechar' | 'arrancar', work: number): JobPlan | null => {
     const route = c.tile.x === x && c.tile.y === y ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, [{ x, y }]);
     if (!route) return null;
     return { job: { kind: 'cultivar', x, y, stand: route.stand, progress: 0, work, farm }, path: route.path };
   };
-  // Cosechar lo maduro.
+  // Arrancar las plantas enfermas (plaga) y cosechar lo maduro.
   for (const { x, y, plant } of ctx.farms.plantList()) {
+    if (plant.sick && free(x, y)) {
+      out.push({ kind: 'cultivar', x, y, dist: manhattan(c.tile, x, y) - 20, make: () => plan(x, y, 'arrancar', UPROOT_WORK) });
+      continue;
+    }
     if (plant.growth < 1 || !free(x, y)) continue;
     out.push({ kind: 'cultivar', x, y, dist: manhattan(c.tile, x, y), make: () => plan(x, y, 'cosechar', plant.crop.harvestWork) });
   }

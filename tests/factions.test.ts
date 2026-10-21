@@ -13,21 +13,21 @@ const rel = (w: World, id: string) => w.faction(id)!.relation;
 
 describe('facciones', () => {
   it('tres facciones con su relación inicial y un asentamiento al azar (siempre el mismo con la misma semilla)', () => {
-    expect(FACTIONS.map((f) => [f.id, f.start])).toEqual([['chatarreros', 20], ['granjeros', 0], ['hijos_oxido', -60]]);
+    expect(FACTIONS.map((f) => [f.id, f.start])).toEqual([['chatarreros', 0], ['granjeros', 0], ['piratas_oxido', -100]]);
     const a = createFactions(123);
-    expect(a.map((f) => f.relation)).toEqual([20, 0, -60]);
+    expect(a.map((f) => f.relation)).toEqual([0, 0, -100]);
     expect(createFactions(123)).toEqual(a);
     for (const f of a) expect(FACTIONS.find((d) => d.id === f.id)!.settlements).toContain(f.settlement);
     expect(RELATION).toMatchObject({ min: -100, max: 100, ally: 60, war: -50, giftValuePerPoint: 20, releasePrisoner: 15, tradeCaravan: 2, killOrHold: -10, refuseTribute: -20 });
-    expect(relationLevel(-60)).toBe('guerra');
-    expect(relationLevel(60)).toBe('alianza');
+    expect(relationLevel(-60)).toBe('hostil');
+    expect(relationLevel(60)).toBe('aliado');
     expect(relationLevel(0)).toBe('neutral');
   });
 
-  it('los saqueadores son de los Hijos del Óxido y las caravanas, de los Chatarreros', () => {
+  it('los saqueadores son de los Piratas del Óxido y las caravanas, de los Chatarreros', () => {
     const w = flatWorld(1);
     const raid = startRaid(w, 2, false, false);
-    expect(raid.every((r) => r.faction === 'hijos_oxido')).toBe(true);
+    expect(raid.every((r) => r.faction === 'piratas_oxido')).toBe(true);
     const t = startTrader(w)!;
     expect(t.faction).toBe('chatarreros');
   });
@@ -40,34 +40,42 @@ describe('facciones', () => {
     t.trader!.needs = [];
     t.trader!.surplus = [];
     expect(makeDeal(w, t, { sell: { madera: 10 }, buy: {}, sellPrisoners: [], slaves: [] })).toBeNull();
-    expect(rel(w, 'chatarreros')).toBe(20 + 2);
+    expect(rel(w, 'chatarreros')).toBe(0 + 2);
     // Un regalo de 60 chapas: +3 (con el precio de la madera a su valor).
     w.market.mult = {};
     expect(makeDeal(w, t, { sell: { madera: 60 }, buy: {}, sellPrisoners: [], slaves: [] })).toBeNull();
-    expect(rel(w, 'chatarreros')).toBe(22 + 3);
+    expect(rel(w, 'chatarreros')).toBe(2 + 3);
   });
 
   it('matar o retener a los suyos baja 10; liberar a un prisionero sube 15', () => {
     const w = flatWorld(1);
-    const [a, b] = startRaid(w, 2, false, false);
+    // Con los Granjeros en guerra, sus saqueadores.
+    w.changeRelation('granjeros', -50);
+    const [a, b] = startRaid(w, 2, false, false, 'granjeros');
     w.killPawn(a, 'heridas');
-    expect(rel(w, 'hijos_oxido')).toBe(-70);
+    expect(rel(w, 'granjeros')).toBe(-60);
+    // Los Piratas del Óxido no cambian nunca.
+    const [p] = startRaid(w, 1, false, false);
+    w.killPawn(p, 'heridas');
+    expect(rel(w, 'piratas_oxido')).toBe(-100);
     makePrisoner(b, 0.5);
     b.prisoner!.mode = 'liberar';
     b.tile = { x: 0, y: 3 };
     b.pos = { x: 0.5, y: 3.5 };
     for (let t = 0; t < 10 && w.others.includes(b); t++) w.step();
     expect(w.others.includes(b)).toBe(false);
-    expect(rel(w, 'hijos_oxido')).toBe(-55);
+    expect(rel(w, 'granjeros')).toBe(-45);
   });
 
   it('la relación no pasa de −100 a 100', () => {
     const w = flatWorld(1);
-    w.changeRelation('hijos_oxido', -500);
-    expect(rel(w, 'hijos_oxido')).toBe(-100);
+    w.changeRelation('chatarreros', -500);
+    expect(rel(w, 'chatarreros')).toBe(-100);
+    w.changeRelation('piratas_oxido', 500);
+    expect(rel(w, 'piratas_oxido')).toBe(-100);
     w.changeRelation('granjeros', 500, 'prueba');
     expect(rel(w, 'granjeros')).toBe(100);
-    expect(w.log.some((l) => l.text.includes('Granjeros del valle') && l.text.includes('alianza'))).toBe(true);
+    expect(w.log.some((l) => l.text.includes('Granjeros del valle') && l.text.includes('aliados'))).toBe(true);
   });
 
   it('se guardan; las partidas antiguas las sacan de la semilla', () => {
@@ -77,7 +85,7 @@ describe('facciones', () => {
     const back = loadWorld(serializeWorld(w));
     expect(back.faction('granjeros')!.relation).toBe(33);
     expect(back.factions.map((f) => f.settlement)).toEqual(w.factions.map((f) => f.settlement));
-    expect(back.others.find((o) => o.id === r.id)?.faction).toBe('hijos_oxido');
+    expect(back.others.find((o) => o.id === r.id)?.faction).toBe('piratas_oxido');
     const old = JSON.parse(JSON.stringify(serializeWorld(w)));
     delete old.factions;
     expect(loadWorld(old).factions).toEqual(createFactions(w.map.seed));
@@ -102,7 +110,7 @@ describe('alianza', () => {
   it('pelean con los saqueadores y, sin atacantes, se marchan', () => {
     const w = flatWorld(1);
     w.map.start = { x: 15, y: 15 };
-    w.changeRelation('chatarreros', 50);
+    w.changeRelation('chatarreros', 60);
     w.colonists[0].tile = { x: 2, y: 2 };
     w.colonists[0].pos = { x: 2.5, y: 2.5 };
     const help = sendAllies(w);
@@ -133,9 +141,9 @@ describe('guerra', () => {
     w.schedule.nextRaid = Infinity;
     w.schedule.nextTrader = Infinity;
     w.schedule.nextWanderer = Infinity;
-    // Los Hijos del Óxido (−60) ya son los de los raids normales: no traen raids de más.
+    // Los Piratas del Óxido (−60) ya son los de los raids normales: no traen raids de más.
     runStoryteller(w);
-    expect(w.faction('hijos_oxido')!.warRaidAt).toBeUndefined();
+    expect(w.faction('piratas_oxido')!.warRaidAt).toBeUndefined();
     w.changeRelation('granjeros', -50);
     runStoryteller(w);
     const at = w.faction('granjeros')!.warRaidAt!;
@@ -178,10 +186,10 @@ describe('tributo', () => {
     expect(w.inventory().componentes).toBe(25 - 17);
     expect(w.tribute).toBeNull();
     expect(w.others.some((o) => o.role === 'saqueador')).toBe(false);
-    expect(w.faction('hijos_oxido')!.relation).toBe(-60);
+    expect(w.faction('piratas_oxido')!.relation).toBe(-100);
   });
 
-  it('negarse (o no contestar a tiempo) baja 20 y llega su raid', () => {
+  it('negarse (o no contestar a tiempo): llega su raid (su relación no cambia: siempre hostiles)', () => {
     const w = flatWorld(1);
     w.map.start = { x: 15, y: 15 };
     w.items.drop(6, 6, 'componentes', 25);
@@ -190,8 +198,8 @@ describe('tributo', () => {
     const back = loadWorld(serializeWorld(w));
     expect(back.tribute?.demand).toEqual({ componentes: 17 });
     refuseTribute(w);
-    expect(w.faction('hijos_oxido')!.relation).toBe(-80);
-    expect(w.others.some((o) => o.role === 'saqueador' && o.faction === 'hijos_oxido')).toBe(true);
+    expect(w.faction('piratas_oxido')!.relation).toBe(-100);
+    expect(w.others.some((o) => o.role === 'saqueador' && o.faction === 'piratas_oxido')).toBe(true);
     // Sin contestar: al pasar el plazo, igual.
     back.schedule.nextRaid = Infinity;
     back.schedule.nextTrader = Infinity;
@@ -199,7 +207,7 @@ describe('tributo', () => {
     back.tick = back.tribute!.until + 1;
     runStoryteller(back);
     expect(back.tribute).toBeNull();
-    expect(back.faction('hijos_oxido')!.relation).toBe(-80);
+    expect(back.faction('piratas_oxido')!.relation).toBe(-100);
     expect(back.others.some((o) => o.role === 'saqueador')).toBe(true);
   });
 });
@@ -245,5 +253,19 @@ describe('radio', () => {
     expect(callAllies(w)).toBeNull();
     expect(w.others.some((o) => o.role === 'aliado')).toBe(true);
     expect(callAllies(w)).toContain('hace poco');
+  });
+});
+
+describe('partidas antiguas', () => {
+  it('los Hijos del Óxido pasan a ser los Piratas del Óxido', () => {
+    const w = flatWorld(1);
+    w.map.start = { x: 15, y: 15 };
+    const [r] = startRaid(w, 1, false, false);
+    const old = JSON.parse(JSON.stringify(serializeWorld(w)));
+    for (const f of old.factions) if (f.id === 'piratas_oxido') { f.id = 'hijos_oxido'; f.relation = -60; }
+    for (const o of old.others) if (o.faction === 'piratas_oxido') o.faction = 'hijos_oxido';
+    const back = loadWorld(old);
+    expect(back.faction('piratas_oxido')!.relation).toBe(-100);
+    expect(back.others.find((o) => o.id === r.id)?.faction).toBe('piratas_oxido');
   });
 });

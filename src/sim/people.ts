@@ -177,7 +177,7 @@ export function tributeDemand(w: World): { demand: Partial<Record<ResourceId, nu
   return value >= TRIBUTE.value ? { demand, value: Math.round(value) } : null;
 }
 
-/** Los Hijos del Óxido piden tributo en vez de atacar. false si la colonia no tiene con qué pagar. */
+/** Los Piratas del Óxido piden tributo en vez de atacar. false si la colonia no tiene con qué pagar. */
 export function demandTribute(w: World): boolean {
   const ask = tributeDemand(w);
   const def = factionDef(RAIDER_FACTION);
@@ -201,7 +201,7 @@ export function payTribute(w: World): boolean {
   return true;
 }
 
-/** No se paga: baja la relación y llega su raid. */
+/** No se paga: llega su raid (y, si su relación puede cambiar, baja). */
 export function refuseTribute(w: World): void {
   const t = w.tribute;
   if (!t) return;
@@ -224,7 +224,7 @@ function takeFromStock(w: World, r: ResourceId, n: number): void {
 
 /**
  * Guerra (bloque 7): una facción con −50 o menos de relación manda sus propios raids además de los
- * normales; el primero, a los 2 días, y luego tan a menudo como los normales. Los Hijos del Óxido
+ * normales; el primero, a los 2 días, y luego tan a menudo como los normales. Los Piratas del Óxido
  * ya son los de los raids normales.
  */
 function warRaids(w: World, days: (gap: [number, number]) => number): void {

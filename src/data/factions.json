@@ -1,11 +1,11 @@
 {
-  "_": "Bloque 7 del catálogo (aprobado por Mikel el 2026-10-18): tres asentamientos fijos en cada partida, con su nombre al azar, y relación de −100 a 100.",
+  "_": "Bloque 7 del catálogo (aprobado por Mikel el 2026-10-18; cambiado por Mikel el 2026-10-21): tres asentamientos fijos en cada partida, con su nombre al azar, y relación de −100 a 100. Los Chatarreros y los Granjeros empiezan neutrales y su relación sube o baja (hostiles, neutrales o aliados); los Piratas del Óxido son siempre hostiles y lanzan los raids.",
   "factions": [
     {
       "id": "chatarreros",
       "name": "Chatarreros",
       "icon": "🐫",
-      "start": 20,
+      "start": 0,
       "description": "Comerciantes: traen las caravanas.",
       "settlements": [
         "Puerto Herrumbre",
@@ -32,11 +32,11 @@
       ]
     },
     {
-      "id": "hijos_oxido",
-      "name": "Hijos del Óxido",
+      "id": "piratas_oxido",
+      "name": "Piratas del Óxido",
       "icon": "☠",
-      "start": -60,
-      "description": "Hostiles: sus raids son los saqueadores.",
+      "start": -100,
+      "description": "Siempre hostiles: lanzan los raids de saqueadores.",
       "settlements": [
         "La Fundición",
         "Torre Roña",
@@ -44,7 +44,8 @@
         "Fosa Negra",
         "Ciudad Ceniza",
         "El Horno"
-      ]
+      ],
+      "fixed": true
     }
   ],
   "relation": {
@@ -59,7 +60,7 @@
     "refuseTribute": -20
   },
   "traderFaction": "chatarreros",
-  "raiderFaction": "hijos_oxido",
+  "raiderFaction": "piratas_oxido",
   "allyHelp": {
     "_": "Con alianza (60 o más), si os atacan mandan 2–4 combatientes, una vez cada 10 días (bloque 7, aprobado por Mikel el 2026-10-18).",
     "fighters": [
@@ -73,7 +74,7 @@
     "firstRaidDays": 2
   },
   "tribute": {
-    "_": "Tributo (bloque 7): los Hijos del Óxido piden unas 200 chapas en recursos; pagar evita ese raid y negarse baja la relación 20. Desde qué día, cada cuánto y cuánto esperan respuesta los ha puesto la sesión del 2026-10-21.",
+    "_": "Tributo (bloque 7): los Piratas del Óxido piden unas 200 chapas en recursos; pagar evita ese raid. Desde qué día, cada cuánto y cuánto esperan respuesta los ha puesto la sesión del 2026-10-21.",
     "fromDay": 10,
     "every": 3,
     "value": 200,

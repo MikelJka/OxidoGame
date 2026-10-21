@@ -218,7 +218,7 @@ export function mountPeople(opts: Options): PeopleUI {
   // --- Facciones ---------------------------------------------------------------------
   function renderFactions(w: World): HTMLElement[] {
     const out: HTMLElement[] = [];
-    out.push(el('p', 'muted', `La relación va de ${RELATION.min} a ${RELATION.max}. Sube al comerciar con sus caravanas (+${RELATION.tradeCaravan}), al darles de más en un trato (+1 cada ${RELATION.giftValuePerPoint} chapas) y al liberar a sus prisioneros (+${RELATION.releasePrisoner}); baja al matar o retener a los suyos (${RELATION.killOrHold}). Con ${RELATION.ally} o más, alianza; con ${RELATION.war} o menos, guerra.`));
+    out.push(el('p', 'muted', `La relación va de ${RELATION.min} a ${RELATION.max}: con ${RELATION.war} o menos son hostiles (y os mandan sus raids), con ${RELATION.ally} o más, aliados. Sube al comerciar con sus caravanas (+${RELATION.tradeCaravan}), al darles de más en un trato (+1 cada ${RELATION.giftValuePerPoint} chapas), al curar a sus heridos y al liberar a sus prisioneros (+${RELATION.releasePrisoner}); baja al matar o retener a los suyos (${RELATION.killOrHold}). Los Piratas del Óxido son siempre hostiles.`));
     // Radio: llamar a una caravana o pedir ayuda a los aliados.
     const radio = el('div', 'pp-card');
     radio.append(el('strong', undefined, '📻 Radio'));
@@ -248,9 +248,9 @@ export function mountPeople(opts: Options): PeopleUI {
       const level = relationLevel(f.relation);
       const card = el('div', 'pp-card');
       const head = el('div', 'pp-head');
-      head.append(el('strong', undefined, `${def.icon} ${def.name}`), el('span', 'muted', `${RELATION_LEVEL_NAMES[level]} · ${f.relation > 0 ? '+' : ''}${f.relation}`));
+      head.append(el('strong', undefined, `${def.icon} ${def.name}`), el('span', 'muted', def.fixed ? 'Siempre hostiles' : `${RELATION_LEVEL_NAMES[level]} · ${f.relation > 0 ? '+' : ''}${f.relation}`));
       const row = el('div', 'need');
-      const color = level === 'guerra' || level === 'hostil' ? '#c05040' : level === 'neutral' ? '#b0a070' : '#6aa060';
+      const color = level === 'hostil' ? '#c05040' : level === 'neutral' ? '#b0a070' : '#6aa060';
       row.append(el('span', undefined, 'Relación'), bar((f.relation - RELATION.min) / (RELATION.max - RELATION.min), color), el('span', 'num', String(f.relation)));
       card.append(head, el('div', 'muted', `Asentamiento: ${f.settlement}`), el('div', undefined, def.description), row);
       out.push(card);
@@ -506,7 +506,7 @@ export function mountPeople(opts: Options): PeopleUI {
     if (!o) return;
     const c = o.pawn;
     offer.replaceChildren(
-      el('div', 'offer-title', '🚶 Alguien pide unirse'),
+      el('div', 'offer-title', o.kind === 'refugiado' ? '🩹 Un refugiado herido pide ayuda' : '🚶 Alguien pide unirse'),
       el('div', undefined, `${c.name} «${c.nickname}», ${c.age} años`),
       el('div', 'muted', topSkills(c)),
       el('div', 'muted', c.traits.map((t) => t.name).join(' · ') || 'Sin rasgos destacables'),

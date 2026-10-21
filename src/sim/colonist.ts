@@ -48,7 +48,7 @@ export interface ColonistJob {
   /** Transporte: qué se lleva, cuánto y adónde. */
   haul?: HaulInfo;
   /** Cultivo: sembrar una casilla vacía o cosechar una planta madura. */
-  farm?: 'sembrar' | 'cosechar';
+  farm?: 'sembrar' | 'cosechar' | 'arrancar';
   /** Obra de terreno que se hace. */
   terrain?: TerrainJob;
   /** Demoler la construcción de la casilla. */
@@ -147,6 +147,8 @@ export interface Colonist {
   trader?: TraderInfo;
   /** Facción a la que pertenece (id de `factions.json`): saqueadores y caravanas. */
   faction?: string;
+  /** Refugiado acogido (suceso): facción de la que viene; al curarse decide si se queda. */
+  refugee?: string;
   /** Ticks hasta poder volver a golpear. */
   attackCooldown?: number;
   /** Lo lleva a cuestas un colono (id): se mueve con él. */

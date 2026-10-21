@@ -53,6 +53,26 @@
       "cropYield": 0.7,
       "harmPerHour": 0.02,
       "harmFloor": 0.5
+    },
+    {
+      "id": "plaga",
+      "name": "Plaga",
+      "weight": 1,
+      "hours": 24,
+      "sickShare": 0.25,
+      "loss": 0.5,
+      "minPlants": 4,
+      "uprootWork": 60
+    },
+    {
+      "id": "refugiado",
+      "name": "Refugiado herido",
+      "weight": 1,
+      "waitHours": 12,
+      "health": 0.35,
+      "healedAt": 0.9,
+      "stayChance": 0.5,
+      "relation": 10
     }
   ]
 }
