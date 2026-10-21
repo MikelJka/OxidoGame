@@ -47,6 +47,7 @@ async function open(browser, d, save) {
   // Pausa, para que no cambie nada entre captura y captura, y sin avisos encima.
   await page.click('#speeds button[data-speed="0"]').catch(() => {});
   await page.evaluate(() => document.querySelectorAll('#alerts .alert-card').forEach((e) => e.remove()));
+  await page.addStyleTag({ content: '#offer-panel{display:none!important}' });
   return { context, page };
 }
 
