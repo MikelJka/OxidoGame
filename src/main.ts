@@ -20,7 +20,7 @@ import { healthLabel, infectionLabel } from './sim/health';
 import { downloadWorld, pickSaveFile, readBackupSave, readStoredSave, storeWorld } from './ui/saveGame';
 import { mountCloudSync } from './ui/cloudSync';
 import { parseSave } from './sim/save';
-import { finishBattle, retreat } from './sim/expedition';
+import { finishBattle, retreat, startExpedition, updateExpedition } from './sim/expedition';
 import { reachableResources } from './sim/resources';
 import { BASE_RESOURCES, HarvestJob, RESOURCE_ICONS, RESOURCE_NAMES, RESOURCES } from './data/resources';
 import { isWeapon, WEAPON_IDS, WEAPONS } from './data/weapons';
@@ -1452,6 +1452,31 @@ else game.events.once('map-ready', () => window.setTimeout(() => mainMenu.open()
     return r?.name;
   },
   abrirGente: (c: Colonist) => people.openFor(c),
+  // Para las capturas de muestra (scripts/vitrina.mjs): mover la cámara y empezar una batalla ya.
+  mirar: (x: number, y: number, zoom = 2) => {
+    const sc = scene();
+    sc.cameras.main.setZoom(zoom);
+    sc.focusTile(x, y);
+  },
+  mirarA: (que: 'saqueadores' | 'balsa', zoom = 2) => {
+    const sc = scene();
+    const w = sc.world;
+    const pts = que === 'balsa' ? w.vehicles.filter((v) => v.def === 'balsa_saqueadores').map((v) => ({ x: v.x, y: v.y })) : w.others.filter((o) => o.role === 'saqueador').map((o) => o.tile);
+    if (!pts.length) return false;
+    sc.cameras.main.setZoom(zoom);
+    sc.focusTile(Math.round(pts.reduce((a, p) => a + p.x, 0) / pts.length), Math.round(pts.reduce((a, p) => a + p.y, 0) / pts.length));
+    return true;
+  },
+  batalla: () => {
+    const w = scene().world;
+    const f = w.factions.find((k) => k.base && k.id !== 'piratas_oxido') ?? w.factions.find((k) => k.base);
+    if (!f) return 'sin bases';
+    const why = startExpedition(w, f.id, w.colonists.slice(0, 5).map((c) => c.id));
+    if (why) return why;
+    w.expedition!.arriveAt = w.tick;
+    updateExpedition(w);
+    return f.id;
+  },
 };
 
 // --- Lista de colonos ----------------------------------------------------------

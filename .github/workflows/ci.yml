@@ -25,6 +25,9 @@ jobs:
       # Prueba de humo en Chromium sin pantalla: 2D y 3D, PC y móvil; capturas en «smoke».
       - run: npx playwright install --with-deps chromium
       - run: npm run smoke
+      # Capturas de muestra (colonia avanzada, animales, mapa del mundo, batalla y raid en balsa).
+      - run: node scripts/vitrina.mjs
+        continue-on-error: true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
