@@ -65,7 +65,18 @@ export class Atmosphere {
     this.overlay = scene.add.rectangle(0, 0, 10, 10, 0xffffff).setOrigin(0, 0).setDepth(OVERLAY_DEPTH);
     this.overlay.setBlendMode(Phaser.BlendModes.MULTIPLY);
     this.haze = scene.add.rectangle(0, 0, 10, 10, 0x9a7a4a, 0).setOrigin(0, 0).setDepth(OVERLAY_DEPTH + 2);
-    const zone = { type: 'random' as const, source: this.zone };
+    // Zona de salida de las partículas: lo que se ve de la cámara (se mueve con ella).
+    const area = this.zone;
+    const zone = {
+      type: 'random' as const,
+      source: {
+        getRandomPoint: (p: Phaser.Types.Math.Vector2Like) => {
+          p.x = area.x + Math.random() * area.width;
+          p.y = area.y + Math.random() * area.height;
+          return p;
+        },
+      },
+    };
     this.smoke = scene.add.particles(0, 0, PUFF_TEX, {
       emitting: false, lifespan: 2600, speedY: { min: -9, max: -5 }, speedX: { min: -2, max: 4 },
       scale: { start: 0.25, end: 0.9 }, alpha: { start: 0.45, end: 0 }, tint: 0x6a6460,
