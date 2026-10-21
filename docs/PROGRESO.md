@@ -2,6 +2,14 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (27) — Propuesta: saqueadores en balsa
+
+- Sin incidencias nuevas en 🐞. Lo siguiente aprobado de la update del agua son los **saqueadores en balsa** desde el día 15, pero no está decidido cuántos llegan, cada cuánto ni qué hacen al llegar: son reglas que cambian la dificultad, así que esta sesión **no ha tocado el juego** y ha dejado la propuesta con opciones en «Propuestas para Mikel» de `FEEDBACK.md`.
+- El muelle y la pesca siguen esperando también su respuesta (propuesta del 2026-10-20).
+- La fase 5 no está terminada (faltan esas dos partes del agua y los proyectos que esperan a las estaciones, el mercado o el fuego), así que tampoco se puede empezar la fase 6.
+- Qué probar: nada nuevo en el juego.
+- Siguiente: lo que Mikel elija de los saqueadores en balsa o del muelle. Sin respuesta, las sesiones solo podrán dejar propuestas; si Mikel quiere avanzar igualmente, puede dar por terminada la fase 5 a falta de eso y abrir la fase 6 (facciones, bloque 7).
+
 ## 2026-10-21 (26) — La lancha armada: el barco con motor
 
 - Sin incidencias nuevas en 🐞. El muelle sigue esperando la respuesta de Mikel (en «Propuestas para Mikel»); se hace la siguiente parte aprobada de la update del agua: la **lancha armada**.
