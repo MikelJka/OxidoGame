@@ -2,6 +2,7 @@
 // no crece nada al aire libre y de noche hace frío: quien no está en una habitación con tejado y una
 // estufa encendida, ni lleva abrigo, pasa frío (−10 % de ánimo) y, si dura, coge hipotermia.
 // Puro y determinista: sin Phaser ni DOM.
+import { eventDef } from '../data/events';
 import { SEASONS, seasonOf } from '../data/seasons';
 import { isDaylight } from './power';
 import { roofed } from './roofs';
@@ -13,9 +14,19 @@ export function isWinter(w: World): boolean {
   return seasonOf(w.day).id === 'invierno';
 }
 
-/** Ahora hace frío (invierno y de noche). */
+/** Hay una ola de frío (suceso de 48 h). */
+export function coldWave(w: World): boolean {
+  return w.weather.some((e) => w.tick < e.until && eventDef(e.id)?.coldWave);
+}
+
+/** Ahora hace frío (invierno y de noche, o una ola de frío). */
 export function coldNow(w: World): boolean {
-  return isWinter(w) && !isDaylight(w.hour);
+  return (isWinter(w) && !isDaylight(w.hour)) || coldWave(w);
+}
+
+/** No crece nada al aire libre (invierno u ola de frío). */
+export function frostNow(w: World): boolean {
+  return isWinter(w) || coldWave(w);
 }
 
 /** Casillas calientes: las de las habitaciones con tejado que tienen una estufa encendida. */

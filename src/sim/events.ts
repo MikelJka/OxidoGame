@@ -89,7 +89,8 @@ export function startEvent(w: World, id: string): boolean {
       acidRainHour(w, ev);
       return true;
     }
-    if (ev.id === 'tormenta_polvo') w.addLog(`🌪 ¡Tormenta de polvo! Durante un día las placas solares no producen y los disparos llegan a la mitad de lejos.`, 'malo');
+    if (ev.coldWave) w.addLog(`🥶 ¡Ola de frío! Durante ${ev.hours} horas hace frío a todas horas y no crece nada al aire libre: abrigos, estufas encendidas y bajo techo.`, 'malo');
+    else if (ev.id === 'tormenta_polvo') w.addLog(`🌪 ¡Tormenta de polvo! Durante un día las placas solares no producen y los disparos llegan a la mitad de lejos.`, 'malo');
     else w.addLog(`🌦 ${ev.name}.`, 'malo');
     return true;
   }

@@ -9,6 +9,8 @@ export interface EventDef {
   weight: number;
   /** Lo que dura (los que duran). */
   hours?: number;
+  /** Ola de frío: mientras dura hace frío a todas horas (como una noche de invierno) y no crece nada al aire libre. */
+  coldWave?: boolean;
   /** Tormenta de polvo: lo que dan las placas solares (0) y el alcance de los disparos (×0,5). */
   solar?: number;
   reach?: number;

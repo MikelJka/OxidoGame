@@ -4,7 +4,7 @@ import { marketDay, MarketState, newMarket } from './market';
 import { ActiveEvent, firstEventTick, runEvents, solarFactor } from './events';
 import { burning, extinguish, threatens, updateFires } from './fire';
 import { checkNewFaction, growBases, placeBases } from './worldmap';
-import { coldNow, isWinter, updateCold } from './seasons';
+import { coldNow, frostNow, updateCold } from './seasons';
 import { animalDrops, feedPackAnimals, spawnAnimals, tryTame } from './animals';
 import { ROOMS } from '../data/roomRules';
 import { seasonOf } from '../data/seasons';
@@ -405,7 +405,7 @@ export class World implements JobContext {
     if (this.tick % TICKS_PER_SECOND === 0) {
       const h = this.hour;
       // En invierno no crece nada al aire libre (bajo techo, sí).
-      this.farms.grow(TICKS_PER_SECOND, h >= 6 && h < 20, TICKS_PER_DAY, isWinter(this) ? (x, y) => !roofed(this, x, y) : undefined);
+      this.farms.grow(TICKS_PER_SECOND, h >= 6 && h < 20, TICKS_PER_DAY, frostNow(this) ? (x, y) => !roofed(this, x, y) : undefined);
     }
     // Salud: cada segundo (hambre, sed, heridas y recuperación).
     if (this.tick % TICKS_PER_SECOND === 0) {

@@ -2,6 +2,14 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (54) — Ola de frío
+
+- Último suceso del bloque 9 (aprobado; iba con las estaciones). **🥶 Ola de frío**: durante **48 horas**, en cualquier estación, hace frío **a todas horas** como en una noche de invierno (sin abrigo ni habitación con tejado y estufa encendida: −10 % de ánimo y, con 4 h seguidas, hipotermia) y **no crece nada al aire libre**. Las estufas se encienden también entonces.
+- Decidido en esta sesión (Mikel puede cambiarlo): que dure 48 h y que salga la mitad de veces que la tormenta o el alijo.
+- Con esto quedan terminados los sucesos (bloque 9) y la fase de facciones, mercado y sucesos del catálogo.
+- Qué probar: esperar a una ola de frío (o verla en el diario) y comprobar que quien está fuera sin abrigo pasa frío también de día.
+- Sin npm en el entorno: tests con Bun (664) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+
 ## 2026-10-21 (53) — Doma con dificultad, animales nuevos y granja
 
 - Pedido por Mikel. **Cada animal se doma con su dificultad** y carga distinto en las expediciones: 🐐 cabra salvaje (fácil, 30 %, 30 kg), 🫏 mula (fácil, 25 %, 80 kg, se compra), 🐄 vaca de dos cabezas (media, 15 %, 100 kg), 🐎 caballo salvaje (difícil, 6 %, 120 kg; herido ataca), 🦌 ciervo mutado (difícil, 5 %, 50 kg) y 🐗 jabalí (muy difícil, 3 %, 60 kg). Supervivencia sigue sumando un 2 % por punto. Al tocarlo para domarlo se ve lo difícil que es.

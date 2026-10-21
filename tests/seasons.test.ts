@@ -34,6 +34,29 @@ describe('estaciones', () => {
     expect(w.farms.plantAt(10, 10)!.growth).toBe(before);
   });
 
+  it('ola de frío: 48 h de frío a todas horas, en cualquier estación, y no crece nada al aire libre', async () => {
+    const { startEvent } = await import('../src/sim/events');
+    const { eventDef } = await import('../src/data/events');
+    expect(eventDef('ola_frio')!.hours).toBe(48);
+    const w = flatWorld(1, { needs: true });
+    w.farms.create({ x0: 10, y0: 10, x1: 10, y1: 10 });
+    w.farms.sow(10, 10);
+    w.tick = 12 * TICKS_PER_DAY; // verano, de día
+    expect(coldNow(w)).toBe(false);
+    expect(startEvent(w, 'ola_frio')).toBe(true);
+    expect(coldNow(w)).toBe(true);
+    expect(w.log.some((l) => l.text.includes('Ola de frío'))).toBe(true);
+    const before = w.farms.plantAt(10, 10)!.growth;
+    for (let k = 0; k < 2000; k++) w.step();
+    expect(w.farms.plantAt(10, 10)!.growth).toBe(before);
+    updateCold(w, 30);
+    expect(w.colonists[0].needs.cold).toBe(true);
+    // Se guarda; a las 48 h se acaba.
+    expect(coldNow(loadWorld(serializeWorld(w)))).toBe(true);
+    w.tick += 48 * TICKS_PER_HOUR;
+    expect(coldNow(w)).toBe(false);
+  });
+
   it('de noche en invierno, sin abrigo ni estufa, se pasa frío y con 4 h, hipotermia', () => {
     const w = flatWorld(1, { needs: true });
     winterNight(w);

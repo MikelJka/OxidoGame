@@ -91,4 +91,4 @@ Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed 
 - [x] Animales y granja (pedido por Mikel): domar con dificultad por animal (cabra, mula, vaca de dos cabezas, caballo, ciervo, jabalí), vallas, puertas de valla, postes con cuerda y establos
 - [ ] Caravanas y trueque por valor
 - [x] Mercado global simulado con oferta y demanda (precios del 50 % al 200 % que bajan al vender y suben al comprar, se recuperan un 10 % al día y cambian por lo que pasa en el mundo; necesidades y sobrantes de cada caravana; tendencia ▲ ▼ y próxima caravana con «Rutas comerciales»)
-- [ ] Eventos, arte definitivo y equilibrio (sucesos cada 2–4 días: hechos la tormenta de polvo, el alijo, la avería y la lluvia ácida)
+- [ ] Eventos, arte definitivo y equilibrio (sucesos cada 2–4 días: hechos la tormenta de polvo, el alijo, la avería, la lluvia ácida, la plaga, el refugiado herido, el incendio y la ola de frío)
