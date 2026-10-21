@@ -2,6 +2,13 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (29) — Propuesta: cómo seguir con la fase 5 parada
+
+- Sin incidencias nuevas en 🐞 y la última publicación (foso con agua) pasó bien. No hay nada aprobado y decidido por hacer: el muelle y los saqueadores en balsa esperan a Mikel, y lo demás de la fase 5 espera a las estaciones, al mercado o al fuego.
+- Esta sesión **no ha tocado el juego**: ha dejado en «Propuestas para Mikel» de `FEEDBACK.md` la pregunta de si se da la fase 5 por terminada y se sigue con las facciones o con los opcionales, se espera, o la sesión elige por él lo del agua.
+- Qué probar: nada nuevo en el juego (sigue el foso con agua de la sesión 28).
+- Siguiente: lo que Mikel elija en esa propuesta o en las del muelle y los saqueadores en balsa.
+
 ## 2026-10-21 (28) — Foso con agua: las zanjas junto al río se inundan
 
 - Sin incidencias nuevas en 🐞. Los saqueadores en balsa y el muelle siguen esperando a Mikel (en «Propuestas para Mikel»); se hace lo que quedaba aprobado y con sus reglas de «Hidráulica» (bloque 13): el **foso con agua**.
