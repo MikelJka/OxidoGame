@@ -33,9 +33,9 @@ export function isHiResFurniture(def: BuildingDef): boolean {
   return HI_RES_IDS.has(def.id) && !def.vehicle;
 }
 
-const OL = '#1a1410';
+export const OL = '#1a1410';
 
-type Px = (x: number, y: number, w: number, h: number, c: string) => void;
+export type Px = (x: number, y: number, w: number, h: number, c: string) => void;
 
 /** Aclara (f > 1) u oscurece (f < 1) un color #rrggbb. */
 export function shade(hex: string, f: number): string {
@@ -48,13 +48,13 @@ export function shade(hex: string, f: number): string {
 }
 
 /** Azar fijo por posición (mismo dibujo siempre). */
-function hash(x: number, y: number, s: number): number {
+export function hash(x: number, y: number, s: number): number {
   let h = Math.imul(x + 11, 0x9e3779b1) ^ Math.imul(y + 7, 0x85ebca6b) ^ s;
   h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-interface Kit {
+export interface Kit {
   px: Px;
   W: number;
   TH: number;
@@ -68,7 +68,7 @@ interface Kit {
   planks(x: number, y: number, w: number, h: number, base: string, rowH: number, seed: number): void;
 }
 
-function kit(ctx: CanvasRenderingContext2D, W: number, TH: number, F: number): Kit {
+export function kit(ctx: CanvasRenderingContext2D, W: number, TH: number, F: number): Kit {
   const px: Px = (x, y, w, h, c) => {
     if (w <= 0 || h <= 0) return;
     ctx.fillStyle = c;

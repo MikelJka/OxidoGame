@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (64) — Defensas con detalle
+
+- Siguiente parte del salto de calidad del 2D (pedido por Mikel). Las **defensas** se dibujan a **doble resolución** (`src/render/defenseArt.ts`), como los muebles.
+- **Barricadas**: la de madera con postes, largueros y cruz clavada; la de chatarra con chapa ondulada, una puerta de coche con la ventanilla rota, un neumático y un tubo; la de metal con planchas, remaches y mirilla; la de hormigón tipo «New Jersey» con franjas de aviso y la varilla al aire; los **sacos terreros** en tres hileras con costuras y atados.
+- **A ras de suelo**: pinchos de madera (estacas afiladas y atadas) y de metal (erizos de varilla); **alambre de espino** en concertina entre dos estacas; **mina casera** medio enterrada con su espoleta y un hilo; **trampa eléctrica** con rejilla, bobinas de cobre, aviso y chispas; **mortero** con placa base, bípode y caja de granadas.
+- **Torretas**: losa con franjas de aviso, pedestal, corona giratoria y cabeza con sensor; la ligera con un cañón, la pesada con dos y freno de boca, caja de munición y antena, y la rotativa con su haz de cañones y la cinta de balas.
+- Sin cambios en las reglas ni en la partida guardada.
+- Qué probar: poner (con 🪄 modo Dios si hace falta) una barricada de cada material, sacos, alambre, una mina, una trampa, el mortero y las tres torretas, y girar la vista.
+- Qué sigue: los edificios de electricidad (generadores, placas, molino, baterías, lámparas), el pozo, la cantera y el muelle.
+- Sin npm en el entorno: tests con Bun (678) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+
 ## 2026-10-21 (63) — Montones del suelo con detalle
 
 - Siguiente parte del salto de calidad del 2D (pedido por Mikel). Los **montones del suelo** se dibujan a **doble resolución** (`src/render/itemArt.ts`) y en **tres tamaños** según lo llenos que están: unos pocos troncos sueltos, media pila o la pila entera.
