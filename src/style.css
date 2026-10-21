@@ -840,3 +840,9 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 #battle-bar { position: fixed; top: calc(62px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 7; display: flex; gap: 8px; align-items: center; padding: 6px 10px; background: rgba(60, 20, 14, 0.92); border: 1px solid #a04030; border-radius: 8px; color: #f0e0d0; font-size: 13px; max-width: calc(100% - 16px); }
 #battle-bar[hidden] { display: none; }
 #battle-bar button { min-height: 36px; }
+
+/* Enfoque de cine al empezar un ataque: franjas negras que entran y salen. */
+.cine-bar { position: fixed; left: 0; right: 0; height: 8vh; background: #000; opacity: 0.85; pointer-events: none; z-index: 5; transition: transform 0.35s ease-out; }
+.cine-top { top: 0; transform: translateY(-100%); }
+.cine-bottom { bottom: 0; transform: translateY(100%); }
+.cine-bar.cine-on { transform: translateY(0); }

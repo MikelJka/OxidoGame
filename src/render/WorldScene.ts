@@ -22,7 +22,7 @@ import { roomInfoAt } from '../sim/roofs';
 import { TERRAIN_JOB_NAMES, terrainBlocker, TerrainJob } from '../sim/terrain';
 import { CropDef } from '../data/crops';
 import { drawBuilding, faceHeight, wallHeight, weatherBuilding } from './buildArt';
-import { paintVehicle, VEHICLE_H, VEHICLE_W } from './vehicleArt';
+import { paintVehicle, VEHICLE_H, VEHICLE_W, VehicleView } from './vehicleArt';
 import { defOf, occupant, Vehicle } from '../sim/vehicles';
 import { CHAR, CHAR_POSES, charKey, paintCharSheet } from './charArt';
 import { BEAST, BEAST_POSES, hasBeastArt, paintBeastSheet } from './creatureArt';
@@ -182,6 +182,8 @@ export class WorldScene extends Phaser.Scene {
   private zoneVersion = -1;
   private structSprites: Phaser.GameObjects.Image[] = [];
   private structVersion = -1;
+  /** Última posición en la vista de cada vehículo y desde dónde se le ve. */
+  private vehicleLast = new Map<number, { x: number; y: number; view: VehicleView }>();
   /** Sombras que proyectan las construcciones (cambian con la hora: el sol va de este a oeste). */
   private shadowGfx: Phaser.GameObjects.Graphics | null = null;
   private shadowKey = '';
@@ -305,6 +307,7 @@ export class WorldScene extends Phaser.Scene {
       this.drawFires();
     }
     this.atmosphere.update(this.world, delta);
+    this.watchAlerts();
     this.drawSelection();
     this.uiTimer += delta;
     if (this.uiTimer >= UI_EMIT_MS) {
@@ -980,6 +983,54 @@ export class WorldScene extends Phaser.Scene {
   }
 
   /** Centra la cámara en una casilla. */
+  /**
+   * Enfoque de cine cuando empieza un ataque (raid, manada, desembarco, incendio): la cámara viaja
+   * hasta allí y se acerca, con un destello rojo y franjas negras arriba y abajo un momento.
+   */
+  private watchAlerts(): void {
+    const log = this.world.log;
+    const fresh: typeof log = [];
+    for (let i = log.length - 1; i >= 0 && !this.seenLog.has(log[i]); i--) fresh.push(log[i]);
+    for (const e of fresh) this.seenLog.add(e);
+    if (!this.logPrimed) {
+      this.logPrimed = true;
+      return;
+    }
+    const hit = fresh.find((e) => e.alert === 'raid' && e.at);
+    if (!hit?.at || this.focusOff()) return;
+    const cam = this.cameras.main;
+    const v = this.toViewPoint(hit.at.x + 0.5, hit.at.y + 0.5);
+    cam.pan(v.x * TILE, rowY(v.y) - this.liftAt(hit.at.x, hit.at.y), 1100, 'Sine.easeInOut', true);
+    cam.zoomTo(this.clampZoom(Math.max(cam.zoom, 2.4)), 1100, 'Sine.easeInOut', true);
+    cam.flash(350, 120, 20, 10);
+    this.letterbox();
+  }
+
+  private seenLog = new WeakSet<object>();
+  private logPrimed = false;
+
+  /** El jugador puede apagar el enfoque automático (se recuerda en este navegador). */
+  private focusOff(): boolean {
+    try {
+      return localStorage.getItem('oxido-enfoque') === 'no';
+    } catch {
+      return false;
+    }
+  }
+
+  /** Franjas negras de cine que entran y salen (por encima del juego, sin tapar los botones). */
+  private letterbox(): void {
+    if (typeof document === 'undefined') return;
+    for (const top of [true, false]) {
+      const bar = document.createElement('div');
+      bar.className = `cine-bar ${top ? 'cine-top' : 'cine-bottom'}`;
+      document.body.append(bar);
+      requestAnimationFrame(() => bar.classList.add('cine-on'));
+      window.setTimeout(() => bar.classList.remove('cine-on'), 1900);
+      window.setTimeout(() => bar.remove(), 2400);
+    }
+  }
+
   focusTile(x: number, y: number): void {
     const v = this.toViewPoint(x + 0.5, y + 0.5);
     this.cameras.main.pan(v.x * TILE, rowY(v.y) - this.liftAt(x, y), 300, 'Sine.easeInOut');
@@ -1206,27 +1257,40 @@ export class WorldScene extends Phaser.Scene {
       if (alive.has(id)) continue;
       img.destroy();
       this.vehicleSprites.delete(id);
+      this.vehicleLast.delete(id);
     }
     for (const v of this.world.vehicles) {
+      const c = this.toViewPoint(v.pos.x + 1, v.pos.y + 1);
+      // Hacia dónde va en la pantalla: de lado, hacia abajo (de frente) o hacia arriba (de espaldas).
+      const last = this.vehicleLast.get(v.id);
+      let view = last?.view ?? 'side';
+      if (last) {
+        const dx = c.x - last.x;
+        const dy = c.y - last.y;
+        if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) view = Math.abs(dy) > Math.abs(dx) * 1.2 ? (dy > 0 ? 'front' : 'back') : 'side';
+      }
+      this.vehicleLast.set(v.id, { x: c.x, y: c.y, view });
+      const key = `vehicle-${v.def}-${view}`;
+      if (!this.textures.exists(key)) {
+        const tex = this.textures.createCanvas(key, VEHICLE_W, VEHICLE_H);
+        if (tex) {
+          paintVehicle(tex.getContext(), v.def, VEHICLE_W, VEHICLE_H, view);
+          tex.refresh();
+        }
+      }
       let img = this.vehicleSprites.get(v.id);
       if (!img) {
-        const key = `vehicle-${v.def}`;
-        if (!this.textures.exists(key)) {
-          const tex = this.textures.createCanvas(key, VEHICLE_W, VEHICLE_H);
-          if (tex) {
-            paintVehicle(tex.getContext(), v.def);
-            tex.refresh();
-          }
-        }
         img = this.add.image(0, 0, key).setOrigin(0.5, 0.8);
         this.vehicleSprites.set(v.id, img);
-      }
-      const c = this.toViewPoint(v.pos.x + 1, v.pos.y + 1);
+      } else if (img.texture.key !== key) img.setTexture(key);
       const lift = Math.max(this.liftAt(v.x, v.y), this.liftAt(v.x + 1, v.y), this.liftAt(v.x, v.y + 1), this.liftAt(v.x + 1, v.y + 1));
       const moving = v.path.length > 0 && this.world.speed > 0;
       const bob = moving ? Math.abs(Math.sin(this.time.now / 60 + v.id)) * -1 : 0;
       img.setPosition(c.x * TILE, rowY(c.y + 0.9) - lift + bob);
-      if (this.rotation === 0) img.setFlipX(v.facing < 0);
+      // De lado: mira hacia donde avanza en la pantalla.
+      if (view === 'side' && last && Math.abs(c.x - last.x) > 0.01) img.setFlipX(c.x < last.x);
+      else if (view !== 'side') img.setFlipX(false);
+      else if (!last && this.rotation === 0) img.setFlipX(v.facing < 0);
       img.setDepth(COLONIST_DEPTH + (c.y + 0.9) / 1000);
     }
   }

@@ -5,6 +5,80 @@
 export const VEHICLE_W = 32;
 export const VEHICLE_H = 26;
 
+/** Desde dónde se ve el vehículo: de lado, de frente (baja por la pantalla) o de espaldas (sube). */
+export type VehicleView = 'side' | 'front' | 'back';
+
+/** Los buggies tienen dibujo propio de frente y de espaldas; los barcos se siguen viendo de lado. */
+function paintVehicleEnd(ctx: CanvasRenderingContext2D, id: string, w: number, h: number, view: 'front' | 'back'): void {
+  const px = painter(ctx);
+  ctx.save();
+  ctx.scale(w / VEHICLE_W, h / VEHICLE_H);
+  if (id === 'buggy' || id === 'buggy_saqueador') {
+    const raider = id === 'buggy_saqueador';
+    const body = raider ? '#8a2e1c' : '#7a6a4a';
+    const light = raider ? '#b04a2a' : '#9a8a62';
+    const dark = raider ? '#5a2214' : '#4a4032';
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(5, 21, 22, 4);
+    // Ruedas a los lados (se ven de canto).
+    for (const x of [5, 23]) {
+      px(x, 13, 5, 10, '#1a1410');
+      px(x + 1, 14, 3, 8, '#2e2a26');
+      px(x + 1, 16, 3, 1, '#4a4642');
+      px(x + 1, 19, 3, 1, '#4a4642');
+    }
+    // Chasis visto de frente o de espaldas.
+    px(9, 10, 14, 10, '#1a1410');
+    px(10, 11, 12, 8, body);
+    px(10, 11, 12, 2, light);
+    px(10, 17, 12, 2, dark);
+    // Jaula antivuelco.
+    px(10, 2, 2, 9, '#5c5a56');
+    px(20, 2, 2, 9, '#5c5a56');
+    px(10, 2, 12, 2, '#5c5a56');
+    if (view === 'front') {
+      // Parabrisas, faros y parachoques (o el ariete de los saqueadores).
+      px(12, 5, 8, 5, '#1a1410');
+      px(13, 6, 6, 3, '#6aa0c0');
+      px(13, 6, 2, 1, '#a8d0e8');
+      px(11, 14, 3, 2, '#f0e0a0');
+      px(18, 14, 3, 2, '#f0e0a0');
+      if (raider) {
+        px(9, 18, 14, 2, '#5c5a56');
+        for (let x = 9; x < 23; x += 3) px(x, 20, 1, 2, '#9a9890');
+        px(15, 12, 2, 2, '#e8e0c8'); // calavera
+      } else {
+        px(9, 18, 14, 2, '#3a3836');
+        px(15, 15, 2, 1, dark);
+      }
+    } else {
+      // Respaldo de los asientos, pilotos rojos, matrícula y lo que lleva detrás.
+      px(12, 6, 3, 5, '#2a2826');
+      px(17, 6, 3, 5, '#2a2826');
+      px(11, 14, 2, 2, '#c02a1a');
+      px(19, 14, 2, 2, '#c02a1a');
+      px(14, 15, 4, 2, '#d8d0b8');
+      if (raider) {
+        px(11, 3, 2, 8, '#3a3836'); // escapes
+        px(19, 3, 2, 8, '#3a3836');
+        px(11, 1, 2, 2, '#6a6864');
+        px(15, 0, 1, 9, '#4a3a2a'); // bandera
+        px(16, 0, 4, 3, '#1a1410');
+        px(16, 1, 3, 1, '#b02a1a');
+      } else {
+        px(14, 4, 4, 4, '#2a2826'); // ametralladora
+        px(15, 1, 2, 4, '#2a2826');
+      }
+    }
+  } else {
+    // Barcos y lo demás: de momento, el dibujo de lado.
+    ctx.restore();
+    paintVehicle(ctx, id, w, h);
+    return;
+  }
+  ctx.restore();
+}
+
 function painter(ctx: CanvasRenderingContext2D) {
   return (x: number, y: number, w: number, h: number, color: string) => {
     ctx.fillStyle = color;
@@ -15,9 +89,13 @@ function painter(ctx: CanvasRenderingContext2D) {
 /**
  * Pinta un vehículo de perfil-cenital (mirando a la derecha) en un lienzo de `w` × `h`.
  */
-export function paintVehicle(ctx: CanvasRenderingContext2D, id: string, w = VEHICLE_W, h = VEHICLE_H): void {
+export function paintVehicle(ctx: CanvasRenderingContext2D, id: string, w = VEHICLE_W, h = VEHICLE_H, view: VehicleView = 'side'): void {
   const px = painter(ctx);
   ctx.clearRect(0, 0, w, h);
+  if (view !== 'side') {
+    paintVehicleEnd(ctx, id, w, h, view);
+    return;
+  }
   // Escala el dibujo base (32 × 26) al lienzo.
   ctx.save();
   ctx.scale(w / VEHICLE_W, h / VEHICLE_H);
