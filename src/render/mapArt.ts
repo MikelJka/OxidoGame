@@ -1,4 +1,4 @@
-import { GameMap, Prop, Terrain, isWater, RADIATION_THRESHOLD } from '../sim/map';
+import { GameMap, Prop, Terrain, isWater, RADIATION_THRESHOLD, TRENCH_FLOODED } from '../sim/map';
 import { ValueNoise } from '../sim/noise';
 import { Rng } from '../sim/rng';
 import { LIFT, renderLevel, TILE, TILE_H, TOP_MARGIN } from './projection';
@@ -168,13 +168,20 @@ export function paintGround(map: GameMap, img: { data: Uint8ClampedArray }, rast
     }
     // Zanjas: un foso oscuro dentro de la casilla, con sombra arriba y borde de tierra abajo.
     for (let tx = c0; tx <= c1; tx++) {
-      if (!map.trench[ty * map.width + tx]) continue;
+      const tr = map.trench[ty * map.width + tx];
+      if (!tr) continue;
+      // Foso con agua (zanja inundada): el fondo se ve de agua turbia en vez de tierra.
+      const flooded = tr === TRENCH_FLOODED;
       const top = ty * TILE_H + TOP_MARGIN - renderLevel(map, tx, ty) * LIFT;
       for (let r = 1; r < TILE_H - 1; r++) {
         for (let lx = 2; lx < TILE - 2; lx++) {
           const pxl = tx * TILE + lx;
           const deep = r < 3 ? 0.85 : r > TILE_H - 4 ? 0.35 : 0.65;
           const g = grain.sample(pxl / 3, (top + r) / 3);
+          if (flooded && r >= 3 && r <= TILE_H - 3) {
+            put(pxl, top + r, mix([52, 92, 104], [24, 48, 58], (r < 4 ? 0.6 : 0.2) + g * 0.25));
+            continue;
+          }
           const base: RGB = r > TILE_H - 3 ? [120, 96, 66] : [46, 36, 26];
           put(pxl, top + r, mix(base, [20, 16, 12], deep * (0.8 + g * 0.2)));
         }

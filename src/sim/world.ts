@@ -1,5 +1,5 @@
 import { Colonist, createColonist, RaidGroup, Stance, walkSpeedMultiplier } from './colonist';
-import { countReachable, GameMap, generateMap, inBounds, isPassable, isWater, Prop, PROP_INFO, Terrain, TERRAIN_INFO, tileMoveCost } from './map';
+import { countReachable, GameMap, generateMap, inBounds, isPassable, TRENCH_FLOODED, isWater, Prop, PROP_INFO, Terrain, TERRAIN_INFO, tileMoveCost } from './map';
 import { findPath, isWalkable, Point } from './pathfinding';
 import { Rng } from './rng';
 import { GroundItems } from './items';
@@ -23,7 +23,7 @@ import { Blast, Grenade, grenadesOf, updateGrenades } from './grenades';
 import { updateMortars } from './mortar';
 import { isLitBonfire, updateBonfireCheer, updateBonfires } from './bonfire';
 import { CREATURES, flies, MACHINES } from '../data/creatures';
-import { addResearch, batteryMultiplier, infectionChanceFactor, machinePartsMultiplier, woundHealTimeFactor, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
+import { addResearch, trenchesFlood, batteryMultiplier, infectionChanceFactor, machinePartsMultiplier, woundHealTimeFactor, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
 import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
 import { absorbHit, anchorFor, besideTiles, defOf, nextTo, occupant, updateVehicle, Vehicle, vehicleCenter, vehiclePath, VehicleSeat, covers } from './vehicles';
 import { prepName, theName, usesFuel, vehicleDef } from '../data/vehicles';
@@ -32,7 +32,7 @@ import {
   BAD_WATER_TICKS_DAYS, DEHYDRATED, DRINK_TICKS, EAT_TICKS, EXHAUSTED, foodDecay, foodPreference, HUNGRY, isFood, isRawFood, NUTRITION, restDecay,
   restGain, STARVING, THIRSTY, TIRED, waterDecay,
 } from './needs';
-import { applyTerrainJob, LOWER_STONE, terrainBlocker, TerrainJob, TerrainOrders } from './terrain';
+import { applyTerrainJob, LOWER_STONE, terrainBlocker, TerrainJob, TerrainOrders, updateFlooding } from './terrain';
 import { Bill, PlaceShape, Structure, Structures } from './structures';
 import { toggleDrawbridge, updateDrawbridges } from './drawbridge';
 import { batteryCapacity, isDaylight, lacksPower, litTiles, PowerNet, shutDoorTiles, stationSpeed, updatePower, windStrength } from './power';
@@ -297,6 +297,9 @@ export class World implements JobContext {
   /** Un tick de simulación. */
   step(): void {
     this.tick++;
+    // Foso con agua: si han cambiado las zanjas o lo investigado, se mira qué zanjas se inundan.
+    const floodKey = `${this.terrainVersion}:${this.research.done.length}`;
+    if (floodKey !== this.floodKey) this.refreshFlooding();
     // Cada hora, la naturaleza vuelve un poco: rebrotan tocones y nacen árboles y matorrales.
     if (this.tick % TICKS_PER_HOUR === 0) {
       const grown = regrowNature(this.map, this.rng, (x, y) =>
@@ -1659,6 +1662,27 @@ export class World implements JobContext {
     this.dropJob(c);
   }
 
+  /** Lo que valía la clave del foso con agua la última vez que se miró (zanjas y lo investigado). */
+  private floodKey = '';
+
+  /**
+   * Inunda las zanjas que tocan el agua (con «Hidráulica») o las deja secas, repinta las que cambian
+   * y saca de un foso recién inundado a quien estuviera dentro.
+   */
+  refreshFlooding(): void {
+    this.floodKey = `${this.terrainVersion}:${this.research.done.length}`;
+    const changed = updateFlooding(this.map, trenchesFlood(this.research));
+    if (!changed.length) return;
+    this.markChanged(...changed);
+    const wet = new Set(changed.filter((i) => this.map.trench[i] === TRENCH_FLOODED));
+    for (const c of this.colonists) {
+      if (flies(c.creature)) continue;
+      if (wet.has(c.tile.y * this.map.width + c.tile.x) && !isPassable(this.map, c.tile.x, c.tile.y)) this.moveOutOfTheWay(c);
+      // Quien pensaba cruzar por ahí busca otro camino.
+      else if (c.path.some((p) => wet.has(p.y * this.map.width + p.x) && !isPassable(this.map, p.x, p.y))) c.path = [];
+    }
+  }
+
   /** Termina una obra de terreno: cambia el nivel (o hace la rampa) y repinta alrededor. */
   finishTerrainWork(x: number, y: number, job: TerrainJob): void {
     this.terrain.remove(x, y);
@@ -1678,6 +1702,8 @@ export class World implements JobContext {
     for (const c of this.colonists) {
       if (!isPassable(this.map, c.tile.x, c.tile.y)) this.moveOutOfTheWay(c);
     }
+    // Una zanja nueva pegada al agua (o a un foso) se inunda en el momento.
+    if (job === 'zanja' || job === 'rellenar') this.refreshFlooding();
   }
 
   /** Termina de sembrar o de cosechar una casilla. */

@@ -1,7 +1,7 @@
 // Obras de terreno: rebajar o elevar el nivel de una casilla y convertir un acantilado en rampa.
 // Las hacen los colonos (trabajo «terreno»). Al cambiar un nivel se recalculan los bordes:
 // los desniveles nuevos son pendientes (se pueden cruzar); los acantilados que ya había se respetan.
-import { GameMap, inBounds, index, isWater, MAX_LEVEL, PROP_INFO, Prop, Terrain, TERRAIN_INFO } from './map';
+import { GameMap, inBounds, index, isWater, MAX_LEVEL, PROP_INFO, Prop, Terrain, TERRAIN_INFO, TRENCH_DRY, TRENCH_FLOODED } from './map';
 import type { TileRect } from './designations';
 
 export type TerrainJob = 'rebajar' | 'elevar' | 'rampa' | 'zanja' | 'rellenar';
@@ -80,7 +80,7 @@ export function applyTerrainJob(map: GameMap, x: number, y: number, job: Terrain
     map.cliff[i] = 0;
     map.slope[i] = 1;
   } else if (job === 'zanja' || job === 'rellenar') {
-    map.trench[i] = job === 'zanja' ? 1 : 0;
+    map.trench[i] = job === 'zanja' ? TRENCH_DRY : 0;
   } else {
     map.level[i] = Math.max(1, Math.min(MAX_LEVEL, map.level[i] + (job === 'elevar' ? 1 : -1)));
     // Una casilla que se toca deja de ser acantilado: queda como pendiente o llano.
@@ -159,4 +159,51 @@ function forRect(map: GameMap, r: TileRect, fn: (x: number, y: number) => void):
   const ya = Math.max(0, Math.min(r.y0, r.y1));
   const yb = Math.min(map.height - 1, Math.max(r.y0, r.y1));
   for (let y = ya; y <= yb; y++) for (let x = xa; x <= xb; x++) fn(x, y);
+}
+
+/**
+ * Foso con agua (bloque 13, «Hidráulica»: «una zanja que toca el agua se inunda; nadie la cruza
+ * andando, solo por un puente o un puente levadizo»). Con `enabled`, se inunda toda zanja pegada
+ * (por un lado, no en diagonal) al agua o a otra zanja inundada; sin él, todas quedan secas.
+ * Devuelve las casillas que han cambiado (para repintarlas).
+ */
+export function updateFlooding(map: GameMap, enabled: boolean): number[] {
+  const size = map.width * map.height;
+  const wet = new Uint8Array(size);
+  if (enabled) {
+    const queue: number[] = [];
+    for (let i = 0; i < size; i++) {
+      if (!map.trench[i]) continue;
+      const x = i % map.width;
+      const y = (i - x) / map.width;
+      const touches = SIDES.some(([dx, dy]) => inBounds(map, x + dx, y + dy) && isWater(map.terrain[index(map, x + dx, y + dy)] as Terrain));
+      if (touches) {
+        wet[i] = 1;
+        queue.push(i);
+      }
+    }
+    while (queue.length) {
+      const i = queue.pop()!;
+      const x = i % map.width;
+      const y = (i - x) / map.width;
+      for (const [dx, dy] of SIDES) {
+        if (!inBounds(map, x + dx, y + dy)) continue;
+        const j = index(map, x + dx, y + dy);
+        if (map.trench[j] && !wet[j]) {
+          wet[j] = 1;
+          queue.push(j);
+        }
+      }
+    }
+  }
+  const changed: number[] = [];
+  for (let i = 0; i < size; i++) {
+    if (!map.trench[i]) continue;
+    const v = wet[i] ? TRENCH_FLOODED : TRENCH_DRY;
+    if (map.trench[i] !== v) {
+      map.trench[i] = v;
+      changed.push(i);
+    }
+  }
+  return changed;
 }

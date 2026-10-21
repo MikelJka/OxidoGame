@@ -9,6 +9,7 @@
  *   `woundHealTime` (opcional): al terminarlo, el tiempo que tardan en cerrarse las heridas se multiplica por él.
  *   `infectionChance` (opcional): al terminarlo, la probabilidad de que una herida se infecte se multiplica por él.
  *   `machineParts` (opcional): al terminarlo, los ⚙️ que sueltan las máquinas destruidas se multiplican por él.
+ *   `floodsTrenches` (opcional): al terminarlo, las zanjas que tocan el agua se inundan (foso con agua).
  */
 import data from './research.json';
 import { BUILDINGS } from './buildings';
@@ -30,6 +31,8 @@ export interface ResearchDef {
   infectionChance?: number;
   /** Al terminarlo, los ⚙️ que sueltan las máquinas destruidas se multiplican por esto («Desguace de máquinas»: ×2). */
   machineParts?: number;
+  /** Al terminarlo, las zanjas que tocan el agua se inundan y ya no se cruzan andando («Hidráulica»: foso con agua). */
+  floodsTrenches?: boolean;
 }
 
 /** Lo que puede pedir investigaciones: una (`research`) y a veces una segunda (`researchAlso`). */

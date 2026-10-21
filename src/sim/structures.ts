@@ -3,7 +3,7 @@
 import { BuildingDef, buildingDef, depositOf } from '../data/buildings';
 import { RESOURCES, ResourceId } from '../data/resources';
 import type { RecipeDef } from '../data/recipes';
-import { BLOCK_SOLID, walkableStructureCode, GameMap, inBounds, index, isPassable, isWater, Prop, TERRAIN_INFO, Terrain } from './map';
+import { BLOCK_SOLID, TRENCH_FLOODED, walkableStructureCode, GameMap, inBounds, index, isPassable, isWater, Prop, TERRAIN_INFO, Terrain } from './map';
 import type { TileRect } from './designations';
 import type { Stockpile } from './resources';
 
@@ -141,6 +141,16 @@ export function canBridge(map: GameMap, x: number, y: number): boolean {
   if (!inBounds(map, x, y)) return false;
   const i = index(map, x, y);
   return isWater(map.terrain[i] as Terrain) && map.props[i] === Prop.None && !map.cliff[i];
+}
+
+/**
+ * Se puede tender un puente (o apoyar un puente levadizo) en la casilla: agua o un foso con agua
+ * (una zanja inundada, con «Hidráulica»), sin ningún objeto.
+ */
+export function canSpan(map: GameMap, x: number, y: number): boolean {
+  if (!inBounds(map, x, y)) return false;
+  const i = index(map, x, y);
+  return canBridge(map, x, y) || (map.trench[i] === TRENCH_FLOODED && map.props[i] === Prop.None && !map.cliff[i]);
 }
 
 /** Se puede poner esa plataforma en la casilla: agua sin objeto; la de madera, no en la profunda. */
@@ -473,13 +483,13 @@ export class Structures {
    */
   canPlace(x: number, y: number, def?: BuildingDef, ignore?: Structure): boolean {
     // Un puente solo va sobre el agua (cualquiera) sin nada encima.
-    if (def?.bridge) return canBridge(this.map, x, y) && !this.floorAt(x, y) && !this.mainAt(x, y);
+    if (def?.bridge) return canSpan(this.map, x, y) && !this.floorAt(x, y) && !this.mainAt(x, y);
     if (def?.platform) return canPlatform(this.map, def, x, y) && !this.floorAt(x, y) && !this.mainAt(x, y);
     // El puente levadizo va sobre el agua (cualquiera) o en la orilla, sin nada debajo ni encima.
     if (def?.drawbridge) {
       const main = this.mainAt(x, y);
       if (this.floorAt(x, y) || (main && main !== ignore)) return false;
-      return canBridge(this.map, x, y) || buildBlocker(this.map, x, y) === null;
+      return canSpan(this.map, x, y) || buildBlocker(this.map, x, y) === null;
     }
     // El molino de agua va en el río mismo: ni en tierra ni sobre un puente o una plataforma.
     if (def?.onWater) {
@@ -512,7 +522,7 @@ export class Structures {
     // El puente levadizo va de una orilla a otra por encima del agua: no hace falta que todo esté a la misma altura.
     if (!tiles.every((t) => this.canPlace(t.x, t.y, def, ignore) && (def.drawbridge || this.map.level[index(this.map, t.x, t.y)] === level))) return false;
     // El puente levadizo tiene que tener agua debajo (al menos una casilla).
-    if (def.drawbridge && !tiles.some((t) => canBridge(this.map, t.x, t.y))) return false;
+    if (def.drawbridge && !tiles.some((t) => canSpan(this.map, t.x, t.y))) return false;
     // La depuradora tiene que tocar agua.
     if (def.nearWater && !tiles.some((t) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
       const nx = t.x + dx;

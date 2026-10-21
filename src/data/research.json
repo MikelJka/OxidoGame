@@ -24,7 +24,7 @@
     { "id": "artilleria", "name": "Artillería", "hours": 20, "requires": ["torretas"], "unlocks": "Torreta pesada y mortero" },
     { "id": "ametralladoras", "name": "Ametralladoras", "hours": 16, "requires": ["artilleria"], "unlocks": "Torreta rotativa" },
     { "id": "desguace", "name": "Desguace de máquinas", "hours": 10, "requires": ["torretas"], "unlocks": "Los drones y arañas destruidos dejan el doble de ⚙️", "machineParts": 2 },
-    { "id": "hidraulica", "name": "Hidráulica", "hours": 10, "requires": ["puentes"], "unlocks": "Molino de agua, puente levadizo y foso con agua" },
+    { "id": "hidraulica", "name": "Hidráulica", "hours": 10, "requires": ["puentes"], "unlocks": "Molino de agua, puente levadizo y foso con agua", "floodsTrenches": true },
     { "id": "navegacion", "name": "Navegación", "hours": 8, "requires": ["puentes"], "unlocks": "Balsa" },
     { "id": "motores", "name": "Motores", "hours": 14, "requires": ["navegacion", "polvora"], "unlocks": "Lancha armada" },
     { "id": "radio", "name": "Radio", "hours": 10, "requires": ["medicina_campo"], "unlocks": "Radio: contactar con facciones" },

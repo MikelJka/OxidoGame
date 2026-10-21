@@ -171,7 +171,7 @@ export interface GameMap {
   blocked: Uint8Array;
   /** 1 si hay un puente terminado: el agua se cruza andando, como suelo normal. Lo mantiene `Structures`. */
   bridge: Uint8Array;
-  /** 1 si hay una zanja: se cruza muy despacio (frena a los enemigos). */
+  /** Zanja: 0 nada, 1 seca (se cruza muy despacio, frena a los enemigos), 2 inundada (foso con agua: no se cruza andando). */
   trench: Uint8Array;
   /** Casilla sugerida para empezar la colonia. */
   start: { x: number; y: number };
@@ -185,6 +185,15 @@ export const MAX_LEVEL = 4;
 export const SLOPE_COST = 1.5;
 /** Coste extra de cruzar una zanja. */
 export const TRENCH_COST = 4;
+/** Valor de `trench` de una zanja seca. */
+export const TRENCH_DRY = 1;
+/** Valor de `trench` de una zanja inundada (foso con agua, con «Hidráulica»): solo se cruza por un puente. */
+export const TRENCH_FLOODED = 2;
+
+/** La casilla es un foso con agua: una zanja inundada. */
+export function isFlooded(map: GameMap, i: number): boolean {
+  return map.trench[i] === TRENCH_FLOODED;
+}
 /**
  * Valores de `blocked`: 0 nada, 1 construcción que impide el paso; desde 2, construcción que se
  * pisa y cambia el coste de paso: el valor guarda ese coste (×10 + 1), p. ej. 14 = ×1,3 (puerta),
@@ -225,6 +234,8 @@ export function isWater(t: Terrain): boolean {
 export function isPassable(map: GameMap, x: number, y: number): boolean {
   if (!inBounds(map, x, y)) return false;
   const i = index(map, x, y);
+  // Un foso con agua solo se cruza por un puente (o un puente levadizo bajado).
+  if (map.trench[i] === TRENCH_FLOODED && map.bridge[i] !== 1) return false;
   return (TERRAIN_INFO[map.terrain[i] as Terrain].walkable || map.bridge[i] === 1) && !PROP_INFO[map.props[i] as Prop].blocks && !map.cliff[i] && map.blocked[i] !== BLOCK_SOLID;
 }
 
@@ -233,8 +244,10 @@ export function tileMoveCost(map: GameMap, x: number, y: number): number {
   const i = index(map, x, y);
   const prop = PROP_INFO[map.props[i] as Prop];
   if (prop.blocks || map.cliff[i] || map.blocked[i] === BLOCK_SOLID) return Infinity;
+  if (map.trench[i] === TRENCH_FLOODED && !map.bridge[i]) return Infinity;
   const built = structureMoveCost(map.blocked[i]);
-  const trench = map.trench[i] ? TRENCH_COST : 1;
+  // Sobre un puente, el foso con agua se cruza como suelo normal.
+  const trench = map.trench[i] && !(map.bridge[i] && map.trench[i] === TRENCH_FLOODED) ? TRENCH_COST : 1;
   // Sobre un puente el agua se anda como suelo normal.
   const ground = map.bridge[i] ? 1 : TERRAIN_INFO[map.terrain[i] as Terrain].moveCost;
   return ground * prop.moveCost * (map.slope[i] ? SLOPE_COST : 1) * built * trench;
@@ -247,7 +260,7 @@ export function describeTile(map: GameMap, x: number, y: number): string {
   const parts = [TERRAIN_INFO[t].name];
   if (isWater(t) && map.contaminated[i]) parts[0] += ' contaminada';
   if (map.cliff[i]) parts.unshift('Acantilado');
-  if (map.trench[i]) parts.unshift('Zanja');
+  if (map.trench[i]) parts.unshift(map.trench[i] === TRENCH_FLOODED ? 'Foso con agua' : 'Zanja');
   else if (map.slope[i]) parts.push('pendiente');
   if (!isWater(t)) parts.push(LEVEL_NAMES[map.level[i]] ?? '');
   const p = map.props[i] as Prop;

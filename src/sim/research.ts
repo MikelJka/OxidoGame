@@ -58,6 +58,11 @@ export function machinePartsMultiplier(r: ResearchState): number {
   return m;
 }
 
+/** Las zanjas que tocan el agua se inundan (foso con agua): ya está terminado un proyecto que lo hace («Hidráulica»). */
+export function trenchesFlood(r: ResearchState): boolean {
+  return r.done.some((id) => !!researchDef(id)?.floodsTrenches);
+}
+
 /** Ya se puede usar: no pide investigación, o ya está hecha toda la que pide (planos nuevos, recetas…). */
 export function unlocked(r: ResearchState, thing: Researchable): boolean {
   return researchNeeds(thing).every((q) => isResearched(r, q));

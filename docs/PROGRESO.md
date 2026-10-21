@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (28) — Foso con agua: las zanjas junto al río se inundan
+
+- Sin incidencias nuevas en 🐞. Los saqueadores en balsa y el muelle siguen esperando a Mikel (en «Propuestas para Mikel»); se hace lo que quedaba aprobado y con sus reglas de «Hidráulica» (bloque 13): el **foso con agua**.
+- Tras investigar **«Hidráulica»**, toda **zanja que toca el agua** por un lado (no en diagonal) **se inunda**, y con ella las zanjas unidas a ella. Se ve con agua turbia en el fondo y al tocarla dice «Foso con agua».
+- **Nadie lo cruza andando** (ni colonos ni saqueadores: lo rodean, o si no llegan dan vueltas y se marchan); los drones vuelan por encima. Se cruza **solo por un puente** (de madera o de metal, al precio normal) **o un puente levadizo** puestos encima; sobre una zanja seca no se tiende puente.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): la zanja se inunda **en el momento** en que se termina de cavar (o al terminar «Hidráulica»); si se rellena la zanja que la unía al agua, **lo de detrás se seca**; quien estuviera dentro al inundarse sale a la casilla libre más cercana. Las barcas no entran en el foso.
+- Qué probar: investigar «Puentes» e «Hidráulica» en 📜 → 🔬 Investigación (🪄 acelera), cavar con ⚒ → ▭ Zanja una zanja que salga de la orilla de un río alrededor de la colonia: debe llenarse de agua; los colonos ya no la cruzan; poner un puente de madera encima y ver que lo usan.
+- Sin npm en el entorno: tests con Bun (576, 7 nuevos en `tests/moat.test.ts`) y tipos con `tsc` (sin errores nuevos); la prueba completa, en GitHub Actions.
+- Siguiente: lo que Mikel elija de los saqueadores en balsa o del muelle. Sin respuesta, las sesiones solo podrán dejar propuestas (la fase 5 no se cierra sin ellas, ni sin lo que espera a las estaciones, el mercado o el fuego).
+
 ## 2026-10-21 (27) — Propuesta: saqueadores en balsa
 
 - Sin incidencias nuevas en 🐞. Lo siguiente aprobado de la update del agua son los **saqueadores en balsa** desde el día 15, pero no está decidido cuántos llegan, cada cuánto ni qué hacen al llegar: son reglas que cambian la dificultad, así que esta sesión **no ha tocado el juego** y ha dejado la propuesta con opciones en «Propuestas para Mikel» de `FEEDBACK.md`.
