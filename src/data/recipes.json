@@ -497,6 +497,21 @@
     "description": "10 de madera dan 2 de combustible para los vehículos."
   },
   {
+    "id": "hacer_abono",
+    "name": "Abono",
+    "station": "banco_trabajo",
+    "inputs": {
+      "setas": 2,
+      "piedra": 1
+    },
+    "outputs": {
+      "abono": 3
+    },
+    "work": 150,
+    "research": "agricultura",
+    "description": "Setas y piedra molida: 3 de abono. Al sembrar, si hay abono en el almacén se echa 1 y esa planta da un 25 % más."
+  },
+  {
     "id": "preparar_medicina",
     "name": "Preparar medicina",
     "station": "mesa_boticario",

@@ -63,7 +63,7 @@ export interface SaveData {
   terrain?: { x: number; y: number; job: string }[];
   /** Huertos (desde que existe el cultivo; las partidas anteriores no los tienen). */
   farms?: { id: number; name: string; crop: string; tiles: number[] }[];
-  plants?: { i: number; crop: string; growth: number; harm?: number; sick?: boolean }[];
+  plants?: { i: number; crop: string; growth: number; harm?: number; sick?: boolean; fertilized?: boolean }[];
   /** Casillas de almacenes y huertos por despejar (#14; las partidas anteriores no las tienen). */
   clearing?: { i: number; kind: string; zone: number; prop: number }[];
   /** Saqueadores, prisioneros y comerciantes (desde que existen). */
@@ -309,7 +309,7 @@ export function serializeWorld(world: World, gameVersion?: string, direct = fals
     designations: world.designations.list().map((d) => ({ ...d })),
     zones: world.zones.all().map((z) => ({ id: z.id, name: z.name, priority: z.priority, accepts: { ...z.accepts }, tiles: [...z.tiles] })),
     farms: world.farms.all().map((z) => ({ id: z.id, name: z.name, crop: z.crop.id, tiles: [...z.tiles] })),
-    plants: world.farms.plantList().map(({ x, y, plant }) => ({ i: y * m.width + x, crop: plant.crop.id, growth: plant.growth, ...(plant.harm ? { harm: plant.harm } : {}), ...(plant.sick ? { sick: true } : {}) })),
+    plants: world.farms.plantList().map(({ x, y, plant }) => ({ i: y * m.width + x, crop: plant.crop.id, growth: plant.growth, ...(plant.harm ? { harm: plant.harm } : {}), ...(plant.sick ? { sick: true } : {}), ...(plant.fertilized ? { fertilized: true } : {}) })),
     clearing: world.clearing.list(),
     // Un mueble que alguien lleva en brazos se guarda en su sitio de antes, con la orden de moverlo.
     structures: [...world.structures.all(), ...world.structures.liftedList()].map((s) => ({
@@ -744,7 +744,7 @@ export function loadWorld(input: string | unknown): World {
   }
   for (const p of d.plants ?? []) {
     const crop = cropDef(String(p.crop));
-    if (crop) world.farms.restorePlant(num(p.i, -1), crop, num(p.growth, 0), p.harm !== undefined ? num(p.harm, 1) : undefined, !!p.sick);
+    if (crop) world.farms.restorePlant(num(p.i, -1), crop, num(p.growth, 0), p.harm !== undefined ? num(p.harm, 1) : undefined, !!p.sick, p.fertilized === true);
   }
   for (const c of d.clearing ?? []) {
     if (c.kind !== 'almacen' && c.kind !== 'huerto') continue;

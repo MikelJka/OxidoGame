@@ -1961,7 +1961,7 @@ export class WorldScene extends Phaser.Scene {
     else if (room) text = `Habitación sin tejado todavía (${room.tiles.length} casillas, ${room.doors} ${room.doors === 1 ? 'puerta' : 'puertas'}) · ${text}`;
     const farm = this.world.farms.at(tile.x, tile.y);
     const plant = this.world.farms.plantAt(tile.x, tile.y);
-    if (plant) text = `${plant.crop.name} ${plant.growth >= 1 ? 'maduras' : `${Math.floor(plant.growth * 100)} %`} · ${text}`;
+    if (plant) text = `${plant.crop.name} ${plant.growth >= 1 ? 'maduras' : `${Math.floor(plant.growth * 100)} %`}${plant.fertilized ? ' · 🟤 abonada (+25 %)' : ''} · ${text}`;
     if (farm) text = `${farm.name} (${farm.crop.name.toLowerCase()}, fertilidad ${Math.round(fertilityAt(this.map, tile.x, tile.y) * 100)} %) · ${text}`;
     const floor = this.world.structures.floorAt(tile.x, tile.y);
     const s = this.world.structures.mainAt(tile.x, tile.y);

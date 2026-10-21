@@ -35,7 +35,7 @@ import { Blast, Grenade, grenadesOf, updateGrenades } from './grenades';
 import { updateMortars } from './mortar';
 import { isLitBonfire, updateBonfireCheer, updateBonfires } from './bonfire';
 import { CREATURES, flies, MACHINES } from '../data/creatures';
-import { addResearch, trenchesFlood, batteryMultiplier, infectionChanceFactor, machinePartsMultiplier, woundHealTimeFactor, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
+import { addResearch, isResearched, trenchesFlood, batteryMultiplier, infectionChanceFactor, machinePartsMultiplier, woundHealTimeFactor, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
 import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
 import { absorbHit, anchorFor, besideTiles, defOf, nextTo, occupant, updateVehicle, Vehicle, vehicleCenter, vehiclePath, VehicleSeat, covers } from './vehicles';
 import { prepName, theName, usesFuel, vehicleDef } from '../data/vehicles';
@@ -2084,7 +2084,12 @@ export class World implements JobContext {
       return;
     }
     if (action === 'sembrar') {
-      this.farms.sow(x, y);
+      // Con «Agricultura mejorada», si hay abono en la colonia se echa 1 al sembrar (+25 % de cosecha).
+      if (this.farms.sow(x, y) && isResearched(this.research, 'agricultura')) {
+        const st = this.items.list().find((s) => s.resource === 'abono');
+        const p = this.farms.plantAt(x, y);
+        if (st && p && this.items.take(st.x, st.y, 1)) p.fertilized = true;
+      }
       return;
     }
     const crop = this.farms.harvest(x, y, (a, b) => this.rng.int(a, b));

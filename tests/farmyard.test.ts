@@ -112,3 +112,34 @@ describe('granja', () => {
     expect(back.structures.all().some((x) => x.def.id === 'establo')).toBe(true);
   });
 });
+
+describe('abono', () => {
+  it('con «Agricultura mejorada», al sembrar se echa 1 de abono y la cosecha da un 25 % más', async () => {
+    const { recipeDef } = await import('../src/data/recipes');
+    const { FERTILIZER_BONUS } = await import('../src/sim/farming');
+    const r = recipeDef('hacer_abono')!;
+    expect(r.inputs).toEqual({ setas: 2, piedra: 1 });
+    expect(r.outputs).toEqual({ abono: 3 });
+    expect(r.research).toBe('agricultura');
+    expect(FERTILIZER_BONUS).toBe(1.25);
+    const w = flatWorld(1);
+    w.farms.create({ x0: 10, y0: 10, x1: 11, y1: 10 });
+    w.items.drop(3, 3, 'abono', 1);
+    const sow = (x: number, y: number) => (w as unknown as { finishFarmWork(x: number, y: number, a: string): void }).finishFarmWork(x, y, 'sembrar');
+    // Sin investigar, no se abona.
+    sow(10, 10);
+    expect(w.farms.plantAt(10, 10)!.fertilized).toBeUndefined();
+    w.research.done.push('agricultura');
+    sow(11, 10);
+    expect(w.farms.plantAt(11, 10)!.fertilized).toBe(true);
+    expect(w.items.at(3, 3)).toBeUndefined();
+    // Se guarda.
+    expect(loadWorld(serializeWorld(w)).farms.plantAt(11, 10)!.fertilized).toBe(true);
+    // Cosecha: misma tirada, un 25 % más.
+    w.farms.plantAt(10, 10)!.growth = 1;
+    w.farms.plantAt(11, 10)!.growth = 1;
+    const a = w.farms.harvest(10, 10, () => 8)!.amount;
+    const b = w.farms.harvest(11, 10, () => 8)!.amount;
+    expect(b).toBe(Math.round(a * 1.25));
+  });
+});

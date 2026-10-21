@@ -43,7 +43,12 @@ export interface Plant {
   harm?: number;
   /** Enferma por una plaga: hay que arrancarla (sin cosecha). */
   sick?: boolean;
+  /** Abonada al sembrarla («Agricultura mejorada»): da `FERTILIZER_BONUS` más de cosecha. */
+  fertilized?: boolean;
 }
+
+/** Lo que da de más una planta abonada (+25 %, bloque 3 del catálogo). */
+export const FERTILIZER_BONUS = 1.25;
 
 /** Fase visible de una planta: 0 sembrada, 1 brote, 2 creciendo, 3 madura. */
 export function plantStage(p: Plant): 0 | 1 | 2 | 3 {
@@ -191,7 +196,7 @@ export class GrowZones {
     this.version++;
     // Una tierra mejor da algo más.
     const bonus = Math.max(0.6, Math.min(1.2, fertilityAt(this.map, x, y)));
-    return { resource: p.crop.resource, amount: Math.max(1, Math.round(roll(p.crop.yield[0], p.crop.yield[1]) * bonus * (p.harm ?? 1))) };
+    return { resource: p.crop.resource, amount: Math.max(1, Math.round(roll(p.crop.yield[0], p.crop.yield[1]) * bonus * (p.harm ?? 1) * (p.fertilized ? FERTILIZER_BONUS : 1))) };
   }
 
   /**
@@ -262,9 +267,9 @@ export class GrowZones {
   }
 
   /** Vuelve a poner una planta guardada. */
-  restorePlant(i: number, crop: CropDef, growth: number, harm?: number, sick?: boolean): void {
+  restorePlant(i: number, crop: CropDef, growth: number, harm?: number, sick?: boolean, fertilized?: boolean): void {
     if (i < 0 || i >= this.zoneOf.length) return;
-    this.plants.set(i, { crop, growth: Math.max(0, Math.min(1, growth)), ...(harm !== undefined && harm > 0 && harm < 1 ? { harm } : {}), ...(sick ? { sick: true } : {}) });
+    this.plants.set(i, { crop, growth: Math.max(0, Math.min(1, growth)), ...(harm !== undefined && harm > 0 && harm < 1 ? { harm } : {}), ...(sick ? { sick: true } : {}), ...(fertilized ? { fertilized: true } : {}) });
     this.version++;
   }
 

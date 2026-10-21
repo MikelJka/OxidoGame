@@ -43,6 +43,7 @@ export const RESOURCE_VALUES: Record<ResourceId, number> = {
   abrigo: 18,
   carne: 2,
   cuero: 3,
+  abono: 1,
   kit_barricada_madera: 6,
   kit_barricada_chatarra: 12,
   kit_barricada_metal: 20,
