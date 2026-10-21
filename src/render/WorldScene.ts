@@ -289,6 +289,7 @@ export class WorldScene extends Phaser.Scene {
     });
     this.events.once('shutdown', () => this.atmosphere.destroy());
     this.effects = new Effects(this);
+    this.effects.onLight = (x, y, tiles, color, ms) => this.atmosphere.flashLight(x, y, tiles, color, ms);
     this.fxShotTick = this.world.tick;
     this.fxBlastTick = this.world.tick;
     this.events.once('shutdown', () => this.effects.destroy());

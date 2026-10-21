@@ -2,6 +2,19 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (68) — La luz, pulida
+
+- Última parte del salto de calidad del 2D (pedido por Mikel): la **luz** (`src/render/atmosphere.ts`). Con esto, el salto del 2D queda terminado.
+- **Mapa de luz**: la oscuridad de la noche ya no es una capa plana con manchas amarillas encima; cada lámpara, hoguera, estufa o fuego «abre» la oscuridad con su color, así que junto a una luz el suelo, los muebles y los colonos se ven con sus colores de verdad. La luz cae suave y se aplasta como el suelo según la inclinación de la vista; encima queda un halo pequeño en la bombilla o la llama.
+- **Pilotos**: las máquinas que gastan corriente y la reciben (talleres electrificados, radio, torretas, bandejas, nevera…) dejan una lucecita fría a su alrededor de noche; las averiadas, no.
+- **Fogonazos y explosiones** iluminan el suelo de alrededor un instante (se nota mucho de noche).
+- Con **tormenta, lluvia ácida o polvo** el día se oscurece y las luces se notan aunque sea de día.
+- Los **bordes de la pantalla** se oscurecen un poco, más de noche, como en el cine.
+- Sin cambios en las reglas ni en la partida guardada.
+- Qué probar: de noche, una colonia con lámparas, una hoguera y algún taller electrificado; un raid con armas de fuego o una granada de noche; una tormenta de día (con 🪄 modo Dios).
+- Qué sigue: no queda nada aprobado en «Pendiente»; la próxima sesión deja propuestas para Mikel si no pide nada nuevo.
+- Sin npm en el entorno: tests con Bun (678); los tipos y la build, en GitHub Actions («Probar rama»).
+
 ## 2026-10-21 (67) — Fogonazos, explosiones y fuego con efectos
 
 - Penúltima parte del salto de calidad del 2D (pedido por Mikel): los **efectos** (`src/render/effects.ts`).

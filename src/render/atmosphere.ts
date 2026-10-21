@@ -2,9 +2,15 @@
 // con la hora (amanecer cálido, noche azulada), luces que brillan de noche (lámparas, hogueras, estufas
 // y el fuego), humo que sube de lo que arde, lluvia, nieve, polvo y relámpagos según el tiempo, y
 // motas de polvo flotando de día. Solo dibujo: lee el estado del mundo y no decide nada.
+// Pulido de la luz (última parte, sesión 68): la oscuridad es un «mapa de luz» en el que cada luz abre
+// un hueco con su color (el suelo junto a una lámpara se ve con sus colores, no tapado de amarillo),
+// las luces se aplastan como el suelo inclinado, las máquinas con corriente dejan un piloto de luz, los
+// fogonazos y explosiones iluminan alrededor, con tormenta o polvo las luces se notan aunque sea de día
+// y los bordes de la pantalla se oscurecen un poco (más de noche).
 import Phaser from 'phaser';
 import { eventDef } from '../data/events';
 import { isWinter } from '../sim/seasons';
+import { footprint } from '../sim/structures';
 import type { World } from '../sim/world';
 import { TILE, TILE_H } from './projection';
 
@@ -12,7 +18,11 @@ const LIGHT_TEX = 'atmo-light';
 const DOT_TEX = 'atmo-dot';
 const DROP_TEX = 'atmo-drop';
 const PUFF_TEX = 'atmo-puff';
+const LIGHTMAP_TEX = 'atmo-lightmap';
+const VIGNETTE_TEX = 'atmo-vignette';
 const MAX_LIGHTS = 160;
+/** El mapa de luz se dibuja a un cuarto de la resolución de la pantalla (es suave, no hace falta más). */
+const LIGHTMAP_RES = 0.25;
 const OVERLAY_DEPTH = 900;
 
 /** Dónde se dibuja una casilla del mapa (la escena sabe girar la vista y la altura). */
@@ -24,6 +34,18 @@ interface LightSource {
   radius: number;
   color: number;
   flicker: boolean;
+  /** Piloto de una máquina: luz pequeña y fría, sin halo. */
+  small?: boolean;
+}
+
+/** Destello de un disparo o una explosión que se apaga en `ms`. */
+interface Flash {
+  x: number;
+  y: number;
+  tiles: number;
+  color: number;
+  born: number;
+  ms: number;
 }
 
 /** Oscuridad (0 de día, 1 en plena noche) y color del ambiente según la hora. */
@@ -47,7 +69,10 @@ export function ambientAt(hour: number): { dark: number; color: number } {
 }
 
 export class Atmosphere {
-  private overlay: Phaser.GameObjects.Rectangle;
+  /** Oscuridad: mapa de luz que se multiplica por todo lo de debajo. */
+  private overlay: Phaser.GameObjects.RenderTexture;
+  private vignette: Phaser.GameObjects.Image;
+  private flashes: Flash[] = [];
   private haze: Phaser.GameObjects.Rectangle;
   private lights: Phaser.GameObjects.Image[] = [];
   private smoke: Phaser.GameObjects.Particles.ParticleEmitter;
@@ -66,8 +91,12 @@ export class Atmosphere {
 
   constructor(private readonly scene: Phaser.Scene, private readonly toScreen: TileToScreen) {
     makeTextures(scene);
-    this.overlay = scene.add.rectangle(0, 0, 10, 10, 0xffffff).setOrigin(0, 0).setDepth(OVERLAY_DEPTH);
+    this.overlay = scene.add.renderTexture(0, 0, 64, 64).setOrigin(0, 0).setDepth(OVERLAY_DEPTH);
     this.overlay.setBlendMode(Phaser.BlendModes.MULTIPLY);
+    // El juego es pixel art (filtro «más cercano»): el mapa de luz, estirado, se ve suave con el lineal.
+    this.overlay.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+    this.vignette = scene.add.image(0, 0, VIGNETTE_TEX).setOrigin(0, 0).setDepth(OVERLAY_DEPTH + 0.5);
+    this.vignette.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
     this.haze = scene.add.rectangle(0, 0, 10, 10, 0x9a7a4a, 0).setOrigin(0, 0).setDepth(OVERLAY_DEPTH + 2);
     // Zona de salida de las partículas: lo que se ve de la cámara (se mueve con ella).
     const area = this.zone;
@@ -104,7 +133,7 @@ export class Atmosphere {
   }
 
   destroy(): void {
-    for (const o of [this.overlay, this.haze, this.smoke, this.rain, this.snow, this.dust, this.motes, ...this.lights]) o.destroy();
+    for (const o of [this.overlay, this.vignette, this.haze, this.smoke, this.rain, this.snow, this.dust, this.motes, ...this.lights]) o.destroy();
     this.lights = [];
   }
 
@@ -113,7 +142,6 @@ export class Atmosphere {
     const v = cam.worldView;
     const pad = 40;
     this.zone.setTo(v.x - pad, v.y - pad, v.width + pad * 2, v.height + pad);
-    this.overlay.setPosition(v.x - pad, v.y - pad).setSize(v.width + pad * 2, v.height + pad * 2);
     this.haze.setPosition(v.x - pad, v.y - pad).setSize(v.width + pad * 2, v.height + pad * 2);
 
     // Tiempo (sucesos que duran) y estación.
@@ -141,9 +169,12 @@ export class Atmosphere {
       color = lerpColor(color, 0xffffff, this.flash);
       this.flash = Math.max(0, this.flash - delta / 180);
     }
-    this.overlay.setFillStyle(color, 1);
-    this.overlay.setVisible(color !== 0xffffff);
     this.haze.setFillStyle(0x9a7a4a, dustStorm ? 0.22 : 0);
+    // Cuánta falta hace la luz: de noche, y también de día con tormenta, lluvia o polvo.
+    const need = Math.max(amb.dark, Math.min(1, (1 - luminance(color)) * 1.6));
+    // Bordes de la pantalla algo más oscuros, como en el cine (más de noche).
+    this.vignette.setPosition(v.x - pad, v.y - pad).setDisplaySize(v.width + pad * 2, v.height + pad * 2);
+    this.vignette.setAlpha(0.1 + 0.32 * need);
 
     setEmitting(this.rain, storm || acid);
     this.rain.setParticleTint(acid ? 0xa8e070 : 0xc0d0e0);
@@ -151,11 +182,67 @@ export class Atmosphere {
     setEmitting(this.dust, dustStorm);
     setEmitting(this.motes, amb.dark < 0.3 && !storm && !acid && !dustStorm);
 
-    this.updateLights(world, amb.dark, delta);
+    const t = this.scene.time.now;
+    this.flashes = this.flashes.filter((f) => t - f.born < f.ms);
+    const sources = need > 0.05 || world.fires.size ? lightSources(world, this.toScreen, v) : [];
+    this.drawLightmap(color, need, sources, v, pad, t);
+    this.updateLights(sources, need, delta);
   }
 
-  private updateLights(world: World, dark: number, delta: number): void {
-    const sources = dark > 0.05 || world.fires.size ? lightSources(world, this.toScreen, this.scene.cameras.main.worldView) : [];
+  /** Un fogonazo o una explosión: ilumina el suelo de alrededor y se apaga en `ms`. */
+  flashLight(x: number, y: number, tiles: number, color: number, ms: number): void {
+    if (this.flashes.length >= 40) this.flashes.shift();
+    this.flashes.push({ x, y, tiles, color, born: this.scene.time.now, ms });
+  }
+
+  /**
+   * La oscuridad: se llena con el color del ambiente y cada luz suma el suyo encima (así, junto a una
+   * lámpara, el suelo recupera su color). Luego todo se multiplica por lo que hay debajo.
+   */
+  private drawLightmap(color: number, need: number, sources: LightSource[], v: Phaser.Geom.Rectangle, pad: number, t: number): void {
+    const rt = this.overlay;
+    if (color === 0xffffff) {
+      rt.setVisible(false);
+      return;
+    }
+    const cam = this.scene.cameras.main;
+    const worldW = v.width + pad * 2;
+    const worldH = v.height + pad * 2;
+    const w = Math.max(16, Math.ceil(cam.width * LIGHTMAP_RES));
+    const h = Math.max(16, Math.ceil(cam.height * LIGHTMAP_RES));
+    if (rt.width !== w || rt.height !== h) {
+      rt.resize(w, h);
+      rt.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+    }
+    rt.setVisible(true).setPosition(v.x - pad, v.y - pad).setDisplaySize(worldW, worldH);
+    const kx = w / worldW;
+    const ky = h / worldH;
+    rt.clear();
+    rt.fill(color, 1);
+    if (need <= 0.02) return;
+    // Las luces caen sobre el suelo inclinado: se aplastan como él.
+    const squash = TILE_H / TILE;
+    const add = Phaser.BlendModes.ADD;
+    let n = 0;
+    for (const s of sources) {
+      if (n++ >= MAX_LIGHTS) break;
+      const wob = s.flicker ? flickerAt(t, s.x, s.y) : 1;
+      const size = (s.radius * TILE * 2 * wob) / 128;
+      rt.stamp(LIGHTMAP_TEX, undefined, (s.x - v.x + pad) * kx, (s.y - v.y + pad) * ky, {
+        scaleX: size * kx, scaleY: size * ky * squash, tint: s.color, alpha: Math.min(1, need * (s.small ? 0.7 : 1.05) * wob), blendMode: add,
+      });
+    }
+    for (const f of this.flashes) {
+      const k = 1 - (t - f.born) / f.ms;
+      const size = (f.tiles * TILE * 2.4) / 128;
+      rt.stamp(LIGHTMAP_TEX, undefined, (f.x - v.x + pad) * kx, (f.y - v.y + pad) * ky, {
+        scaleX: size * kx, scaleY: size * ky * squash, tint: f.color, alpha: Math.min(1, need * 1.2 * k * k), blendMode: add,
+      });
+    }
+  }
+
+  /** Halo de las luces por encima de la oscuridad (el brillo de la bombilla o la llama, no el suelo). */
+  private updateLights(sources: LightSource[], dark: number, delta: number): void {
     // Humo de lo que arde (también de día).
     this.smokeTimer += delta;
     if (this.smokeTimer > 260) {
@@ -167,22 +254,34 @@ export class Atmosphere {
     const t = this.scene.time.now;
     for (const s of sources) {
       if (n >= MAX_LIGHTS) break;
-      const strength = Math.max(dark, s.flicker ? 0.25 : 0);
+      const strength = Math.max(dark, s.flicker ? 0.35 : 0) * (s.small ? 0.45 : 0.55);
       if (strength <= 0.02) continue;
       let img = this.lights[n];
       if (!img) {
         img = this.scene.add.image(0, 0, LIGHT_TEX).setBlendMode(Phaser.BlendModes.ADD).setDepth(OVERLAY_DEPTH + 1);
         this.lights.push(img);
       }
-      const wob = s.flicker ? 0.9 + 0.1 * Math.sin(t / 90 + s.x * 0.3) + 0.05 * Math.sin(t / 37 + s.y) : 1;
-      img.setVisible(true).setPosition(s.x, s.y).setTint(s.color).setAlpha(Math.min(0.9, strength * 0.8 * wob)).setScale((s.radius * TILE * 2 * wob) / 128);
+      const wob = s.flicker ? flickerAt(t, s.x, s.y) : 1;
+      // Halo más pequeño que la luz del suelo: rodea la llama o la bombilla.
+      const r = s.small ? 0.9 : s.radius * 0.55;
+      img.setVisible(true).setPosition(s.x, s.y - (s.small ? 0 : 3)).setTint(s.color).setAlpha(Math.min(0.9, strength * wob)).setScale((r * TILE * 2 * wob) / 128);
       n++;
     }
     for (let i = n; i < this.lights.length; i++) this.lights[i].setVisible(false);
   }
 }
 
-/** Lámparas encendidas, hogueras y estufas con leña, y casillas que arden (las que se ven). */
+/** Parpadeo de una llama: varias ondas a destiempo (cada fuego, a su ritmo). */
+function flickerAt(t: number, x: number, y: number): number {
+  return 0.88 + 0.07 * Math.sin(t / 90 + x * 0.3) + 0.04 * Math.sin(t / 37 + y) + 0.03 * Math.sin(t / 211 + x + y);
+}
+
+/** Brillo de un color (0 negro … 1 blanco). */
+function luminance(c: number): number {
+  return (0.299 * ((c >> 16) & 255) + 0.587 * ((c >> 8) & 255) + 0.114 * (c & 255)) / 255;
+}
+
+/** Lámparas encendidas, hogueras y estufas con leña, máquinas con corriente y casillas que arden (las que se ven). */
 function lightSources(world: World, toScreen: TileToScreen, view: Phaser.Geom.Rectangle): LightSource[] {
   const out: LightSource[] = [];
   const inView = (p: { x: number; y: number }) => p.x > view.x - 60 && p.x < view.right + 60 && p.y > view.y - 60 && p.y < view.bottom + 60;
@@ -190,10 +289,14 @@ function lightSources(world: World, toScreen: TileToScreen, view: Phaser.Geom.Re
     if (!s.built) continue;
     const lamp = s.def.light && s.powered;
     const burning = (s.def.cheer || s.def.heater) && (s.fuel ?? 0) > 0;
-    if (!lamp && !burning) continue;
-    const p = toScreen(s.x + 0.5, s.y + 0.5);
+    // Piloto: una máquina que gasta corriente y le llega (no las averiadas).
+    const machine = !lamp && !burning && s.powered && !s.repair && ((s.def.power ?? 0) < 0 || s.electric);
+    if (!lamp && !burning && !machine) continue;
+    const f = footprint(s.def, s.rot);
+    const p = toScreen(s.x + f.w / 2, s.y + f.h / 2);
     if (!inView(p)) continue;
-    out.push({ x: p.x, y: p.y - TILE_H / 2, radius: lamp ? (s.def.light ?? 3) + 1 : 3.5, color: lamp ? 0xffe2a8 : 0xff9a40, flicker: !lamp });
+    if (machine) out.push({ x: p.x, y: p.y - TILE_H / 2, radius: 1.3, color: 0x9ad4ff, flicker: false, small: true });
+    else out.push({ x: p.x, y: p.y - TILE_H / 2, radius: lamp ? (s.def.light ?? 3) + 1 : 3.5, color: lamp ? 0xffe2a8 : 0xff9a40, flicker: !lamp });
   }
   let k = 0;
   for (const i of world.fires.keys()) {
@@ -235,6 +338,36 @@ function makeTextures(scene: Phaser.Scene): void {
       g.addColorStop(0, 'rgba(255,255,255,1)');
       g.addColorStop(0.35, 'rgba(255,255,255,0.45)');
       g.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = g;
+      c.fillRect(0, 0, 128, 128);
+      t.refresh();
+    }
+  }
+  if (!scene.textures.exists(LIGHTMAP_TEX)) {
+    // Luz del suelo: cae suave, como la de verdad (más fuerte en el centro, sin borde).
+    const t = scene.textures.createCanvas(LIGHTMAP_TEX, 128, 128);
+    if (t) {
+      const c = t.getContext();
+      const g = c.createRadialGradient(64, 64, 0, 64, 64, 64);
+      g.addColorStop(0, 'rgba(255,255,255,1)');
+      g.addColorStop(0.3, 'rgba(255,255,255,0.82)');
+      g.addColorStop(0.6, 'rgba(255,255,255,0.38)');
+      g.addColorStop(0.85, 'rgba(255,255,255,0.1)');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = g;
+      c.fillRect(0, 0, 128, 128);
+      t.refresh();
+    }
+  }
+  if (!scene.textures.exists(VIGNETTE_TEX)) {
+    // Bordes oscuros: transparente en el centro y negro hacia las esquinas.
+    const t = scene.textures.createCanvas(VIGNETTE_TEX, 128, 128);
+    if (t) {
+      const c = t.getContext();
+      const g = c.createRadialGradient(64, 64, 30, 64, 64, 92);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(0.6, 'rgba(0,0,0,0.35)');
+      g.addColorStop(1, 'rgba(0,0,0,1)');
       c.fillStyle = g;
       c.fillRect(0, 0, 128, 128);
       t.refresh();

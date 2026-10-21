@@ -38,6 +38,8 @@ export class Effects {
   private flames: Phaser.GameObjects.Particles.ParticleEmitter;
   private glows: Phaser.GameObjects.Image[] = [];
   private scorches: Scorch[] = [];
+  /** Cada destello también ilumina el suelo de alrededor (lo dibuja el mapa de luz del ambiente). */
+  onLight?: (x: number, y: number, tiles: number, color: number, ms: number) => void;
 
   constructor(private readonly scene: Phaser.Scene) {
     makeTextures(scene);
@@ -188,6 +190,7 @@ export class Effects {
     const s = (tiles * TILE * 2) / 64;
     img.setPosition(x, y).setTint(color).setAlpha(0.95).setScale(s).setRotation(0);
     this.fade(img, ms);
+    this.onLight?.(x, y, tiles, color, ms);
   }
 
   private fade(img: Phaser.GameObjects.Image, ms: number): void {
