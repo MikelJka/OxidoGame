@@ -23,6 +23,7 @@ import { CropDef } from '../data/crops';
 import { drawBuilding, faceHeight, wallHeight } from './buildArt';
 import { paintVehicle, VEHICLE_H, VEHICLE_W } from './vehicleArt';
 import { defOf, occupant, Vehicle } from '../sim/vehicles';
+import { CHAR, CHAR_POSES, charKey, paintCharSheet } from './charArt';
 import { colonistLookKey, COLONIST_SIZE, CROP_SIZE, ITEM_H, ITEM_W, paintColonist, paintCorpse, paintCrop, paintItem } from './spriteArt';
 import { rotOf } from '../sim/corpses';
 import { TICKS_PER_DAY } from '../sim/time';
@@ -1052,16 +1053,26 @@ export class WorldScene extends Phaser.Scene {
 
   /** Sprite de una persona (colono, saqueador, prisionero, comerciante); lo crea o cambia si hace falta. */
   private ensureSprite(c: Colonist): Phaser.GameObjects.Image {
-    const key = `colonist-${this.map.seed}-${colonistLookKey(c)}`;
-    if (!this.textures.exists(key)) drawColonistTexture(this, key, c);
+    // Las personas: tira de fotogramas a doble resolución (se dibujan a la mitad). Las criaturas, como antes.
+    const human = !c.creature;
+    const key = human ? charKey(c) : `colonist-${this.map.seed}-${colonistLookKey(c)}`;
+    if (!this.textures.exists(key)) {
+      if (human) drawCharSheet(this, key, c);
+      else drawColonistTexture(this, key, c);
+    }
     let img = this.sprites.get(c.id);
     if (!img) {
       const lift = this.liftAt(c.tile.x, c.tile.y);
       this.spriteLift.set(c.id, lift);
       const v = this.toViewPoint(c.pos.x, c.pos.y);
-      img = this.add.image(v.x * TILE, rowY(v.y) - lift, key).setDepth(COLONIST_DEPTH).setOrigin(0.5, 0.75);
+      img = this.add.image(v.x * TILE, rowY(v.y) - lift, key, human ? 'idle0' : undefined).setDepth(COLONIST_DEPTH).setOrigin(0.5, 0.75);
+      if (human) img.setScale(0.5).setOrigin(0.5, 0.875);
       this.sprites.set(c.id, img);
-    } else if (img.texture.key !== key) img.setTexture(key);
+    } else if (img.texture.key !== key) {
+      img.setTexture(key, human ? 'idle0' : undefined);
+      if (human) img.setScale(0.5).setOrigin(0.5, 0.875);
+      else img.setScale(1).setOrigin(0.5, 0.75);
+    }
     return img;
   }
 
@@ -1082,7 +1093,17 @@ export class WorldScene extends Phaser.Scene {
       const walking = c.path.length > 0 && this.world.speed > 0;
       const working = c.activity === 'working' && this.world.speed > 0;
       // Al trabajar, golpes cortos (hacha, pico o palanca); al andar, el paso.
-      const bob = walking ? Math.abs(Math.sin(t / 90 + c.id)) * -1.5 : working ? -Math.max(0, Math.sin(t / 70 + c.id)) * 2 : 0;
+      const human = !c.creature;
+      const lying = c.activity === 'sleeping' || c.downed || c.carriedBy !== undefined;
+      // Las personas se animan con sus fotogramas; las criaturas, con un saltito.
+      const bob = human ? 0 : walking ? Math.abs(Math.sin(t / 90 + c.id)) * -1.5 : working ? -Math.max(0, Math.sin(t / 70 + c.id)) * 2 : 0;
+      if (human) {
+        const frame = lying ? 'down'
+          : walking ? `walk${Math.floor(t / 140 + c.id) % 4}`
+          : working ? `${c.drafted || c.role === 'saqueador' ? 'hit' : 'work'}${Math.floor(t / 260 + c.id) % 2}`
+          : `idle${Math.floor(t / 800 + c.id) % 2}`;
+        if (img.frame.name !== frame) img.setFrame(frame);
+      }
       // Sube o baja de nivel poco a poco en lugar de saltar.
       const target = this.liftAt(c.tile.x, c.tile.y) + this.towerLift(c.tile.x, c.tile.y);
       const prev = this.spriteLift.get(c.id) ?? target;
@@ -1109,7 +1130,7 @@ export class WorldScene extends Phaser.Scene {
       // Dentro de un vehículo no se ve (se ve el vehículo).
       img.setVisible(!c.vehicle?.boarded);
       // Durmiendo o caído: tumbado. A cuestas: un poco más arriba.
-      img.setAngle(c.activity === 'sleeping' || c.downed || c.carriedBy !== undefined ? -90 : 0);
+      img.setAngle(lying && !human ? -90 : 0);
       if (c.carriedBy !== undefined) img.y -= 7;
       this.syncCarried(c, img);
     }
@@ -2088,6 +2109,15 @@ function loadOrNew(save: string, seed: number, game: Phaser.Game): World {
   }
 }
 
+
+/** Tira de fotogramas de una persona (`charArt.ts`), con un fotograma con nombre por postura. */
+function drawCharSheet(scene: Phaser.Scene, key: string, c: Colonist): void {
+  const tex = scene.textures.createCanvas(key, CHAR * CHAR_POSES.length, CHAR);
+  if (!tex) return;
+  paintCharSheet(tex.getContext(), c);
+  CHAR_POSES.forEach((pose, i) => tex.add(pose, 0, i * CHAR, 0, CHAR, CHAR));
+  tex.refresh();
+}
 
 function drawColonistTexture(scene: Phaser.Scene, key: string, c: Colonist): void {
   const tex = scene.textures.createCanvas(key, COLONIST_SIZE, COLONIST_SIZE);
