@@ -1292,6 +1292,29 @@
     }
   },
   {
+    "id": "trampa_pesca",
+    "research": "puentes",
+    "name": "Trampa de pesca",
+    "category": "mueble",
+    "fishTrap": {
+      "perDay": 1,
+      "hour": 6
+    },
+    "cost": {
+      "madera": 6,
+      "fibra": 2
+    },
+    "work": 150,
+    "hp": 60,
+    "blocks": false,
+    "height": 0,
+    "colors": {
+      "top": "#8a6a44",
+      "face": "#5e4630",
+      "dark": "#2a1e14"
+    }
+  },
+  {
     "id": "banco_investigacion",
     "movable": true,
     "name": "Banco de investigación",

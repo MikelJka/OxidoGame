@@ -309,6 +309,8 @@ export class World implements JobContext {
         !this.colonists.some((c) => c.path.some((p) => p.x === x && p.y === y)));
       this.markChanged(...grown);
     }
+    // Cada día, las trampas de pesca dejan su 🐟 en el muelle de al lado.
+    if (this.tick % TICKS_PER_HOUR === 0) this.emptyFishTraps();
     // Las plantas crecen a saltos de un segundo (basta y cuesta poco).
     if (this.tick % TICKS_PER_SECOND === 0) {
       const h = this.hour;
@@ -606,6 +608,17 @@ export class World implements JobContext {
 
   get day(): number {
     return Math.floor((this.tick + START_HOUR * TICKS_PER_HOUR) / TICKS_PER_DAY) + 1;
+  }
+
+  /** A su hora, cada trampa de pesca terminada deja lo suyo en el muelle terminado de al lado. */
+  private emptyFishTraps(): void {
+    const hour = Math.round(this.hour) % 24;
+    for (const s of this.structures.all()) {
+      const trap = s.def.fishTrap;
+      if (!trap || !s.built || trap.hour !== hour) continue;
+      const dock = this.structures.dockBeside(s.x, s.y, undefined, true);
+      if (dock) this.items.dropAll(dock.x, dock.y, { pescado: trap.perDay });
+    }
   }
 
   /** Hora del día en horas decimales (0–24). */

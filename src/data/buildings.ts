@@ -162,6 +162,11 @@ export interface BuildingDef {
    * normal de ×0,6 a ×1,6. El muelle: de ×1 a ×2 (1 🐟 cada 2 h con Supervivencia 0, cada hora con 20).
    */
   skillSpeed?: [number, number];
+  /**
+   * Trampa de pesca (update del agua, aprobada por Mikel el 2026-10-18): va en el agua poco profunda o
+   * normal pegada a un muelle y cada día, a esta hora, deja `perDay` 🐟 en el muelle de al lado.
+   */
+  fishTrap?: { perDay: number; hour: number };
   /** Colores del dibujo: cara de arriba, frente y sombra. */
   colors: { top: string; face: string; dark: string };
 }
@@ -209,6 +214,7 @@ export function validateBuilding(d: unknown): BuildingDef {
   if (b.stunSeconds !== undefined && (b.blocks || b.mine !== undefined || !((b.power ?? 0) < 0) || !(b.stunSeconds > 0 && b.stunSeconds <= 30))) fail('trampa eléctrica no válida');
   if (b.fullRefund !== undefined && typeof b.fullRefund !== 'boolean') fail('«fullRefund» no válido');
   if (b.dock !== undefined && (b.dock !== true || b.category !== 'taller' || b.blocks || b.onWater || b.platform || b.bridge || (b.size && (b.size[0] !== 1 || b.size[1] !== 1)))) fail('muelle no válido: un puesto 1×1 que se pisa');
+  if (b.fishTrap !== undefined && (b.category !== 'mueble' || b.blocks || b.movable || b.onWater || b.dock || !Number.isInteger(b.fishTrap.perDay) || b.fishTrap.perDay < 1 || !Number.isInteger(b.fishTrap.hour) || b.fishTrap.hour < 0 || b.fishTrap.hour > 23)) fail('trampa de pesca no válida');
   if (b.skillSpeed !== undefined && (!b.workSkill || !Array.isArray(b.skillSpeed) || b.skillSpeed.length !== 2 || !b.skillSpeed.every((n) => n > 0 && n <= 5))) fail('«skillSpeed» no válido');
   if (b.loophole !== undefined && (b.category !== 'muro' || typeof b.loophole !== 'number' || !(b.loophole > 0 && b.loophole < 1))) fail('«loophole» no válido');
   if (b.stepDamage !== undefined && (b.blocks || !(b.stepDamage > 0 && b.stepDamage <= 0.5))) fail('«stepDamage» no válido');

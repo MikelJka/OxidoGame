@@ -10,7 +10,7 @@ import { workSpeed } from '../src/sim/jobs';
 import { isPassable, Terrain } from '../src/sim/map';
 import { NUTRITION } from '../src/sim/needs';
 import { loadWorld, serializeWorld } from '../src/sim/save';
-import { TICKS_PER_HOUR } from '../src/sim/time';
+import { TICKS_PER_DAY, TICKS_PER_HOUR } from '../src/sim/time';
 import type { World } from '../src/sim/world';
 
 /** Un río en las columnas 10–12: poco profunda, agua y profunda. */
@@ -122,5 +122,24 @@ describe('muelle y pesca', () => {
       c.skills.combate = 11;
     }
     expect(loadWorld(JSON.stringify(old)).colonists[0].skills.supervivencia).toBe(9);
+  });
+
+  it('trampa de pesca (🪵6 🧵2): en el agua pegada a un muelle, deja 1 🐟 al día junto a él', () => {
+    const w = flatWorld(0);
+    river(w);
+    const d = buildingDef('trampa_pesca');
+    expect(d.cost).toEqual({ madera: 6, fibra: 2 });
+    expect(d.research).toBe('puentes');
+    expect(w.structures.place(11, 9, 'trampa_pesca')).toBe(false); // sin muelle al lado, no
+    expect(w.structures.place(5, 9, 'trampa_pesca')).toBe(false); // en tierra, no
+    buildNow(w, 10, 9, 'muelle');
+    expect(w.structures.place(12, 9, 'trampa_pesca')).toBe(false); // ni lejos ni en la profunda
+    const trap = buildNow(w, 11, 9, 'trampa_pesca');
+    expect(trap.built).toBe(true);
+    for (let t = 0; t < 3 * TICKS_PER_DAY; t++) w.step();
+    expect(w.inventory().pescado).toBe(3);
+    // Se guarda.
+    const back = loadWorld(serializeWorld(w));
+    expect(back.structures.at(11, 9)?.def.id).toBe('trampa_pesca');
   });
 });

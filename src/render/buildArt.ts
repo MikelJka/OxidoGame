@@ -392,6 +392,16 @@ function drawFlat(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: number,
   const { top, face, dark } = def.colors;
   const px = painter(ctx);
   ctx.clearRect(0, 0, tile, tileH);
+  if (def.fishTrap) {
+    // Nasa de mimbre medio hundida, con su cuerda.
+    px(3, 3, tile - 6, tileH - 6, '#1a1410');
+    px(4, 4, tile - 8, tileH - 8, top);
+    for (let x = 5; x < tile - 5; x += 2) px(x, 4, 1, tileH - 8, dark);
+    px(4, Math.floor(tileH / 2), tile - 8, 1, face);
+    px(1, 1, 3, 1, '#c8b890'); // cuerda
+    px(1, 1, 1, 3, '#c8b890');
+    return;
+  }
   if (def.bridge) {
     // Puente: tablones (o chapa) de lado a lado con huecos al agua, y una barandilla a cada lado.
     if (def.id.includes('madera')) {

@@ -2,7 +2,7 @@
 
 Diario de sesiones, la más reciente arriba.
 
-## 2026-10-21 (30) — El muelle y la pesca
+## 2026-10-21 (30) — El muelle, la pesca y la trampa de pesca
 
 - Mikel contestó las tres propuestas (muelle, saqueadores en balsa y fase 5) y pidió trabajar sin parar hasta las 13:00. Se empieza por el **muelle y la pesca**.
 - Habilidad nueva **Supervivencia** (de 0 a 20) para todos los colonos. En las partidas empezadas, cada colono la saca de la media de su Cultivo y su Combate.
@@ -10,8 +10,10 @@ Diario de sesiones, la más reciente arriba.
 - Al tocar el muelle se le encarga **«Pescar»** (hasta tener N 🐟 o un número fijo). Sale **1 🐟 cada 2 h con Supervivencia 0 y cada hora con 20**. Pesca quien tiene «Fabricar».
 - El **🐟 crudo** alimenta como las patatas y sienta peor. En la cocina, **«Pescado asado»**: 4 🐟 → 2 🍲.
 - Qué probar: investigar «Puentes» (🪄 acelera), poner un muelle en la orilla de un río, tocarlo y encargar «Pescar» hasta tener 10. Luego encargar «Pescado asado» en la cocina.
-- Sin npm en el entorno: tests con Bun (582, 6 nuevos en `tests/dock.test.ts`) y tipos con `tsc` (sin errores nuevos). La prueba completa, en GitHub Actions.
-- Siguiente: la trampa de pesca y, después, los saqueadores en balsa.
+- Sin npm en el entorno: tests con Bun (583, 7 nuevos en `tests/dock.test.ts`) y tipos con `tsc` (sin errores nuevos). La prueba completa, en GitHub Actions.
+- **Trampa de pesca** (🪵6 🧵2, con «Puentes», en 🏗 → Muebles): va en el agua poco profunda o normal, pegada a un muelle, y cada día a las 6:00 deja 1 🐟 en el muelle. Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): la hora (las 6:00) y que el pescado lo recogen luego los que tienen «Transportar».
+- Qué probar también: poner una trampa de pesca junto al muelle y mirar al día siguiente que ha dejado un 🐟.
+- Siguiente: los saqueadores en balsa.
 
 ## 2026-10-21 — Decisiones de Mikel anotadas (sin cambiar el juego)
 

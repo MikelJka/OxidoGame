@@ -494,7 +494,7 @@ export class Structures {
       return canSpan(this.map, x, y) || buildBlocker(this.map, x, y) === null;
     }
     // El molino de agua y el muelle van en el agua misma: ni en tierra ni sobre un puente o una plataforma.
-    if (def?.onWater || def?.dock) {
+    if (def?.onWater || def?.dock || def?.fishTrap) {
       const main = this.mainAt(x, y);
       return canRiver(this.map, x, y) && !this.floorAt(x, y) && (!main || (!!ignore && main === ignore));
     }
@@ -508,6 +508,18 @@ export class Structures {
     if (def.category === 'agua' && this.floorAt(x, y)) return false;
     const main = this.mainAt(x, y);
     return !main || (!!ignore && main === ignore);
+  }
+
+  /** Muelle (terminado o en plano) pegado por un lado a la casilla. */
+  dockBeside(x: number, y: number, ignore?: Structure, builtOnly = false): Structure | undefined {
+    for (const [dx, dy] of [[0, 1], [1, 0], [-1, 0], [0, -1]]) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (!inBounds(this.map, nx, ny)) continue;
+      const other = this.byTile.get(index(this.map, nx, ny));
+      if (other && other !== ignore && other.def.dock && (!builtOnly || other.built)) return other;
+    }
+    return undefined;
   }
 
   /** La casilla toca por un lado la orilla (tierra) o otro muelle. */
@@ -538,6 +550,8 @@ export class Structures {
     if (!tiles.every((t) => this.canPlace(t.x, t.y, def, ignore) && (def.drawbridge || this.map.level[index(this.map, t.x, t.y)] === level))) return false;
     // El muelle va pegado (no en diagonal) a la orilla o a otro muelle, terminado o en plano.
     if (def.dock && !this.dockAnchored(x, y, ignore)) return false;
+    // La trampa de pesca, pegada a un muelle.
+    if (def.fishTrap && !this.dockBeside(x, y, ignore)) return false;
     // El puente levadizo tiene que tener agua debajo (al menos una casilla).
     if (def.drawbridge && !tiles.some((t) => canSpan(this.map, t.x, t.y))) return false;
     // La depuradora tiene que tocar agua.
