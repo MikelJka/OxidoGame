@@ -12,7 +12,12 @@ interface SeasonData {
   seasons: SeasonDef[];
   cold: { mood: number; text: string };
   hypothermia: { afterHours: number; healthPerHour: number; floor: number; mood: number; text: string };
+  foliage: { spread: number; stages: { id: FoliageStage; from: number }[] };
+  snow: { winterDaysToFull: number; coldWaveHoursToFull: number; meltDays: number };
 }
+
+/** Cómo están las hojas de un árbol o matorral. */
+export type FoliageStage = 'desnudo' | 'brotes' | 'verde' | 'otono' | 'cayendo';
 
 export const SEASONS: SeasonData = raw as unknown as SeasonData;
 

@@ -33,5 +33,41 @@
     "floor": 0.35,
     "mood": -0.1,
     "text": "Hipotermia"
+  },
+  "foliage": {
+    "_": "Hojas de árboles y matorrales a lo largo del año (fracción del año, 0 = primer día de primavera). Cada planta cambia algo antes o después (spread) para que el cambio sea poco a poco. Puesto por la sesión del 2026-10-21.",
+    "spread": 0.07,
+    "stages": [
+      {
+        "id": "desnudo",
+        "from": 0
+      },
+      {
+        "id": "brotes",
+        "from": 0.02
+      },
+      {
+        "id": "verde",
+        "from": 0.11
+      },
+      {
+        "id": "otono",
+        "from": 0.5
+      },
+      {
+        "id": "cayendo",
+        "from": 0.62
+      },
+      {
+        "id": "desnudo",
+        "from": 0.71
+      }
+    ]
+  },
+  "snow": {
+    "_": "Nieve en el suelo: se acumula en invierno (días hasta cubrir del todo) y con la ola de frío (horas), y se funde al llegar la primavera (días). Puesto por la sesión del 2026-10-21.",
+    "winterDaysToFull": 2.5,
+    "coldWaveHoursToFull": 14,
+    "meltDays": 2
   }
 }

@@ -84,6 +84,13 @@ try {
       await page.evaluate(() => window.oxidoPrueba.ambiente(13, 'tormenta_electrica'));
       await shot(page, `${d.name}-tormenta`);
       await page.evaluate(() => window.oxidoPrueba.ambiente(11, 'despejado'));
+      // Las estaciones: otoño (hojas ocres) e invierno (nieve en el suelo y encima de todo).
+      await page.evaluate(([x, y]) => window.oxidoPrueba.mirar(x + 8, y, 1.8), [c.x, c.y]);
+      await page.evaluate(() => window.oxidoPrueba.dia(24));
+      await shot(page, `${d.name}-otono`);
+      await page.evaluate(() => window.oxidoPrueba.dia(34));
+      await shot(page, `${d.name}-invierno`);
+      await page.evaluate(() => window.oxidoPrueba.dia(17));
       const k = points.corral;
       await page.evaluate(([x, y]) => window.oxidoPrueba.mirar(x, y, 3), [k.x, k.y]);
       await shot(page, `${d.name}-animales`);

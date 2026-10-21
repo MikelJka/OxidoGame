@@ -3,6 +3,7 @@
 // tiene 4 variantes en un único atlas (una sola textura: se dibujan todos de una vez) y se colocan como
 // sprites, ordenados con las personas. Los objetos planos (piedras, charcos, huesos…) siguen en el suelo.
 // Solo dibujo: no decide nada del juego.
+import type { FoliageStage } from '../data/seasons';
 import { Prop } from '../sim/map';
 import { Rng } from '../sim/rng';
 
@@ -20,8 +21,22 @@ export function isTallProp(p: Prop): boolean {
   return TALL_PROPS.includes(p);
 }
 
-export function propFrame(p: Prop, variant: number): string {
-  return `${p}-${variant}`;
+/** Árboles y matorrales: cambian de hojas con las estaciones. */
+export const FOLIAGE_PROPS: readonly Prop[] = [Prop.DeadTree, Prop.Bush];
+export const FOLIAGE_STAGES: readonly FoliageStage[] = ['desnudo', 'brotes', 'verde', 'otono', 'cayendo'];
+
+/** Aspectos de un objeto: con hojas de cada estación (si tiene) y con nieve encima o sin ella. */
+function looksOf(p: Prop): { stage: FoliageStage | null; snow: boolean }[] {
+  const stages: (FoliageStage | null)[] = FOLIAGE_PROPS.includes(p) ? [...FOLIAGE_STAGES] : [null];
+  return stages.flatMap((stage) => [false, true].map((snow) => ({ stage, snow })));
+}
+
+/** Columnas del atlas (la fila más ancha). */
+export const PROP_ATLAS_COLS = Math.max(...TALL_PROPS.map((p) => looksOf(p).length)) * PROP_VARIANTS;
+
+export function propFrame(p: Prop, variant: number, stage: FoliageStage | null = null, snow = false): string {
+  const st = FOLIAGE_PROPS.includes(p) ? (stage ?? 'verde') : 'x';
+  return `${p}-${variant}-${st}-${snow ? 1 : 0}`;
 }
 
 /** Variante (0–3) del objeto de una casilla: siempre la misma para esa casilla. */
@@ -35,8 +50,11 @@ type Px = (x: number, y: number, w: number, h: number, c: string) => void;
 export function paintPropAtlas(ctx: CanvasRenderingContext2D): { frame: string; x: number; y: number }[] {
   const frames: { frame: string; x: number; y: number }[] = [];
   TALL_PROPS.forEach((p, row) => {
-    for (let v = 0; v < PROP_VARIANTS; v++) {
-      const ox = v * PROP_W;
+    const looks = looksOf(p);
+    for (let k = 0; k < looks.length * PROP_VARIANTS; k++) {
+      const v = k % PROP_VARIANTS;
+      const look = looks[Math.floor(k / PROP_VARIANTS)];
+      const ox = k * PROP_W;
       const oy = row * PROP_H;
       ctx.save();
       ctx.beginPath();
@@ -47,9 +65,11 @@ export function paintPropAtlas(ctx: CanvasRenderingContext2D): { frame: string; 
         ctx.fillStyle = c;
         ctx.fillRect(ox + Math.round(x), oy + Math.round(y), Math.round(w), Math.round(h));
       };
-      paintProp(px, ctx, ox, oy, p, new Rng(0x51ed27 + p * 977 + v * 131));
+      // El mismo azar en todas las estaciones: la planta tiene la misma forma todo el año.
+      paintProp(px, ctx, ox, oy, p, new Rng(0x51ed27 + p * 977 + v * 131), look.stage ?? 'verde');
       ctx.restore();
-      frames.push({ frame: propFrame(p, v), x: ox, y: oy });
+      if (look.snow) addSnow(ctx, ox, oy);
+      frames.push({ frame: propFrame(p, v, look.stage, look.snow), x: ox, y: oy });
     }
   });
   return frames;
@@ -63,14 +83,42 @@ function shadow(px: Px, cx: number, w: number, y = PROP_BASE - 3): void {
   }
 }
 
-function paintProp(px: Px, ctx: CanvasRenderingContext2D, ox: number, oy: number, p: Prop, rng: Rng): void {
+/** Nieve encima de todo lo que mira al cielo: los píxeles con aire justo encima se vuelven blancos. */
+function addSnow(ctx: CanvasRenderingContext2D, ox: number, oy: number): void {
+  const img = ctx.getImageData(ox, oy, PROP_W, PROP_H);
+  const d = img.data;
+  const solid = (x: number, y: number) => y >= 0 && d[(y * PROP_W + x) * 4 + 3] > 200;
+  const shadowRow = PROP_BASE - 5; // la sombra del suelo no lleva nieve
+  for (let x = 0; x < PROP_W; x++) {
+    let depth = 0;
+    for (let y = 0; y < shadowRow; y++) {
+      if (!solid(x, y)) {
+        depth = 0;
+        continue;
+      }
+      // Hasta 2 píxeles de nieve bajo cada borde de arriba (1 en los bordes muy inclinados).
+      const flat = solid(x - 1, y) && solid(x + 1, y);
+      if (depth < (flat ? 2 : 0)) {
+        const o = (y * PROP_W + x) * 4;
+        const shade = depth === 0 ? 248 : 222;
+        d[o] = shade;
+        d[o + 1] = shade + 2;
+        d[o + 2] = Math.min(255, shade + 8);
+      }
+      depth++;
+    }
+  }
+  ctx.putImageData(img, ox, oy);
+}
+
+function paintProp(px: Px, ctx: CanvasRenderingContext2D, ox: number, oy: number, p: Prop, rng: Rng, stage: FoliageStage): void {
   switch (p) {
     case Prop.DeadTree:
-      return deadTree(px, ctx, ox, oy, rng);
+      return deadTree(px, ctx, ox, oy, rng, stage);
     case Prop.Stump:
       return stump(px, rng);
     case Prop.Bush:
-      return bush(px, rng);
+      return bush(px, rng, stage);
     case Prop.Boulder:
       return boulder(px, rng);
     case Prop.ScrapPile:
@@ -88,7 +136,24 @@ function paintProp(px: Px, ctx: CanvasRenderingContext2D, ox: number, oy: number
 
 // --- Árbol seco: tronco retorcido con corteza, ramas que se abren y alguna hoja muerta -------------
 
-function deadTree(px: Px, ctx: CanvasRenderingContext2D, ox: number, oy: number, rng: Rng): void {
+/** Colores de las hojas según la estación (contorno, sombra, cuerpo, luz). */
+const LEAVES: Record<FoliageStage, string[][]> = {
+  desnudo: [],
+  brotes: [['#3a5a24', '#5e8a34', '#86b048', '#b0d468']],
+  verde: [
+    ['#1e2e14', '#2e4a1e', '#46682a', '#6a8e3a'],
+    ['#22301a', '#364e24', '#4e6e30', '#76944a'],
+  ],
+  otono: [
+    ['#3a1e0e', '#7a3a14', '#b0601e', '#d8962e'],
+    ['#3a240e', '#8a5a18', '#c08a24', '#e0b844'],
+    ['#38140e', '#7a2416', '#a8401e', '#cc6a2e'],
+  ],
+  cayendo: [['#30200e', '#5e3e1a', '#8a5a24', '#a8783a']],
+};
+
+function deadTree(px: Px, ctx: CanvasRenderingContext2D, ox: number, oy: number, rng: Rng, stage: FoliageStage = 'desnudo'): void {
+  const tips: [number, number][] = [];
   const bark = [['#2a2018', '#4a3a2a', '#6a5640', '#8a7458'], ['#241c16', '#3e3226', '#5e4c3a', '#7e6a52'], ['#2a221c', '#4a4036', '#6a5e50', '#8e8270']][rng.int(0, 2)];
   shadow(px, 16, 22);
   const tall = rng.int(0, 8);
@@ -121,7 +186,7 @@ function deadTree(px: Px, ctx: CanvasRenderingContext2D, ox: number, oy: number,
     if (depth < 3 && len > 3) {
       branch(cx, cy, ang + rng.next() * 0.9 - 0.2, Math.round(len * 0.6), depth + 1);
       branch(cx, cy, ang - rng.next() * 0.9 + 0.2, Math.round(len * 0.5), depth + 1);
-    }
+    } else tips.push([cx, cy]);
   };
   const tx = 14 + lean;
   branch(tx, top + 2, -2.4 + rng.next() * 0.4, 8 + rng.int(0, 3), 1);
@@ -129,8 +194,45 @@ function deadTree(px: Px, ctx: CanvasRenderingContext2D, ox: number, oy: number,
   branch(tx + 1, top, -1.6, 7, 1);
   branch(tx + 1, top + 9, -2.8, 6, 2);
   branch(tx + 3, top + 12, -0.3, 6, 2);
-  // Unas hojas secas colgando en algunos.
-  if (rng.chance(0.5)) for (let i = 0; i < 6; i++) px(rng.int(4, 27), rng.int(top - 4, top + 12), 1, 1, ['#6a5a2a', '#8a6a2a', '#5a4a24'][i % 3]);
+  // Copa según la estación: racimos de hojas alrededor de las puntas de las ramas.
+  // Su azar no depende de la estación: los racimos están en el mismo sitio todo el año.
+  const leafRng = new Rng(Math.floor(tips.length * 7919 + top * 31 + lean * 3 + 1000));
+  const clusters = tips.map(([x, y]) => ({ x: x + leafRng.int(-1, 1), y: y + leafRng.int(-1, 1), r: leafRng.int(3, 5), keep: leafRng.next(), pal: leafRng.int(0, 2) }));
+  const pals = LEAVES[stage];
+  if (pals.length) {
+    const pal = (i: number) => pals[i % pals.length];
+    // Brotes: hojitas sueltas; cayendo: solo quedan algunos racimos y más pequeños.
+    const list = stage === 'cayendo' ? clusters.filter((c) => c.keep < 0.45) : clusters;
+    const rad = (r: number) => (stage === 'brotes' ? 1 : stage === 'cayendo' ? r - 2 : r);
+    for (const c of list) disc(px, c.x, c.y, rad(c.r) + 1, pal(c.pal)[0]);
+    for (const c of list) {
+      const p4 = pal(c.pal);
+      const r = rad(c.r);
+      disc(px, c.x, c.y, r, p4[1]);
+      // Borde irregular: hojas que asoman alrededor del racimo.
+      if (r > 1) {
+        for (let k = 0; k < 7; k++) {
+          const a = (k / 7) * Math.PI * 2 + c.keep * 3;
+          const bx = c.x + Math.round(Math.cos(a) * (r + 0.5));
+          const by = c.y + Math.round(Math.sin(a) * (r + 0.5));
+          px(bx, by, 1, 1, by < c.y ? p4[2] : p4[1]);
+        }
+      }
+      disc(px, c.x - 1, c.y - 1, Math.max(0, r - 1), p4[2]);
+      if (r > 2) disc(px, c.x - 2, c.y - 2, r - 3, p4[3]);
+      // Textura de hojas: puntos de luz y de sombra dentro del racimo.
+      for (let k = 0; k < r * 3; k++) {
+        const dx = leafRng.int(-r + 1, r - 1);
+        const dy = leafRng.int(-r + 1, r - 1);
+        if (dx * dx + dy * dy >= r * r) continue;
+        px(c.x + dx, c.y + dy, 1, 1, dy + dx < 0 ? p4[3] : p4[0]);
+      }
+    }
+    // Hojas caídas al pie (otoño).
+    if (stage === 'otono' || stage === 'cayendo') {
+      for (let i = 0; i < 14; i++) px(leafRng.int(4, 27), PROP_BASE - leafRng.int(1, 4), 1, 1, pal(i)[2 + (i % 2)]);
+    }
+  }
 }
 
 function stump(px: Px, rng: Rng): void {
@@ -162,8 +264,8 @@ function stump(px: Px, rng: Rng): void {
 
 // --- Matorral: racimos de hojas secas y verdes con luz arriba ----------------------------------------
 
-function bush(px: Px, rng: Rng): void {
-  const pal = [
+function bush(px: Px, rng: Rng, stage: FoliageStage = 'verde'): void {
+  const green = [
     ['#2a3018', '#46502a', '#64703a', '#8a9452'],
     ['#2e2c18', '#504a28', '#6e6638', '#948a52'],
     ['#262e1c', '#3c4a2a', '#56663a', '#7a8a50'],
@@ -173,12 +275,36 @@ function bush(px: Px, rng: Rng): void {
   const blobs: [number, number, number][] = [];
   for (let i = 0; i < 9; i++) blobs.push([rng.int(5, 25), rng.int(PROP_BASE - 16, PROP_BASE - 5), rng.int(3, 6)]);
   blobs.sort((a, b) => a[1] - b[1]);
+  // Ramitas (se ven en invierno y entre las hojas que quedan).
+  for (const [x, y] of blobs) {
+    for (let k = 0; k < 6; k++) px(16 + Math.round(((x - 16) * k) / 6), PROP_BASE - 3 - Math.round(((PROP_BASE - 3 - y) * k) / 6), 1, 1, '#4a3a2a');
+  }
+  if (stage === 'desnudo') {
+    for (const [x, y] of blobs) px(x, y - 1, 1, 2, '#5e4a36');
+    return;
+  }
+  const pal = stage === 'otono' ? LEAVES.otono[rng.int(0, 2)] : stage === 'cayendo' ? LEAVES.cayendo[0] : stage === 'brotes' ? LEAVES.brotes[0] : green;
+  if (stage === 'brotes' || stage === 'cayendo') {
+    // Pocas hojas: racimos pequeños en algunas ramas.
+    blobs.forEach(([x, y, r], i) => {
+      if (stage === 'cayendo' && i % 2) return;
+      disc(px, x, y, Math.max(1, r - 3), pal[1]);
+      px(x - 1, y - 1, 1, 1, pal[3]);
+    });
+    return;
+  }
   // Contorno, luego sombra, cuerpo y luz de cada racimo.
   for (const [x, y, r] of blobs) disc(px, x, y, r + 1, pal[0]);
   for (const [x, y, r] of blobs) {
     disc(px, x, y, r, pal[1]);
     disc(px, x - 1, y - 1, r - 1, pal[2]);
     disc(px, x - 2, y - 2, Math.max(1, r - 3), pal[3]);
+    // Textura de hojas.
+    for (let k = 0; k < r * 3; k++) {
+      const dx = rng.int(-r + 1, r - 1);
+      const dy = rng.int(-r + 1, r - 1);
+      if (dx * dx + dy * dy < r * r) px(x + dx, y + dy, 1, 1, dx + dy < 0 ? pal[3] : pal[0]);
+    }
   }
   // Hojas sueltas y alguna flor o baya.
   for (let i = 0; i < 10; i++) px(rng.int(4, 27), rng.int(PROP_BASE - 20, PROP_BASE - 4), 1, 1, pal[rng.int(2, 3)]);

@@ -3,11 +3,50 @@
 // estufa encendida, ni lleva abrigo, pasa frío (−10 % de ánimo) y, si dura, coge hipotermia.
 // Puro y determinista: sin Phaser ni DOM.
 import { eventDef } from '../data/events';
-import { SEASONS, seasonOf } from '../data/seasons';
+import { FoliageStage, SEASONS, seasonOf } from '../data/seasons';
 import { isDaylight } from './power';
 import { roofed } from './roofs';
 import { TICKS_PER_HOUR } from './time';
 import type { World } from './world';
+
+/** Fracción del año (0 = primer instante de la primavera, 1 = fin del invierno). */
+export function yearFraction(day: number, hour: number): number {
+  const len = SEASONS.daysPerSeason * SEASONS.seasons.length;
+  const t = (Math.max(1, day) - 1 + hour / 24) / len;
+  return t - Math.floor(t);
+}
+
+/**
+ * Hojas de una planta en ese momento del año. `jitter` (0–1, fijo para cada planta) la adelanta o
+ * retrasa un poco: así un bosque cambia de color poco a poco y no todo a la vez.
+ */
+export function foliageAt(day: number, hour: number, jitter: number): FoliageStage {
+  const { spread, stages } = SEASONS.foliage;
+  let t = yearFraction(day, hour) - jitter * spread;
+  if (t < 0) t += 1;
+  let stage = stages[0].id;
+  for (const s of stages) if (t >= s.from) stage = s.id;
+  return stage;
+}
+
+/** Nieve que cubre el suelo (0–1): sube en invierno y con la ola de frío; se funde en primavera. */
+export function snowCover(w: World): number {
+  const S = SEASONS.snow;
+  const days = SEASONS.daysPerSeason;
+  const season = seasonOf(w.day).id;
+  const intoSeason = ((Math.max(1, w.day) - 1) % days) + w.hour / 24;
+  let cover = 0;
+  if (season === 'invierno') cover = Math.min(1, intoSeason / S.winterDaysToFull);
+  // Lo que queda de la nieve del invierno al empezar la primavera (si hubo invierno antes).
+  else if (season === 'primavera' && w.day > days) cover = Math.max(0, 1 - intoSeason / S.meltDays);
+  for (const e of w.weather) {
+    if (w.tick >= e.until || !eventDef(e.id)?.coldWave) continue;
+    const def = eventDef(e.id);
+    const started = e.until - (def?.hours ?? 48) * TICKS_PER_HOUR;
+    cover = Math.max(cover, Math.min(1, (w.tick - started) / TICKS_PER_HOUR / S.coldWaveHoursToFull));
+  }
+  return cover;
+}
 
 /** Es invierno. */
 export function isWinter(w: World): boolean {

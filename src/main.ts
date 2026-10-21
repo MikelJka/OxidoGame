@@ -1476,6 +1476,12 @@ else game.events.once('map-ready', () => window.setTimeout(() => mainMenu.open()
     else if (suceso) w.weather.push({ id: suceso, until: w.tick + 24 * TICKS_PER_HOUR });
     return w.hour;
   },
+  // Para ver las estaciones: salta al día pedido (a la misma hora).
+  dia: (d: number) => {
+    const w = scene().world;
+    w.tick += Math.round((d - w.day) * 24 * TICKS_PER_HOUR);
+    return w.day;
+  },
   batalla: () => {
     const w = scene().world;
     const f = w.factions.find((k) => k.base && k.id !== 'piratas_oxido') ?? w.factions.find((k) => k.base);

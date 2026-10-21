@@ -1,6 +1,6 @@
 import { Atmosphere } from './atmosphere';
 import Phaser from 'phaser';
-import { GameMap, describeTile, inBounds, Prop } from '../sim/map';
+import { GameMap, describeTile, inBounds, isWater, Prop } from '../sim/map';
 import { activityLabel, Colonist, groupSummary, type Stance } from '../sim/colonist';
 import { TURRET_SHOT_TICKS } from '../sim/people';
 import { BLAST_TICKS } from '../sim/grenades';
@@ -26,7 +26,8 @@ import { paintVehicle, VEHICLE_H, VEHICLE_W, VehicleView } from './vehicleArt';
 import { defOf, occupant, Vehicle } from '../sim/vehicles';
 import { CHAR, CHAR_POSES, charKey, paintCharSheet } from './charArt';
 import { BEAST, BEAST_POSES, hasBeastArt, paintBeastSheet } from './creatureArt';
-import { isTallProp, paintPropAtlas, PROP_BASE, PROP_H, PROP_VARIANTS, PROP_W, propFrame, propVariant, TALL_PROPS } from './propArt';
+import { FOLIAGE_PROPS, isTallProp, paintPropAtlas, PROP_ATLAS_COLS, PROP_BASE, PROP_H, PROP_W, propFrame, propVariant, TALL_PROPS } from './propArt';
+import { foliageAt, snowCover, yearFraction } from '../sim/seasons';
 import { colonistLookKey, COLONIST_SIZE, CROP_SIZE, ITEM_H, ITEM_W, paintColonist, paintCorpse, paintCrop, paintItem } from './spriteArt';
 import { rotOf } from '../sim/corpses';
 import { TICKS_PER_DAY } from '../sim/time';
@@ -299,6 +300,8 @@ export class WorldScene extends Phaser.Scene {
     this.syncZones();
     this.syncStructures();
     this.syncPlants();
+    this.syncPropLooks();
+    this.syncSnow();
     this.drawShadows();
     if (this.roofDrawn !== this.world.roofVersion) this.drawRoofs();
     this.fireTimer += delta;
@@ -373,10 +376,93 @@ export class WorldScene extends Phaser.Scene {
     for (let i = 0; i < this.view.props.length; i++) this.syncPropSprite(i);
   }
 
+  /** Nieve en el suelo ahora (0–1) y momento del año con que se pintaron los objetos. */
+  private snowNow = 0;
+  private propLookKey = '';
+
+  /** Con el paso del año (o al nevar), los árboles cambian de hojas y los objetos se cubren de nieve. */
+  private syncPropLooks(): void {
+    this.snowNow = snowCover(this.world);
+    const key = `${Math.floor(yearFraction(this.world.day, this.world.hour) * 480)}|${Math.round(this.snowNow * 20)}`;
+    if (key === this.propLookKey) return;
+    this.propLookKey = key;
+    for (const vi of this.propSprites.keys()) this.syncPropSprite(vi);
+  }
+
+  /** Capa de nieve sobre el suelo (debajo de suelos construidos, objetos y personas). */
+  private snowImage: Phaser.GameObjects.Image | null = null;
+  private snowKey = '';
+
+  /**
+   * Nieve en el suelo: a media resolución y suavizada, con ventisqueros (ruido) que se cubren
+   * primero; con más nieve, se cubre todo. No cae en el agua.
+   */
+  private syncSnow(): void {
+    const level = Math.round(this.snowNow * 16);
+    const key = `${level}|${this.rotation}|${tiltIndex}`;
+    if (key === this.snowKey) return;
+    this.snowKey = key;
+    if (level === 0) {
+      this.snowImage?.setVisible(false);
+      return;
+    }
+    const v = this.view;
+    const W = Math.ceil((v.width * TILE) / 2);
+    const H = Math.ceil((v.height * TILE_H + TOP_MARGIN) / 2);
+    const tex = this.textures.exists('snow-layer') ? (this.textures.get('snow-layer') as Phaser.Textures.CanvasTexture) : this.textures.createCanvas('snow-layer', W, H);
+    if (!tex) return;
+    if (tex.width !== W || tex.height !== H) tex.setSize(W, H);
+    const ctx = tex.getContext();
+    const img = ctx.createImageData(W, H);
+    const d = img.data;
+    const cover = level / 16;
+    const seed = this.map.seed;
+    const noise = (x: number, y: number) => {
+      // Ruido suave (dos escalas) para que la nieve cuaje por manchas.
+      const n = (a: number, b: number, k: number) => {
+        const h = Math.imul(a ^ Math.imul(b, 0x27d4eb2f), 0x85ebca6b) ^ seed ^ k;
+        return ((Math.imul(h ^ (h >>> 13), 0x2c1b3c6d) >>> 0) % 1000) / 1000;
+      };
+      const smooth = (sx: number, sy: number, cell: number, k: number) => {
+        const gx = sx / cell, gy = sy / cell;
+        const x0 = Math.floor(gx), y0 = Math.floor(gy);
+        const tx = gx - x0, ty = gy - y0;
+        const a = n(x0, y0, k), b = n(x0 + 1, y0, k), c = n(x0, y0 + 1, k), e = n(x0 + 1, y0 + 1, k);
+        const fx = tx * tx * (3 - 2 * tx), fy = ty * ty * (3 - 2 * ty);
+        return (a + (b - a) * fx) * (1 - fy) + (c + (e - c) * fx) * fy;
+      };
+      return smooth(x, y, 14, 1) * 0.65 + smooth(x, y, 4, 2) * 0.35;
+    };
+    for (let ty = 0; ty < v.height; ty++) {
+      for (let tx = 0; tx < v.width; tx++) {
+        if (isWater(v.terrain[ty * v.width + tx])) continue;
+        const top = Math.floor((ty * TILE_H + TOP_MARGIN - liftOf(v, tx, ty)) / 2);
+        const left = (tx * TILE) / 2;
+        for (let y = top; y < top + TILE_H / 2 && y < H; y++) {
+          if (y < 0) continue;
+          for (let x = left; x < left + TILE / 2; x++) {
+            const a = Math.max(0, Math.min(1, (cover * 1.6 - noise(x, y) * 0.9) * 2.2));
+            if (a <= 0) continue;
+            const o = (y * W + x) * 4;
+            const sparkle = (x * 7 + y * 13) % 29 === 0 ? 10 : 0;
+            d[o] = 232 + sparkle;
+            d[o + 1] = 238 + sparkle;
+            d[o + 2] = 246;
+            d[o + 3] = Math.round(a * 235);
+          }
+        }
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    tex.refresh();
+    if (!this.snowImage) this.snowImage = this.add.image(0, -TOP_MARGIN, 'snow-layer').setOrigin(0, 0).setScale(2).setDepth(ZONE_DEPTH - 0.2);
+    this.snowImage.setVisible(true);
+  }
+
   /** Atlas de los objetos altos (una sola textura con todas sus variantes). */
   private ensurePropAtlas(): void {
     if (this.textures.exists(PROP_ATLAS)) return;
-    const tex = this.textures.createCanvas(PROP_ATLAS, PROP_W * PROP_VARIANTS, PROP_H * TALL_PROPS.length);
+    const tex = this.textures.createCanvas(PROP_ATLAS, PROP_W * PROP_ATLAS_COLS, PROP_H * TALL_PROPS.length);
     if (!tex) return;
     for (const f of paintPropAtlas(tex.getContext())) tex.add(f.frame, 0, f.x, f.y, PROP_W, PROP_H);
     tex.refresh();
@@ -394,7 +480,11 @@ export class WorldScene extends Phaser.Scene {
     this.ensurePropAtlas();
     const vx = vi % this.view.width;
     const vy = Math.floor(vi / this.view.width);
-    const frame = propFrame(p, propVariant(this.map.seed, vx, vy));
+    // Árboles y matorrales con las hojas de la estación (cada uno cambia un poco antes o después) y nieve encima.
+    const jitter = (((this.map.seed ^ Math.imul(vx + 7, 2654435761) ^ Math.imul(vy + 3, 40503)) >>> 0) % 1000) / 1000;
+    const stage = FOLIAGE_PROPS.includes(p) ? foliageAt(this.world.day, this.world.hour, jitter) : null;
+    const snowy = this.snowNow > 0.3 + jitter * 0.3;
+    const frame = propFrame(p, propVariant(this.map.seed, vx, vy), stage, snowy);
     if (!img) {
       img = this.add.image(0, 0, PROP_ATLAS, frame).setScale(0.5).setOrigin(0.5, PROP_BASE / PROP_H);
       this.propSprites.set(vi, img);
