@@ -2,14 +2,29 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (34) — Facciones: guerra y tributo
+
+- **Guerra**: una facción con **−50 o menos** manda **sus propios raids además de los normales**: el primero a los 2 días y luego tan a menudo como los normales. Se acaba al subir de −50.
+  - Los **Hijos del Óxido** empiezan en −60, pero sus raids ya son los normales, así que con ellos no cambia nada. La guerra vale para los Chatarreros y los Granjeros.
+  - Sus saqueadores son de su facción: matarlos o capturarlos les baja la relación a ellos.
+- **Tributo**: desde el **día 10**, más o menos **1 de cada 3 raids** de saqueadores empieza con los Hijos del Óxido **pidiendo recursos**: unas **200 chapas** de lo que más vale en la colonia (ni armas ni armaduras).
+  - Sale arriba con **💰 Pagar** y **✖ Negarse**.
+  - Pagar se lleva lo pedido de los montones y ese raid no llega.
+  - Negarse, o no contestar en **12 horas**, baja la relación **20** y el raid llega enseguida.
+  - Si la colonia no tiene 200 chapas en recursos, no piden y atacan sin más.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): con qué frecuencia piden (1 de cada 3 desde el día 10), el plazo (12 h), qué piden (lo de más valor), y que la guerra no afecte a los Hijos del Óxido.
+- Qué probar: a partir del día 10, esperar a que pidan tributo y probar a pagar y a negarse.
+- Sin npm en el entorno: tests con Bun (603, 4 nuevos) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+- Siguiente: la radio (con «Radio», en 📜 → 🏳 Facciones, llamar a una caravana o pedir ayuda a los aliados).
+
 ## 2026-10-21 (33) — Facciones: la alianza
 
 - Segunda parte de las facciones (bloque 7). Con una facción con relación de **60 o más** (alianza), cuando llega un ataque (raid, manada o máquinas) **mandan 2–4 combatientes**. Lo hacen **una vez cada 10 días** como mucho. El diario avisa: «🤝 … mandan N combatientes para ayudaros».
 - Los aliados llevan **pañuelo y brazalete azules** y armas como las de los saqueadores de ese día. Van a por el atacante más cercano y, cuando no queda ninguno en pie, se vuelven por el borde. Los saqueadores también les atacan; si uno cae herido, **se lo llevan los suyos**.
 - Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): ayudan en cualquier ataque, no solo en los raids de saqueadores; su Combate va de 5 a 12; se llevan al que cae en vez de dejarlo en el suelo.
-- Qué probar: con 🪄 subir la relación no se puede todavía. Hay que regalar a los Chatarreros en una caravana (dar sin pedir: +1 cada 20 chapas) hasta 60, y esperar a un raid. Al tocar a un aliado sale de qué facción es.
+- Qué probar: regalar a los Chatarreros en una caravana (dar sin pedir nada: +1 cada 20 chapas) hasta llegar a 60 y esperar a un raid. Al tocar a un aliado sale de qué facción es.
 - Sin npm en el entorno: tests con Bun (599, 2 nuevos) y tipos con `tsc`. La prueba completa, en GitHub Actions.
-- Siguiente: la guerra (con −50 o menos, raids propios además de los normales). Ojo: los Hijos del Óxido empiezan en −60, así que estarían en guerra desde el principio; se dejará una propuesta a Mikel si hace falta.
+- Siguiente: la guerra (con −50 o menos, raids propios además de los normales).
 
 ## 2026-10-21 (32) — Fase 6: las facciones y su relación con la colonia
 

@@ -114,6 +114,16 @@ export interface Offer {
   until: number;
 }
 
+/** Una facción pide tributo (los Hijos del Óxido): si se paga, no hay raid; si no, llega y baja la relación. */
+export interface Tribute {
+  faction: string;
+  demand: Partial<Record<ResourceId, number>>;
+  /** Valor de lo pedido, en chapas. */
+  value: number;
+  /** Tick hasta el que espera respuesta. */
+  until: number;
+}
+
 /** Daño medio de un puñetazo (los golpes quitan de 0,08 a 0,18 de salud): la mina casera pega ×4. */
 const MINE_FIST_DAMAGE = 0.13;
 
@@ -206,6 +216,8 @@ export class World implements JobContext {
   readonly blasts: Blast[] = [];
   /** Facciones (bloque 7): sus asentamientos y su relación con la colonia. */
   factions: FactionState[];
+  /** Tributo pedido y sin responder (o null). */
+  tribute: Tribute | null = null;
   tick = 0;
   speed: GameSpeed = 1;
   private accumulator = 0;

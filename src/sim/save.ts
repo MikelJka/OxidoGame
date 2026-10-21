@@ -71,7 +71,9 @@ export interface SaveData {
   offer?: { pawn: SavedColonist; until: number } | null;
   schedule?: { nextWanderer: number; nextRaid: number; nextTrader: number; nextRadio?: number };
   /** Facciones (desde el 2026-10-21); las partidas antiguas las sacan de la semilla. */
-  factions?: { id: string; settlement: string; relation: number; helpAt?: number }[];
+  factions?: { id: string; settlement: string; relation: number; helpAt?: number; warRaidAt?: number }[];
+  /** Tributo pedido y sin responder (desde el 2026-10-21). */
+  tribute?: { faction: string; demand: Record<string, number>; value: number; until: number };
   nextPawnId?: number;
   /** Vehículos (desde el buggy, 2026-10-19). Se guardan parados. */
   vehicles?: { id: number; def: string; x: number; y: number; fuel: number; hp: number; facing?: number }[];
@@ -235,6 +237,7 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     offer: world.offer ? { pawn: savePawn(world.offer.pawn), until: world.offer.until } : null,
     schedule: { ...world.schedule },
     factions: world.factions.map((f) => ({ ...f })),
+    ...(world.tribute ? { tribute: { ...world.tribute, demand: { ...world.tribute.demand } } } : {}),
     nextPawnId: world.nextPawnId,
     vehicles: world.vehicles.map((v) => ({ id: v.id, def: v.def, x: v.x, y: v.y, fuel: v.fuel, hp: v.hp, facing: v.facing })),
     nextVehicleId: world.nextVehicleId,
@@ -556,6 +559,10 @@ export function loadWorld(input: string | unknown): World {
   world.schedule.nextWanderer = Math.min(world.schedule.nextWanderer, world.tick + Math.round(WANDERER_GAP[1] * TICKS_PER_DAY));
   const ids = [...world.colonists, ...world.others, ...world.others.flatMap((o) => o.trader?.slaves ?? []), ...(world.offer ? [world.offer.pawn] : [])].map((c) => c.id);
   world.factions = restoreFactions(d.factions, world.map.seed);
+  if (d.tribute && factionDef(String(d.tribute.faction))) {
+    const demand = Object.fromEntries(Object.entries(d.tribute.demand ?? {}).filter(([r]) => isResource(r)).map(([r, n]) => [r, Math.max(1, Math.round(num(n, 1)))]));
+    world.tribute = { faction: String(d.tribute.faction), demand, value: num(d.tribute.value, 0), until: num(d.tribute.until, world.tick) };
+  }
   world.eventsEnabled = d.events !== false;
   world.bringHomeStranded(); // #12: supervivientes que se quedaron en la esquina (0, 0)
   world.difficulty = makeDifficulty(d.difficulty);

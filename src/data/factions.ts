@@ -33,8 +33,23 @@ export interface AllyHelp {
   everyDays: number;
 }
 
+/** Guerra: días hasta su primer raid propio. */
+export interface WarRules {
+  firstRaidDays: number;
+}
+
+/** Tributo: desde qué día, 1 de cada cuántos raids, cuántas chapas piden y cuántas horas esperan. */
+export interface TributeRules {
+  fromDay: number;
+  every: number;
+  value: number;
+  hours: number;
+}
+
 interface FactionData {
   allyHelp: AllyHelp;
+  tribute: TributeRules;
+  war: WarRules;
   factions: FactionDef[];
   relation: RelationRules;
   traderFaction: string;
@@ -59,6 +74,9 @@ export function validateFactions(d: unknown): FactionData {
   }
   const h = data.allyHelp;
   if (!h || !Array.isArray(h.fighters) || !(h.fighters[0] >= 1 && h.fighters[1] >= h.fighters[0]) || !(h.everyDays > 0)) fail('ayuda de los aliados');
+  const t = data.tribute;
+  if (!t || !(t.fromDay >= 0) || !(t.every >= 1) || !(t.value > 0) || !(t.hours > 0)) fail('tributo');
+  if (!data.war || !(data.war.firstRaidDays >= 0)) fail('guerra');
   if (!ids.has(data.traderFaction) || !ids.has(data.raiderFaction)) fail('facción de las caravanas o de los raids');
   return data;
 }
@@ -68,6 +86,8 @@ const DATA = validateFactions(raw);
 export const FACTIONS: readonly FactionDef[] = DATA.factions;
 export const RELATION: RelationRules = DATA.relation;
 export const ALLY_HELP: AllyHelp = DATA.allyHelp;
+export const WAR: WarRules = DATA.war;
+export const TRIBUTE: TributeRules = DATA.tribute;
 /** De quién son las caravanas. */
 export const TRADER_FACTION = DATA.traderFaction;
 /** De quién son los saqueadores. */

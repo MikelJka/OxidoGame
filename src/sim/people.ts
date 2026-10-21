@@ -1,7 +1,7 @@
 // Gente que no es de la colonia y lo que trae el narrador: supervivientes que piden unirse,
 // raids de saqueadores (combate cuerpo a cuerpo, huida, heridos que se pueden capturar),
 // prisioneros (retener, convencer, liberar) y caravanas de comerciantes (con esclavos).
-import { RESOURCES, ResourceId } from '../data/resources';
+import { RESOURCE_ICONS, RESOURCES, ResourceId } from '../data/resources';
 import { personValue, RESOURCE_VALUES } from '../data/values';
 import { ammoFor, damageAt, GRENADE, isGear, RAIDER_AMMO, raiderWeaponPool, WEAPONS, WeaponDef } from '../data/weapons';
 import { armorProtection, isArmor, raiderVestPool } from '../data/armor';
@@ -20,7 +20,7 @@ import { maybePanic, witnessFall } from './panic';
 import { tryThrowGrenade } from './grenades';
 import { mortarManned, mortarShots } from './mortar';
 import { TICKS_PER_DAY } from './time';
-import { ALLY_HELP, factionDef, RAIDER_FACTION, RELATION, TRADER_FACTION } from '../data/factions';
+import { ALLY_HELP, factionDef, RAIDER_FACTION, RELATION, TRADER_FACTION, TRIBUTE, WAR } from '../data/factions';
 import { giftPoints } from './factions';
 export { canTalk, TALK_HOURS } from './jobs';
 
@@ -97,10 +97,15 @@ export function runStoryteller(w: World): void {
       startMachines(w, w.rng.int(MACHINES.spiders[0], MACHINES.spiders[1]), w.rng.int(MACHINES.drones[0], MACHINES.drones[1]));
     }
     else if (w.day >= CREATURES.perro_mutante.fromDay && w.rng.chance(1 / packOdds(w))) startPack(w, packSize(w));
+    // Tributo (bloque 7): desde el día 10, 1 de cada 3 raids de saqueadores empieza pidiendo recursos.
+    else if (w.day >= TRIBUTE.fromDay && !w.tribute && w.rng.chance(1 / TRIBUTE.every) && demandTribute(w)) { /* espera respuesta */ }
     else startRaid(w, raidSize(w.day, colonyWealth(w), w.colonists.length, diff.raidScale));
     // Facciones aliadas (60 o más): si os atacan, mandan combatientes (una vez cada 10 días).
     if (w.factions.some((f) => f.relation >= RELATION.ally)) sendAllies(w);
   }
+  warRaids(w, days);
+  // Sin respuesta al tributo a tiempo: cuenta como negarse.
+  if (w.tribute && w.tick > w.tribute.until) refuseTribute(w);
   if (w.tick >= sch.nextTrader) {
     sch.nextTrader = w.tick + days(TRADER_GAP);
     if (!w.others.some((o) => o.role === 'comerciante')) startTrader(w);
@@ -144,6 +149,91 @@ function raiderBuggy(w: World, raid: Colonist[], defId: string): boolean {
     c.path = [];
   });
   return true;
+}
+
+/**
+ * Lo que piden de tributo: de los recursos de la colonia que más valen en total (ni armas ni
+ * armaduras), hasta unas 200 chapas. null si la colonia no tiene tanto.
+ */
+export function tributeDemand(w: World): { demand: Partial<Record<ResourceId, number>>; value: number } | null {
+  const inv = w.inventory();
+  const pool = RESOURCES.filter((r) => inv[r] > 0 && !isGear(r) && !isArmor(r))
+    .sort((a, b) => inv[b] * RESOURCE_VALUES[b] - inv[a] * RESOURCE_VALUES[a]);
+  const demand: Partial<Record<ResourceId, number>> = {};
+  let value = 0;
+  for (const r of pool.slice(0, 3)) {
+    if (value >= TRIBUTE.value) break;
+    const n = Math.min(inv[r], Math.ceil((TRIBUTE.value - value) / RESOURCE_VALUES[r]));
+    if (n <= 0) continue;
+    demand[r] = n;
+    value += n * RESOURCE_VALUES[r];
+  }
+  return value >= TRIBUTE.value ? { demand, value: Math.round(value) } : null;
+}
+
+/** Los Hijos del Óxido piden tributo en vez de atacar. false si la colonia no tiene con qué pagar. */
+export function demandTribute(w: World): boolean {
+  const ask = tributeDemand(w);
+  const def = factionDef(RAIDER_FACTION);
+  if (!ask || !def) return false;
+  w.tribute = { faction: RAIDER_FACTION, demand: ask.demand, value: ask.value, until: w.tick + Math.round(TRIBUTE.hours * TICKS_PER_DAY / 24) };
+  const list = (Object.entries(ask.demand) as [ResourceId, number][]).map(([r, n]) => `${n} ${RESOURCE_ICONS[r]}`).join(', ');
+  w.addLog(`${def.icon} ${def.name} piden tributo: ${list} (unas ${ask.value} chapas). Si pagáis, no atacan; si no, llega su raid.`, 'malo', 'raid');
+  return true;
+}
+
+/** Se paga el tributo: se lo llevan de los montones y no hay raid. false si ya no hay tanto. */
+export function payTribute(w: World): boolean {
+  const t = w.tribute;
+  if (!t) return false;
+  const inv = w.inventory();
+  if ((Object.entries(t.demand) as [ResourceId, number][]).some(([r, n]) => inv[r] < n)) return false;
+  for (const [r, n] of Object.entries(t.demand) as [ResourceId, number][]) takeFromStock(w, r, n);
+  w.tribute = null;
+  const def = factionDef(t.faction);
+  w.addLog(`${def?.icon ?? ''} Pagáis el tributo a ${def?.name ?? t.faction}: esta vez no atacan.`, 'info');
+  return true;
+}
+
+/** No se paga: baja la relación y llega su raid. */
+export function refuseTribute(w: World): void {
+  const t = w.tribute;
+  if (!t) return;
+  w.tribute = null;
+  w.changeRelation(t.faction, RELATION.refuseTribute, 'os negáis a pagar el tributo');
+  const diff = DIFFICULTIES[w.difficulty.level];
+  startRaid(w, raidSize(w.day, colonyWealth(w), w.colonists.length, diff.raidScale), undefined, undefined, t.faction);
+}
+
+/** Quita `n` de un recurso de los montones de la colonia. */
+function takeFromStock(w: World, r: ResourceId, n: number): void {
+  let left = n;
+  for (const s of w.items.list()) {
+    if (left <= 0) break;
+    if (s.resource !== r) continue;
+    const got = w.items.take(s.x, s.y, left);
+    if (got) left -= got.amount;
+  }
+}
+
+/**
+ * Guerra (bloque 7): una facción con −50 o menos de relación manda sus propios raids además de los
+ * normales; el primero, a los 2 días, y luego tan a menudo como los normales. Los Hijos del Óxido
+ * ya son los de los raids normales.
+ */
+function warRaids(w: World, days: (gap: [number, number]) => number): void {
+  const diff = DIFFICULTIES[w.difficulty.level];
+  for (const f of w.factions) {
+    if (f.id === RAIDER_FACTION || f.relation > RELATION.war) {
+      f.warRaidAt = undefined;
+      continue;
+    }
+    if (f.warRaidAt === undefined) f.warRaidAt = w.tick + Math.round(WAR.firstRaidDays * TICKS_PER_DAY);
+    else if (w.tick >= f.warRaidAt) {
+      f.warRaidAt = w.tick + days(raidGap(w.difficulty.level));
+      startRaid(w, raidSize(w.day, colonyWealth(w), w.colonists.length, diff.raidScale), undefined, undefined, f.id);
+    }
+  }
 }
 
 /**
@@ -285,7 +375,7 @@ export function raiderRafts(w: World, raid: Colonist[]): number {
  * Llega un raid de `n` saqueadores por un mismo borde (`withBuggy`: fuerza que traigan o no buggy;
  * `withRaft`: que parte llegue o no en balsa por el río).
  */
-export function startRaid(w: World, n: number, withBuggy?: boolean, withRaft?: boolean): Colonist[] {
+export function startRaid(w: World, n: number, withBuggy?: boolean, withRaft?: boolean, faction = RAIDER_FACTION): Colonist[] {
   const out: Colonist[] = [];
   const first = w.makePawn('saqueador');
   if (!w.placeAtEdge(first)) return out;
@@ -304,7 +394,7 @@ export function startRaid(w: World, n: number, withBuggy?: boolean, withRaft?: b
   // escopetas y rifles desde el día 25; subfusiles y rifles de francotirador desde el día 35.
   const pool = raiderWeaponPool(w.day);
   for (const r of out) {
-    r.faction = RAIDER_FACTION;
+    r.faction = faction;
     r.skills.combate = Math.max(r.skills.combate, w.rng.int(3, 10));
     r.weapon = pool[w.rng.int(0, pool.length - 1)];
     r.ammo = ammoFor(r.weapon) ? RAIDER_AMMO : 0;
@@ -330,7 +420,9 @@ export function startRaid(w: World, n: number, withBuggy?: boolean, withRaft?: b
   const buggy = withBuggy ?? (!!def && out.length - byRaft >= 2 && w.day >= (def.fromDay ?? 0) && w.rng.chance(def.raidChance ?? 0));
   const inBuggy = buggy && def ? raiderBuggy(w, out, def.id) : false;
   const how = inBuggy ? `, dos de ellos en un 🚙 ${def!.name.toLowerCase()}` : '';
-  w.addLog(`⚔️ ¡Raid! ${n} ${n === 1 ? 'saqueador llega' : 'saqueadores llegan'}${lead}${how}${river}. Recluta a los colonos (🎖) para defenderos.`, 'malo', 'raid', first.tile);
+  const fdef = faction !== RAIDER_FACTION ? factionDef(faction) : undefined;
+  const who = fdef ? ` de ${fdef.name} (en guerra con la colonia)` : '';
+  w.addLog(`⚔️ ¡Raid${who}! ${n} ${n === 1 ? 'saqueador llega' : 'saqueadores llegan'}${lead}${how}${river}. Recluta a los colonos (🎖) para defenderos.`, 'malo', 'raid', first.tile);
   return out;
 }
 

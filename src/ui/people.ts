@@ -3,7 +3,7 @@
 import { CREATURES } from '../data/creatures';
 import type { World } from '../sim/world';
 import type { Colonist } from '../sim/colonist';
-import { dealBalance, makeDeal, slaveValue, TRADER_MARGIN, TradeDeal } from '../sim/people';
+import { dealBalance, makeDeal, payTribute, refuseTribute, slaveValue, TRADER_MARGIN, TradeDeal } from '../sim/people';
 import { healthLabel } from '../sim/health';
 import { RESOURCES, RESOURCE_ICONS, RESOURCE_NAMES } from '../data/resources';
 import { RESOURCE_VALUES } from '../data/values';
@@ -430,6 +430,34 @@ export function mountPeople(opts: Options): PeopleUI {
 
   // --- Superviviente que pide unirse ---------------------------------------------------
   function renderOffer(w: World): void {
+    // El tributo de una facción va antes que el superviviente que pide unirse.
+    const t = w.tribute;
+    if (t) {
+      const tkey = `tributo:${t.until}`;
+      if (tkey === offerKey) return;
+      offerKey = tkey;
+      offer.hidden = false;
+      const def = factionDef(t.faction);
+      const list = (Object.entries(t.demand) as [keyof typeof RESOURCE_ICONS, number][]).map(([r, n]) => `${n} ${RESOURCE_ICONS[r]} ${RESOURCE_NAMES[r].toLowerCase()}`).join(', ');
+      const row = el('div', 'zp-row');
+      row.append(
+        button('💰 Pagar', () => {
+          if (payTribute(w)) opts.toast('💰 Tributo pagado: esta vez no atacan');
+          else opts.toast('No tenéis todo lo que piden', 2500);
+        }),
+        button('✖ Negarse', () => {
+          refuseTribute(w);
+          opts.toast(`⚔️ Os negáis: ${def?.name ?? 'ellos'} atacan`);
+        }),
+      );
+      offer.replaceChildren(
+        el('div', 'offer-title', `${def?.icon ?? '☠'} ${def?.name ?? t.faction} piden tributo`),
+        el('div', undefined, list),
+        el('div', 'muted', `Unas ${t.value} chapas. Si pagáis, no atacan esta vez; si os negáis (o no contestáis en unas horas), llega su raid y la relación baja ${-RELATION.refuseTribute}.`),
+        row,
+      );
+      return;
+    }
     const o = w.offer;
     const key = o ? `${o.pawn.id}` : '';
     if (key === offerKey) return;

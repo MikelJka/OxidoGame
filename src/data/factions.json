@@ -67,5 +67,16 @@
       4
     ],
     "everyDays": 10
+  },
+  "war": {
+    "_": "Con −50 o menos, guerra: raids propios además de los normales (bloque 7). Los Hijos del Óxido ya son los de los raids normales, así que esto vale para las otras dos. El primero, a los 2 días de entrar en guerra; luego, tan a menudo como los normales (lo ha puesto la sesión del 2026-10-21).",
+    "firstRaidDays": 2
+  },
+  "tribute": {
+    "_": "Tributo (bloque 7): los Hijos del Óxido piden unas 200 chapas en recursos; pagar evita ese raid y negarse baja la relación 20. Desde qué día, cada cuánto y cuánto esperan respuesta los ha puesto la sesión del 2026-10-21.",
+    "fromDay": 10,
+    "every": 3,
+    "value": 200,
+    "hours": 12
   }
 }

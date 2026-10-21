@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { flatWorld } from './helpers';
 import { FACTIONS, RELATION } from '../src/data/factions';
 import { createFactions, relationLevel } from '../src/sim/factions';
-import { makeDeal, makePrisoner, sendAllies, startRaid, startTrader } from '../src/sim/people';
+import { demandTribute, makeDeal, makePrisoner, payTribute, refuseTribute, runStoryteller, sendAllies, startRaid, startTrader, tributeDemand } from '../src/sim/people';
+import { TICKS_PER_HOUR } from '../src/sim/time';
 import { TICKS_PER_DAY } from '../src/sim/time';
 import { loadWorld, serializeWorld } from '../src/sim/save';
 import type { World } from '../src/sim/world';
@@ -119,5 +120,83 @@ describe('alianza', () => {
     // Se guardan bien (el papel «aliado» y cuándo ayudaron).
     const back = loadWorld(serializeWorld(w));
     expect(back.faction('chatarreros')!.helpAt).toBe(w.faction('chatarreros')!.helpAt);
+  });
+});
+
+describe('guerra', () => {
+  it('con −50 o menos, una facción que no es la de los saqueadores manda sus propios raids', () => {
+    const w = flatWorld(1);
+    w.map.start = { x: 15, y: 15 };
+    w.schedule.nextRaid = Infinity;
+    w.schedule.nextTrader = Infinity;
+    w.schedule.nextWanderer = Infinity;
+    // Los Hijos del Óxido (−60) ya son los de los raids normales: no traen raids de más.
+    runStoryteller(w);
+    expect(w.faction('hijos_oxido')!.warRaidAt).toBeUndefined();
+    w.changeRelation('granjeros', -50);
+    runStoryteller(w);
+    const at = w.faction('granjeros')!.warRaidAt!;
+    expect(at).toBe(w.tick + 2 * TICKS_PER_DAY);
+    w.tick = at;
+    runStoryteller(w);
+    const raiders = w.others.filter((o) => o.role === 'saqueador');
+    expect(raiders.length).toBeGreaterThan(0);
+    expect(raiders.every((r) => r.faction === 'granjeros')).toBe(true);
+    expect(w.log.some((l) => l.text.includes('Raid de Granjeros del valle'))).toBe(true);
+    expect(w.faction('granjeros')!.warRaidAt!).toBeGreaterThan(w.tick);
+    // Con la paz (más de −50), se acaba.
+    w.changeRelation('granjeros', 20);
+    w.tick += TICKS_PER_HOUR;
+    runStoryteller(w);
+    expect(w.faction('granjeros')!.warRaidAt).toBeUndefined();
+  });
+});
+
+describe('tributo', () => {
+  it('piden unas 200 chapas de lo que más vale; sin tanto, no piden', () => {
+    const w = flatWorld(1);
+    w.map.start = { x: 15, y: 15 };
+    expect(tributeDemand(w)).toBeNull();
+    expect(demandTribute(w)).toBe(false);
+    w.items.drop(6, 6, 'componentes', 25); // 300 chapas
+    w.items.drop(8, 8, 'madera', 50);
+    const ask = tributeDemand(w)!;
+    expect(ask.demand).toEqual({ componentes: 17 });
+    expect(ask.value).toBeGreaterThanOrEqual(200);
+  });
+
+  it('pagar se lleva lo pedido y no hay raid', () => {
+    const w = flatWorld(1);
+    w.map.start = { x: 15, y: 15 };
+    w.items.drop(6, 6, 'componentes', 25);
+    expect(demandTribute(w)).toBe(true);
+    expect(w.tribute).not.toBeNull();
+    expect(payTribute(w)).toBe(true);
+    expect(w.inventory().componentes).toBe(25 - 17);
+    expect(w.tribute).toBeNull();
+    expect(w.others.some((o) => o.role === 'saqueador')).toBe(false);
+    expect(w.faction('hijos_oxido')!.relation).toBe(-60);
+  });
+
+  it('negarse (o no contestar a tiempo) baja 20 y llega su raid', () => {
+    const w = flatWorld(1);
+    w.map.start = { x: 15, y: 15 };
+    w.items.drop(6, 6, 'componentes', 25);
+    demandTribute(w);
+    // Se guarda mientras espera respuesta.
+    const back = loadWorld(serializeWorld(w));
+    expect(back.tribute?.demand).toEqual({ componentes: 17 });
+    refuseTribute(w);
+    expect(w.faction('hijos_oxido')!.relation).toBe(-80);
+    expect(w.others.some((o) => o.role === 'saqueador' && o.faction === 'hijos_oxido')).toBe(true);
+    // Sin contestar: al pasar el plazo, igual.
+    back.schedule.nextRaid = Infinity;
+    back.schedule.nextTrader = Infinity;
+    back.schedule.nextWanderer = Infinity;
+    back.tick = back.tribute!.until + 1;
+    runStoryteller(back);
+    expect(back.tribute).toBeNull();
+    expect(back.faction('hijos_oxido')!.relation).toBe(-80);
+    expect(back.others.some((o) => o.role === 'saqueador')).toBe(true);
   });
 });
