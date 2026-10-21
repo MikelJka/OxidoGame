@@ -72,6 +72,15 @@ try {
       await shot(page, `${d.name}-colonia`);
       await page.evaluate(([x, y]) => window.oxidoPrueba.mirar(x - 3, y - 5, 3), [c.x, c.y]);
       await shot(page, `${d.name}-colonia-cerca`);
+      // La misma colonia al anochecer, de noche (luces y hogueras) y con tormenta.
+      await page.evaluate(([x, y]) => window.oxidoPrueba.mirar(x, y, 2.2), [c.x, c.y]);
+      await page.evaluate(() => window.oxidoPrueba.ambiente(19.5));
+      await shot(page, `${d.name}-atardecer`);
+      await page.evaluate(() => window.oxidoPrueba.ambiente(23));
+      await shot(page, `${d.name}-noche`);
+      await page.evaluate(() => window.oxidoPrueba.ambiente(13, 'tormenta_electrica'));
+      await shot(page, `${d.name}-tormenta`);
+      await page.evaluate(() => window.oxidoPrueba.ambiente(11, 'despejado'));
       const k = points.corral;
       await page.evaluate(([x, y]) => window.oxidoPrueba.mirar(x, y, 3), [k.x, k.y]);
       await shot(page, `${d.name}-animales`);

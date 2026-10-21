@@ -1,3 +1,4 @@
+import { TICKS_PER_HOUR } from './sim/time';
 import Phaser from 'phaser';
 import { WorldScene } from './render/WorldScene';
 import { northLabel, Rotation } from './render/rotation';
@@ -1466,6 +1467,14 @@ else game.events.once('map-ready', () => window.setTimeout(() => mainMenu.open()
     sc.cameras.main.setZoom(zoom);
     sc.focusTile(Math.round(pts.reduce((a, p) => a + p.x, 0) / pts.length), Math.round(pts.reduce((a, p) => a + p.y, 0) / pts.length));
     return true;
+  },
+  // Para ver la luz y el tiempo: pone el reloj a una hora del mismo día y, si se pide, un suceso del tiempo.
+  ambiente: (hora: number, suceso?: string) => {
+    const w = scene().world;
+    w.tick += Math.round(((((hora - w.hour) % 24) + 24) % 24) * TICKS_PER_HOUR);
+    if (suceso === 'despejado') w.weather.length = 0;
+    else if (suceso) w.weather.push({ id: suceso, until: w.tick + 24 * TICKS_PER_HOUR });
+    return w.hour;
   },
   batalla: () => {
     const w = scene().world;

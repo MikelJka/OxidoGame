@@ -1,3 +1,4 @@
+import { Atmosphere } from './atmosphere';
 import Phaser from 'phaser';
 import { GameMap, describeTile, inBounds, Prop } from '../sim/map';
 import { activityLabel, Colonist, groupSummary, type Stance } from '../sim/colonist';
@@ -38,6 +39,8 @@ const MAP_TEXTURE = 'world-map';
 const PROP_ATLAS = 'props-2x';
 const MAX_ZOOM = 4;
 const COLONIST_DEPTH = 10;
+/** Escala a la que se dibujan personas y animales (su arte es a doble resolución). */
+const PAWN_SCALE = 0.6;
 /** Marcas de designación: encima de los montones, debajo de los colonos. */
 const DESIGN_DEPTH = COLONIST_DEPTH - 1.5;
 
@@ -171,6 +174,7 @@ export class WorldScene extends Phaser.Scene {
   private zoneGfx!: Phaser.GameObjects.Graphics;
   /** Llamas de los incendios (se repinta a menudo para que parpadeen). */
   private fireGfx!: Phaser.GameObjects.Graphics;
+  private atmosphere!: Atmosphere;
   /** Sombra de los tejados (se ve por dónde hay techo). */
   private roofGfx!: Phaser.GameObjects.Graphics;
   private roofDrawn = -1;
@@ -250,6 +254,12 @@ export class WorldScene extends Phaser.Scene {
     this.designGfx = this.add.graphics().setDepth(DESIGN_DEPTH);
     this.zoneGfx = this.add.graphics().setDepth(ZONE_DEPTH);
     this.fireGfx = this.add.graphics().setDepth(COLONIST_DEPTH + 1);
+    this.atmosphere = new Atmosphere(this, (x, y) => {
+      const v = this.toViewPoint(x, y);
+      const tx = Math.floor(x), ty = Math.floor(y);
+      return { x: v.x * TILE, y: rowY(v.y) - this.liftAt(tx, ty) };
+    });
+    this.events.once('shutdown', () => this.atmosphere.destroy());
     this.roofGfx = this.add.graphics().setDepth(ZONE_DEPTH + 0.1);
     this.roofDrawn = -1;
     this.designPreview = this.add.graphics().setDepth(COLONIST_DEPTH + 2);
@@ -290,6 +300,7 @@ export class WorldScene extends Phaser.Scene {
       this.fireTimer = 0;
       this.drawFires();
     }
+    this.atmosphere.update(this.world, delta);
     this.drawSelection();
     this.uiTimer += delta;
     if (this.uiTimer >= UI_EMIT_MS) {
@@ -1114,11 +1125,11 @@ export class WorldScene extends Phaser.Scene {
       this.spriteLift.set(c.id, lift);
       const v = this.toViewPoint(c.pos.x, c.pos.y);
       img = this.add.image(v.x * TILE, rowY(v.y) - lift, key, human ? 'idle0' : undefined).setDepth(COLONIST_DEPTH).setOrigin(0.5, 0.75);
-      if (human) img.setScale(0.5).setOrigin(0.5, 0.875);
+      if (human) img.setScale(PAWN_SCALE).setOrigin(0.5, 0.875);
       this.sprites.set(c.id, img);
     } else if (img.texture.key !== key) {
       img.setTexture(key, human ? 'idle0' : undefined);
-      if (human) img.setScale(0.5).setOrigin(0.5, 0.875);
+      if (human) img.setScale(PAWN_SCALE).setOrigin(0.5, 0.875);
       else img.setScale(1).setOrigin(0.5, 0.75);
     }
     return img;
