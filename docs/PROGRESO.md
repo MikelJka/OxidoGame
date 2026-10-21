@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (53) — Abono para los huertos
+
+- Del árbol de investigación aprobado (bloque 13): **«Agricultura mejorada»** ya desbloquea el **🟤 Abono**. En el **banco de trabajo**: 2 🍄 setas + 1 🪨 piedra → 3 de abono.
+- Al tocar un huerto sale **🟤 Abonar**. Encendido, cada casilla que se siembra gasta **1 de abono** del almacén y esa planta da un **25 % más** al cosecharla. Si no queda abono, se siembra igual, sin él.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): que se haga en el banco de trabajo, que se gaste 1 por casilla al sembrar y que el botón vaya en el panel del huerto.
+- Las partidas guardadas cargan sin abono.
+- Qué probar: investigar «Agricultura mejorada», encargar «Abono» en el banco, tocar un huerto y encender 🟤 Abonar; comparar la cosecha.
+- Sin npm en el entorno: tests con Bun (663). La prueba completa, en GitHub Actions.
+- Siguiente: la **bandeja hidropónica** (con «Hidropónica»).
+
 ## 2026-10-21 (52) — Animales de carga: domarlos y comprar mulas
 
 - Elegido por Mikel (las dos cosas). **Al tocar un animal**, la marca va cambiando: 🎯 cazar → 🤝 **domar** (ciervos mutados y jabalíes; las ratas, no) → sin marca.

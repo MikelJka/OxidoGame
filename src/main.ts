@@ -33,7 +33,7 @@ import type { ResourceId } from './data/resources';
 import { billPending, type Structure } from './sim/structures';
 import { occupant, VEHICLE_SEATS, type Vehicle, type VehicleSeat } from './sim/vehicles';
 import { usesFuel, vehicleDef } from './data/vehicles';
-import type { GrowZone } from './sim/farming';
+import { FERTILIZER_DEF, type GrowZone } from './sim/farming';
 import { BUILDING_CATEGORY_NAMES, BuildingCategory, BUILDINGS, buildingDef, kitOf } from './data/buildings';
 import { STORAGE_PRIORITIES, STORAGE_PRIORITY_NAMES, StorageZone } from './sim/zones';
 import type { DesignMode } from './render/WorldScene';
@@ -1113,7 +1113,35 @@ game.events.on('farm-select', (f: GrowZone | null) => {
       return b;
     }),
   );
+  renderFarmFertilize(f);
 });
+/** Botón «🟤 Abonar» del huerto: con «Agricultura mejorada», cada casilla sembrada gasta abono y da más. */
+function renderFarmFertilize(f: GrowZone): void {
+  const w = scene().world;
+  const can = w.canFertilize();
+  const on = !!f.fertilize;
+  const stock = w.items.totals()[FERTILIZER_DEF.resource] ?? 0;
+  const b = mk('button', 'ps-card');
+  b.type = 'button';
+  b.classList.toggle('active', on);
+  b.classList.toggle('locked', !can);
+  b.setAttribute('aria-pressed', String(on));
+  const top = mk('span', 'ps-card-top');
+  top.append(mk('strong', '', `${can ? '' : '🔒 '}${RESOURCE_ICONS[FERTILIZER_DEF.resource]} Abonar`), mk('span', 'ps-check', on ? '✔ Abonando' : ''));
+  const bonus = Math.round(FERTILIZER_DEF.yieldBonus * 100);
+  const desc = can
+    ? `Al sembrar, cada casilla gasta ${FERTILIZER_DEF.perTile} de abono del almacén (si no hay, se siembra sin él) y da un ${bonus} % más de cosecha. Se hace en el banco de trabajo. Hay ${stock}.`
+    : 'Pide investigar «Agricultura mejorada» (📜 → 🔬 Investigación).';
+  b.append(top, mk('span', 'ps-desc', desc));
+  b.addEventListener('click', () => {
+    if (!scene().world.setFarmFertilize(f.id, !on)) {
+      showToast('🔒 Abonar: antes hay que investigar «Agricultura mejorada» en 📜 → 🔬 Investigación', 3500);
+      return;
+    }
+    scene().refreshFarm();
+  });
+  $('fp-fertilize').replaceChildren(b);
+}
 
 // --- Almacén: prioridad y filtro -------------------------------------------------
 const zonePanel = $('zone-panel');

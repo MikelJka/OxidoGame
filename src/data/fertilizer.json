@@ -1,0 +1,6 @@
+{
+  "resource": "abono",
+  "perTile": 1,
+  "yieldBonus": 0.25,
+  "research": "agricultura"
+}

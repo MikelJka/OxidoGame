@@ -534,5 +534,20 @@
     "work": 400,
     "research": "sastreria",
     "description": "Abrigo de fibra: en invierno, de noche, quita el frío aunque se esté fuera. Los colonos cogen uno solos."
+  },
+  {
+    "id": "abono",
+    "name": "Abono",
+    "station": "banco_trabajo",
+    "inputs": {
+      "setas": 2,
+      "piedra": 1
+    },
+    "outputs": {
+      "abono": 3
+    },
+    "work": 150,
+    "description": "2 setas y 1 piedra dan 3 de abono: con «🟤 Abonar» en un huerto, cada casilla sembrada gasta 1 y da un 25 % más de cosecha.",
+    "research": "agricultura"
   }
 ]
