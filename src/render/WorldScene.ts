@@ -25,6 +25,7 @@ import { roomInfoAt } from '../sim/roofs';
 import { TERRAIN_JOB_NAMES, terrainBlocker, TerrainJob } from '../sim/terrain';
 import { CropDef } from '../data/crops';
 import { drawBuilding, faceHeight, wallHeight, weatherBuilding } from './buildArt';
+import { drawFurnitureHi, isHiResFurniture } from './furnitureArt';
 import { paintVehicle, VEHICLE_H, VEHICLE_W, VehicleView } from './vehicleArt';
 import { defOf, occupant, Vehicle } from '../sim/vehicles';
 import { CHAR, CHAR_POSES, charKey, paintCharSheet } from './charArt';
@@ -2201,10 +2202,13 @@ export class WorldScene extends Phaser.Scene {
     const vh = Math.max(...vt.map((t) => t.y)) - vy0 + 1;
     // Los muros tienen 4 variantes de aparejo según dónde estén (una muralla larga no se ve repetida).
     const variant = def.category === 'muro' ? (((tiles[0].x * 7 + tiles[0].y * 13) ^ this.map.seed) >>> 0) % 4 : 0;
-    const key = `build-${def.id}${raised ? '-alzado' : ''}${links ? `-l${links}` : ''}${variant ? `-v${variant}` : ''}-${TILE_H}-${unitH}-${vw}x${vh}`;
+    // Muebles y talleres a doble resolución: se dibujan al doble y se ponen a la mitad.
+    const hd = isHiResFurniture(def);
+    const key = `build-${def.id}${raised ? '-alzado' : ''}${links ? `-l${links}` : ''}${variant ? `-v${variant}` : ''}${hd ? '-hd' : ''}-${TILE_H}-${unitH}-${vw}x${vh}`;
     if (!this.textures.exists(key)) drawBuildingTexture(this, key, def, unitH, vw, vh, raised, links, variant);
     const top = vy0 * TILE_H - liftOf(this.view, vx0, vy0);
     const img = this.add.image(vx0 * TILE, top - faceHeight(def, LIFT), key).setOrigin(0, 0);
+    if (hd) img.setScale(0.5);
     // Delante de lo que está en su fila y en las de detrás; detrás de lo que está más al sur.
     // Torres, cosas a ras de suelo y estanterías, por debajo de lo que tienen encima o delante.
     const flat = def.height === 0;
@@ -2461,6 +2465,17 @@ function powerLabel(w: World, s: Structure): string {
 }
 
 function drawBuildingTexture(scene: Phaser.Scene, key: string, def: BuildingDef, unitH: number, vw = 1, vh = 1, raised = false, links = 0, variant = 0): void {
+  if (isHiResFurniture(def)) {
+    const W = TILE * vw * 2;
+    const TH = TILE_H * vh * 2;
+    const F = unitH * def.height * 2;
+    const hd = scene.textures.createCanvas(key, W, TH + F);
+    if (!hd) return;
+    drawFurnitureHi(hd.getContext(), def, W, TH, F);
+    weatherBuilding(hd.getContext(), W, TH + F, TH, def.id);
+    hd.refresh();
+    return;
+  }
   const tex = scene.textures.createCanvas(key, TILE * vw, TILE_H * vh + unitH * def.height);
   if (!tex) return;
   drawBuilding(tex.getContext(), def, TILE * vw, TILE_H * vh, unitH, raised, links, variant);

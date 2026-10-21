@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (62) — Muebles y talleres con detalle
+
+- Siguiente parte del salto de calidad del 2D (pedido por Mikel). Los **muebles y talleres** se dibujan a **doble resolución** (`src/render/furnitureArt.ts`), como las personas.
+- **Muebles**: cama con cabecero, patas, almohada y manta con pliegues y un remiendo; cama de prisionero con cadena y grillete; mesa de tablones con jarra y vela; mesa de juego con tapete, cartas y fichas; silla con respaldo; alfombra con cenefa, medallón y flecos; cuadro con paisaje en un caballete; estufa de hierro con tubo y brasas en la rejilla; armario con cuarterones y tiradores; armero con ganchos y candado; nevera esmaltada con junta, tirador y rejilla; estanterías de madera y de metal.
+- **Talleres**: banco de trabajo con tornillo, sierra, martillo, llave, clavos y virutas; cocina de ladrillo con olla humeante, sartén y fuego de leña; horno de fundición con boca al rojo, crisol, chimenea y lingotes; recicladora con tolva llena de chatarra, engranaje, cinta y franjas de aviso; destilería con caldera de cobre, serpentín y bidón; mesa de boticario con mortero, frascos, balanza, hierbas y libro; banco de investigación con microscopio, planos, libros, radio y flexo.
+- Se ven bien con el mueble girado y en las cuatro inclinaciones de la vista. Sin cambios en las reglas ni en la partida guardada.
+- Qué probar: construir una cama, una mesa, un banco de trabajo, una cocina y un horno, y girar la vista.
+- Qué sigue: los montones de objetos del suelo y el resto de edificios (defensas, electricidad, pozo, cantera, muelle).
+
 ## 2026-10-21 (61) — Salto de calidad del 2D (primera tanda)
 
 - Pedido por Mikel: que todo se vea más real y vivo; la 3D se descarta.
