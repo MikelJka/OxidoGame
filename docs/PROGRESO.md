@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (66) — Pozo, depuradora, cantera y muelle con detalle
+
+- Siguiente parte del salto de calidad del 2D (pedido por Mikel). El pozo, la depuradora, la cantera, el muelle y la trampa de pesca se dibujan a **doble resolución** (`src/render/utilityArt.ts`), como la electricidad.
+- **Pozo**: brocal redondo de piedra con musgo, el agua al fondo con su reflejo, dos postes con tejadillo, el torno con la cuerda y la manivela, y un cubo de chapa en el borde.
+- **Depuradora**: depósito azul remachado sobre un patín, con el tubo de nivel, el filtro de arena con manómetro, la bomba con aletas y piloto verde, el grifo que gotea y el manguito que baja al agua.
+- **Cantera**: tajo en la roca con tres bancadas en escalones y un charco al fondo, grúa de trípode con polea sacando un bloque, bloques cortados apilados, pico, carretilla con cascotes y los estratos de la roca en el frente.
+- **Muelle**: tablones con vetas, clavos y rendijas al agua, larguero de canto y pilotes con su cuerda; las casillas se juntan sin costura. **Trampa de pesca**: nasa de mimbre medio hundida con sus aros, ondas, boya roja y blanca y la cuerda al muelle.
+- Sin cambios en las reglas ni en la partida guardada.
+- Qué probar: construir (con 🪄 modo Dios si hace falta) un pozo, una depuradora junto al agua, una cantera, unas casillas de muelle y una trampa de pesca, e inclinar la vista.
+- Qué sigue: la última parte del salto del 2D, la luz y los efectos.
+- Sin npm en el entorno: tests con Bun (678) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+
 ## 2026-10-21 (65) — Electricidad con detalle
 
 - Siguiente parte del salto de calidad del 2D (pedido por Mikel). Los edificios de **electricidad** se dibujan a **doble resolución** (`src/render/powerArt.ts`), como los muebles y las defensas.

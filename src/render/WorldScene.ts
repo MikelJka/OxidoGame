@@ -28,6 +28,7 @@ import { drawBuilding, faceHeight, wallHeight, weatherBuilding } from './buildAr
 import { drawFurnitureHi, isHiResFurniture } from './furnitureArt';
 import { drawDefenseHi, isHiResDefense } from './defenseArt';
 import { drawPowerHi, isHiResPower } from './powerArt';
+import { drawUtilityHi, isHiResUtility } from './utilityArt';
 import { paintVehicle, VEHICLE_H, VEHICLE_W, VehicleView } from './vehicleArt';
 import { defOf, occupant, Vehicle } from '../sim/vehicles';
 import { CHAR, CHAR_POSES, charKey, paintCharSheet } from './charArt';
@@ -2205,8 +2206,8 @@ export class WorldScene extends Phaser.Scene {
     const vh = Math.max(...vt.map((t) => t.y)) - vy0 + 1;
     // Los muros tienen 4 variantes de aparejo según dónde estén (una muralla larga no se ve repetida).
     const variant = def.category === 'muro' ? (((tiles[0].x * 7 + tiles[0].y * 13) ^ this.map.seed) >>> 0) % 4 : 0;
-    // Muebles, talleres, defensas y electricidad a doble resolución: se dibujan al doble y se ponen a la mitad.
-    const hd = isHiResFurniture(def) || isHiResDefense(def) || isHiResPower(def);
+    // Muebles, talleres, defensas, electricidad, agua y cantera a doble resolución: se dibujan al doble y se ponen a la mitad.
+    const hd = isHiResFurniture(def) || isHiResDefense(def) || isHiResPower(def) || isHiResUtility(def);
     const key = `build-${def.id}${raised ? '-alzado' : ''}${links ? `-l${links}` : ''}${variant ? `-v${variant}` : ''}${hd ? '-hd' : ''}-${TILE_H}-${unitH}-${vw}x${vh}`;
     if (!this.textures.exists(key)) drawBuildingTexture(this, key, def, unitH, vw, vh, raised, links, variant);
     const top = vy0 * TILE_H - liftOf(this.view, vx0, vy0);
@@ -2472,7 +2473,8 @@ function powerLabel(w: World, s: Structure): string {
 function drawBuildingTexture(scene: Phaser.Scene, key: string, def: BuildingDef, unitH: number, vw = 1, vh = 1, raised = false, links = 0, variant = 0): void {
   const defense = isHiResDefense(def);
   const power = isHiResPower(def);
-  if (isHiResFurniture(def) || defense || power) {
+  const utility = isHiResUtility(def);
+  if (isHiResFurniture(def) || defense || power || utility) {
     const W = TILE * vw * 2;
     const TH = TILE_H * vh * 2;
     const F = unitH * def.height * 2;
@@ -2480,6 +2482,7 @@ function drawBuildingTexture(scene: Phaser.Scene, key: string, def: BuildingDef,
     if (!hd) return;
     if (defense) drawDefenseHi(hd.getContext(), def, W, TH, F);
     else if (power) drawPowerHi(hd.getContext(), def, W, TH, F);
+    else if (utility) drawUtilityHi(hd.getContext(), def, W, TH, F);
     else drawFurnitureHi(hd.getContext(), def, W, TH, F);
     weatherBuilding(hd.getContext(), W, TH + F, TH, def.id);
     hd.refresh();
