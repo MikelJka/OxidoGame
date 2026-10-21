@@ -44,6 +44,8 @@ function describe(value: unknown): string {
 
 export function recordError(source: ErrorEntry['source'], message: string): void {
   const before = errors.find((e) => e.source === source && e.message === message);
+  // Visible también en la consola (las pruebas automáticas lo leen de ahí).
+  if (source !== 'error' && source !== 'consola') console.warn(`[error del juego · ${source}] ${message}`);
   errors = addError(errors, { at: new Date().toISOString(), source, message: message.slice(0, 600) });
   save(ERRORS_KEY, errors);
   freshErrors++;

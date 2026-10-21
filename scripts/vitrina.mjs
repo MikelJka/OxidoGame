@@ -40,6 +40,9 @@ async function open(browser, d, save) {
   }, save);
   const page = await context.newPage();
   page.on('pageerror', (e) => console.log(`[${d.name}] pageerror: ${e.message}`));
+  page.on('console', (m) => {
+    if (m.type() === 'error' || m.text().startsWith('[error del juego')) console.log(`[${d.name}] console.error: ${m.text().slice(0, 300)}`);
+  });
   await page.goto(URL);
   await sleep(5000);
   await page.click('#mm-continue');
