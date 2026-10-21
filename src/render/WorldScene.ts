@@ -1,7 +1,9 @@
 import { ambientAt, Atmosphere } from './atmosphere';
+import { Effects } from './effects';
 import { WaterLife } from './waterLife';
 import { Sound } from '../audio/sound';
 import { WEAPONS } from '../data/weapons';
+import { CREATURES } from '../data/creatures';
 import Phaser from 'phaser';
 import { GameMap, describeTile, inBounds, isWater, Prop } from '../sim/map';
 import { activityLabel, Colonist, groupSummary, type Stance } from '../sim/colonist';
@@ -185,6 +187,11 @@ export class WorldScene extends Phaser.Scene {
   /** Llamas de los incendios (se repinta a menudo para que parpadeen). */
   private fireGfx!: Phaser.GameObjects.Graphics;
   private atmosphere!: Atmosphere;
+  private effects!: Effects;
+  /** Para los efectos: último disparo y explosión vistos y la salud de cada persona en el fotograma anterior. */
+  private fxShotTick = -1;
+  private fxBlastTick = -1;
+  private fxHealth = new Map<number, number>();
   private waterLife!: WaterLife;
   /** Sonido del juego (el menú cambia su volumen). */
   readonly sfx = new Sound();
@@ -281,6 +288,10 @@ export class WorldScene extends Phaser.Scene {
       return { x: v.x * TILE, y: rowY(v.y) - this.liftAt(tx, ty) };
     });
     this.events.once('shutdown', () => this.atmosphere.destroy());
+    this.effects = new Effects(this);
+    this.fxShotTick = this.world.tick;
+    this.fxBlastTick = this.world.tick;
+    this.events.once('shutdown', () => this.effects.destroy());
     this.waterLife = new WaterLife(this);
     this.waterLife.onSplash = (x, y) => this.sfx.play('chapoteo', { x, y });
     this.atmosphere.onBolt = () => window.setTimeout(() => this.sfx.play('trueno'), 200 + Math.random() * 900);
@@ -324,11 +335,12 @@ export class WorldScene extends Phaser.Scene {
     this.drawShadows();
     if (this.roofDrawn !== this.world.roofVersion) this.drawRoofs();
     this.fireTimer += delta;
-    if (this.fireTimer >= 120) {
+    if (this.fireTimer >= 60) {
       this.fireTimer = 0;
       this.drawFires();
     }
     this.atmosphere.update(this.world, delta);
+    this.syncEffects();
     this.waterLife.update(this.view, `${this.rotation}|${tiltIndex}|${this.map.seed}`, delta, ambientAt(this.world.hour).dark);
     this.watchAlerts();
     this.updateSound(delta);
@@ -417,6 +429,12 @@ export class WorldScene extends Phaser.Scene {
     const at = { x, y };
     if (frame === 'hit1') {
       const w = c.weapon ? WEAPONS[c.weapon] : null;
+      // Fogonazo en la boca del arma (o la llamarada del lanzallamas).
+      if (w?.ammo && (w.firearm || w.ignites)) {
+        const dir = this.sprites.get(c.id)?.flipX ? -1 : 1;
+        if (w.ignites) this.effects.flameJet(x + dir * 7, y - 9, dir);
+        else this.effects.muzzle(x + dir * 7, y - 9, dir, c.weapon === 'escopeta' || c.weapon === 'francotirador');
+      }
       if (c.creature) this.sfx.play('gruñido', at);
       else if (!w || !w.ammo) this.sfx.play('golpe', at);
       else if (w.ignites) this.sfx.play('llamas', at);
@@ -650,6 +668,48 @@ export class WorldScene extends Phaser.Scene {
   /** Trazos de los disparos recientes de las torretas (amarillo si aciertan, gris si fallan), granadas y explosiones. */
   private shotGfx: Phaser.GameObjects.Graphics | null = null;
 
+  /** Efectos de lo que acaba de pasar: disparos de torretas, explosiones y golpes recibidos. */
+  private syncEffects(): void {
+    const w = this.world;
+    const fx = this.effects;
+    fx.update();
+    const at = (x: number, y: number, up: number) => {
+      const v = this.toViewPoint(x + 0.5, y + 0.5);
+      return { x: v.x * TILE, y: rowY(v.y) - this.liftAt(x, y) - up };
+    };
+    let shotTick = this.fxShotTick;
+    for (const k of w.turretShots) {
+      if (k.tick <= this.fxShotTick) continue;
+      shotTick = Math.max(shotTick, k.tick);
+      const a = at(k.from.x, k.from.y, 8);
+      const b = at(k.to.x, k.to.y, 4);
+      fx.muzzle(a.x, a.y, Math.sign(b.x - a.x));
+      if (!k.hit) fx.miss(b.x, b.y + 3);
+    }
+    this.fxShotTick = shotTick;
+    let blastTick = this.fxBlastTick;
+    for (const b of w.blasts) {
+      if (b.tick <= this.fxBlastTick) continue;
+      blastTick = Math.max(blastTick, b.tick);
+      const c = at(b.x, b.y, 6);
+      fx.explosion(c.x, c.y, c.x, c.y + 6);
+    }
+    this.fxBlastTick = blastTick;
+    // Quien pierde salud de golpe sangra (o suelta chispas si es una máquina).
+    const seen = new Set<number>();
+    for (const c of w.pawns()) {
+      seen.add(c.id);
+      const prev = this.fxHealth.get(c.id);
+      this.fxHealth.set(c.id, c.health);
+      if (prev === undefined || prev - c.health < 0.03) continue;
+      const img = this.sprites.get(c.id);
+      if (!img || !img.visible) continue;
+      const machine = c.creature ? CREATURES[c.creature]?.machine === true : false;
+      fx.hit(img.x, img.y - (c.creature && !hasBeastArt(c.creature) ? 5 : 10), machine ? 'machine' : 'flesh', (prev - c.health) / 0.1);
+    }
+    for (const id of this.fxHealth.keys()) if (!seen.has(id)) this.fxHealth.delete(id);
+  }
+
   private drawTurretShots(): void {
     const shots = this.world.turretShots;
     if (!this.shotGfx) {
@@ -756,6 +816,7 @@ export class WorldScene extends Phaser.Scene {
     this.structVersion = -1;
     this.plantsVersion = -1;
     this.roofDrawn = -1;
+    this.effects.clearDecals();
     this.drawDesignPreview();
   }
 
@@ -1995,24 +2056,43 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  /** Pinta las llamas de las casillas que arden y lo quemado (tierra negra), parpadeando. */
+  /**
+   * Pinta las casillas que arden: suelo chamuscado, resplandor y tres lenguas de fuego que se mueven
+   * cada una a su ritmo (rojo fuera, naranja y amarillo dentro, casi blanco en la base), y de vez en
+   * cuando una brasa o una bocanada de humo.
+   */
   private drawFires(): void {
     const g = this.fireGfx;
     g.clear();
     const w = this.world;
     if (w.fires.size === 0) return;
-    const flick = Math.floor(this.time.now / 120);
+    const t = this.time.now / 1000;
     for (const [i, age] of w.fires) {
       const x = i % w.map.width;
       const y = (i - x) / w.map.width;
       const v = this.viewTile(x, y);
       const left = v.x * TILE;
       const bottom = (v.y + 1) * TILE_H - liftOf(this.view, v.x, v.y);
-      const h = TILE_H * (0.6 + 0.3 * (((i + flick) * 7) % 3) / 2);
-      g.fillStyle(0x2a1a10, 0.35).fillRect(left, bottom - TILE_H, TILE, TILE_H);
-      g.fillStyle(0xd0401a, 0.85).fillTriangle(left + 2, bottom, left + TILE - 2, bottom, left + TILE / 2, bottom - h);
-      g.fillStyle(0xf0a020, 0.9).fillTriangle(left + 5, bottom, left + TILE - 5, bottom, left + TILE / 2 + (((flick + i) % 3) - 1), bottom - h * 0.6);
-      if (age % 3 === 0) g.fillStyle(0xf8e060, 0.9).fillRect(left + TILE / 2 - 1, bottom - h * 0.35, 2, 2);
+      const cx = left + TILE / 2;
+      // Fuerza: crece al prender y se calma cuando ya lleva rato ardiendo.
+      const grow = Math.min(1, (age + 1) / 4);
+      const seed = (i * 2654435761) >>> 0;
+      g.fillStyle(0x1a120c, 0.45).fillRect(left, bottom - TILE_H, TILE, TILE_H);
+      g.fillStyle(0xff6a1a, 0.18).fillEllipse(cx, bottom - 2, TILE * 1.4, TILE_H * 0.9);
+      for (let k = 0; k < 3; k++) {
+        const ph = ((seed >> (k * 5)) & 31) / 5;
+        const off = (k - 1) * TILE * 0.28;
+        const sway = Math.sin(t * (5 + k) + ph) * 1.6;
+        const h = TILE_H * grow * (0.75 + 0.35 * Math.sin(t * (7 + k * 2) + ph * 2)) * (k === 1 ? 1.25 : 0.9);
+        const half = TILE * (k === 1 ? 0.3 : 0.22);
+        const bx = cx + off;
+        g.fillStyle(0xb8301a, 0.85).fillTriangle(bx - half, bottom, bx + half, bottom, bx + sway * 1.4, bottom - h);
+        g.fillStyle(0xf07a1a, 0.9).fillTriangle(bx - half * 0.7, bottom, bx + half * 0.7, bottom, bx + sway, bottom - h * 0.72);
+        g.fillStyle(0xffc840, 0.95).fillTriangle(bx - half * 0.4, bottom, bx + half * 0.4, bottom, bx + sway * 0.6, bottom - h * 0.42);
+      }
+      g.fillStyle(0xfff0b0, 0.9).fillEllipse(cx, bottom - 1.5, TILE * 0.45, 3);
+      if (Math.random() < 0.18) this.effects.ember(cx, bottom - TILE_H * 0.8);
+      if (Math.random() < 0.05) this.effects.fireSmoke(cx, bottom - TILE_H);
     }
   }
 

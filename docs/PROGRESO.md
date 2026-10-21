@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (67) — Fogonazos, explosiones y fuego con efectos
+
+- Penúltima parte del salto de calidad del 2D (pedido por Mikel): los **efectos** (`src/render/effects.ts`).
+- **Disparos**: fogonazo en estrella en la boca del arma, con su destello de luz (se nota mucho de noche), chispas y una bocanada de polvo; más grande con la escopeta y el francotirador. Las torretas también, y donde falla un disparo se levanta polvo. El **lanzallamas** echa una llamarada hacia delante con brasas.
+- **Golpes**: quien pierde salud de golpe salpica sangre; las arañas y los drones sueltan chispas.
+- **Explosiones** (granadas, minas, mortero, ⛽ que revienta): destello que ilumina alrededor, onda en el suelo, bola de fuego, cascotes que saltan y caen, chispas, humo que se queda un rato y una **mancha quemada** que se borra en unos 45 s.
+- **Fuego**: cada casilla que arde tiene suelo chamuscado, resplandor y tres lenguas de fuego que se mueven cada una a su ritmo (rojo, naranja, amarillo y casi blanco en la base), crece al prender, y suelta brasas que suben y humo.
+- Sin cambios en las reglas ni en la partida guardada.
+- Qué probar: con 🪄 modo Dios, un raid con armas de fuego, una torreta, una granada o el mortero, y un incendio; mejor de noche.
+- Qué sigue: la última parte, pulir la luz.
+- Sin npm en el entorno: tests con Bun (678); los tipos y la build, en GitHub Actions («Probar rama»).
+
 ## 2026-10-21 (66) — Pozo, depuradora, cantera y muelle con detalle
 
 - Siguiente parte del salto de calidad del 2D (pedido por Mikel). El pozo, la depuradora, la cantera, el muelle y la trampa de pesca se dibujan a **doble resolución** (`src/render/utilityArt.ts`), como la electricidad.
