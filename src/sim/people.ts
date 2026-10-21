@@ -20,7 +20,9 @@ import { maybePanic, witnessFall } from './panic';
 import { tryThrowGrenade } from './grenades';
 import { mortarManned, mortarShots } from './mortar';
 import { TICKS_PER_DAY } from './time';
-import { ALLY_HELP, factionDef, RAIDER_FACTION, RELATION, TRADER_FACTION, TRIBUTE, WAR } from '../data/factions';
+import { ALLY_HELP, factionDef, RADIO, RAIDER_FACTION, RELATION, TRADER_FACTION, TRIBUTE, WAR } from '../data/factions';
+import { isResearched } from './research';
+import { researchDef } from '../data/research';
 import { giftPoints } from './factions';
 export { canTalk, TALK_HOURS } from './jobs';
 
@@ -272,6 +274,45 @@ export function sendAllies(w: World): Colonist[] {
     w.addLog(`🤝 ${def.name} de ${f.settlement} mandan ${group.length} combatientes para ayudaros.`, 'bueno', 'visita', group[0].tile);
   }
   return out;
+}
+
+/** Por qué no se puede usar la radio para hablar con las facciones (null si se puede). */
+export function radioProblem(w: World): string | null {
+  if (!isResearched(w.research, RADIO.research)) return `Antes hay que investigar «${researchDef(RADIO.research)?.name ?? RADIO.research}» (📜 → 🔬 Investigación).`;
+  if (!w.radioOn()) return 'Hace falta una 📻 radio de llamada construida y con corriente (🏗 → Electricidad).';
+  return null;
+}
+
+/**
+ * Llama por radio a una caravana de los Chatarreros: llega en unas 4 horas. Como mucho una vez cada
+ * 3 días, y no si la relación es negativa. Devuelve el motivo si no se puede (null si se ha llamado).
+ */
+export function callCaravan(w: World): string | null {
+  const why = radioProblem(w);
+  if (why) return why;
+  const f = w.faction(TRADER_FACTION);
+  const def = factionDef(TRADER_FACTION);
+  if (!f || !def) return 'No hay nadie a quien llamar.';
+  if (f.relation < RADIO.caravanMinRelation) return `${def.name} no quieren comerciar con vosotros (relación ${f.relation}).`;
+  if (f.calledAt !== undefined && w.tick - f.calledAt < RADIO.caravanEveryDays * TICKS_PER_DAY) {
+    const left = Math.ceil((f.calledAt + RADIO.caravanEveryDays * TICKS_PER_DAY - w.tick) / (TICKS_PER_DAY / 24));
+    return `Ya los habéis llamado hace poco: podréis volver a llamar en ${left} h.`;
+  }
+  if (w.others.some((o) => o.role === 'comerciante' && !o.trader?.leaving)) return 'Ya hay una caravana en la colonia.';
+  f.calledAt = w.tick;
+  w.schedule.nextTrader = Math.min(w.schedule.nextTrader, w.tick + Math.round(RADIO.caravanHours * TICKS_PER_DAY / 24));
+  w.addLog(`📻 Llamáis por radio a ${def.name} de ${f.settlement}: su caravana llegará en unas ${RADIO.caravanHours} horas.`, 'info');
+  return null;
+}
+
+/** Pide ayuda por radio a los aliados durante un ataque. Devuelve el motivo si nadie viene (null si viene alguien). */
+export function callAllies(w: World): string | null {
+  const why = radioProblem(w);
+  if (why) return why;
+  if (!underAttack(w)) return 'Solo se pide ayuda cuando os atacan.';
+  if (!w.factions.some((f) => f.relation >= RELATION.ally)) return `Nadie es aliado vuestro: hace falta una relación de ${RELATION.ally} o más.`;
+  const came = sendAllies(w);
+  return came.length ? null : `Vuestros aliados ya os ayudaron hace poco (como mucho, una vez cada ${ALLY_HELP.everyDays} días).`;
 }
 
 /** Hay atacantes en pie que no huyen. */

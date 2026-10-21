@@ -14,6 +14,8 @@ export interface FactionState {
   helpAt?: number;
   /** En guerra: tick de su próximo raid propio. */
   warRaidAt?: number;
+  /** Tick de la última vez que se les llamó por radio para que manden una caravana. */
+  calledAt?: number;
 }
 
 export type RelationLevel = 'guerra' | 'hostil' | 'neutral' | 'amistosa' | 'alianza';
@@ -73,6 +75,7 @@ export function restoreFactions(saved: unknown, seed: number): FactionState[] {
     if (typeof s.relation === 'number' && Number.isFinite(s.relation)) f.relation = clampRelation(s.relation);
     if (typeof s.helpAt === 'number' && Number.isFinite(s.helpAt)) f.helpAt = s.helpAt;
     if (typeof s.warRaidAt === 'number' && Number.isFinite(s.warRaidAt)) f.warRaidAt = s.warRaidAt;
+    if (typeof s.calledAt === 'number' && Number.isFinite(s.calledAt)) f.calledAt = s.calledAt;
   }
   return base;
 }

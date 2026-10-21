@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (35) — Facciones: la radio (bloque 7 terminado)
+
+- Con **«Radio»** investigada y una **📻 radio de llamada** construida y con corriente, en **📜 → 🏳 Facciones** hay una tarjeta **📻 Radio** con dos botones:
+  - **🐫 Llamar a una caravana**: los Chatarreros mandan una que llega en unas **4 horas**. Como mucho una vez cada **3 días**, no si ya hay una en la colonia y no si su relación es negativa.
+  - **🤝 Pedir ayuda**: solo durante un ataque y si alguien es aliado (60 o más). Vienen enseguida, dentro del límite de una vez cada 10 días.
+- Sin la investigación o sin la radio, la tarjeta dice qué falta.
+- Arreglo pequeño: en 📜 → 🔬 Investigación, los proyectos que ya hacen algo sin desbloquear construcciones («Baterías mejoradas», «Medicina avanzada», «Desguace de máquinas», «Hidráulica», «Radio»…) ya no dicen «Todavía no desbloquea nada».
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): que haga falta la radio de llamada además de la investigación, la espera (4 h), cada cuánto (3 días) y que no se pueda llamar con relación negativa.
+- Qué probar: investigar «Medicina de campo» y «Radio» (🪄 acelera), construir la radio de llamada con corriente y pulsar «Llamar a una caravana».
+- Sin npm en el entorno: tests con Bun (606, 3 nuevos) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+- Con esto quedan hechas las facciones (bloque 7). Siguiente: el **mercado** (bloque 8).
+
 ## 2026-10-21 (34) — Facciones: guerra y tributo
 
 - **Guerra**: una facción con **−50 o menos** manda **sus propios raids además de los normales**: el primero a los 2 días y luego tan a menudo como los normales. Se acaba al subir de −50.

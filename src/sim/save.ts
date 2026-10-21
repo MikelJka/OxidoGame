@@ -71,7 +71,7 @@ export interface SaveData {
   offer?: { pawn: SavedColonist; until: number } | null;
   schedule?: { nextWanderer: number; nextRaid: number; nextTrader: number; nextRadio?: number };
   /** Facciones (desde el 2026-10-21); las partidas antiguas las sacan de la semilla. */
-  factions?: { id: string; settlement: string; relation: number; helpAt?: number; warRaidAt?: number }[];
+  factions?: { id: string; settlement: string; relation: number; helpAt?: number; warRaidAt?: number; calledAt?: number }[];
   /** Tributo pedido y sin responder (desde el 2026-10-21). */
   tribute?: { faction: string; demand: Record<string, number>; value: number; until: number };
   nextPawnId?: number;

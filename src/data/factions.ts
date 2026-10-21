@@ -46,8 +46,17 @@ export interface TributeRules {
   hours: number;
 }
 
+/** Radio: qué investigación pide y cómo se llama a una caravana. */
+export interface RadioRules {
+  research: string;
+  caravanHours: number;
+  caravanEveryDays: number;
+  caravanMinRelation: number;
+}
+
 interface FactionData {
   allyHelp: AllyHelp;
+  radio: RadioRules;
   tribute: TributeRules;
   war: WarRules;
   factions: FactionDef[];
@@ -76,6 +85,8 @@ export function validateFactions(d: unknown): FactionData {
   if (!h || !Array.isArray(h.fighters) || !(h.fighters[0] >= 1 && h.fighters[1] >= h.fighters[0]) || !(h.everyDays > 0)) fail('ayuda de los aliados');
   const t = data.tribute;
   if (!t || !(t.fromDay >= 0) || !(t.every >= 1) || !(t.value > 0) || !(t.hours > 0)) fail('tributo');
+  const ra = data.radio;
+  if (!ra || !ra.research || !(ra.caravanHours >= 0) || !(ra.caravanEveryDays > 0)) fail('radio');
   if (!data.war || !(data.war.firstRaidDays >= 0)) fail('guerra');
   if (!ids.has(data.traderFaction) || !ids.has(data.raiderFaction)) fail('facción de las caravanas o de los raids');
   return data;
@@ -88,6 +99,7 @@ export const RELATION: RelationRules = DATA.relation;
 export const ALLY_HELP: AllyHelp = DATA.allyHelp;
 export const WAR: WarRules = DATA.war;
 export const TRIBUTE: TributeRules = DATA.tribute;
+export const RADIO: RadioRules = DATA.radio;
 /** De quién son las caravanas. */
 export const TRADER_FACTION = DATA.traderFaction;
 /** De quién son los saqueadores. */

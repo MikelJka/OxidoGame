@@ -86,7 +86,7 @@ Terminado: una partida de 30 minutos en la que se puede morir de hambre, de sed 
 
 ## Fase 6 — Facciones y economía
 
-- [ ] Facciones con relaciones y diplomacia (hechas las tres facciones con su asentamiento y su relación, que sube y baja, y la pestaña 📜 → 🏳 Facciones, la alianza (con 60 o más mandan combatientes si os atacan), la guerra (con −50 o menos, raids propios) y el tributo de los Hijos del Óxido; falta la radio)
+- [x] Facciones con relaciones y diplomacia (tres facciones con su asentamiento y su relación, la pestaña 📜 → 🏳 Facciones, la alianza, la guerra, el tributo de los Hijos del Óxido y la radio para llamar a una caravana o pedir ayuda)
 - [ ] Caravanas y trueque por valor
 - [ ] Mercado global simulado con oferta y demanda
 - [ ] Eventos, arte definitivo y equilibrio

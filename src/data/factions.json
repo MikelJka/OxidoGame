@@ -78,5 +78,12 @@
     "every": 3,
     "value": 200,
     "hours": 12
+  },
+  "radio": {
+    "_": "Con «Radio» investigada y una radio de llamada con corriente, en 📜 → 🏳 Facciones se llama a una caravana o se pide ayuda a los aliados (bloque 7). La espera, cada cuánto y la relación mínima los ha puesto la sesión del 2026-10-21.",
+    "research": "radio",
+    "caravanHours": 4,
+    "caravanEveryDays": 3,
+    "caravanMinRelation": 0
   }
 }

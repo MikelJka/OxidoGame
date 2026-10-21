@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { flatWorld } from './helpers';
 import { FACTIONS, RELATION } from '../src/data/factions';
 import { createFactions, relationLevel } from '../src/sim/factions';
-import { demandTribute, makeDeal, makePrisoner, payTribute, refuseTribute, runStoryteller, sendAllies, startRaid, startTrader, tributeDemand } from '../src/sim/people';
+import { callAllies, callCaravan, demandTribute, radioProblem, makeDeal, makePrisoner, payTribute, refuseTribute, runStoryteller, sendAllies, startRaid, startTrader, tributeDemand } from '../src/sim/people';
 import { TICKS_PER_HOUR } from '../src/sim/time';
 import { TICKS_PER_DAY } from '../src/sim/time';
 import { loadWorld, serializeWorld } from '../src/sim/save';
@@ -198,5 +198,49 @@ describe('tributo', () => {
     expect(back.tribute).toBeNull();
     expect(back.faction('hijos_oxido')!.relation).toBe(-80);
     expect(back.others.some((o) => o.role === 'saqueador')).toBe(true);
+  });
+});
+
+describe('radio', () => {
+  function withRadio(): World {
+    const w = flatWorld(1);
+    w.map.start = { x: 15, y: 15 };
+    w.schedule.nextTrader = Infinity;
+    return w;
+  }
+
+  it('pide «Radio» investigada y una radio de llamada con corriente', () => {
+    const w = withRadio();
+    expect(radioProblem(w)).toContain('Radio');
+    w.research.done.push('radio');
+    expect(radioProblem(w)).toContain('radio de llamada');
+    w.radioOn = () => true;
+    expect(radioProblem(w)).toBeNull();
+  });
+
+  it('llamar a una caravana: llega en unas 4 h, como mucho una vez cada 3 días', () => {
+    const w = withRadio();
+    w.research.done.push('radio');
+    w.radioOn = () => true;
+    expect(callCaravan(w)).toBeNull();
+    expect(w.schedule.nextTrader).toBe(w.tick + 4 * TICKS_PER_HOUR);
+    expect(callCaravan(w)).toContain('hace poco');
+    w.tick += 3 * TICKS_PER_DAY;
+    w.schedule.nextTrader = Infinity;
+    w.changeRelation('chatarreros', -30);
+    expect(callCaravan(w)).toContain('no quieren comerciar');
+  });
+
+  it('pedir ayuda: solo durante un ataque y si alguien es aliado', () => {
+    const w = withRadio();
+    w.research.done.push('radio');
+    w.radioOn = () => true;
+    expect(callAllies(w)).toContain('cuando os atacan');
+    startRaid(w, 1, false, false);
+    expect(callAllies(w)).toContain('Nadie es aliado');
+    w.changeRelation('granjeros', 70);
+    expect(callAllies(w)).toBeNull();
+    expect(w.others.some((o) => o.role === 'aliado')).toBe(true);
+    expect(callAllies(w)).toContain('hace poco');
   });
 });

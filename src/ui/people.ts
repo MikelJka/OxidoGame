@@ -3,7 +3,7 @@
 import { CREATURES } from '../data/creatures';
 import type { World } from '../sim/world';
 import type { Colonist } from '../sim/colonist';
-import { dealBalance, makeDeal, payTribute, refuseTribute, slaveValue, TRADER_MARGIN, TradeDeal } from '../sim/people';
+import { callAllies, callCaravan, dealBalance, makeDeal, payTribute, radioProblem, refuseTribute, slaveValue, TRADER_MARGIN, TradeDeal } from '../sim/people';
 import { healthLabel } from '../sim/health';
 import { RESOURCES, RESOURCE_ICONS, RESOURCE_NAMES } from '../data/resources';
 import { RESOURCE_VALUES } from '../data/values';
@@ -15,7 +15,8 @@ import { RESEARCH, RESEARCH_BENCH, researchDef } from '../data/research';
 import { BUILDINGS, buildingDef } from '../data/buildings';
 import { RECIPES } from '../data/recipes';
 import { canResearch, isResearched, researchFraction, unlockedBy } from '../sim/research';
-import { factionDef, RELATION } from '../data/factions';
+import { factionDef, RADIO, RELATION, TRADER_FACTION } from '../data/factions';
+import { CROPS } from '../data/crops';
 import { relationLevel, RELATION_LEVEL_NAMES } from '../sim/factions';
 
 export interface PeopleUI {
@@ -186,7 +187,8 @@ export function mountPeople(opts: Options): PeopleUI {
       head.append(el('strong', undefined, `${done ? '✅' : on ? '🔬' : open ? '📘' : '🔒'} ${p.name}`), el('span', 'muted', done ? 'Hecho' : `${p.hours} h`));
       card.append(head, el('div', 'muted', `Desbloquea: ${p.unlocks}`));
       // Del árbol completo, lo que aún no está en el juego llega en otra actualización.
-      if (!unlockedBy(BUILDINGS, p.id).length && !unlockedBy(RECIPES, p.id).length) card.append(el('div', 'pp-hint', '🕒 Todavía no desbloquea nada: llegará en una próxima actualización.'));
+      const effect = p.batteryMultiplier !== undefined || p.woundHealTime !== undefined || p.infectionChance !== undefined || p.machineParts !== undefined || p.floodsTrenches || p.id === RADIO.research;
+      if (!effect && !unlockedBy(BUILDINGS, p.id).length && !unlockedBy(RECIPES, p.id).length && !unlockedBy(CROPS, p.id).length) card.append(el('div', 'pp-hint', '🕒 Todavía no desbloquea nada: llegará en una próxima actualización.'));
       if (!done) {
         const f = researchFraction(r, p.id);
         if (f > 0) {
@@ -215,6 +217,29 @@ export function mountPeople(opts: Options): PeopleUI {
   function renderFactions(w: World): HTMLElement[] {
     const out: HTMLElement[] = [];
     out.push(el('p', 'muted', `La relación va de ${RELATION.min} a ${RELATION.max}. Sube al comerciar con sus caravanas (+${RELATION.tradeCaravan}), al darles de más en un trato (+1 cada ${RELATION.giftValuePerPoint} chapas) y al liberar a sus prisioneros (+${RELATION.releasePrisoner}); baja al matar o retener a los suyos (${RELATION.killOrHold}). Con ${RELATION.ally} o más, alianza; con ${RELATION.war} o menos, guerra.`));
+    // Radio: llamar a una caravana o pedir ayuda a los aliados.
+    const radio = el('div', 'pp-card');
+    radio.append(el('strong', undefined, '📻 Radio'));
+    const problem = radioProblem(w);
+    if (problem) radio.append(el('div', 'pp-hint', problem));
+    else {
+      const row = el('div', 'zp-row');
+      const trader = factionDef(TRADER_FACTION);
+      row.append(
+        button(`🐫 Llamar a una caravana`, () => {
+          const why = callCaravan(w);
+          opts.toast(why ?? `📻 ${trader?.name ?? 'La caravana'} vienen de camino`, why ? 3000 : 2000);
+          rerender();
+        }, `Llega en unas ${RADIO.caravanHours} h; como mucho una vez cada ${RADIO.caravanEveryDays} días`),
+        button('🤝 Pedir ayuda', () => {
+          const why = callAllies(w);
+          opts.toast(why ?? '🤝 Vuestros aliados vienen a ayudaros', why ? 3000 : 2000);
+          rerender();
+        }, `Solo durante un ataque y con una facción aliada (${RELATION.ally} o más)`),
+      );
+      radio.append(el('div', 'muted', `Una caravana llega en unas ${RADIO.caravanHours} h (como mucho una vez cada ${RADIO.caravanEveryDays} días). La ayuda, solo durante un ataque y si alguien es aliado.`), row);
+    }
+    out.push(radio);
     for (const f of w.factions) {
       const def = factionDef(f.id);
       if (!def) continue;
@@ -402,7 +427,7 @@ export function mountPeople(opts: Options): PeopleUI {
       tab, logFilter, w.research.current, w.log.length, w.log[w.log.length - 1]?.tick, trader, w.colonists.length, w.day,
       prisoners.map((p) => `${p.id}:${p.prisoner!.mode}:${Math.round(p.prisoner!.resistance * 100)}:${Math.round(p.needs.food * 20)}:${Math.round(p.needs.water * 20)}:${Math.round(p.health * 20)}`).join(','),
       tab === 'comercio' ? `${JSON.stringify(w.inventory())}:${Math.floor(w.tick / TICKS_PER_HOUR)}` : '',
-      tab === 'facciones' ? w.factions.map((f) => f.relation).join(',') : '',
+      tab === 'facciones' ? `${w.factions.map((f) => `${f.relation}:${f.calledAt ?? ''}:${f.helpAt ?? ''}`).join(',')}:${radioProblem(w) ?? ''}` : '',
       tab === 'investigacion' ? `${w.research.current}:${w.research.done.join(',')}:${w.research.current ? Math.floor(researchFraction(w.research, w.research.current) * 100) : ''}:${w.structures.stations().length}:${w.colonists.map((c) => c.priorities.investigar).join('')}` : '',
     ].join('|');
     if (key === lastKey) return;
