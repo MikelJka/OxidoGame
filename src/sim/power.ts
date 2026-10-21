@@ -104,7 +104,8 @@ export function stationSpeed(s: Structure): number {
 
 /** Necesita corriente para funcionar (recicladora, depuradora, lámpara…) y ahora no le llega. */
 export function lacksPower(s: Structure): boolean {
-  return (s.def.power ?? 0) < 0 && !s.powered;
+  // Una máquina averiada está parada aunque le llegue corriente.
+  return (s.def.power ?? 0) < 0 && (!s.powered || !!s.repair);
 }
 
 /** Redes de cable terminado: cada casilla de cable → id de su red. */

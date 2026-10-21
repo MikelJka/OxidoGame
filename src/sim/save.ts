@@ -54,12 +54,12 @@ export interface SaveData {
   items: { x: number; y: number; resource: string; amount: number }[];
   designations: { x: number; y: number; job: string }[];
   zones: { id: number; name: string; priority: number; accepts: Record<string, boolean>; tiles: number[] }[];
-  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number; demolish?: boolean; bill?: { recipe: string; target: number; paused: boolean; mode?: string }; rot?: number; raised?: boolean; wantUp?: boolean; autoRaised?: boolean; stored?: number; fuel?: number; electric?: boolean; upgrade?: { delivered: Record<string, number>; progress: number }; moveTo?: { x: number; y: number; rot: number } }[];
+  structures: { def: string; x: number; y: number; built: boolean; delivered: Record<string, number>; progress: number; hp: number; demolish?: boolean; bill?: { recipe: string; target: number; paused: boolean; mode?: string }; rot?: number; raised?: boolean; wantUp?: boolean; autoRaised?: boolean; stored?: number; fuel?: number; electric?: boolean; upgrade?: { delivered: Record<string, number>; progress: number }; repair?: { need: Record<string, number>; work: number; delivered: Record<string, number>; progress: number }; moveTo?: { x: number; y: number; rot: number } }[];
   /** Obras de terreno pendientes (desde que existen). */
   terrain?: { x: number; y: number; job: string }[];
   /** Huertos (desde que existe el cultivo; las partidas anteriores no los tienen). */
   farms?: { id: number; name: string; crop: string; tiles: number[] }[];
-  plants?: { i: number; crop: string; growth: number }[];
+  plants?: { i: number; crop: string; growth: number; harm?: number }[];
   /** Casillas de almacenes y huertos por despejar (#14; las partidas anteriores no las tienen). */
   clearing?: { i: number; kind: string; zone: number; prop: number }[];
   /** Saqueadores, prisioneros y comerciantes (desde que existen). */
@@ -265,7 +265,7 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     designations: world.designations.list().map((d) => ({ ...d })),
     zones: world.zones.all().map((z) => ({ id: z.id, name: z.name, priority: z.priority, accepts: { ...z.accepts }, tiles: [...z.tiles] })),
     farms: world.farms.all().map((z) => ({ id: z.id, name: z.name, crop: z.crop.id, tiles: [...z.tiles] })),
-    plants: world.farms.plantList().map(({ x, y, plant }) => ({ i: y * m.width + x, crop: plant.crop.id, growth: plant.growth })),
+    plants: world.farms.plantList().map(({ x, y, plant }) => ({ i: y * m.width + x, crop: plant.crop.id, growth: plant.growth, ...(plant.harm ? { harm: plant.harm } : {}) })),
     clearing: world.clearing.list(),
     // Un mueble que alguien lleva en brazos se guarda en su sitio de antes, con la orden de moverlo.
     structures: [...world.structures.all(), ...world.structures.liftedList()].map((s) => ({
@@ -281,6 +281,7 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
       fuel: s.fuel || undefined,
       electric: s.electric || undefined,
       upgrade: s.upgrade ? { delivered: { ...s.upgrade.delivered } as Record<string, number>, progress: s.upgrade.progress } : undefined,
+      ...(s.repair ? { repair: { need: { ...s.repair.need } as Record<string, number>, work: s.repair.work, delivered: { ...s.repair.delivered } as Record<string, number>, progress: s.repair.progress } } : {}),
     })),
     terrain: world.terrain.list().map((o) => ({ ...o })),
   };
@@ -525,6 +526,11 @@ export function loadWorld(input: string | unknown): World {
         restored.upgrade = { delivered: got, progress: Math.max(0, num(s.upgrade.progress, 0)) };
       }
     }
+    // Averiada (desde el 2026-10-21).
+    if (restored && s.built && s.repair) {
+      const res = (o: Record<string, unknown> | undefined) => Object.fromEntries(Object.entries(o ?? {}).filter(([r]) => isResource(r)).map(([r, n]) => [r, Math.max(0, Math.floor(num(n, 0)))]));
+      restored.repair = { need: res(s.repair.need), work: Math.max(1, num(s.repair.work, 300)), delivered: res(s.repair.delivered), progress: Math.max(0, num(s.repair.progress, 0)) };
+    }
     const recipe = s.bill ? recipeDef(String(s.bill.recipe)) : undefined;
     if (restored && recipe && recipe.station === def.id) {
       // El modo «fabricar N» existe desde el 2026-10-18; las órdenes de antes son «hasta tener».
@@ -644,7 +650,7 @@ export function loadWorld(input: string | unknown): World {
   }
   for (const p of d.plants ?? []) {
     const crop = cropDef(String(p.crop));
-    if (crop) world.farms.restorePlant(num(p.i, -1), crop, num(p.growth, 0));
+    if (crop) world.farms.restorePlant(num(p.i, -1), crop, num(p.growth, 0), p.harm !== undefined ? num(p.harm, 1) : undefined);
   }
   for (const c of d.clearing ?? []) {
     if (c.kind !== 'almacen' && c.kind !== 'huerto') continue;

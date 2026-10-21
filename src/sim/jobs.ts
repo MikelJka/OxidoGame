@@ -546,6 +546,34 @@ function buildCandidates(ctx: JobContext, c: Colonist): Candidate[] {
       },
     });
   }
+  // Arreglar máquinas averiadas: traer lo que piden (⚙️1) y hacer la obra, como un plano.
+  for (const s of ctx.structures.repairs()) {
+    const holder = ctx.reservations.holder(s.x, s.y);
+    if (holder !== undefined && holder !== c.id) continue;
+    out.push({
+      kind: 'construir', x: s.x, y: s.y, dist: manhattan(c.tile, s.x, s.y),
+      make: () => {
+        const sides = ctx.structures.sidesOf(s);
+        if (ctx.structures.needsAny(s)) {
+          const mat = nearestMaterial(ctx, s, c.tile);
+          if (!mat) return null;
+          const route = pathToNearest(ctx.map, c.tile, [{ x: mat.x, y: mat.y }]);
+          if (!route || !pathToNearest(ctx.map, { x: mat.x, y: mat.y }, sides)) return null;
+          return {
+            job: {
+              kind: 'construir', sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: 0, work: 0, repair: true,
+              haul: { resource: mat.resource, amount: mat.amount, from: { x: mat.x, y: mat.y }, to: { x: s.x, y: s.y }, toBlueprint: true, picked: false },
+            },
+            path: route.path,
+          };
+        }
+        const here = ctx.structures.isBesideStructure(c.tile, s);
+        const route = here ? { stand: { ...c.tile }, path: [] } : pathToNearest(ctx.map, c.tile, sides);
+        if (!route) return null;
+        return { job: { kind: 'construir', sid: s.id, x: s.x, y: s.y, stand: route.stand, progress: s.repair?.progress ?? 0, work: s.repair?.work ?? 1, repair: true }, path: route.path };
+      },
+    });
+  }
   // Electrificar talleres: traer el material de la mejora y hacer la obra, como un plano.
   for (const s of ctx.structures.upgrades()) {
     const holder = ctx.reservations.holder(s.x, s.y);

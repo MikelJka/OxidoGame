@@ -1958,6 +1958,8 @@ function structureLabel(st: Structures, s: Structure): string {
 function powerLabel(w: World, s: Structure): string {
   const parts: string[] = [];
   const f = s.def.fuel;
+  // Averiada: lo primero que se ve (está parada hasta que la arreglen).
+  if (s.repair) parts.push(`🔧 averiada: parada hasta que un colono con «Construir» la arregle`);
   if (f && s.def.burnsCorpses) parts.push(s.powered ? 'encendida: quema los cadáveres' : 'apagada: hace falta leña', `${RESOURCE_NAMES[f.resource].toLowerCase()} ${Math.ceil(s.fuel ?? 0)}/${f.capacity}`);
   else if (s.def.mortar) parts.push(mortarShots(s) > 0 ? `${mortarShots(s)} disparos: lo maneja un colono reclutado pegado a él` : 'sin munición: hace falta chatarra', `${RESOURCE_NAMES[s.def.mortar.ammo.resource].toLowerCase()} ${Math.floor(s.fuel ?? 0)}/${s.def.mortar.ammo.capacity}`);
   else if (f) parts.push(s.powered ? 'en marcha' : `sin ${RESOURCE_NAMES[f.resource].toLowerCase()}`, `${RESOURCE_NAMES[f.resource].toLowerCase()} ${Math.ceil(s.fuel ?? 0)}/${f.capacity}`);

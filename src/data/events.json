@@ -1,9 +1,58 @@
 {
   "_": "Bloque 9 del catálogo (aprobado por Mikel el 2026-10-18). Cada cuánto llega un suceso (cada 2–4 días, desde el día 3), cuánto pesa cada uno y lo que trae un alijo los ha puesto la sesión del 2026-10-21.",
   "firstDay": 3,
-  "gapDays": [2, 4],
+  "gapDays": [
+    2,
+    4
+  ],
   "events": [
-    { "id": "tormenta_polvo", "name": "Tormenta de polvo", "weight": 2, "hours": 24, "solar": 0, "reach": 0.5 },
-    { "id": "alijo", "name": "Alijo", "weight": 2, "value": [150, 400], "pool": ["madera", "piedra", "chatarra", "componentes", "metal", "comida", "medicina", "fibra", "balas", "flechas", "combustible"] }
+    {
+      "id": "tormenta_polvo",
+      "name": "Tormenta de polvo",
+      "weight": 2,
+      "hours": 24,
+      "solar": 0,
+      "reach": 0.5
+    },
+    {
+      "id": "alijo",
+      "name": "Alijo",
+      "weight": 2,
+      "value": [
+        150,
+        400
+      ],
+      "pool": [
+        "madera",
+        "piedra",
+        "chatarra",
+        "componentes",
+        "metal",
+        "comida",
+        "medicina",
+        "fibra",
+        "balas",
+        "flechas",
+        "combustible"
+      ]
+    },
+    {
+      "id": "averia",
+      "name": "Avería",
+      "weight": 2,
+      "repair": {
+        "componentes": 1
+      },
+      "repairWork": 300
+    },
+    {
+      "id": "lluvia_acida",
+      "name": "Lluvia ácida",
+      "weight": 1,
+      "hours": 6,
+      "cropYield": 0.7,
+      "harmPerHour": 0.02,
+      "harmFloor": 0.5
+    }
   ]
 }

@@ -15,6 +15,13 @@ export interface EventDef {
   /** Alijo: lo que vale en chapas [mínimo, máximo] y de qué recursos sale. */
   value?: [number, number];
   pool?: ResourceId[];
+  /** Avería: lo que hace falta para arreglar la máquina (⚙️1) y el trabajo que lleva. */
+  repair?: Partial<Record<ResourceId, number>>;
+  repairWork?: number;
+  /** Lluvia ácida: cosecha que queda de lo que estaba plantado al aire libre (×0,7) y daño cada hora a quien está fuera (sin bajar de `harmFloor`). */
+  cropYield?: number;
+  harmPerHour?: number;
+  harmFloor?: number;
 }
 
 interface EventData {

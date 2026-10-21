@@ -52,13 +52,18 @@ export function runEvents(w: World): void {
       w.addLog(`🌤 Se acaba: ${eventDef(e.id)?.name.toLowerCase() ?? e.id}.`, 'info');
     }
   }
+  // Lluvia ácida: cada hora estropea lo plantado al aire libre y quema un poco a quien está fuera.
+  const acid = w.weather.find((e) => w.tick < e.until && eventDef(e.id)?.cropYield !== undefined);
+  if (acid) acidRainHour(w, eventDef(acid.id)!);
   if (w.tick < w.nextEvent) return;
   const rng = eventRng(w, 1);
   w.nextEvent = w.tick + rng.int(Math.round(EVENT_GAP[0] * TICKS_PER_DAY), Math.round(EVENT_GAP[1] * TICKS_PER_DAY));
   const total = EVENTS.reduce((a, e) => a + e.weight, 0);
   let roll = rng.next() * total;
   const ev = EVENTS.find((e) => (roll -= e.weight) < 0) ?? EVENTS[0];
-  startEvent(w, ev.id);
+  // Si no puede pasar (p. ej. una avería sin máquinas), pasa el siguiente que pueda.
+  const order = [ev, ...EVENTS.filter((e) => e !== ev)];
+  for (const e of order) if (startEvent(w, e.id)) break;
 }
 
 /** Empieza un suceso. false si no ha podido (p. ej., no hay sitio para el alijo). */
@@ -66,8 +71,14 @@ export function startEvent(w: World, id: string): boolean {
   const ev = eventDef(id);
   if (!ev) return false;
   if (ev.id === 'alijo') return dropCache(w, ev);
+  if (ev.repair) return breakMachine(w, ev);
   if (ev.hours && !activeEvent(w, ev.id)) {
     w.weather.push({ id: ev.id, until: w.tick + Math.round(ev.hours * TICKS_PER_HOUR) });
+    if (ev.cropYield !== undefined) {
+      w.addLog(`☔ ¡Lluvia ácida! Durante ${ev.hours} horas estropea lo plantado al aire libre (−${Math.round((1 - ev.cropYield) * 100)} % de cosecha) y quema a quien esté fuera de una habitación.`, 'malo');
+      acidRainHour(w, ev);
+      return true;
+    }
     if (ev.id === 'tormenta_polvo') w.addLog(`🌪 ¡Tormenta de polvo! Durante un día las placas solares no producen y los disparos llegan a la mitad de lejos.`, 'malo');
     else w.addLog(`🌦 ${ev.name}.`, 'malo');
     return true;
@@ -101,6 +112,29 @@ function dropCache(w: World, ev: EventDef): boolean {
   w.items.dropAll(at.x, at.y, got);
   const list = (Object.entries(got) as [ResourceId, number][]).map(([r, n]) => `${n} ${RESOURCE_ICONS[r]}`).join(', ');
   w.addLog(`📦 Alguien ha visto un alijo abandonado: ${list}. Los colonos con «Transportar» lo traerán.`, 'bueno', 'visita', at);
+  return true;
+}
+
+/** Una hora de lluvia ácida. */
+function acidRainHour(w: World, ev: EventDef): void {
+  for (const { x, y, plant } of w.farms.plantList()) {
+    if (!plant.harm && !w.rooms.at(x, y)) plant.harm = ev.cropYield;
+  }
+  for (const c of w.colonists) {
+    if (c.vehicle?.boarded || w.rooms.at(c.tile.x, c.tile.y)) continue;
+    c.health = Math.max(Math.min(c.health, ev.harmFloor ?? 0.5), c.health - (ev.harmPerHour ?? 0));
+  }
+}
+
+/** Avería: una máquina eléctrica (que gasta corriente) se para hasta que la arreglen (⚙️1). */
+function breakMachine(w: World, ev: EventDef): boolean {
+  const machines = w.structures.all().filter((s) => s.built && (s.def.power ?? 0) < 0 && !s.def.conduit && !s.repair && !s.demolish);
+  if (!machines.length) return false;
+  const rng = eventRng(w, 3);
+  const s = machines[rng.int(0, machines.length - 1)];
+  if (!w.structures.breakDown(s, ev.repair!, ev.repairWork ?? 300)) return false;
+  const need = (Object.entries(ev.repair!) as [ResourceId, number][]).map(([r, n]) => `${RESOURCE_ICONS[r]}${n}`).join(' ');
+  w.addLog(`🔧 Avería: ${s.def.name.toLowerCase()} se ha parado. Un colono con «Construir» la arreglará con ${need}.`, 'malo', undefined, { x: s.x, y: s.y });
   return true;
 }
 

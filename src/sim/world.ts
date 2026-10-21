@@ -1197,7 +1197,7 @@ export class World implements JobContext {
   /** Busca trabajo (si toca) y lo empieza. true si ahora tiene uno. */
   private tryStartJob(c: Colonist): boolean {
     const people = this.others.length > 0 || this.colonists.some((k) => k.wounds.some((w) => w.bleeding) || needsDose(k) || k.downed);
-    if (!people && this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.structures.toMove().length === 0 && this.structures.stations().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0 && this.corpses.length === 0 && !this.structures.all().some((s) => s.built && !!depositOf(s.def))) return false;
+    if (!people && this.designations.count === 0 && this.zones.all().length === 0 && this.structures.blueprints().length === 0 && this.structures.toDemolish().length === 0 && this.structures.toMove().length === 0 && this.structures.repairs().length === 0 && this.structures.stations().length === 0 && this.farms.all().length === 0 && this.farms.plantList().length === 0 && this.terrain.count === 0 && this.corpses.length === 0 && !this.structures.all().some((s) => s.built && !!depositOf(s.def))) return false;
     if (this.tick < (this.nextJobScan.get(c.id) ?? 0)) return false;
     const plan = findJob(this, c);
     if (!plan || !reservePlan(this.reservations, c, plan.job)) {
@@ -1265,7 +1265,9 @@ export class World implements JobContext {
       if (j.demolish) return !!s && s.built && !!s.demolish;
       if (j.move === 'desmontar') return !!s && !!s.moveTo && this.structures.canMove(s);
       if (j.move === 'montar') return !!s && !!s.lifted;
-      if (j.upgrade) {
+      if (j.repair) {
+        if (!s || !s.built || !s.repair || s.demolish) return false;
+      } else if (j.upgrade) {
         if (!s || !s.built || !s.upgrade || s.demolish) return false;
       } else if (!s || s.built) return false;
       if (h && !h.picked) {
@@ -1403,6 +1405,16 @@ export class World implements JobContext {
       if (j.progress >= j.work) {
         const s = this.jobStructure(j)!;
         if (this.structures.consumeInputs(s)) this.dropBeside(s, s.bill!.recipe.outputs);
+        this.dropJob(c);
+      }
+      return;
+    }
+    if (building && j.repair) {
+      const s = this.jobStructure(j)!;
+      if (s.repair) s.repair.progress = j.progress;
+      if (j.progress >= j.work) {
+        this.structures.finishRepair(s);
+        this.addLog(`🔧 ${c.name} arregla ${s.def.name.toLowerCase()}: vuelve a funcionar.`, 'bueno', undefined, { x: s.x, y: s.y });
         this.dropJob(c);
       }
       return;

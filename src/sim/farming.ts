@@ -39,6 +39,8 @@ export interface Plant {
   crop: CropDef;
   /** 0 recién sembrada … 1 madura. */
   growth: number;
+  /** Le ha caído lluvia ácida: la cosecha se multiplica por esto (0,7). */
+  harm?: number;
 }
 
 /** Fase visible de una planta: 0 sembrada, 1 brote, 2 creciendo, 3 madura. */
@@ -187,7 +189,7 @@ export class GrowZones {
     this.version++;
     // Una tierra mejor da algo más.
     const bonus = Math.max(0.6, Math.min(1.2, fertilityAt(this.map, x, y)));
-    return { resource: p.crop.resource, amount: Math.max(1, Math.round(roll(p.crop.yield[0], p.crop.yield[1]) * bonus)) };
+    return { resource: p.crop.resource, amount: Math.max(1, Math.round(roll(p.crop.yield[0], p.crop.yield[1]) * bonus * (p.harm ?? 1))) };
   }
 
   /**
@@ -248,9 +250,9 @@ export class GrowZones {
   }
 
   /** Vuelve a poner una planta guardada. */
-  restorePlant(i: number, crop: CropDef, growth: number): void {
+  restorePlant(i: number, crop: CropDef, growth: number, harm?: number): void {
     if (i < 0 || i >= this.zoneOf.length) return;
-    this.plants.set(i, { crop, growth: Math.max(0, Math.min(1, growth)) });
+    this.plants.set(i, { crop, growth: Math.max(0, Math.min(1, growth)), ...(harm !== undefined && harm > 0 && harm < 1 ? { harm } : {}) });
     this.version++;
   }
 

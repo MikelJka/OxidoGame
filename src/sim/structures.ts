@@ -41,6 +41,8 @@ export interface Structure {
   electric?: boolean;
   /** Electrificación pedida y aún sin terminar: material ya traído y trabajo hecho. */
   upgrade?: { delivered: Partial<Stockpile>; progress: number };
+  /** Averiada (suceso «Avería»): parada hasta que un colono la arregle con lo que pide. */
+  repair?: { need: Partial<Stockpile>; work: number; delivered: Partial<Stockpile>; progress: number };
   /** Mover: adónde la quiere llevar el jugador (un colono la desmonta y la lleva). */
   moveTo?: { x: number; y: number; rot: 0 | 1 };
   /** La lleva un colono: no ocupa casillas; `x`, `y` y `rot` ya son las del destino. */
@@ -379,6 +381,26 @@ export class Structures {
     return this.all().filter((s) => !s.built);
   }
 
+  /** Máquinas averiadas (los colonos las arreglan como una obra). */
+  repairs(): Structure[] {
+    return this.all().filter((s) => s.built && !!s.repair && !s.demolish);
+  }
+
+  /** Avería: la máquina se para hasta que la arreglen. */
+  breakDown(s: Structure, need: Partial<Stockpile>, work: number): boolean {
+    if (!s.built || s.repair) return false;
+    s.repair = { need: { ...need }, work, delivered: {}, progress: 0 };
+    this.version++;
+    return true;
+  }
+
+  /** Arreglada: vuelve a funcionar (lo que se trajo se gasta). */
+  finishRepair(s: Structure): void {
+    if (!s.repair) return;
+    s.repair = undefined;
+    this.version++;
+  }
+
   /** Talleres terminados con la electrificación pedida (los colonos la hacen como una obra). */
   upgrades(): Structure[] {
     return this.all().filter((s) => s.built && !!s.upgrade && !s.demolish);
@@ -621,6 +643,14 @@ export class Structures {
   /** Lo que falta por llevar a un plano o, en un taller con orden, para la siguiente tanda. */
   needs(s: Structure): Partial<Stockpile> {
     const out: Partial<Stockpile> = {};
+    // Averiada: lo que hace falta para arreglarla (mientras, nada más).
+    if (s.built && s.repair) {
+      for (const r of RESOURCES) {
+        const want = (s.repair.need[r] ?? 0) - (s.repair.delivered[r] ?? 0);
+        if (want > 0) out[r] = want;
+      }
+      return out;
+    }
     // Generador: el combustible que le falta para llenarse.
     const f = depositOf(s.def);
     if (s.built && f) {
@@ -699,7 +729,7 @@ export class Structures {
     const want = this.needs(s)[resource] ?? 0;
     const put = Math.max(0, Math.min(want, Math.floor(amount)));
     if (put > 0) {
-      const store = s.built && s.upgrade ? s.upgrade.delivered : s.delivered;
+      const store = s.built && s.repair ? s.repair.delivered : s.built && s.upgrade ? s.upgrade.delivered : s.delivered;
       store[resource] = (store[resource] ?? 0) + put;
       this.version++;
     }

@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (38) — Sucesos: avería y lluvia ácida
+
+- **🔧 Avería**: una máquina que gasta corriente (radio, torreta, puerta automática, taller electrificado…) **se para**. Un colono con **«Construir»** le lleva **⚙️1** y la arregla. Al tocarla pone «🔧 averiada».
+- **☔ Lluvia ácida**: dura **6 horas**. Lo plantado al **aire libre** (fuera de una habitación) da un **30 % menos** al cosecharlo. Quien está fuera pierde un 2 % de salud cada hora, sin bajar del 50 %; dentro de una habitación o de un vehículo, nada.
+- Si el suceso que toca no puede pasar (una avería sin máquinas), pasa otro.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): cuánto trabajo lleva el arreglo, cuánto quema la lluvia ácida y que «a cubierto» sea dentro de una habitación (no hay tejados).
+- Qué probar: con una radio o una torreta con corriente, esperar a una avería y ver que un colono la arregla. Con un huerto plantado, esperar a la lluvia ácida.
+- Sin npm en el entorno: tests con Bun (617, 2 nuevos) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+- Siguiente: la plaga y el refugiado herido (con ellos acaban los sucesos).
+
 ## 2026-10-21 (37) — Sucesos: tormenta de polvo y alijo
 
 - Primera parte del bloque 9: desde el **día 3**, cada **2–4 días** pasa algo.
