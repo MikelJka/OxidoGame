@@ -2,6 +2,18 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (65) — Electricidad con detalle
+
+- Siguiente parte del salto de calidad del 2D (pedido por Mikel). Los edificios de **electricidad** se dibujan a **doble resolución** (`src/render/powerArt.ts`), como los muebles y las defensas.
+- **Generador de leña**: caldera de hierro remachada sobre una losa, con la portezuela al rojo y su resplandor en el suelo, chimenea con humo, manómetro, volante de inercia con la correa hasta la dinamo y un montón de leña al lado.
+- **Placa solar**: dos paneles en bastidor de aluminio con las celdas en cuadrícula, reflejo del cielo, polvo y una celda rota, patas atornilladas, caja de conexión y su cable.
+- **Molino de viento**: torre de celosía con riostras en cruz, rueda de aspas de chapa como las de las granjas, buje rojo y veleta. **Molino de agua**: caseta de tablones sobre pilotes con tejado de chapa y la ventana encendida, y la rueda de paletas metida en el agua con espuma (se ve bien girado).
+- **Batería**: estante con dos acumuladores, bornes rojo y negro, puente de cobre e indicador de carga. **Lámpara**: farola con brazo curvo, tulipa y halo cálido. **Radio**: transmisor con dial iluminado, mandos, altavoz y micrófono sobre una caja de munición, con la antena y su luz roja.
+- Sin cambios en las reglas ni en la partida guardada.
+- Qué probar: construir (con 🪄 modo Dios si hace falta) un generador, una placa, los dos molinos, una batería, una lámpara y la radio, y girar e inclinar la vista.
+- Qué sigue: el pozo, la depuradora, la cantera y el muelle; después, la luz y los efectos.
+- Sin npm en el entorno: tests con Bun (678) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+
 ## 2026-10-21 (64) — Defensas con detalle
 
 - Siguiente parte del salto de calidad del 2D (pedido por Mikel). Las **defensas** se dibujan a **doble resolución** (`src/render/defenseArt.ts`), como los muebles.

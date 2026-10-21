@@ -78,7 +78,7 @@ export function drawDefenseHi(ctx: CanvasRenderingContext2D, def: BuildingDef, W
 // ——— Utilidades ———
 
 /** Elipse rellena (en filas de píxeles). */
-function disc(k: Kit, cx: number, cy: number, rx: number, ry: number, c: string): void {
+export function disc(k: Kit, cx: number, cy: number, rx: number, ry: number, c: string): void {
   const r = Math.max(1, Math.round(ry));
   for (let y = -r; y <= r; y++) {
     const t = y / r;
@@ -88,7 +88,7 @@ function disc(k: Kit, cx: number, cy: number, rx: number, ry: number, c: string)
 }
 
 /** Línea gruesa de (x0, y0) a (x1, y1). */
-function line(k: Kit, x0: number, y0: number, x1: number, y1: number, w: number, c: string): void {
+export function line(k: Kit, x0: number, y0: number, x1: number, y1: number, w: number, c: string): void {
   const n = Math.max(1, Math.ceil(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))));
   for (let i = 0; i <= n; i++) {
     const t = i / n;
@@ -97,25 +97,25 @@ function line(k: Kit, x0: number, y0: number, x1: number, y1: number, w: number,
 }
 
 /** Línea con contorno: primero el contorno, luego el color y un brillo arriba. */
-function beam(k: Kit, x0: number, y0: number, x1: number, y1: number, w: number, c: string): void {
+export function beam(k: Kit, x0: number, y0: number, x1: number, y1: number, w: number, c: string): void {
   line(k, x0, y0, x1, y1, w + 2, OL);
   line(k, x0, y0, x1, y1, w, c);
   line(k, x0, y0 - Math.max(1, w / 3), x1, y1 - Math.max(1, w / 3), 1, shade(c, 1.3));
 }
 
 /** Sombra en el suelo, a los pies de la pieza. */
-function groundShadow(k: Kit, x: number, y: number, w: number, h: number): void {
+export function groundShadow(k: Kit, x: number, y: number, w: number, h: number): void {
   disc(k, x + w / 2, y + h / 2, w / 2, h / 2, 'rgba(0,0,0,0.26)');
 }
 
 /** Remache: un punto claro con su sombra. */
-function rivet(k: Kit, x: number, y: number, c: string): void {
+export function rivet(k: Kit, x: number, y: number, c: string): void {
   k.px(x, y, 2, 2, shade(c, 0.55));
   k.px(x, y, 1, 1, shade(c, 1.45));
 }
 
 /** Manchas de óxido al azar en un rectángulo. */
-function rustSpots(k: Kit, x: number, y: number, w: number, h: number, n: number, seed: number): void {
+export function rustSpots(k: Kit, x: number, y: number, w: number, h: number, n: number, seed: number): void {
   for (let i = 0; i < n; i++) {
     const rx = x + Math.floor(hash(i, 1, seed) * Math.max(1, w - 3));
     const ry = y + Math.floor(hash(i, 2, seed) * Math.max(1, h - 2));
@@ -125,7 +125,7 @@ function rustSpots(k: Kit, x: number, y: number, w: number, h: number, n: number
 }
 
 /** Franjas de aviso amarillas y negras en diagonal. */
-function hazard(k: Kit, x: number, y: number, w: number, h: number): void {
+export function hazard(k: Kit, x: number, y: number, w: number, h: number): void {
   k.px(x, y, w, h, '#e0b02a');
   for (let i = -h; i < w; i += 6) for (let j = 0; j < h; j++) k.px(x + Math.max(0, Math.min(w - 1, i + j)), y + j, Math.max(0, Math.min(3, w - (i + j))), 1, '#1e1e1e');
 }
