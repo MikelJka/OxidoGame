@@ -1267,6 +1267,31 @@
     ]
   },
   {
+    "id": "muelle",
+    "research": "puentes",
+    "name": "Muelle",
+    "category": "taller",
+    "workSkill": "supervivencia",
+    "skillSpeed": [
+      1,
+      2
+    ],
+    "dock": true,
+    "cost": {
+      "madera": 10
+    },
+    "work": 250,
+    "hp": 150,
+    "blocks": false,
+    "moveCost": 1,
+    "height": 0,
+    "colors": {
+      "top": "#9c7446",
+      "face": "#6a4c2e",
+      "dark": "#3a2716"
+    }
+  },
+  {
     "id": "banco_investigacion",
     "movable": true,
     "name": "Banco de investigación",

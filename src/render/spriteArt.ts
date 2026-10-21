@@ -291,6 +291,16 @@ export function paintItem(ctx: CanvasRenderingContext2D, r: ResourceId): void {
         px(x + 1, y, 3, 1, '#c8ccd0');
       }
       break;
+    case 'pescado':
+      // Dos peces uno encima del otro.
+      for (const [x, y] of [[1, 3], [3, 6]]) {
+        px(x, y, 8, 3, '#1a1410');
+        px(x + 1, y + 1, 6, 1, '#8aa0b0');
+        px(x + 1, y, 5, 1, '#b8c8d0');
+        px(x + 7, y, 2, 3, '#5a7080'); // cola
+        px(x + 2, y + 1, 1, 1, '#1a1410'); // ojo
+      }
+      break;
     case 'hierba':
       // Manojos de hierba curativa atados.
       px(1, 3, 10, 6, '#1a1410');

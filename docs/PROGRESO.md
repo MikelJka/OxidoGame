@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (30) — El muelle y la pesca
+
+- Mikel contestó las tres propuestas (muelle, saqueadores en balsa y fase 5) y pidió trabajar sin parar hasta las 13:00. Se empieza por el **muelle y la pesca**.
+- Habilidad nueva **Supervivencia** (de 0 a 20) para todos los colonos. En las partidas empezadas, cada colono la saca de la media de su Cultivo y su Combate.
+- Con «Puentes», en 🏗 → Talleres: **muelle** (🪵10, 1×1). Va en agua poco profunda o normal, pegado a la orilla o a otro muelle, y se pisa. Encima no se construye, porque eso ya lo hacen las plataformas.
+- Al tocar el muelle se le encarga **«Pescar»** (hasta tener N 🐟 o un número fijo). Sale **1 🐟 cada 2 h con Supervivencia 0 y cada hora con 20**. Pesca quien tiene «Fabricar».
+- El **🐟 crudo** alimenta como las patatas y sienta peor. En la cocina, **«Pescado asado»**: 4 🐟 → 2 🍲.
+- Qué probar: investigar «Puentes» (🪄 acelera), poner un muelle en la orilla de un río, tocarlo y encargar «Pescar» hasta tener 10. Luego encargar «Pescado asado» en la cocina.
+- Sin npm en el entorno: tests con Bun (582, 6 nuevos en `tests/dock.test.ts`) y tipos con `tsc` (sin errores nuevos). La prueba completa, en GitHub Actions.
+- Siguiente: la trampa de pesca y, después, los saqueadores en balsa.
+
 ## 2026-10-21 — Decisiones de Mikel anotadas (sin cambiar el juego)
 
 - Mikel contestó en el chat el muelle y la pesca, los saqueadores en balsa y la fase 5; todo queda en «Pendiente» de `FEEDBACK.md`, sin propuestas abiertas.

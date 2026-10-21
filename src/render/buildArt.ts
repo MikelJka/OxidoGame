@@ -162,6 +162,18 @@ function drawStation(ctx: CanvasRenderingContext2D, def: BuildingDef, tile: numb
   const px = painter(ctx);
   const h = tileH + wallH;
   ctx.clearRect(0, 0, tile, h);
+  if (def.id === 'muelle') {
+    // Tablones sobre el agua con un poste y una caña de pescar apoyada.
+    px(0, 1, tile, tileH - 1, '#1a1410');
+    for (let y = 2, row = 0; y < tileH - 1; y += 3, row++) px(1, y, tile - 2, 2, row % 2 ? top : face);
+    px(1, tileH - 1, 2, wallH, dark);
+    px(tile - 3, tileH - 1, 2, wallH, dark);
+    px(2, 0, 2, 4, '#5a4228'); // poste
+    px(5, 1, 1, 1, '#c8b890'); // caña
+    px(6, 0, 6, 1, '#c8b890');
+    px(12, 1, 1, 4, '#d8d8d0'); // sedal
+    return;
+  }
   if (def.id === 'cantera') {
     // Pila de bloques cortados con un trípode de poleas.
     px(1, tileH - 2, tile - 2, wallH + 2, '#1a1410');

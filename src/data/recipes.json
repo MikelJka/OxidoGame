@@ -39,6 +39,19 @@
     "description": "6 setas dan 2 raciones."
   },
   {
+    "id": "pescado_asado",
+    "name": "Pescado asado",
+    "station": "cocina",
+    "inputs": {
+      "pescado": 4
+    },
+    "outputs": {
+      "comida": 2
+    },
+    "work": 200,
+    "description": "4 pescados dan 2 raciones: alimentan más que crudos y sientan bien."
+  },
+  {
     "id": "fundir_chatarra",
     "name": "Fundir chatarra",
     "station": "horno",
@@ -482,5 +495,16 @@
     },
     "work": 300,
     "description": "4 de hierba curativa y 1 de fibra dan una 💊 Medicina. Va más rápido con buena Medicina."
+  },
+  {
+    "id": "pescar",
+    "name": "Pescar",
+    "station": "muelle",
+    "inputs": {},
+    "outputs": {
+      "pescado": 1
+    },
+    "work": 900,
+    "description": "Un 🐟 cada 2 horas con Supervivencia 0 y cada hora con 20. Crudo alimenta poco y sienta peor: en la cocina, «Pescado asado»."
   }
 ]

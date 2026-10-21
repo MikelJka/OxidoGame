@@ -40,8 +40,9 @@ export const JOB_PATH_NODES = 12000;
 const SIDES: readonly Point[] = [{ x: 0, y: 1 }, { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: -1 }];
 
 /** Velocidad de trabajo de un colono (1 = normal): de ×0,6 con habilidad 0 a ×1,6 con 20. */
-export function workSpeed(c: Colonist, kind: WorkType, skillOverride?: Skill): number {
+export function workSpeed(c: Colonist, kind: WorkType, skillOverride?: Skill, range?: readonly [number, number]): number {
   const skill = skillOverride ?? WORK_SKILL[kind];
+  if (skill && range) return (range[0] + (range[1] - range[0]) * (c.skills[skill] / 20)) * needsWorkFactor(c);
   return (skill ? 0.6 + c.skills[skill] * 0.05 : 1) * needsWorkFactor(c);
 }
 

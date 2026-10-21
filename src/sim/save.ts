@@ -336,7 +336,9 @@ function restoreColonist(s: SavedColonist): Colonist {
   const skills = {} as Record<Skill, number>;
   const passions = {} as Record<Skill, 0 | 1 | 2>;
   for (const k of SKILLS) {
-    skills[k] = Math.max(0, Math.min(20, num(s.skills?.[k], 0)));
+    // Supervivencia (2026-10-21) no estaba en las partidas antiguas: sale de Cultivo y Combate.
+    const fallback = k === 'supervivencia' ? Math.round((num(s.skills?.cultivo, 0) + num(s.skills?.combate, 0)) / 2) : 0;
+    skills[k] = Math.max(0, Math.min(20, num(s.skills?.[k], fallback)));
     const p = num(s.passions?.[k], 0);
     passions[k] = (p === 1 || p === 2 ? p : 0) as 0 | 1 | 2;
   }

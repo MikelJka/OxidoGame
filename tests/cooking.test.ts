@@ -20,7 +20,7 @@ describe('cocina', () => {
   it('la cocina es un taller con recetas para cada cultivo, y cocinar usa la habilidad Cocina', () => {
     expect(buildingDef('cocina').category).toBe('taller');
     const outs = recipesFor('cocina').map((r) => Object.keys(r.inputs)[0]);
-    expect(outs.sort()).toEqual(['maiz', 'patata', 'setas']);
+    expect(outs.sort()).toEqual(['maiz', 'patata', 'pescado', 'setas']);
     expect(WORK_SKILL.cocinar).toBe('cocina');
     // Cocinado alimenta más que lo mismo crudo.
     for (const r of recipesFor('cocina')) {

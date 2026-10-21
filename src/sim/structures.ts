@@ -328,7 +328,9 @@ export class Structures {
     this.map.blocked[i] = !top ? 0 : top.def.blocks || up ? BLOCK_SOLID : walkableStructureCode(top.def.moveCost ?? 1);
     // Puentes, plataformas y puentes levadizos bajados: el agua de debajo se anda como suelo.
     const down = !!main?.built && !!main.def.drawbridge && !main.raised;
-    this.map.bridge[i] = (floor?.built && (floor.def.bridge || floor.def.platform)) || down ? 1 : 0;
+    // El muelle terminado también se pisa sobre el agua.
+    const dock = !!main?.built && !!main.def.dock;
+    this.map.bridge[i] = (floor?.built && (floor.def.bridge || floor.def.platform)) || down || dock ? 1 : 0;
   }
 
   /**
@@ -491,8 +493,8 @@ export class Structures {
       if (this.floorAt(x, y) || (main && main !== ignore)) return false;
       return canSpan(this.map, x, y) || buildBlocker(this.map, x, y) === null;
     }
-    // El molino de agua va en el río mismo: ni en tierra ni sobre un puente o una plataforma.
-    if (def?.onWater) {
+    // El molino de agua y el muelle van en el agua misma: ni en tierra ni sobre un puente o una plataforma.
+    if (def?.onWater || def?.dock) {
       const main = this.mainAt(x, y);
       return canRiver(this.map, x, y) && !this.floorAt(x, y) && (!main || (!!ignore && main === ignore));
     }
@@ -508,6 +510,19 @@ export class Structures {
     return !main || (!!ignore && main === ignore);
   }
 
+  /** La casilla toca por un lado la orilla (tierra) o otro muelle. */
+  dockAnchored(x: number, y: number, ignore?: Structure): boolean {
+    return [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (!inBounds(this.map, nx, ny)) return false;
+      const i = index(this.map, nx, ny);
+      const other = this.byTile.get(i);
+      if (other && other !== ignore && other.def.dock) return true;
+      return !isWater(this.map.terrain[i] as Terrain) && !this.map.cliff[i] && this.map.trench[i] !== TRENCH_FLOODED;
+    });
+  }
+
   /** Hay una plataforma terminada en la casilla. */
   onPlatform(x: number, y: number): boolean {
     const f = this.floorAt(x, y);
@@ -521,6 +536,8 @@ export class Structures {
     const level = this.map.level[index(this.map, x, y)];
     // El puente levadizo va de una orilla a otra por encima del agua: no hace falta que todo esté a la misma altura.
     if (!tiles.every((t) => this.canPlace(t.x, t.y, def, ignore) && (def.drawbridge || this.map.level[index(this.map, t.x, t.y)] === level))) return false;
+    // El muelle va pegado (no en diagonal) a la orilla o a otro muelle, terminado o en plano.
+    if (def.dock && !this.dockAnchored(x, y, ignore)) return false;
     // El puente levadizo tiene que tener agua debajo (al menos una casilla).
     if (def.drawbridge && !tiles.some((t) => canSpan(this.map, t.x, t.y))) return false;
     // La depuradora tiene que tocar agua.

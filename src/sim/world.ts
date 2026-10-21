@@ -1295,7 +1295,9 @@ export class World implements JobContext {
     const boost = (j.kind === 'fabricar' || j.kind === 'cocinar') && target ? stationSpeed(target) : 1;
     // Algunos talleres van con otra habilidad (la mesa de boticario, con Medicina).
     const skill = (j.kind === 'fabricar' || j.kind === 'cocinar') ? target?.def.workSkill : undefined;
-    const done = workSpeed(c, j.kind, skill) * this.lightFactor(c.tile) * boost;
+    // Y alguno con su propia escala (el muelle: de ×1 con Supervivencia 0 a ×2 con 20).
+    const range = skill ? target?.def.skillSpeed : undefined;
+    const done = workSpeed(c, j.kind, skill, range) * this.lightFactor(c.tile) * boost;
     j.progress += done;
     if (j.kind === 'investigar') {
       const finished = addResearch(this.research, done);
