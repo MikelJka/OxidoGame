@@ -1416,7 +1416,7 @@ else game.events.once('map-ready', () => window.setTimeout(() => mainMenu.open()
   const soundBtn = $('sound-btn');
   const focusBtn = $('focus-btn');
   const soundLabel = () => {
-    const v = scene()?.sound.volume ?? 1;
+    const v = scene()?.sfx.volume ?? 1;
     soundBtn.innerHTML = v >= 1 ? '<span class="mi">🔊</span><span>Sonido alto</span>' : v > 0 ? '<span class="mi">🔉</span><span>Sonido bajo</span>' : '<span class="mi">🔇</span><span>Sin sonido</span>';
   };
   const focusOn = () => {
@@ -1433,8 +1433,8 @@ else game.events.once('map-ready', () => window.setTimeout(() => mainMenu.open()
     const s = scene();
     if (!s) return;
     const steps = VOLUME_STEPS as readonly number[];
-    const i = steps.indexOf(s.sound.volume);
-    s.sound.setVolume(steps[(i + 1) % steps.length]);
+    const i = steps.indexOf(s.sfx.volume);
+    s.sfx.setVolume(steps[(i + 1) % steps.length]);
     soundLabel();
   });
   focusBtn.addEventListener('click', () => {
@@ -1451,7 +1451,7 @@ else game.events.once('map-ready', () => window.setTimeout(() => mainMenu.open()
   });
   // Un clic suave en los botones de la interfaz.
   document.addEventListener('click', (ev) => {
-    if ((ev.target as HTMLElement | null)?.closest?.('button')) scene()?.sound.play('clic');
+    if ((ev.target as HTMLElement | null)?.closest?.('button')) scene()?.sfx.play('clic');
   });
 }
 

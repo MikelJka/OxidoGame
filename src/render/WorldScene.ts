@@ -182,7 +182,7 @@ export class WorldScene extends Phaser.Scene {
   private atmosphere!: Atmosphere;
   private waterLife!: WaterLife;
   /** Sonido del juego (el menú cambia su volumen). */
-  readonly sound = new Sound();
+  readonly sfx = new Sound();
   private soundTimer = 0;
   private lastShotTick = -1;
   private lastBlastTick = -1;
@@ -277,8 +277,8 @@ export class WorldScene extends Phaser.Scene {
     });
     this.events.once('shutdown', () => this.atmosphere.destroy());
     this.waterLife = new WaterLife(this);
-    this.waterLife.onSplash = (x, y) => this.sound.play('chapoteo', { x, y });
-    this.atmosphere.onBolt = () => window.setTimeout(() => this.sound.play('trueno'), 200 + Math.random() * 900);
+    this.waterLife.onSplash = (x, y) => this.sfx.play('chapoteo', { x, y });
+    this.atmosphere.onBolt = () => window.setTimeout(() => this.sfx.play('trueno'), 200 + Math.random() * 900);
     this.events.once('shutdown', () => this.waterLife.destroy());
     this.roofGfx = this.add.graphics().setDepth(ZONE_DEPTH + 0.1);
     this.roofDrawn = -1;
@@ -412,11 +412,11 @@ export class WorldScene extends Phaser.Scene {
     const at = { x, y };
     if (frame === 'hit1') {
       const w = c.weapon ? WEAPONS[c.weapon] : null;
-      if (c.creature) this.sound.play('gruñido', at);
-      else if (!w || !w.ammo) this.sound.play('golpe', at);
-      else if (w.ignites) this.sound.play('llamas', at);
-      else if (!w.firearm) this.sound.play('arco', at);
-      else this.sound.play(c.weapon === 'escopeta' || c.weapon === 'francotirador' ? 'escopeta' : c.weapon === 'subfusil' ? 'rafaga' : 'disparo', at);
+      if (c.creature) this.sfx.play('gruñido', at);
+      else if (!w || !w.ammo) this.sfx.play('golpe', at);
+      else if (w.ignites) this.sfx.play('llamas', at);
+      else if (!w.firearm) this.sfx.play('arco', at);
+      else this.sfx.play(c.weapon === 'escopeta' || c.weapon === 'francotirador' ? 'escopeta' : c.weapon === 'subfusil' ? 'rafaga' : 'disparo', at);
       return;
     }
     const kind = c.job?.kind ?? '';
@@ -425,25 +425,25 @@ export class WorldScene extends Phaser.Scene {
       : /minar|saquear|demoler|desguazar/.test(kind) ? 'pico'
       : /cultivar|terreno|zanja|rebajar|elevar|rellenar|rampa/.test(kind) ? 'azada'
       : 'martillo';
-    this.sound.play(name, at, 0.8);
+    this.sfx.play(name, at, 0.8);
   }
 
   /** Disparos de torretas, explosiones y el ambiente según lo que se ve. */
   private updateSound(delta: number): void {
     const cam = this.cameras.main;
     const { width, height } = this.scale.gameSize;
-    this.sound.setListener(cam.midPoint.x, cam.midPoint.y, cam.zoom, width, height);
+    this.sfx.setListener(cam.midPoint.x, cam.midPoint.y, cam.zoom, width, height);
     const w = this.world;
     for (const k of w.turretShots) {
       if (k.tick <= this.lastShotTick) continue;
       const v = this.toViewPoint(k.from.x + 0.5, k.from.y + 0.5);
-      this.sound.play('disparo', { x: v.x * TILE, y: rowY(v.y) });
+      this.sfx.play('disparo', { x: v.x * TILE, y: rowY(v.y) });
     }
     for (const k of w.turretShots) this.lastShotTick = Math.max(this.lastShotTick, k.tick);
     for (const b of w.blasts) {
       if (b.tick <= this.lastBlastTick) continue;
       const v = this.toViewPoint(b.x + 0.5, b.y + 0.5);
-      this.sound.play('explosion', { x: v.x * TILE, y: rowY(v.y) });
+      this.sfx.play('explosion', { x: v.x * TILE, y: rowY(v.y) });
       this.cameras.main.shake(260, 0.006);
     }
     for (const b of w.blasts) this.lastBlastTick = Math.max(this.lastBlastTick, b.tick);
@@ -462,7 +462,7 @@ export class WorldScene extends Phaser.Scene {
     const weather = w.weather.filter((e) => w.tick < e.until).map((e) => e.id);
     const storm = weather.includes('tormenta_electrica');
     const amb = ambientAt(w.hour);
-    this.sound.updateAmbience({
+    this.sfx.updateAmbience({
       wind: storm ? 0.8 : weather.includes('tormenta_polvo') ? 0.9 : weather.includes('ola_frio') ? 0.6 : 0.2,
       rain: storm || weather.includes('lluvia_acida') ? 0.9 : 0,
       water: water / 24,
@@ -1166,10 +1166,10 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
     // Sonidos del diario: buena noticia, mala noticia, una muerte, un ataque.
-    if (fresh.some((e) => e.alert === 'raid')) this.sound.play('alarma');
-    else if (fresh.some((e) => e.alert === 'muerte')) this.sound.play('muerte');
-    else if (fresh.some((e) => e.kind === 'malo')) this.sound.play('malo');
-    else if (fresh.some((e) => e.kind === 'bueno')) this.sound.play('bueno');
+    if (fresh.some((e) => e.alert === 'raid')) this.sfx.play('alarma');
+    else if (fresh.some((e) => e.alert === 'muerte')) this.sfx.play('muerte');
+    else if (fresh.some((e) => e.kind === 'malo')) this.sfx.play('malo');
+    else if (fresh.some((e) => e.kind === 'bueno')) this.sfx.play('bueno');
     const hit = fresh.find((e) => e.alert === 'raid' && e.at);
     if (!hit?.at || this.focusOff()) return;
     const cam = this.cameras.main;
@@ -1396,7 +1396,7 @@ export class WorldScene extends Phaser.Scene {
         }
       } else if (working && Math.floor(t / 260 + c.id) % 2 !== this.creatureBeat.get(c.id)) {
         this.creatureBeat.set(c.id, Math.floor(t / 260 + c.id) % 2);
-        if (Math.floor(t / 260 + c.id) % 2) this.sound.play('gruñido', { x: img.x, y: img.y }, 0.7);
+        if (Math.floor(t / 260 + c.id) % 2) this.sfx.play('gruñido', { x: img.x, y: img.y }, 0.7);
       }
       // Sube o baja de nivel poco a poco en lugar de saltar.
       const target = this.liftAt(c.tile.x, c.tile.y) + this.towerLift(c.tile.x, c.tile.y);
