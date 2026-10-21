@@ -530,6 +530,11 @@ export function mountPeople(opts: Options): PeopleUI {
         opts.toast(`⚔️ ${c.name} (saqueador${c.raider?.leader ? ', líder del raid ★' : ''}) · ${healthLabel(c).toLowerCase()} · combate ${c.skills.combate}${c.downed ? (c.raider?.finish ? ' · un carcelero lo rematará' : ' · un carcelero lo capturará') : ''}`, 2500);
         return;
       }
+      if (c.role === 'aliado') {
+        const f = c.faction ? factionDef(c.faction) : undefined;
+        opts.toast(`🤝 ${c.name} (aliado${f ? `, de ${f.name}` : ''}) · ${healthLabel(c).toLowerCase()} · combate ${c.skills.combate}`, 2500);
+        return;
+      }
       tab = c.role === 'comerciante' ? 'comercio' : c.role === 'prisionero' ? 'prisioneros' : 'diario';
       body.scrollTop = 0;
       setOpen(true);

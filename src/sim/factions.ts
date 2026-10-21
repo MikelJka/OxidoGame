@@ -10,6 +10,8 @@ export interface FactionState {
   settlement: string;
   /** −100 a 100. */
   relation: number;
+  /** Tick de la última vez que mandaron ayuda (aliados). */
+  helpAt?: number;
 }
 
 export type RelationLevel = 'guerra' | 'hostil' | 'neutral' | 'amistosa' | 'alianza';
@@ -67,6 +69,7 @@ export function restoreFactions(saved: unknown, seed: number): FactionState[] {
     if (!s) continue;
     if (typeof s.settlement === 'string' && s.settlement) f.settlement = s.settlement;
     if (typeof s.relation === 'number' && Number.isFinite(s.relation)) f.relation = clampRelation(s.relation);
+    if (typeof s.helpAt === 'number' && Number.isFinite(s.helpAt)) f.helpAt = s.helpAt;
   }
   return base;
 }

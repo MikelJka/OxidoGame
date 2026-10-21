@@ -2,6 +2,15 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (33) — Facciones: la alianza
+
+- Segunda parte de las facciones (bloque 7). Con una facción con relación de **60 o más** (alianza), cuando llega un ataque (raid, manada o máquinas) **mandan 2–4 combatientes**. Lo hacen **una vez cada 10 días** como mucho. El diario avisa: «🤝 … mandan N combatientes para ayudaros».
+- Los aliados llevan **pañuelo y brazalete azules** y armas como las de los saqueadores de ese día. Van a por el atacante más cercano y, cuando no queda ninguno en pie, se vuelven por el borde. Los saqueadores también les atacan; si uno cae herido, **se lo llevan los suyos**.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): ayudan en cualquier ataque, no solo en los raids de saqueadores; su Combate va de 5 a 12; se llevan al que cae en vez de dejarlo en el suelo.
+- Qué probar: con 🪄 subir la relación no se puede todavía. Hay que regalar a los Chatarreros en una caravana (dar sin pedir: +1 cada 20 chapas) hasta 60, y esperar a un raid. Al tocar a un aliado sale de qué facción es.
+- Sin npm en el entorno: tests con Bun (599, 2 nuevos) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+- Siguiente: la guerra (con −50 o menos, raids propios además de los normales). Ojo: los Hijos del Óxido empiezan en −60, así que estarían en guerra desde el principio; se dejará una propuesta a Mikel si hace falta.
+
 ## 2026-10-21 (32) — Fase 6: las facciones y su relación con la colonia
 
 - **Fase 5 cerrada** por decisión de Mikel (2026-10-21, opciones A + B + D). Lo que quedaba espera a otros bloques: la Sastrería y la Calefacción van con las estaciones, las Rutas comerciales con el mercado y el lanzallamas con el fuego. Empieza la **fase 6** por las **facciones** (bloque 7), por partes.

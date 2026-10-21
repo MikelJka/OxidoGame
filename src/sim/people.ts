@@ -20,7 +20,7 @@ import { maybePanic, witnessFall } from './panic';
 import { tryThrowGrenade } from './grenades';
 import { mortarManned, mortarShots } from './mortar';
 import { TICKS_PER_DAY } from './time';
-import { RAIDER_FACTION, RELATION, TRADER_FACTION } from '../data/factions';
+import { ALLY_HELP, factionDef, RAIDER_FACTION, RELATION, TRADER_FACTION } from '../data/factions';
 import { giftPoints } from './factions';
 export { canTalk, TALK_HOURS } from './jobs';
 
@@ -98,6 +98,8 @@ export function runStoryteller(w: World): void {
     }
     else if (w.day >= CREATURES.perro_mutante.fromDay && w.rng.chance(1 / packOdds(w))) startPack(w, packSize(w));
     else startRaid(w, raidSize(w.day, colonyWealth(w), w.colonists.length, diff.raidScale));
+    // Facciones aliadas (60 o más): si os atacan, mandan combatientes (una vez cada 10 días).
+    if (w.factions.some((f) => f.relation >= RELATION.ally)) sendAllies(w);
   }
   if (w.tick >= sch.nextTrader) {
     sch.nextTrader = w.tick + days(TRADER_GAP);
@@ -142,6 +144,72 @@ function raiderBuggy(w: World, raid: Colonist[], defId: string): boolean {
     c.path = [];
   });
   return true;
+}
+
+/**
+ * Cada facción aliada (relación de 60 o más) que no haya ayudado en los últimos 10 días manda 2–4
+ * combatientes armados que llegan por un borde, pelean con los atacantes y se van al acabar.
+ * Devuelve los que llegan.
+ */
+export function sendAllies(w: World): Colonist[] {
+  const out: Colonist[] = [];
+  for (const f of w.factions) {
+    const def = factionDef(f.id);
+    if (!def || f.relation < RELATION.ally) continue;
+    if (f.helpAt !== undefined && w.tick - f.helpAt < ALLY_HELP.everyDays * TICKS_PER_DAY) continue;
+    const n = w.rng.int(ALLY_HELP.fighters[0], ALLY_HELP.fighters[1]);
+    const pool = raiderWeaponPool(w.day);
+    const group: Colonist[] = [];
+    for (let i = 0; i < n; i++) {
+      const a = w.makePawn('aliado');
+      a.faction = f.id;
+      if (i === 0) {
+        if (!w.placeAtEdge(a)) break;
+      } else {
+        const spot = nearFree(w, group[0].tile) ?? group[0].tile;
+        a.tile = { ...spot };
+        a.pos = { x: spot.x + 0.5, y: spot.y + 0.5 };
+      }
+      a.skills.combate = Math.max(a.skills.combate, w.rng.int(5, 12));
+      a.weapon = pool[w.rng.int(0, pool.length - 1)];
+      a.ammo = ammoFor(a.weapon) ? RAIDER_AMMO : 0;
+      group.push(a);
+      w.others.push(a);
+    }
+    if (group.length === 0) continue;
+    f.helpAt = w.tick;
+    out.push(...group);
+    w.addLog(`🤝 ${def.name} de ${f.settlement} mandan ${group.length} combatientes para ayudaros.`, 'bueno', 'visita', group[0].tile);
+  }
+  return out;
+}
+
+/** Hay atacantes en pie que no huyen. */
+function underAttack(w: World): boolean {
+  return w.others.some(hostile);
+}
+
+/** Un aliado: va a por el atacante más cercano y pelea; sin atacantes, se vuelve a su asentamiento. */
+function updateAlly(w: World, o: Colonist): void {
+  if (!underAttack(w)) {
+    goAway(w, o, '');
+    return;
+  }
+  const foes = w.others.filter(hostile);
+  const target = foes.sort((a, b) => Math.abs(a.tile.x - o.tile.x) + Math.abs(a.tile.y - o.tile.y) - (Math.abs(b.tile.x - o.tile.x) + Math.abs(b.tile.y - o.tile.y)))[0];
+  if (canHit(w, o, target)) {
+    o.path = [];
+    o.activity = 'working';
+    if (!o.attackCooldown) attack(w, o, target);
+    return;
+  }
+  if (o.path.length === 0 || (w.tick + o.id) % 30 === 0) {
+    const path = findPath(w.map, o.tile, target.tile, 20000);
+    o.path = path ? path.slice(0, Math.max(1, path.length - 1)) : [];
+  }
+  o.activity = 'moving';
+  if (o.path.length) w.moveAlongPath(o);
+  else o.activity = 'idle';
 }
 
 /** Esquinas de agua en el borde del mapa donde cabe la balsa, de la más cercana a `home` a la más lejana. */
@@ -666,6 +734,7 @@ function applyHit(w: World, a: Colonist, b: Colonist, weapon: WeaponDef | null |
   if (fell) {
     if (b.role === 'colono') w.addLog(`🩸 ${b.name} cae herido (${part}).`, 'malo', 'caido', b.tile);
     else if (b.creature) w.addLog(creatureFallText(b), 'bueno');
+    else if (b.role === 'aliado') w.addLog(`${b.name} (aliado) cae al suelo.`, 'malo');
     else w.addLog(`${b.name} (saqueador) cae al suelo.`, 'bueno');
     // Quienes lo ven caer pueden entrar en pánico.
     if (b.role === 'colono') witnessFall(w, b);
@@ -941,6 +1010,11 @@ export function updateOthers(w: World): void {
       w.killPawn(o, 'heridas');
       continue;
     }
+    // Un aliado que cae se lo llevan los suyos.
+    if (o.downed && o.role === 'aliado') {
+      leaveMap(w, o, `🤝 ${o.name} cae herido y se lo llevan los suyos.`);
+      continue;
+    }
     if (o.downed) {
       o.path = [];
       o.activity = 'idle';
@@ -956,6 +1030,7 @@ export function updateOthers(w: World): void {
       o.stunnedUntil = undefined;
     }
     if (o.role === 'saqueador') updateRaider(w, o);
+    else if (o.role === 'aliado') updateAlly(w, o);
     else if (o.role === 'comerciante') updateTrader(w, o);
     else if (o.role === 'prisionero') updatePrisoner(w, o);
   }
@@ -1085,7 +1160,8 @@ function updateRaider(w: World, o: Colonist): void {
     goAway(w, o, '');
     return;
   }
-  const targets = w.colonists.filter((c) => !c.downed);
+  // Atacan a los colonos y a los aliados que han venido a ayudarlos.
+  const targets = [...w.colonists, ...w.others.filter((k) => k.role === 'aliado')].filter((c) => !c.downed);
   // Las criaturas no saquean: sin nadie en pie, se marchan.
   if (targets.length === 0 && o.creature) {
     r.fleeing = true;

@@ -67,6 +67,10 @@ export function paintColonist(ctx: CanvasRenderingContext2D, c: Colonist): void 
   } else if (c.role === 'comerciante') {
     px(3, 1, 10, 1, '#5a3f22'); // sombrero de ala ancha
     px(5, 0, 6, 1, '#7a5a32');
+  } else if (c.role === 'aliado') {
+    px(5, 3, 6, 1, '#3a7ac0'); // pañuelo azul de los aliados
+    px(4, 3, 1, 2, '#3a7ac0');
+    px(4, 8, 1, 2, '#3a7ac0'); // brazalete
   }
 }
 

@@ -27,7 +27,14 @@ export interface RelationRules {
   refuseTribute: number;
 }
 
+/** Ayuda de los aliados: cuántos combatientes mandan y cada cuántos días como mucho. */
+export interface AllyHelp {
+  fighters: [number, number];
+  everyDays: number;
+}
+
 interface FactionData {
+  allyHelp: AllyHelp;
   factions: FactionDef[];
   relation: RelationRules;
   traderFaction: string;
@@ -50,6 +57,8 @@ export function validateFactions(d: unknown): FactionData {
     if (!(f.start >= r.min && f.start <= r.max)) fail(`relación inicial de ${f.id}`);
     if (!Array.isArray(f.settlements) || f.settlements.length === 0) fail(`asentamientos de ${f.id}`);
   }
+  const h = data.allyHelp;
+  if (!h || !Array.isArray(h.fighters) || !(h.fighters[0] >= 1 && h.fighters[1] >= h.fighters[0]) || !(h.everyDays > 0)) fail('ayuda de los aliados');
   if (!ids.has(data.traderFaction) || !ids.has(data.raiderFaction)) fail('facción de las caravanas o de los raids');
   return data;
 }
@@ -58,6 +67,7 @@ const DATA = validateFactions(raw);
 
 export const FACTIONS: readonly FactionDef[] = DATA.factions;
 export const RELATION: RelationRules = DATA.relation;
+export const ALLY_HELP: AllyHelp = DATA.allyHelp;
 /** De quién son las caravanas. */
 export const TRADER_FACTION = DATA.traderFaction;
 /** De quién son los saqueadores. */

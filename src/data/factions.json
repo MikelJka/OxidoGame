@@ -7,7 +7,14 @@
       "icon": "🐫",
       "start": 20,
       "description": "Comerciantes: traen las caravanas.",
-      "settlements": ["Puerto Herrumbre", "La Chatarrería", "Villatornillo", "El Desguace", "Cruce de las Latas", "Mercado Viejo"]
+      "settlements": [
+        "Puerto Herrumbre",
+        "La Chatarrería",
+        "Villatornillo",
+        "El Desguace",
+        "Cruce de las Latas",
+        "Mercado Viejo"
+      ]
     },
     {
       "id": "granjeros",
@@ -15,7 +22,14 @@
       "icon": "🌾",
       "start": 0,
       "description": "Venden comida y semillas; posibles aliados.",
-      "settlements": ["Valle Verde", "Los Bancales", "Huerta del Pozo", "Prado Limpio", "La Acequia", "Molinos Altos"]
+      "settlements": [
+        "Valle Verde",
+        "Los Bancales",
+        "Huerta del Pozo",
+        "Prado Limpio",
+        "La Acequia",
+        "Molinos Altos"
+      ]
     },
     {
       "id": "hijos_oxido",
@@ -23,7 +37,14 @@
       "icon": "☠",
       "start": -60,
       "description": "Hostiles: sus raids son los saqueadores.",
-      "settlements": ["La Fundición", "Torre Roña", "El Vertedero", "Fosa Negra", "Ciudad Ceniza", "El Horno"]
+      "settlements": [
+        "La Fundición",
+        "Torre Roña",
+        "El Vertedero",
+        "Fosa Negra",
+        "Ciudad Ceniza",
+        "El Horno"
+      ]
     }
   ],
   "relation": {
@@ -38,5 +59,13 @@
     "refuseTribute": -20
   },
   "traderFaction": "chatarreros",
-  "raiderFaction": "hijos_oxido"
+  "raiderFaction": "hijos_oxido",
+  "allyHelp": {
+    "_": "Con alianza (60 o más), si os atacan mandan 2–4 combatientes, una vez cada 10 días (bloque 7, aprobado por Mikel el 2026-10-18).",
+    "fighters": [
+      2,
+      4
+    ],
+    "everyDays": 10
+  }
 }

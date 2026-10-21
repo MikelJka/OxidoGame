@@ -71,7 +71,7 @@ export interface SaveData {
   offer?: { pawn: SavedColonist; until: number } | null;
   schedule?: { nextWanderer: number; nextRaid: number; nextTrader: number; nextRadio?: number };
   /** Facciones (desde el 2026-10-21); las partidas antiguas las sacan de la semilla. */
-  factions?: { id: string; settlement: string; relation: number }[];
+  factions?: { id: string; settlement: string; relation: number; helpAt?: number }[];
   nextPawnId?: number;
   /** Vehículos (desde el buggy, 2026-10-19). Se guardan parados. */
   vehicles?: { id: number; def: string; x: number; y: number; fuel: number; hp: number; facing?: number }[];
@@ -395,7 +395,7 @@ function restoreColonist(s: SavedColonist): Colonist {
     ...(s.vehicle && (s.vehicle.seat === 'conductor' || s.vehicle.seat === 'tirador')
       ? { vehicle: { id: num(s.vehicle.id, 0), seat: s.vehicle.seat, boarded: !!s.vehicle.boarded } }
       : {}),
-    role: (['colono', 'saqueador', 'prisionero', 'comerciante'] as const).find((r) => r === s.role) ?? 'colono',
+    role: (['colono', 'saqueador', 'prisionero', 'comerciante', 'aliado'] as const).find((r) => r === s.role) ?? 'colono',
     prisoner: s.prisoner
       ? {
           resistance: Math.max(0, Math.min(1, num(s.prisoner.resistance, 0.5))),

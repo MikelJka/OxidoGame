@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { flatWorld } from './helpers';
 import { FACTIONS, RELATION } from '../src/data/factions';
 import { createFactions, relationLevel } from '../src/sim/factions';
-import { makeDeal, makePrisoner, startRaid, startTrader } from '../src/sim/people';
+import { makeDeal, makePrisoner, sendAllies, startRaid, startTrader } from '../src/sim/people';
+import { TICKS_PER_DAY } from '../src/sim/time';
 import { loadWorld, serializeWorld } from '../src/sim/save';
 import type { World } from '../src/sim/world';
 
@@ -76,5 +77,47 @@ describe('facciones', () => {
     const old = JSON.parse(JSON.stringify(serializeWorld(w)));
     delete old.factions;
     expect(loadWorld(old).factions).toEqual(createFactions(w.map.seed));
+  });
+});
+
+describe('alianza', () => {
+  it('con 60 o más, si os atacan mandan 2–4 combatientes, una vez cada 10 días', () => {
+    const w = flatWorld(1);
+    w.map.start = { x: 15, y: 15 };
+    expect(sendAllies(w)).toEqual([]); // nadie es aliado todavía
+    w.changeRelation('granjeros', 60);
+    const help = sendAllies(w);
+    expect(help.length).toBeGreaterThanOrEqual(2);
+    expect(help.length).toBeLessThanOrEqual(4);
+    expect(help.every((a) => a.role === 'aliado' && a.faction === 'granjeros')).toBe(true);
+    expect(sendAllies(w)).toEqual([]); // hasta dentro de 10 días, no
+    w.tick += 10 * TICKS_PER_DAY;
+    expect(sendAllies(w).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('pelean con los saqueadores y, sin atacantes, se marchan', () => {
+    const w = flatWorld(1);
+    w.map.start = { x: 15, y: 15 };
+    w.changeRelation('chatarreros', 50);
+    w.colonists[0].tile = { x: 2, y: 2 };
+    w.colonists[0].pos = { x: 2.5, y: 2.5 };
+    const help = sendAllies(w);
+    expect(help.length).toBeGreaterThan(0);
+    const [foe] = startRaid(w, 1, false, false);
+    let hurtByAlly = false;
+    let t = 0;
+    for (; t < 20000 && w.others.some((o) => o.role === 'aliado'); t++) {
+      w.step();
+      if (foe.health < 1) hurtByAlly = true;
+      // Que el saqueador no llegue al colono: lo que le pase es cosa de los aliados.
+      if (w.others.includes(foe) && !foe.raider?.fleeing) foe.path = [];
+    }
+    expect(t).toBeLessThan(20000);
+    expect(hurtByAlly).toBe(true);
+    // Al acabar el ataque se han ido todos.
+    expect(w.others.some((o) => o.role === 'aliado')).toBe(false);
+    // Se guardan bien (el papel «aliado» y cuándo ayudaron).
+    const back = loadWorld(serializeWorld(w));
+    expect(back.faction('chatarreros')!.helpAt).toBe(w.faction('chatarreros')!.helpAt);
   });
 });

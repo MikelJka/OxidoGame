@@ -352,7 +352,7 @@ function gunnerFight(w: World, c: Colonist, hostile: boolean): void {
   if (c.attackCooldown) return;
   if (hostile && c.raider?.fleeing) return;
   const enemies = hostile
-    ? w.colonists.filter((k) => !k.downed && canHit(w, c, k))
+    ? [...w.colonists, ...w.others.filter((k) => k.role === 'aliado')].filter((k) => !k.downed && canHit(w, c, k))
     : w.others.filter((o) => o.role === 'saqueador' && !o.downed && !o.raider?.fleeing && canHit(w, c, o));
   if (enemies.length === 0) return;
   enemies.sort((a, b) => Math.abs(a.tile.x - c.tile.x) + Math.abs(a.tile.y - c.tile.y) - (Math.abs(b.tile.x - c.tile.x) + Math.abs(b.tile.y - c.tile.y)));

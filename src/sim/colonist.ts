@@ -223,7 +223,8 @@ export interface TraderInfo {
   traded?: boolean;
 }
 
-export type PawnRole = 'colono' | 'saqueador' | 'prisionero' | 'comerciante';
+/** «aliado»: combatiente que manda una facción aliada para ayudar en un ataque. */
+export type PawnRole = 'colono' | 'saqueador' | 'prisionero' | 'comerciante' | 'aliado';
 
 export interface PrisonerInfo {
   /** 0–1: cuánto le falta para dejarse convencer. */
@@ -346,6 +347,7 @@ const ROLE_PLURAL: Record<PawnRole, [string, string]> = {
   saqueador: ['saqueador', 'saqueadores'],
   prisionero: ['prisionero', 'prisioneros'],
   comerciante: ['comerciante', 'comerciantes'],
+  aliado: ['aliado', 'aliados'],
 };
 
 /**
