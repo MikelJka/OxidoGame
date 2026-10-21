@@ -945,3 +945,47 @@ function drawFarmBuilding(ctx: CanvasRenderingContext2D, def: BuildingDef, tile:
   px(1, roofH + 1, tile - 2, 2, face);
   for (const x of [1, Math.floor(tile / 2) - 1, tile - 3]) px(x, roofH + 1, 2, h - roofH - 2, face);
 }
+
+/** Azar fijo de un píxel (para el desgaste: siempre igual para el mismo edificio). */
+function pixHash(x: number, y: number, s: number): number {
+  let h = Math.imul(x + 1, 0x85ebca6b) ^ Math.imul(y + 1, 0x27d4eb2f) ^ s;
+  h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d);
+  h = Math.imul(h ^ (h >>> 12), 0x297a2d39);
+  return ((h ^ (h >>> 15)) >>> 0) / 4294967296;
+}
+
+/**
+ * Desgaste sobre un edificio ya dibujado: grano y manchas en el material, la cara de arriba algo más
+ * clara, el frente más oscuro cerca del suelo y churretes de suciedad que bajan por la pared.
+ */
+export function weatherBuilding(ctx: CanvasRenderingContext2D, w: number, h: number, tileH: number, id: string): void {
+  if (w <= 0 || h <= 0) return;
+  let seed = 7;
+  for (let i = 0; i < id.length; i++) seed = Math.imul(seed ^ id.charCodeAt(i), 0x01000193);
+  const img = ctx.getImageData(0, 0, w, h);
+  const d = img.data;
+  const faceH = Math.max(1, h - tileH);
+  for (let x = 0; x < w; x++) {
+    // Churrete: algunas columnas tienen suciedad que baja desde arriba del frente.
+    const streak = pixHash(x, 0, seed) < 0.18 ? Math.floor(pixHash(x, 1, seed) * faceH * 0.8) : 0;
+    for (let y = 0; y < h; y++) {
+      const o = (y * w + x) * 4;
+      if (d[o + 3] < 200) continue;
+      const r = d[o], g = d[o + 1], b = d[o + 2];
+      if (r + g + b < 90) continue; // contornos y huecos oscuros, tal cual
+      let f = 1;
+      if (y < tileH - 1) f = 1.05;
+      else {
+        const t = (y - tileH) / faceH;
+        f = 1.02 - 0.2 * t * t;
+        if (streak && y - tileH < streak) f *= 0.9 + 0.06 * ((y - tileH) / streak);
+      }
+      const blot = (pixHash(x >> 2, y >> 2, seed + 3) - 0.5) * 10;
+      const n = (pixHash(x, y, seed) - 0.5) * 12 + blot;
+      d[o] = Math.max(0, Math.min(255, r * f + n));
+      d[o + 1] = Math.max(0, Math.min(255, g * f + n));
+      d[o + 2] = Math.max(0, Math.min(255, b * f + n * 0.9));
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+}

@@ -21,7 +21,7 @@ import { fertilityAt, plantStage } from '../sim/farming';
 import { roomInfoAt } from '../sim/roofs';
 import { TERRAIN_JOB_NAMES, terrainBlocker, TerrainJob } from '../sim/terrain';
 import { CropDef } from '../data/crops';
-import { drawBuilding, faceHeight, wallHeight } from './buildArt';
+import { drawBuilding, faceHeight, wallHeight, weatherBuilding } from './buildArt';
 import { paintVehicle, VEHICLE_H, VEHICLE_W } from './vehicleArt';
 import { defOf, occupant, Vehicle } from '../sim/vehicles';
 import { CHAR, CHAR_POSES, charKey, paintCharSheet } from './charArt';
@@ -2206,6 +2206,7 @@ function drawBuildingTexture(scene: Phaser.Scene, key: string, def: BuildingDef,
   const tex = scene.textures.createCanvas(key, TILE * vw, TILE_H * vh + unitH * def.height);
   if (!tex) return;
   drawBuilding(tex.getContext(), def, TILE * vw, TILE_H * vh, unitH, raised, links);
+  if (!def.vehicle) weatherBuilding(tex.getContext(), TILE * vw, TILE_H * vh + unitH * def.height, TILE_H * vh, def.id);
   tex.refresh();
 }
 
