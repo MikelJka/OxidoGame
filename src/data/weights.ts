@@ -12,7 +12,7 @@ export const WEIGHTS: Partial<Record<ResourceId, number>> = {
   ballesta: 3, lanza_metal: 3, flechas: 0.05, pistola: 1.5, escopeta: 3.5, rifle: 4, subfusil: 3,
   francotirador: 6, balas: 0.05, granadas: 0.5, chaleco_cuero: 3, chaleco_chapa: 6, chaleco_metal: 9,
   chaleco_tactico: 5, casco_chapa: 2, casco_metal: 3, casco_tactico: 1.5, medicina: 0.2, combustible: 1,
-  hierba: 0.2, pescado: 0.5, abrigo: 2, carne: 0.5, cuero: 1,
+  hierba: 0.2, pescado: 0.5, abrigo: 2, carne: 0.5, cuero: 1, abono: 1,
   // Kits: lo que pesa su material, un poco menos (va desmontado y bien atado).
   kit_barricada_madera: 4.8,
   kit_barricada_chatarra: 4.8,

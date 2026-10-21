@@ -1,6 +1,7 @@
 // Cultivo: zonas de cultivo con un tipo de planta, fertilidad del suelo y plantas que crecen.
 // Los colonos siembran y cosechan (trabajo «cultivar»). Determinista: el azar viene de `Rng`.
 import { CROPS, CropDef, cropDef } from '../data/crops';
+import FERTILIZER from '../data/fertilizer.json';
 import { GameMap, inBounds, index, isPassable, isWater, Prop, RADIATION_THRESHOLD, Terrain } from './map';
 import type { TileRect } from './designations';
 
@@ -43,7 +44,12 @@ export interface Plant {
   harm?: number;
   /** Enferma por una plaga: hay que arrancarla (sin cosecha). */
   sick?: boolean;
+  /** Sembrada con 🟤 abono: da un 25 % más al cosecharla. */
+  fertilized?: boolean;
 }
+
+/** Abono («Agricultura mejorada»): qué recurso es, cuánto gasta cada casilla y cuánto más da. */
+export const FERTILIZER_DEF = FERTILIZER as { resource: 'abono'; perTile: number; yieldBonus: number; research: string };
 
 /** Fase visible de una planta: 0 sembrada, 1 brote, 2 creciendo, 3 madura. */
 export function plantStage(p: Plant): 0 | 1 | 2 | 3 {
@@ -58,6 +64,8 @@ export interface GrowZone {
   name: string;
   crop: CropDef;
   tiles: Set<number>;
+  /** «🟤 Abonar»: al sembrar, cada casilla gasta abono del almacén si lo hay. */
+  fertilize?: boolean;
 }
 
 export class GrowZones {
@@ -169,11 +177,21 @@ export class GrowZones {
     this.zoneVersion++;
   }
 
+  /** Enciende o apaga «🟤 Abonar» en un huerto. */
+  setFertilize(id: number, on: boolean): void {
+    const zone = this.zones.get(id);
+    if (!zone || !!zone.fertilize === on) return;
+    if (on) zone.fertilize = true;
+    else delete zone.fertilize;
+    this.version++;
+    this.zoneVersion++;
+  }
+
   /** Siembra una casilla. false si no es de una zona, ya tiene planta o el suelo no vale. */
-  sow(x: number, y: number): boolean {
+  sow(x: number, y: number, fertilized = false): boolean {
     const zone = this.at(x, y);
     if (!zone || this.plantAt(x, y) || !this.canSow(x, y, zone.crop)) return false;
-    this.plants.set(index(this.map, x, y), { crop: zone.crop, growth: 0 });
+    this.plants.set(index(this.map, x, y), { crop: zone.crop, growth: 0, ...(fertilized ? { fertilized: true } : {}) });
     this.version++;
     return true;
   }
@@ -191,7 +209,7 @@ export class GrowZones {
     this.version++;
     // Una tierra mejor da algo más.
     const bonus = Math.max(0.6, Math.min(1.2, fertilityAt(this.map, x, y)));
-    return { resource: p.crop.resource, amount: Math.max(1, Math.round(roll(p.crop.yield[0], p.crop.yield[1]) * bonus * (p.harm ?? 1))) };
+    return { resource: p.crop.resource, amount: Math.max(1, Math.round(roll(p.crop.yield[0], p.crop.yield[1]) * bonus * (p.harm ?? 1) * (p.fertilized ? 1 + FERTILIZER_DEF.yieldBonus : 1))) };
   }
 
   /**
@@ -238,8 +256,8 @@ export class GrowZones {
   }
 
   /** Vuelve a poner una zona guardada. */
-  restore(z: { id: number; name: string; crop: CropDef; tiles: number[] }): void {
-    const zone: GrowZone = { id: z.id, name: z.name, crop: z.crop, tiles: new Set() };
+  restore(z: { id: number; name: string; crop: CropDef; tiles: number[]; fertilize?: boolean }): void {
+    const zone: GrowZone = { id: z.id, name: z.name, crop: z.crop, tiles: new Set(), ...(z.fertilize ? { fertilize: true } : {}) };
     for (const i of z.tiles) {
       if (i < 0 || i >= this.zoneOf.length || this.zoneOf[i]) continue;
       if (fertilityAt(this.map, i % this.map.width, Math.floor(i / this.map.width)) === 0) continue;
@@ -262,9 +280,9 @@ export class GrowZones {
   }
 
   /** Vuelve a poner una planta guardada. */
-  restorePlant(i: number, crop: CropDef, growth: number, harm?: number, sick?: boolean): void {
+  restorePlant(i: number, crop: CropDef, growth: number, harm?: number, sick?: boolean, fertilized?: boolean): void {
     if (i < 0 || i >= this.zoneOf.length) return;
-    this.plants.set(i, { crop, growth: Math.max(0, Math.min(1, growth)), ...(harm !== undefined && harm > 0 && harm < 1 ? { harm } : {}), ...(sick ? { sick: true } : {}) });
+    this.plants.set(i, { crop, growth: Math.max(0, Math.min(1, growth)), ...(harm !== undefined && harm > 0 && harm < 1 ? { harm } : {}), ...(sick ? { sick: true } : {}), ...(fertilized ? { fertilized: true } : {}) });
     this.version++;
   }
 

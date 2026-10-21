@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (54) — Abono para los huertos
+
+- Del árbol de investigación aprobado (bloque 13): **«Agricultura mejorada»** ya desbloquea el **🟤 Abono**. En el **banco de trabajo**: 2 🍄 setas + 1 🪨 piedra → 3 de abono.
+- Al tocar un huerto sale **🟤 Abonar**. Encendido, cada casilla que se siembra gasta **1 de abono** del almacén y esa planta da un **25 % más** al cosecharla. Si no queda abono, se siembra igual, sin él.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): que se haga en el banco de trabajo, que se gaste 1 por casilla al sembrar y que el botón vaya en el panel del huerto.
+- Las partidas guardadas cargan sin abono.
+- Qué probar: investigar «Agricultura mejorada», encargar «Abono» en el banco, tocar un huerto y encender 🟤 Abonar; comparar la cosecha.
+- Sin npm en el entorno: tests con Bun (669). La prueba completa, en GitHub Actions.
+- Siguiente: la **bandeja hidropónica** (con «Hidropónica»).
+
 ## 2026-10-21 (53) — Doma con dificultad, animales nuevos y granja
 
 - Pedido por Mikel. **Cada animal se doma con su dificultad** y carga distinto en las expediciones: 🐐 cabra salvaje (fácil, 30 %, 30 kg), 🫏 mula (fácil, 25 %, 80 kg, se compra), 🐄 vaca de dos cabezas (media, 15 %, 100 kg), 🐎 caballo salvaje (difícil, 6 %, 120 kg; herido ataca), 🦌 ciervo mutado (difícil, 5 %, 50 kg) y 🐗 jabalí (muy difícil, 3 %, 60 kg). Supervivencia sigue sumando un 2 % por punto. Al tocarlo para domarlo se ve lo difícil que es.

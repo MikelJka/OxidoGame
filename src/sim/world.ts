@@ -19,7 +19,7 @@ import { canWorkFrom, findJob, findJobAt, needsUrgentCare, researchBenchReady, s
 import { harvestAt, harvestTile, Stockpile } from './resources';
 import { StorageZones } from './zones';
 import { ZoneClearing } from './clearing';
-import { fertilityAt, GrowZones } from './farming';
+import { FERTILIZER_DEF, fertilityAt, GrowZones } from './farming';
 import { regrowNature } from './nature';
 import { Room, Rooms } from './rooms';
 import { putRoof, roofed, roofRooms, roofTodo, roomInfoAt } from './roofs';
@@ -35,7 +35,7 @@ import { Blast, Grenade, grenadesOf, updateGrenades } from './grenades';
 import { updateMortars } from './mortar';
 import { isLitBonfire, updateBonfireCheer, updateBonfires } from './bonfire';
 import { CREATURES, flies, MACHINES } from '../data/creatures';
-import { addResearch, trenchesFlood, batteryMultiplier, infectionChanceFactor, machinePartsMultiplier, woundHealTimeFactor, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
+import { addResearch, isResearched, trenchesFlood, batteryMultiplier, infectionChanceFactor, machinePartsMultiplier, woundHealTimeFactor, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
 import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
 import { absorbHit, anchorFor, besideTiles, defOf, nextTo, occupant, updateVehicle, Vehicle, vehicleCenter, vehiclePath, VehicleSeat, covers } from './vehicles';
 import { prepName, theName, usesFuel, vehicleDef } from '../data/vehicles';
@@ -2084,11 +2084,42 @@ export class World implements JobContext {
       return;
     }
     if (action === 'sembrar') {
-      this.farms.sow(x, y);
+      this.farms.sow(x, y, this.takeFertilizer(x, y));
       return;
     }
     const crop = this.farms.harvest(x, y, (a, b) => this.rng.int(a, b));
     if (crop) this.items.drop(x, y, crop.resource, crop.amount);
+  }
+
+  /**
+   * Abono al sembrar: si el huerto tiene «🟤 Abonar» y está «Agricultura mejorada», gasta el abono
+   * de la casilla de cualquier montón (como la 💊 del médico). true si se ha abonado.
+   */
+  private takeFertilizer(x: number, y: number): boolean {
+    const zone = this.farms.at(x, y);
+    if (!zone?.fertilize || !this.canFertilize()) return false;
+    const need = FERTILIZER_DEF.perTile;
+    const stacks = this.items.list().filter((s) => s.resource === FERTILIZER_DEF.resource);
+    if (stacks.reduce((a, s) => a + s.amount, 0) < need) return false;
+    let left = need;
+    for (const st of stacks) {
+      if (left <= 0) break;
+      const got = this.items.take(st.x, st.y, left);
+      left -= got?.amount ?? 0;
+    }
+    return left <= 0;
+  }
+
+  /** Ya se puede abonar («Agricultura mejorada»). */
+  canFertilize(): boolean {
+    return isResearched(this.research, FERTILIZER_DEF.research);
+  }
+
+  /** Enciende o apaga «🟤 Abonar» en un huerto. false si aún no se ha investigado. */
+  setFarmFertilize(zoneId: number, on: boolean): boolean {
+    if (on && !this.canFertilize()) return false;
+    this.farms.setFertilize(zoneId, on);
+    return true;
   }
 
   /** Crea un huerto (sin pisar almacenes). */
