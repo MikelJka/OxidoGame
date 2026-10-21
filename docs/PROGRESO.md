@@ -13,8 +13,15 @@ Diario de sesiones, la más reciente arriba.
 - **Suelo con más vida**: manchas secas y húmedas, grietas, matas de hierba, piedrecitas y ondas en la arena.
 - **Sombras** de las construcciones que se mueven con el sol. El pie de las paredes se ve más oscuro.
 - **Desgaste** en muros y edificios: grano, manchas, churretes de suciedad y la base más oscura.
-- Qué probar: dejar pasar un día entero mirando la colonia; una noche con lámparas y hogueras; una tormenta.
-- Qué sigue: edificios y muebles más detallados, agua con movimiento, objetos del suelo y quitar el código de la vista 3D.
+- **Estaciones a la vista**: árboles y matorrales con brotes, verdes, ocres, cayendo y sin hojas. Cada uno cambia en un día distinto. La nieve cuaja poco a poco en el suelo y encima de árboles, rocas y chatarra, y se funde en primavera (`foliageAt` y `snowCover` en `src/sim/seasons.ts`, números en `seasons.json`).
+- **Agua con vida**: brillos, ondas, peces que saltan y espuma en la orilla.
+- **Muros de obra**: los tramos se unen sin costuras con sus vecinos, puertas y portones. Llevan pilar en los extremos, albardilla y el aparejo de su material (piedra, tablones, troncos, chapas, paneles u hormigón), con 4 variantes.
+- **Buggies** de frente y de espaldas al subir o bajar por el mapa.
+- **Enfoque de cine** al empezar un raid, una manada, un desembarco o un incendio. Se puede apagar en el menú.
+- **Sonido**: ambiente (viento, lluvia, agua, fuego, pájaros y grillos) y efectos (disparos, golpes, explosiones con temblor, herramientas, truenos, alarma y avisos), con ZzFX (MIT) en `src/audio/`. Volumen en el menú.
+- **Temperatura** (pedido por Mikel): grados fuera según la estación, la hora y la ola de frío; dentro según el tejado, las estufas y los nuevos **calefactor** y **aire acondicionado**. La temperatura de estos se elige con −1/+1 °C y solo gastan corriente mientras trabajan. Con más de 30 °C se pasa calor (−5 %) y con más de 38 °C hay golpe de calor. Números en `src/data/climate.json`, puestos por la sesión.
+- Qué probar: dejar pasar un día entero mirando la colonia; una noche con lámparas y hogueras; una tormenta; avanzar hasta el otoño y el invierno; un calefactor en una habitación en invierno y un aire acondicionado en verano; activar el sonido (tocar la pantalla una vez).
+- Qué sigue: muebles y talleres más detallados, objetos del suelo y quitar el código de la vista 3D.
 
 ## 2026-10-21 (60) — Equilibrio con partidas simuladas
 
