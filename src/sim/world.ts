@@ -371,11 +371,11 @@ export class World implements JobContext {
     // Fuego: cada segundo arde, se extiende o se apaga.
     if (this.tick % TICKS_PER_SECOND === 0 && this.fires.size > 0) updateFires(this);
     // Cada día, los precios del mercado se acercan a su valor y alguno cambia.
-    if (this.tick % TICKS_PER_DAY === 0) marketDay(this.market, this.map.seed, this.day);
+    if (this.tick % TICKS_PER_DAY === 0 && !this.battle) marketDay(this.market, this.map.seed, this.day);
     // Animales: cada día llegan algunos por los bordes (con los sucesos activados).
     if (this.tick % TICKS_PER_DAY === TICKS_PER_HOUR && this.eventsEnabled && !this.battle) spawnAnimals(this);
     // Y las bases de las facciones crecen.
-    if (this.tick % TICKS_PER_DAY === 0) growBases(this);
+    if (this.tick % TICKS_PER_DAY === 0 && !this.battle) growBases(this);
     // Si quedan pocas facciones, llega una nueva a los pocos días.
     if (this.tick % TICKS_PER_HOUR === 0 && !this.battle) checkNewFaction(this);
     // Cada día, las trampas de pesca dejan su 🐟 en el muelle de al lado.

@@ -63,7 +63,26 @@ export function threatens(w: World, x: number, y: number): boolean {
   const R = FIRE.threatRange;
   const home = w.colonyPoint();
   if (home && Math.abs(home.x - x) + Math.abs(home.y - y) <= R) return true;
-  return w.structures.all().some((s) => s.built && Math.abs(s.x - x) + Math.abs(s.y - y) <= R / 2);
+  // Lo construido: basta con el rectángulo que lo abarca todo, ensanchado (se calcula una vez por segundo).
+  const box = builtBox(w);
+  const r = R / 2;
+  return !!box && x >= box[0] - r && x <= box[2] + r && y >= box[1] - r && y <= box[3] + r;
+}
+
+const boxCache = new WeakMap<World, { key: number; box: [number, number, number, number] | null }>();
+
+/** Rectángulo [x0, y0, x1, y1] que abarca todo lo construido (o null). */
+function builtBox(w: World): [number, number, number, number] | null {
+  const key = w.structures.version;
+  const hit = boxCache.get(w);
+  if (hit && hit.key === key) return hit.box;
+  let box: [number, number, number, number] | null = null;
+  for (const s of w.structures.all()) {
+    if (!s.built) continue;
+    box = box ? [Math.min(box[0], s.x), Math.min(box[1], s.y), Math.max(box[2], s.x), Math.max(box[3], s.y)] : [s.x, s.y, s.x, s.y];
+  }
+  boxCache.set(w, { key, box });
+  return box;
 }
 
 /** Un segundo de fuego: arde lo que hay, se extiende y se apaga lo que se ha consumido. */

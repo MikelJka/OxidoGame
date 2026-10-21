@@ -118,6 +118,10 @@ export function createBattle(home: World, e: Expedition): World {
   const b = new World({ seed, width: BATTLE_SIZE.width, height: BATTLE_SIZE.height, colonists: 0, events: false, needs: false });
   b.nextPawnId = home.nextPawnId + 1000;
   b.tick = home.tick;
+  // El mismo mundo: las mismas facciones, ruinas y mercado que la colonia.
+  b.factions = home.factions;
+  b.ruins = home.ruins;
+  b.market = home.market;
   const m = b.map;
   const rng = new Rng(seed);
   // Terreno llano y sin agua en el centro (para que se pueda pelear).
