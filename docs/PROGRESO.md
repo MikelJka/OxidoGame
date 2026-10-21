@@ -2,6 +2,20 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (61) — Salto de calidad del 2D (primera tanda)
+
+- Pedido por Mikel: que todo se vea más real y vivo; la 3D se descarta.
+- **Personas** a doble resolución y algo más grandes, con animaciones de andar, respirar, trabajar, pelear y caído. Se ven la cara, el peinado, la ropa, el chaleco, el casco y el arma en la mano.
+- **Criaturas y animales** a doble resolución con animación: perros, ciervos, jabalíes, ratas, cabras, vacas, caballos, mulas, gallinas, el bruto, la araña y el dron.
+- **Árboles, matorrales, rocas, chatarra, coches, ruinas, bidones y neumáticos** como sprites con sombra y cuatro variantes.
+- **Luz del día**: amanecer y atardecer cálidos, noche azulada. De noche brillan las lámparas encendidas, las hogueras y estufas con leña y el fuego (parpadea y echa humo).
+- **Tiempo visible**: lluvia (verdosa si es ácida), nieve con la ola de frío o en invierno de noche, polvo en la tormenta de polvo, relámpagos en la tormenta eléctrica y motas de polvo de día.
+- **Suelo con más vida**: manchas secas y húmedas, grietas, matas de hierba, piedrecitas y ondas en la arena.
+- **Sombras** de las construcciones que se mueven con el sol. El pie de las paredes se ve más oscuro.
+- **Desgaste** en muros y edificios: grano, manchas, churretes de suciedad y la base más oscura.
+- Qué probar: dejar pasar un día entero mirando la colonia; una noche con lámparas y hogueras; una tormenta.
+- Qué sigue: edificios y muebles más detallados, agua con movimiento, objetos del suelo y quitar el código de la vista 3D.
+
 ## 2026-10-21 (60) — Equilibrio con partidas simuladas
 
 - Elegido por Mikel. Nueva herramienta `scripts/equilibrio.ts`: juega partidas enteras sin pantalla con un jugador automático. Informe y cambios en `docs/EQUILIBRIO.md`.
