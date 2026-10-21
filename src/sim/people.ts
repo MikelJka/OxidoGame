@@ -28,6 +28,7 @@ import { marketTrade, marketValue } from './market';
 import { Rng } from './rng';
 import { researchDef } from '../data/research';
 import { giftPoints } from './factions';
+import { enrichBase } from './worldmap';
 export { canTalk, TALK_HOURS } from './jobs';
 
 /** Ticks entre golpes. */
@@ -196,6 +197,7 @@ export function payTribute(w: World): boolean {
   if ((Object.entries(t.demand) as [ResourceId, number][]).some(([r, n]) => inv[r] < n)) return false;
   for (const [r, n] of Object.entries(t.demand) as [ResourceId, number][]) takeFromStock(w, r, n);
   w.tribute = null;
+  enrichBase(w, t.faction, t.value);
   const def = factionDef(t.faction);
   w.addLog(`${def?.icon ?? ''} Pagáis el tributo a ${def?.name ?? t.faction}: esta vez no atacan.`, 'info');
   return true;
@@ -1247,6 +1249,8 @@ export function leaveMap(w: World, o: Colonist, why: string): void {
   if (i >= 0) w.others.splice(i, 1);
   // Liberar a un prisionero sube la relación con su facción.
   if (i >= 0 && o.role === 'prisionero' && o.prisoner?.mode === 'liberar') w.changeRelation(o.faction, RELATION.releasePrisoner, `liberáis a ${o.name}`);
+  // Un saqueador que se escapa con botín enriquece la base de su facción.
+  if (i >= 0 && o.role === 'saqueador' && o.carrying) enrichBase(w, o.faction, o.carrying.amount * RESOURCE_VALUES[o.carrying.resource]);
   // Un saqueador que se escapa no cuenta como caído para la moral de su raid.
   const g = o.raider?.group !== undefined ? w.raidGroups.find((k) => k.id === o.raider!.group) : undefined;
   if (g && !g.escaped.includes(o.id)) g.escaped.push(o.id);
@@ -1527,6 +1531,14 @@ export function dealBalance(w: World, trader: Colonist, d: TradeDeal): number {
   return give - take;
 }
 
+/** Lo que mueve un trato (lo que se da más lo que se recibe), en chapas. */
+function dealValue(w: World, trader: Colonist, d: TradeDeal): number {
+  let v = 0;
+  for (const [r, n] of Object.entries(d.sell) as [ResourceId, number][]) v += n * sellPrice(w, trader, r);
+  for (const [r, n] of Object.entries(d.buy) as [ResourceId, number][]) v += n * buyPrice(w, trader, r);
+  return v;
+}
+
 /** Hace un trato. Devuelve un motivo si no se puede, o null si se ha hecho. */
 export function makeDeal(w: World, trader: Colonist, d: TradeDeal): string | null {
   const t = trader.trader;
@@ -1571,6 +1583,8 @@ export function makeDeal(w: World, trader: Colonist, d: TradeDeal): string | nul
     w.others.push(s);
     w.addLog(`⛓ Compráis a ${s.name}: ahora es prisionero de la colonia. Convencedlo para que se una.`, 'info');
   }
+  // La base de su facción se enriquece con el comercio.
+  enrichBase(w, trader.faction, dealValue(w, trader, d));
   // Mercado: lo que se vende mucho baja de precio y lo que se compra sube.
   for (const r of RESOURCES) marketTrade(w.market, r, (d.sell[r] ?? 0) - (d.buy[r] ?? 0));
   // Facciones: el primer trato con cada caravana sube la relación, y lo que se da de más cuenta como regalo.

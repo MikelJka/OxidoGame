@@ -19,6 +19,7 @@ import { initialSchedule, makeDifficulty, WANDERER_GAP } from './storyteller';
 import { vehicleDef } from '../data/vehicles';
 import { factionDef, factionId } from '../data/factions';
 import { restoreFactions } from './factions';
+import { placeBases } from './worldmap';
 import { restoreMarket } from './market';
 import { restoreWeather } from './events';
 import { restoreFires } from './fire';
@@ -75,7 +76,7 @@ export interface SaveData {
   offer?: { pawn: SavedColonist; until: number; kind?: string } | null;
   schedule?: { nextWanderer: number; nextRaid: number; nextTrader: number; nextRadio?: number };
   /** Facciones (desde el 2026-10-21); las partidas antiguas las sacan de la semilla. */
-  factions?: { id: string; settlement: string; relation: number; helpAt?: number; warRaidAt?: number; calledAt?: number }[];
+  factions?: { id: string; settlement: string; relation: number; helpAt?: number; warRaidAt?: number; calledAt?: number; base?: { x: number; y: number; population: number; wealth: number; defenses: number; grownAt: number } }[];
   /** Mercado: precios respecto a su valor (desde el 2026-10-21). */
   market?: { mult: Record<string, number>; prev: Record<string, number> };
   /** Sucesos que duran y el siguiente (desde el 2026-10-21). */
@@ -253,7 +254,7 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     gameOver: world.gameOver ? { ...world.gameOver } : null,
     offer: world.offer ? { pawn: savePawn(world.offer.pawn), until: world.offer.until, ...(world.offer.kind !== 'superviviente' ? { kind: world.offer.kind } : {}) } : null,
     schedule: { ...world.schedule },
-    factions: world.factions.map((f) => ({ ...f })),
+    factions: world.factions.map((f) => ({ ...f, ...(f.base ? { base: { ...f.base } } : {}) })),
     market: { mult: { ...world.market.mult }, prev: { ...world.market.prev } },
     weather: world.weather.map((e) => ({ ...e })),
     ...(world.fires.size ? { fires: [...world.fires] } : {}),
@@ -592,6 +593,7 @@ export function loadWorld(input: string | unknown): World {
   world.schedule.nextWanderer = Math.min(world.schedule.nextWanderer, world.tick + Math.round(WANDERER_GAP[1] * TICKS_PER_DAY));
   const ids = [...world.colonists, ...world.others, ...world.others.flatMap((o) => o.trader?.slaves ?? []), ...(world.offer ? [world.offer.pawn] : [])].map((c) => c.id);
   world.factions = restoreFactions(d.factions, world.map.seed);
+  placeBases(world.factions, world.map.seed, world.tick);
   world.market = restoreMarket(d.market);
   world.weather = restoreWeather(d.weather);
   restoreFires(world, d.fires, d.burnt);

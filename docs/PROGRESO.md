@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (42) — Bases de las facciones: el mapa del mundo
+
+- Primera parte de lo que eligió Mikel (1C, 2A+2B, 3A, 4B). En **📜 → 🏳 Facciones** sale un **🗺 mapa del mundo** con vuestra colonia 🏠 en el centro y la **base** de cada facción a unos días de viaje.
+- Cada base tiene **habitantes**, **defensas**, **riqueza** y un **nivel**: aldea, pueblo (14 o más) o fortaleza (26 o más). La tarjeta de cada facción lo dice, con los días de viaje.
+- **Crecen** cada **5 días**: 1–2 habitantes y alguna defensa más, y una persona y una defensa de más por cada 400 chapas de riqueza. Se enriquecen con el **comercio** con vuestra colonia, con el **tributo** que les pagáis y con el **botín** de los saqueadores que se escapan. Al cambiar de nivel sale en el diario.
+- En las partidas guardadas, las bases se ponen al cargar.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): el tamaño del mapa del mundo, las distancias, los números de partida, el ritmo de crecimiento y los niveles (`src/data/worldmap.json`).
+- Qué probar: abrir 📜 → 🏳 Facciones y mirar el mapa y las bases; comerciar mucho con una caravana y ver que la base de los Chatarreros crece más deprisa.
+- Sin npm en el entorno: tests con Bun (632, 3 nuevos en `tests/worldmap.test.ts`) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+- Siguiente: atacar una base (expedición y mapa de batalla).
+
 ## 2026-10-21 (41) — Tejados y habitaciones
 
 - Pedido por Mikel. Un espacio **cerrado del todo** con paredes de un piso (de madera, piedra, chatarra, metal, hormigón o con aspilleras) y puertas o portones **pide tejado**. Con muros altos no.

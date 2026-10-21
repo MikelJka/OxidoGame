@@ -88,7 +88,7 @@ describe('facciones', () => {
     expect(back.others.find((o) => o.id === r.id)?.faction).toBe('piratas_oxido');
     const old = JSON.parse(JSON.stringify(serializeWorld(w)));
     delete old.factions;
-    expect(loadWorld(old).factions).toEqual(createFactions(w.map.seed));
+    expect(loadWorld(old).factions.map((f) => [f.id, f.settlement, f.relation])).toEqual(createFactions(w.map.seed).map((f) => [f.id, f.settlement, f.relation]));
   });
 });
 

@@ -3,6 +3,7 @@ import { createFactions, FactionState, shiftRelation } from './factions';
 import { marketDay, MarketState, newMarket } from './market';
 import { ActiveEvent, firstEventTick, runEvents, solarFactor } from './events';
 import { burning, extinguish, threatens, updateFires } from './fire';
+import { growBases, placeBases } from './worldmap';
 import { factionDef, RELATION } from '../data/factions';
 import { countReachable, GameMap, generateMap, inBounds, isPassable, TRENCH_FLOODED, isWater, Prop, PROP_INFO, Terrain, TERRAIN_INFO, tileMoveCost } from './map';
 import { findPath, isWalkable, Point } from './pathfinding';
@@ -250,6 +251,7 @@ export class World implements JobContext {
     this.map = opts.map ?? generateMap({ width: opts.width ?? MAP_SIZE, height: opts.height ?? MAP_SIZE, seed: opts.seed });
     this.rng = new Rng(opts.seed ^ 0x51ed270b);
     this.factions = createFactions(this.map.seed);
+    placeBases(this.factions, this.map.seed, 0);
     if (!opts.map) this.spawnColonists(opts.colonists ?? 3);
     this.nextPawnId = this.colonists.length + 1;
     this.items = new GroundItems(this.map);
@@ -351,6 +353,8 @@ export class World implements JobContext {
     if (this.tick % TICKS_PER_SECOND === 0 && this.fires.size > 0) updateFires(this);
     // Cada día, los precios del mercado se acercan a su valor y alguno cambia.
     if (this.tick % TICKS_PER_DAY === 0) marketDay(this.market, this.map.seed, this.day);
+    // Y las bases de las facciones crecen.
+    if (this.tick % TICKS_PER_DAY === 0) growBases(this);
     // Cada día, las trampas de pesca dejan su 🐟 en el muelle de al lado.
     if (this.tick % TICKS_PER_HOUR === 0) this.emptyFishTraps();
     // Las plantas crecen a saltos de un segundo (basta y cuesta poco).

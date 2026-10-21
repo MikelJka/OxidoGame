@@ -1,0 +1,13 @@
+{
+  "_": "Mapa del mundo con las bases de las facciones (elegido por Mikel el 2026-10-21: 1C, 2A+2B, 3A, 4B). Las bases crecen cada pocos días (más gente y defensas) y más deprisa cuanto más ricas son (por el comercio y los raids que les salen bien). Tamaño del mapa, distancias, población inicial, ritmo de crecimiento y niveles los ha puesto la sesión del 2026-10-21.",
+  "size": [24, 16],
+  "baseDistance": [5, 11],
+  "travelDaysPerCell": 0.25,
+  "start": { "population": [6, 10], "wealth": [100, 400], "defenses": [2, 4] },
+  "growth": { "everyDays": 5, "population": [1, 2], "defenses": [0, 1], "wealthPerExtra": 400 },
+  "levels": [
+    { "id": "aldea", "name": "Aldea", "population": 0 },
+    { "id": "pueblo", "name": "Pueblo", "population": 14 },
+    { "id": "fortaleza", "name": "Fortaleza", "population": 26 }
+  ]
+}

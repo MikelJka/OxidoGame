@@ -3,6 +3,7 @@
 // retenerlos. Puro y determinista: sin Phaser ni DOM.
 import { FACTIONS, factionDef, factionId, RELATION } from '../data/factions';
 import { Rng } from './rng';
+import type { FactionBase } from './worldmap';
 
 export interface FactionState {
   id: string;
@@ -16,6 +17,8 @@ export interface FactionState {
   warRaidAt?: number;
   /** Tick de la última vez que se les llamó por radio para que manden una caravana. */
   calledAt?: number;
+  /** Su base en el mapa del mundo. */
+  base?: FactionBase;
 }
 
 /** Las facciones de una partida nueva: nombres sacados de la semilla del mapa (sin tocar el azar de la partida). */
@@ -72,6 +75,8 @@ export function restoreFactions(saved: unknown, seed: number): FactionState[] {
     // Los que no cambian (los Piratas del Óxido) siguen con la suya de siempre.
     if (factionDef(f.id)?.fixed) {
       if (typeof s.settlement === 'string' && s.settlement) f.settlement = s.settlement;
+      const fb = s.base as Partial<FactionBase> | undefined;
+      if (fb && [fb.x, fb.y, fb.population, fb.wealth, fb.defenses, fb.grownAt].every((v) => typeof v === 'number' && Number.isFinite(v))) f.base = { ...(fb as FactionBase) };
       continue;
     }
     if (typeof s.settlement === 'string' && s.settlement) f.settlement = s.settlement;
@@ -79,6 +84,8 @@ export function restoreFactions(saved: unknown, seed: number): FactionState[] {
     if (typeof s.helpAt === 'number' && Number.isFinite(s.helpAt)) f.helpAt = s.helpAt;
     if (typeof s.warRaidAt === 'number' && Number.isFinite(s.warRaidAt)) f.warRaidAt = s.warRaidAt;
     if (typeof s.calledAt === 'number' && Number.isFinite(s.calledAt)) f.calledAt = s.calledAt;
+    const b = s.base as Partial<FactionBase> | undefined;
+    if (b && [b.x, b.y, b.population, b.wealth, b.defenses, b.grownAt].every((v) => typeof v === 'number' && Number.isFinite(v))) f.base = { ...(b as FactionBase) };
   }
   return base;
 }

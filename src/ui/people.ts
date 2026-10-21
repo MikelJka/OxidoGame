@@ -20,6 +20,8 @@ import { CROPS } from '../data/crops';
 import { MARKET } from '../data/market';
 import { marketTrend } from '../sim/market';
 import { relationLevel, RELATION_LEVEL_NAMES } from '../sim/factions';
+import { baseLevel, WORLD_MAP } from '../data/worldmap';
+import { colonyCell, travelDays } from '../sim/worldmap';
 
 export interface PeopleUI {
   /** Abre la pestaña de una persona tocada en el mapa (prisionero o comerciante). */
@@ -219,6 +221,8 @@ export function mountPeople(opts: Options): PeopleUI {
   function renderFactions(w: World): HTMLElement[] {
     const out: HTMLElement[] = [];
     out.push(el('p', 'muted', `La relación va de ${RELATION.min} a ${RELATION.max}: con ${RELATION.war} o menos son hostiles (y os mandan sus raids), con ${RELATION.ally} o más, aliados. Sube al comerciar con sus caravanas (+${RELATION.tradeCaravan}), al darles de más en un trato (+1 cada ${RELATION.giftValuePerPoint} chapas), al curar a sus heridos y al liberar a sus prisioneros (+${RELATION.releasePrisoner}); baja al matar o retener a los suyos (${RELATION.killOrHold}). Los Piratas del Óxido son siempre hostiles.`));
+    // Mapa del mundo: la colonia en el centro y la base de cada facción.
+    out.push(drawWorldMap(w));
     // Radio: llamar a una caravana o pedir ayuda a los aliados.
     const radio = el('div', 'pp-card');
     radio.append(el('strong', undefined, '📻 Radio'));
@@ -252,10 +256,55 @@ export function mountPeople(opts: Options): PeopleUI {
       const row = el('div', 'need');
       const color = level === 'hostil' ? '#c05040' : level === 'neutral' ? '#b0a070' : '#6aa060';
       row.append(el('span', undefined, 'Relación'), bar((f.relation - RELATION.min) / (RELATION.max - RELATION.min), color), el('span', 'num', String(f.relation)));
-      card.append(head, el('div', 'muted', `Asentamiento: ${f.settlement}`), el('div', undefined, def.description), row);
+      const b = f.base;
+      const baseText = b ? `${def.icon} ${f.settlement} · ${baseLevel(b.population).name.toLowerCase()} de ${b.population} habitantes · defensas ${b.defenses} · a ${String(travelDays(b)).replace('.', ',')} días de viaje` : `Asentamiento: ${f.settlement}`;
+      card.append(head, el('div', 'muted', baseText), el('div', undefined, def.description), row);
       out.push(card);
     }
     return out;
+  }
+
+  /** Dibuja el mapa del mundo (cuadrícula pequeña) con la colonia y las bases. */
+  function drawWorldMap(w: World): HTMLElement {
+    const [cols, rows] = WORLD_MAP.size;
+    const cell = 14;
+    const canvas = document.createElement('canvas');
+    canvas.width = cols * cell;
+    canvas.height = rows * cell;
+    canvas.className = 'world-map';
+    canvas.style.width = '100%';
+    canvas.style.maxWidth = `${cols * cell}px`;
+    canvas.style.imageRendering = 'pixelated';
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = '#3a3226';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Terreno de fondo (solo dibujo): manchas según la semilla.
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const n = Math.sin(x * 1.7 + w.map.seed * 0.001) * Math.cos(y * 2.3 + w.map.seed * 0.002);
+          ctx.fillStyle = n > 0.55 ? '#4a5a3a' : n < -0.6 ? '#2a3a4a' : (x + y) % 2 ? '#3e3528' : '#423829';
+          ctx.fillRect(x * cell, y * cell, cell, cell);
+        }
+      }
+      const home = colonyCell();
+      ctx.font = `${cell - 2}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (const f of w.factions) {
+        if (!f.base) continue;
+        ctx.strokeStyle = 'rgba(240,220,180,0.25)';
+        ctx.beginPath();
+        ctx.moveTo((home.x + 0.5) * cell, (home.y + 0.5) * cell);
+        ctx.lineTo((f.base.x + 0.5) * cell, (f.base.y + 0.5) * cell);
+        ctx.stroke();
+        ctx.fillText(factionDef(f.id)?.icon ?? '?', (f.base.x + 0.5) * cell, (f.base.y + 0.5) * cell);
+      }
+      ctx.fillText('🏠', (home.x + 0.5) * cell, (home.y + 0.5) * cell);
+    }
+    const box = el('div', 'pp-card');
+    box.append(el('strong', undefined, '🗺 Mapa del mundo'), canvas, el('div', 'muted', '🏠 vuestra colonia. Las bases crecen cada pocos días, y más deprisa cuanto más ricas son (comercio, tributos y raids que les salen bien).'));
+    return box;
   }
 
   // --- Prisioneros -------------------------------------------------------------------
@@ -442,7 +491,7 @@ export function mountPeople(opts: Options): PeopleUI {
       tab, logFilter, w.research.current, w.log.length, w.log[w.log.length - 1]?.tick, trader, w.colonists.length, w.day,
       prisoners.map((p) => `${p.id}:${p.prisoner!.mode}:${Math.round(p.prisoner!.resistance * 100)}:${Math.round(p.needs.food * 20)}:${Math.round(p.needs.water * 20)}:${Math.round(p.health * 20)}`).join(','),
       tab === 'comercio' ? `${JSON.stringify(w.inventory())}:${Math.floor(w.tick / TICKS_PER_HOUR)}` : '',
-      tab === 'facciones' ? `${w.factions.map((f) => `${f.relation}:${f.calledAt ?? ''}:${f.helpAt ?? ''}`).join(',')}:${radioProblem(w) ?? ''}` : '',
+      tab === 'facciones' ? `${w.factions.map((f) => `${f.relation}:${f.calledAt ?? ''}:${f.helpAt ?? ''}:${f.base?.population ?? ''}:${f.base?.defenses ?? ''}`).join(',')}:${radioProblem(w) ?? ''}` : '',
       tab === 'investigacion' ? `${w.research.current}:${w.research.done.join(',')}:${w.research.current ? Math.floor(researchFraction(w.research, w.research.current) * 100) : ''}:${w.structures.stations().length}:${w.colonists.map((c) => c.priorities.investigar).join('')}` : '',
     ].join('|');
     if (key === lastKey) return;
