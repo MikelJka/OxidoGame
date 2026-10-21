@@ -2,7 +2,7 @@
 // mapa. Marcados con 🎯 Cazar, los colonos con «Cazar» van a por ellos con su arma y dejan 🥩 carne
 // y 🟫 cuero. El jabalí herido ataca; la rata gigante roba comida de los almacenes sin muros.
 // Puro y determinista: sin Phaser ni DOM.
-import { ANIMALS, CREATURES, CreatureId, TAMING } from '../data/creatures';
+import { animalCargo, ANIMALS, CREATURES, CreatureId, TAMING, tameChance } from '../data/creatures';
 import { FOOD_RESOURCES } from '../data/resources';
 import type { Colonist } from './colonist';
 import { findPath } from './pathfinding';
@@ -160,10 +160,10 @@ export function tryTame(w: World, c: Colonist, a: Colonist): boolean {
     w.addLog(`🤝 ${c.name} no tiene comida para domar a ${def.name.toLowerCase()}.`, 'info');
     return false;
   }
-  const chance = Math.min(TAMING.maxChance, TAMING.chance + c.skills.supervivencia * TAMING.chancePerSkill);
+  const chance = Math.min(TAMING.maxChance, tameChance(a.creature) + c.skills.supervivencia * TAMING.chancePerSkill);
   if (w.rng.chance(chance)) {
     tameAnimal(w, a);
-    w.addLog(`🤝 ${c.name} doma ${def.female ? 'una' : 'un'} ${def.name.toLowerCase()}: ya es animal de carga de la colonia (+${TAMING.cargo} kg en las expediciones).`, 'bueno', undefined, a.tile);
+    w.addLog(`🤝 ${c.name} doma ${def.female ? 'una' : 'un'} ${def.name.toLowerCase()}: ya es animal de carga de la colonia (+${animalCargo(a.creature)} kg en las expediciones).`, 'bueno', undefined, a.tile);
     return true;
   }
   if (def.fightsBack && w.rng.chance(TAMING.enrageOnFail)) enrage(w, a);

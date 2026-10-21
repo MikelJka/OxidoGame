@@ -173,9 +173,20 @@ function paintCreature(px: (x: number, y: number, w: number, h: number, color: s
     case 'ciervo_mutado':
     case 'jabali':
     case 'mula':
+    case 'cabra_salvaje':
+    case 'vaca_dos_cabezas':
+    case 'caballo_salvaje':
     case 'rata_gigante': {
       // Animales: cuerpo, patas, cabeza y lo suyo (cuernos torcidos, colmillos o cola pelada).
-      const [fur, dark, big] = id === 'ciervo_mutado' ? ['#8a6a44', '#5e4630', 1] : id === 'jabali' ? ['#5a4a3a', '#3a2e24', 1] : id === 'mula' ? ['#7a6a5a', '#4a4036', 1] : ['#6a6260', '#4a4442', 0];
+      const ANIMAL_FUR: Record<string, [string, string, number]> = {
+        ciervo_mutado: ['#8a6a44', '#5e4630', 1],
+        jabali: ['#5a4a3a', '#3a2e24', 1],
+        mula: ['#7a6a5a', '#4a4036', 1],
+        cabra_salvaje: ['#c8bca4', '#8a8070', 0],
+        vaca_dos_cabezas: ['#e0dcd0', '#5a4a40', 1],
+        caballo_salvaje: ['#7a4a2a', '#4a2a18', 1],
+      };
+      const [fur, dark, big] = ANIMAL_FUR[id] ?? ['#6a6260', '#4a4442', 0];
       px(2, 14, 12, 1, 'rgba(0,0,0,0.35)'); // sombra
       for (const x of big ? [3, 5, 10, 12] : [4, 6, 9, 11]) px(x, big ? 10 : 12, 1, big ? 4 : 2, outline);
       px(2, big ? 5 : 8, 10, big ? 6 : 5, outline);
@@ -195,6 +206,19 @@ function paintCreature(px: (x: number, y: number, w: number, h: number, color: s
       } else if (id === 'jabali') {
         px(15, 7, 1, 1, '#e8e0c8'); // colmillo
         px(3, 4, 6, 1, dark); // cerdas
+      } else if (id === 'cabra_salvaje') {
+        px(12, 6, 1, 2, '#9a8a6a'); // cuernos curvos
+        px(13, 5, 1, 1, '#9a8a6a');
+        px(14, 12, 1, 1, '#e8e0d0'); // barba
+      } else if (id === 'vaca_dos_cabezas') {
+        px(4, 7, 2, 2, dark); // manchas
+        px(8, 6, 2, 2, dark);
+        px(11, 8, 4, 3, outline); // la segunda cabeza
+        px(12, 9, 2, 1, fur);
+        px(13, 9, 1, 1, '#c8e040');
+      } else if (id === 'caballo_salvaje') {
+        px(10, 3, 1, 4, dark); // crin
+        px(1, 6, 1, 4, dark); // cola
       } else {
         px(0, 10, 2, 1, '#c89a9a'); // cola
         px(1, 11, 1, 1, '#c89a9a');

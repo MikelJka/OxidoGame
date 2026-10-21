@@ -5,7 +5,7 @@
  */
 import data from './creatures.json';
 
-export type CreatureId = 'perro_mutante' | 'bruto_mutante' | 'arana_chatarra' | 'dron_vigilancia' | 'ciervo_mutado' | 'jabali' | 'rata_gigante' | 'mula';
+export type CreatureId = 'perro_mutante' | 'bruto_mutante' | 'arana_chatarra' | 'dron_vigilancia' | 'ciervo_mutado' | 'jabali' | 'rata_gigante' | 'cabra_salvaje' | 'vaca_dos_cabezas' | 'caballo_salvaje' | 'mula';
 
 export interface CreatureDef {
   id: CreatureId;
@@ -44,6 +44,8 @@ export interface CreatureDef {
   stealsFood?: boolean;
   /** Se puede domar como animal de carga. */
   tamable?: boolean;
+  /** Doma: probabilidad base de cada intento y kilos que carga en una expedición. */
+  tame?: { chance: number; cargo: number };
 }
 
 export const CREATURES: Record<CreatureId, CreatureDef> = Object.fromEntries(
@@ -110,3 +112,19 @@ export const TAMING = data.taming as unknown as {
   foodPerDay: number; cargo: number; leash: number; hungryDays: number; enrageOnFail: number;
   mulePrice: number; mulesForSale: [number, number];
 };
+
+/** Probabilidad base de domar a este animal en un intento (sin la habilidad). */
+export function tameChance(id: CreatureId | undefined): number {
+  return (id && CREATURES[id]?.tame?.chance) ?? TAMING.chance;
+}
+
+/** Kilos que lleva este animal de carga en una expedición. */
+export function animalCargo(id: CreatureId | undefined): number {
+  return (id && CREATURES[id]?.tame?.cargo) ?? TAMING.cargo;
+}
+
+/** Lo difícil que es domarlo, para los textos. */
+export function tameDifficulty(id: CreatureId | undefined): string {
+  const c = tameChance(id);
+  return c >= 0.25 ? 'fácil' : c >= 0.12 ? 'media' : c >= 0.05 ? 'difícil' : 'muy difícil';
+}

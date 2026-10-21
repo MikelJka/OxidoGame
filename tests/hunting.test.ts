@@ -86,14 +86,14 @@ describe('animales de carga', () => {
     expect(cycleAnimalMark(r)).toBeNull(); // las ratas no se doman
   });
 
-  it('un colono con comida lo doma; luego come cada día y va en las expediciones (+80 kg)', async () => {
+  it('un colono con comida lo doma; luego come cada día y va en las expediciones (+30 kg la cabra)', async () => {
     const { packAnimals } = await import('../src/sim/animals');
     const { expeditionCapacity } = await import('../src/sim/expedition');
     const w = flatWorld(1);
     w.map.start = { x: 15, y: 15 };
     w.items.drop(4, 4, 'patata', 75);
     w.colonists[0].skills.supervivencia = 20;
-    const a = put(w, 'ciervo_mutado', 12, 12);
+    const a = put(w, 'cabra_salvaje', 12, 12);
     a.tameMarked = true;
     for (let t = 0; t < 30000 && !a.tamed; t++) {
       w.step();
@@ -101,7 +101,7 @@ describe('animales de carga', () => {
     }
     expect(a.tamed).toBe(true);
     expect(packAnimals(w)).toContain(a);
-    expect(expeditionCapacity(w, 1, [], [a.id])).toBe(35 + 80);
+    expect(expeditionCapacity(w, 1, [], [a.id])).toBe(35 + 30);
     expect(loadWorld(serializeWorld(w)).others.find((o) => o.id === a.id)?.tamed).toBe(true);
     // Sin comida se escapa.
     for (const s of w.items.list()) w.items.take(s.x, s.y, s.amount);
@@ -110,6 +110,42 @@ describe('animales de carga', () => {
     w.step();
     for (let k = 0; k < 450; k++) w.step();
     expect(a.tamed).toBe(false);
+  });
+
+  it('cada animal se doma con más o menos dificultad y carga distinto', async () => {
+    const { tameChance, animalCargo, tameDifficulty, CREATURES } = await import('../src/data/creatures');
+    expect(tameDifficulty('cabra_salvaje')).toBe('fácil');
+    expect(tameDifficulty('vaca_dos_cabezas')).toBe('media');
+    expect(tameDifficulty('caballo_salvaje')).toBe('difícil');
+    expect(tameDifficulty('jabali')).toBe('muy difícil');
+    expect(tameChance('cabra_salvaje')).toBeGreaterThan(tameChance('ciervo_mutado'));
+    expect(tameChance('ciervo_mutado')).toBeGreaterThan(tameChance('jabali'));
+    expect(animalCargo('caballo_salvaje')).toBeGreaterThan(animalCargo('mula'));
+    for (const d of Object.values(CREATURES)) if (d.tamable) expect(d.tame).toBeDefined();
+    // Con la misma habilidad, la cabra se doma en menos intentos que el jabalí.
+    const { tryTame } = await import('../src/sim/animals');
+    const tries = (kind: 'cabra_salvaje' | 'jabali') => {
+      const w = flatWorld(3);
+      w.map.start = { x: 15, y: 15 };
+      w.items.drop(4, 4, 'patata', 75);
+      w.items.drop(5, 4, 'patata', 75);
+      w.items.drop(6, 4, 'patata', 75);
+      let n = 0;
+      let total = 0;
+      for (let k = 0; k < 20; k++) {
+        const a = put(w, kind, 12, 12);
+        n = 0;
+        while (!a.tamed && n < 200) {
+          n++;
+          w.items.drop(4, 4, 'patata', 2);
+          tryTame(w, w.colonists[0], a);
+          if (a.role !== 'animal') break;
+        }
+        total += n;
+      }
+      return total;
+    };
+    expect(tries('cabra_salvaje')).toBeLessThan(tries('jabali'));
   });
 
   it('las caravanas de los Granjeros venden mulas', async () => {

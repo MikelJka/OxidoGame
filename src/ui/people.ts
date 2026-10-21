@@ -1,6 +1,6 @@
 // Gente: diario de la colonia, prisioneros, comercio con caravanas, supervivientes que piden
 // unirse y fin de partida. Solo interfaz: las reglas están en src/sim/people.ts.
-import { CREATURES, TAMING } from '../data/creatures';
+import { animalCargo, CREATURES, TAMING, tameDifficulty } from '../data/creatures';
 import { cycleAnimalMark, packAnimals } from '../sim/animals';
 import type { World } from '../sim/world';
 import type { Colonist } from '../sim/colonist';
@@ -397,7 +397,7 @@ export function mountPeople(opts: Options): PeopleUI {
           }
           for (const a of packAnimals(w)) {
             const on = ap.animals.includes(a.id);
-            const btn = button(`${on ? '☑' : '☐'} ${CREATURES[a.creature!].emoji} ${a.name} (+${TAMING.cargo} kg)`, () => {
+            const btn = button(`${on ? '☑' : '☐'} ${CREATURES[a.creature!].emoji} ${a.name} (+${animalCargo(a.creature)} kg)`, () => {
               ap.animals = on ? ap.animals!.filter((i) => i !== a.id) : [...ap.animals!, a.id];
               rerender();
             });
@@ -819,11 +819,11 @@ export function mountPeople(opts: Options): PeopleUI {
       if (c.creature && CREATURES[c.creature].animal && c.role === 'animal') {
         const d = CREATURES[c.creature];
         if (c.tamed) {
-          opts.toast(`${d.emoji} ${c.name} de carga · ${healthLabel(c).toLowerCase()} · lleva +${TAMING.cargo} kg en las expediciones y come cada día`, 3000);
+          opts.toast(`${d.emoji} ${c.name} de carga · ${healthLabel(c).toLowerCase()} · lleva +${animalCargo(c.creature)} kg en las expediciones y come cada día`, 3000);
           return;
         }
         const mark = cycleAnimalMark(c);
-        opts.toast(`${d.emoji} ${c.name} · ${mark === 'cazar' ? `🎯 a cazar: irá quien tenga «Cazar»${d.tamable ? ' (tócalo otra vez para domarlo)' : ''}` : mark === 'domar' ? '🤝 a domar: irá quien tenga «Cazar», con comida (mejor con Supervivencia)' : 'sin marca'}`, 3000);
+        opts.toast(`${d.emoji} ${c.name} · ${mark === 'cazar' ? `🎯 a cazar: irá quien tenga «Cazar»${d.tamable ? ' (tócalo otra vez para domarlo)' : ''}` : mark === 'domar' ? `🤝 a domar (${tameDifficulty(c.creature)}, carga ${animalCargo(c.creature)} kg): irá quien tenga «Cazar», con comida (mejor con Supervivencia)` : 'sin marca'}`, 3000);
         return;
       }
       if (c.creature) {

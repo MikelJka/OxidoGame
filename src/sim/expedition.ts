@@ -15,7 +15,7 @@ import { travelDays } from './worldmap';
 import { fits, Vehicle } from './vehicles';
 import { vehicleDef } from '../data/vehicles';
 import { CARRY_PER_COLONIST, loadWeight } from '../data/weights';
-import { TAMING } from '../data/creatures';
+import { animalCargo } from '../data/creatures';
 import { packAnimals } from './animals';
 import { World } from './world';
 
@@ -70,7 +70,7 @@ const MAX_DEFENDERS = 18;
 export function expeditionCapacity(w: World, members: number, vehicleIds: number[] = [], animalIds: number[] = []): number {
   let kg = members * CARRY_PER_COLONIST;
   for (const v of w.vehicles) if (vehicleIds.includes(v.id)) kg += vehicleDef(v.def)?.cargo ?? 0;
-  for (const a of packAnimals(w)) if (animalIds.includes(a.id)) kg += TAMING.cargo;
+  for (const a of packAnimals(w)) if (animalIds.includes(a.id)) kg += animalCargo(a.creature);
   return kg;
 }
 
