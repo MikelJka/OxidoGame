@@ -2,6 +2,12 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (56) — Catálogo terminado: propuestas para lo siguiente
+
+- Sin incidencias nuevas en 🐞. Con el abono y la bandeja hidropónica (sesión 55), los **26 proyectos del árbol** desbloquean lo suyo (solo falta el lanzallamas, que va con el fuego, aparcado): quedan terminados el bloque 13 y **todo el catálogo aprobado**.
+- Esta sesión **no ha tocado el juego**: ha puesto al día `ROADMAP.md` (fase 5 y «Caravanas y trueque por valor», que ya estaban hechos) y ha dejado en «Propuestas para Mikel» de `FEEDBACK.md` qué hacer ahora: **A** equilibrio con partidas simuladas (solo informe), **B** arte definitivo en 2D, **C** sacar el fuego de «Aparcado», **D** más barcos y comercio por barco.
+- Siguiente: lo que Mikel elija. Sin respuesta, las sesiones solo arreglarán bugs que lleguen por 🐞.
+
 ## 2026-10-21 (55) — Abono y bandeja hidropónica
 
 - Contenido aprobado del catálogo que faltaba (bloques 3 y 5): con **«Agricultura mejorada»**, receta de **🟤 abono** en el banco de trabajo (🍄2 + 🪨1 → 3). Al **sembrar**, si hay abono en el almacén se echa 1 y esa planta da **+25 %** de cosecha (al tocarla pone «abonada»).
