@@ -30,6 +30,8 @@ export interface PowerEnv {
   wind: number;
   /** Por cuánto se multiplica lo que guarda cada batería (la investigación «Baterías mejoradas»: ×2). */
   batteryMultiplier?: number;
+  /** Lo que dan las placas solares (0 con una tormenta de polvo; por defecto, 1). */
+  solar?: number;
 }
 
 /** Vatios-hora que caben en una batería con el multiplicador de la investigación (0 si no es batería). */
@@ -73,7 +75,7 @@ export function isSheltered(st: Structures, s: Structure): boolean {
 /** Vatios que da ahora un generador sin combustible según la hora y el viento. */
 function naturalOutput(st: Structures, s: Structure, env: PowerEnv): number {
   const p = s.def.power ?? 0;
-  if (s.def.source === 'solar') return isDaylight(env.hour) ? p : 0;
+  if (s.def.source === 'solar') return isDaylight(env.hour) ? Math.round(p * (env.solar ?? 1)) : 0;
   if (s.def.source === 'wind') {
     s.sheltered = isSheltered(st, s);
     return s.sheltered ? 0 : Math.round(p * Math.max(0, Math.min(1, env.wind)));

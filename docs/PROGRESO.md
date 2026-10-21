@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-21 (37) — Sucesos: tormenta de polvo y alijo
+
+- Primera parte del bloque 9: desde el **día 3**, cada **2–4 días** pasa algo.
+- **🌪 Tormenta de polvo**: durante **un día**, las **placas solares no producen** y los **disparos llegan a la mitad de lejos**. Mientras dura, la hora de arriba lleva 🌪.
+- **📦 Alijo**: aparecen recursos por valor de **150 a 400 chapas** en un sitio del mapa al que se llega andando, a 15 casillas o más de la colonia. El aviso lleva al sitio, y los que tienen «Transportar» lo traen.
+- Decidido en esta sesión porque no estaba concretado (Mikel puede cambiarlo): cada cuánto (2–4 días, desde el día 3), que los dos salgan igual de a menudo y de qué recursos sale el alijo.
+- Qué probar: adelantar el tiempo con 🪄 y esperar a los avisos. Con placas solares, ver que en la tormenta no dan corriente.
+- Sin npm en el entorno: tests con Bun (615, 3 nuevos en `tests/events.test.ts`) y tipos con `tsc`. La prueba completa, en GitHub Actions.
+- Siguiente: la lluvia ácida y la avería; luego la plaga y el refugiado herido.
+
 ## 2026-10-21 (36) — El mercado: precios que suben y bajan
 
 - Bloque 8 entero. El **precio** de cada recurso va del **50 % al 200 %** de su valor:

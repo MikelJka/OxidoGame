@@ -20,6 +20,7 @@ import { vehicleDef } from '../data/vehicles';
 import { factionDef } from '../data/factions';
 import { restoreFactions } from './factions';
 import { restoreMarket } from './market';
+import { restoreWeather } from './events';
 import { GRENADE, isWeapon } from '../data/weapons';
 import { ARMORS, isArmor } from '../data/armor';
 
@@ -75,6 +76,9 @@ export interface SaveData {
   factions?: { id: string; settlement: string; relation: number; helpAt?: number; warRaidAt?: number; calledAt?: number }[];
   /** Mercado: precios respecto a su valor (desde el 2026-10-21). */
   market?: { mult: Record<string, number>; prev: Record<string, number> };
+  /** Sucesos que duran y el siguiente (desde el 2026-10-21). */
+  weather?: { id: string; until: number }[];
+  nextEvent?: number;
   /** Tributo pedido y sin responder (desde el 2026-10-21). */
   tribute?: { faction: string; demand: Record<string, number>; value: number; until: number };
   nextPawnId?: number;
@@ -241,6 +245,8 @@ export function serializeWorld(world: World, gameVersion?: string): SaveData {
     schedule: { ...world.schedule },
     factions: world.factions.map((f) => ({ ...f })),
     market: { mult: { ...world.market.mult }, prev: { ...world.market.prev } },
+    weather: world.weather.map((e) => ({ ...e })),
+    nextEvent: world.nextEvent,
     ...(world.tribute ? { tribute: { ...world.tribute, demand: { ...world.tribute.demand } } } : {}),
     nextPawnId: world.nextPawnId,
     vehicles: world.vehicles.map((v) => ({ id: v.id, def: v.def, x: v.x, y: v.y, fuel: v.fuel, hp: v.hp, facing: v.facing })),
@@ -566,6 +572,9 @@ export function loadWorld(input: string | unknown): World {
   const ids = [...world.colonists, ...world.others, ...world.others.flatMap((o) => o.trader?.slaves ?? []), ...(world.offer ? [world.offer.pawn] : [])].map((c) => c.id);
   world.factions = restoreFactions(d.factions, world.map.seed);
   world.market = restoreMarket(d.market);
+  world.weather = restoreWeather(d.weather);
+  // Las partidas antiguas tienen su primer suceso dentro de un día.
+  world.nextEvent = typeof d.nextEvent === 'number' && Number.isFinite(d.nextEvent) ? d.nextEvent : world.tick + TICKS_PER_DAY;
   if (d.tribute && factionDef(String(d.tribute.faction))) {
     const demand = Object.fromEntries(Object.entries(d.tribute.demand ?? {}).filter(([r]) => isResource(r)).map(([r, n]) => [r, Math.max(1, Math.round(num(n, 1)))]));
     world.tribute = { faction: String(d.tribute.faction), demand, value: num(d.tribute.value, 0), until: num(d.tribute.until, world.tick) };

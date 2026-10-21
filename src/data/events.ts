@@ -1,0 +1,49 @@
+/** Sucesos (bloque 9 del catálogo). Los datos están en `events.json`; aquí, sus tipos y la validación. */
+import raw from './events.json';
+import { RESOURCES, ResourceId } from './resources';
+
+export interface EventDef {
+  id: string;
+  name: string;
+  /** Cuánto pesa al sortear el siguiente suceso. */
+  weight: number;
+  /** Lo que dura (los que duran). */
+  hours?: number;
+  /** Tormenta de polvo: lo que dan las placas solares (0) y el alcance de los disparos (×0,5). */
+  solar?: number;
+  reach?: number;
+  /** Alijo: lo que vale en chapas [mínimo, máximo] y de qué recursos sale. */
+  value?: [number, number];
+  pool?: ResourceId[];
+}
+
+interface EventData {
+  firstDay: number;
+  gapDays: [number, number];
+  events: EventDef[];
+}
+
+export function validateEvents(d: unknown): EventData {
+  const e = d as EventData;
+  const fail = (why: string) => {
+    throw new Error(`Sucesos no válidos: ${why}`);
+  };
+  if (!e || !(e.firstDay >= 0) || !Array.isArray(e.gapDays) || !(e.gapDays[0] > 0 && e.gapDays[1] >= e.gapDays[0])) fail('calendario');
+  if (!Array.isArray(e.events) || e.events.length === 0) fail('sin sucesos');
+  for (const ev of e.events) {
+    if (!ev.id || !ev.name || !(ev.weight > 0)) fail(`suceso ${ev.id}`);
+    if (ev.hours !== undefined && !(ev.hours > 0)) fail(`duración de ${ev.id}`);
+    for (const r of ev.pool ?? []) if (!RESOURCES.includes(r)) fail(`recurso desconocido ${r}`);
+    if (ev.value && !(ev.value[0] > 0 && ev.value[1] >= ev.value[0])) fail(`valor de ${ev.id}`);
+  }
+  return e;
+}
+
+const DATA = validateEvents(raw);
+export const EVENTS: readonly EventDef[] = DATA.events;
+export const EVENT_FIRST_DAY = DATA.firstDay;
+export const EVENT_GAP: [number, number] = DATA.gapDays;
+
+export function eventDef(id: string): EventDef | undefined {
+  return EVENTS.find((e) => e.id === id);
+}

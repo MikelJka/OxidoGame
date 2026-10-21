@@ -1,6 +1,7 @@
 import { Colonist, createColonist, RaidGroup, Stance, walkSpeedMultiplier } from './colonist';
 import { createFactions, FactionState, RELATION_LEVEL_NAMES, shiftRelation } from './factions';
 import { marketDay, MarketState, newMarket } from './market';
+import { ActiveEvent, firstEventTick, runEvents, solarFactor } from './events';
 import { factionDef, RELATION } from '../data/factions';
 import { countReachable, GameMap, generateMap, inBounds, isPassable, TRENCH_FLOODED, isWater, Prop, PROP_INFO, Terrain, TERRAIN_INFO, tileMoveCost } from './map';
 import { findPath, isWalkable, Point } from './pathfinding';
@@ -217,6 +218,9 @@ export class World implements JobContext {
   readonly blasts: Blast[] = [];
   /** Facciones (bloque 7): sus asentamientos y su relación con la colonia. */
   factions: FactionState[];
+  /** Sucesos que duran (tormenta de polvo…) y tick del siguiente suceso. */
+  weather: ActiveEvent[] = [];
+  nextEvent = firstEventTick();
   /** Mercado (bloque 8): el precio de cada recurso. */
   market: MarketState = newMarket();
   /** Tributo pedido y sin responder (o null). */
@@ -358,13 +362,14 @@ export class World implements JobContext {
       }
     }
     if (this.eventsEnabled && this.tick % TICKS_PER_HOUR === 0) runStoryteller(this);
+    if (this.eventsEnabled && this.tick % TICKS_PER_HOUR === 0) runEvents(this);
     if (this.tick % RESCUE_TICKS === 0) this.rescueTrapped();
     if (this.tick % TICKS_PER_SECOND === 0) this.medicalPriority();
     // Cadáveres: se pudren y a quien los ve cerca le pesa.
     if (this.tick % TICKS_PER_SECOND === 0 && this.corpses.length > 0) updateCorpses(this.corpses, this.colonists, this.tick, TICKS_PER_HOUR, TICKS_PER_DAY);
     // Electricidad: cada segundo se reparte la corriente y se encienden o apagan las lámparas.
     if (this.tick % TICKS_PER_SECOND === 0) {
-      this.powerNets = updatePower(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR, { hour: this.hour, wind: this.wind, batteryMultiplier: batteryMultiplier(this.research) });
+      this.powerNets = updatePower(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR, { hour: this.hour, wind: this.wind, batteryMultiplier: batteryMultiplier(this.research), solar: solarFactor(this) });
       updateBonfires(this.structures, TICKS_PER_SECOND / TICKS_PER_HOUR);
       this.lit = litTiles(this.structures);
       // Puertas automáticas: con corriente, se cierran a los saqueadores mientras dura el raid.
@@ -685,7 +690,9 @@ export class World implements JobContext {
   clockLabel(): string {
     const h = Math.floor(this.hour);
     const m = Math.floor((this.hour - h) * 60);
-    return `Día ${this.day} · ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    // Con una tormenta de polvo (o lo que dure), su icono al lado de la hora.
+    const sky = this.weather.some((e) => e.id === 'tormenta_polvo' && this.tick < e.until) ? ' · 🌪' : '';
+    return `Día ${this.day} · ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}${sky}`;
   }
 
   /** Deja las provisiones iniciales junto al punto de inicio (sin azar: no cambia el resto de la partida). */

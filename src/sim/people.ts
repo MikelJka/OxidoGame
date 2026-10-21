@@ -22,6 +22,7 @@ import { mortarManned, mortarShots } from './mortar';
 import { TICKS_PER_DAY } from './time';
 import { ALLY_HELP, factionDef, RADIO, RAIDER_FACTION, RELATION, TRADER_FACTION, TRIBUTE, WAR } from '../data/factions';
 import { isResearched } from './research';
+import { reachFactor } from './events';
 import { MARKET } from '../data/market';
 import { marketTrade, marketValue } from './market';
 import { Rng } from './rng';
@@ -750,7 +751,9 @@ export function onTower(w: World, c: Colonist): boolean {
 export function reachOf(c: Colonist, w?: World): number {
   const weapon = usableWeapon(c);
   const reach = weapon?.reach ?? 1;
-  return weapon?.ammo && w && onTower(w, c) ? reach + TOWER_REACH : reach;
+  const base = weapon?.ammo && w && onTower(w, c) ? reach + TOWER_REACH : reach;
+  // Con una tormenta de polvo, los disparos llegan a la mitad de lejos.
+  return weapon?.ammo && w ? Math.max(1, Math.floor(base * reachFactor(w))) : base;
 }
 
 /** Distancia en casillas (en diagonal cuenta como una). */
