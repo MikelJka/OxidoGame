@@ -1,4 +1,5 @@
-import { Atmosphere } from './atmosphere';
+import { ambientAt, Atmosphere } from './atmosphere';
+import { WaterLife } from './waterLife';
 import Phaser from 'phaser';
 import { GameMap, describeTile, inBounds, isWater, Prop } from '../sim/map';
 import { activityLabel, Colonist, groupSummary, type Stance } from '../sim/colonist';
@@ -176,6 +177,7 @@ export class WorldScene extends Phaser.Scene {
   /** Llamas de los incendios (se repinta a menudo para que parpadeen). */
   private fireGfx!: Phaser.GameObjects.Graphics;
   private atmosphere!: Atmosphere;
+  private waterLife!: WaterLife;
   /** Sombra de los tejados (se ve por dónde hay techo). */
   private roofGfx!: Phaser.GameObjects.Graphics;
   private roofDrawn = -1;
@@ -266,6 +268,8 @@ export class WorldScene extends Phaser.Scene {
       return { x: v.x * TILE, y: rowY(v.y) - this.liftAt(tx, ty) };
     });
     this.events.once('shutdown', () => this.atmosphere.destroy());
+    this.waterLife = new WaterLife(this);
+    this.events.once('shutdown', () => this.waterLife.destroy());
     this.roofGfx = this.add.graphics().setDepth(ZONE_DEPTH + 0.1);
     this.roofDrawn = -1;
     this.designPreview = this.add.graphics().setDepth(COLONIST_DEPTH + 2);
@@ -310,6 +314,7 @@ export class WorldScene extends Phaser.Scene {
       this.drawFires();
     }
     this.atmosphere.update(this.world, delta);
+    this.waterLife.update(this.view, `${this.rotation}|${tiltIndex}|${this.map.seed}`, delta, ambientAt(this.world.hour).dark);
     this.watchAlerts();
     this.drawSelection();
     this.uiTimer += delta;
