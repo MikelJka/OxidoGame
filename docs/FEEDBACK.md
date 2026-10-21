@@ -47,7 +47,11 @@ Lo que Mikel ha pedido dejar para más adelante. No se trabaja en ello salvo par
 
 Lo que una sesión quiere meter y necesita su visto bueno (responde por el chat o con 🐞).
 
-(Sin propuestas abiertas.)
+- **¿Qué hacemos ahora?** (2026-10-21, sesión 68: el salto del 2D está terminado y no queda nada aprobado en «Pendiente»). Elige una o varias, o pide otra cosa:
+  - **A. Cama de hospital** (lo que faltaba de la prioridad médica): 🪵15 🔩6 🧵4, 2×1, en 🏗 → Muebles; el herido va antes a ella que a su cama, las heridas se cierran un 50 % antes y se infectan la mitad.
+  - **B. Barriles tóxicos y ☢ uranio**: al saquear un barril tóxico sale ☢ y la casilla queda irradiada unos días; con «Energía nuclear» (proyecto nuevo, 24 h), un reactor pequeño (🔗40 ⚙️10, 3×3) de 3 000 W que gasta 1 ☢ cada 2 días y, si le dan, irradia lo de alrededor.
+  - **C. Calidad gráfica para móviles**: en ☰, «Gráficos: alta / media / baja» (la baja quita la doble resolución, la lluvia de partículas y el mapa de luz); sin cambios en las reglas.
+  - **D. Primeros pasos**: una guía corta y opcional al empezar partida nueva (talar, almacén, huerto, cama, muro), con flechas en la pantalla, que se puede saltar.
 
 ## Hecho
 

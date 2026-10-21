@@ -12,7 +12,7 @@ Diario de sesiones, la más reciente arriba.
 - Los **bordes de la pantalla** se oscurecen un poco, más de noche, como en el cine.
 - Sin cambios en las reglas ni en la partida guardada.
 - Qué probar: de noche, una colonia con lámparas, una hoguera y algún taller electrificado; un raid con armas de fuego o una granada de noche; una tormenta de día (con 🪄 modo Dios).
-- Qué sigue: no queda nada aprobado en «Pendiente»; la próxima sesión deja propuestas para Mikel si no pide nada nuevo.
+- Qué sigue: no queda nada aprobado en «Pendiente»; en «Propuestas para Mikel» hay cuatro opciones (cama de hospital, uranio y reactor, calidad gráfica para móviles, primeros pasos) esperando su elección.
 - Sin npm en el entorno: tests con Bun (678); los tipos y la build, en GitHub Actions («Probar rama»).
 
 ## 2026-10-21 (67) — Fogonazos, explosiones y fuego con efectos
