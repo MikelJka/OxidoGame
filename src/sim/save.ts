@@ -12,7 +12,7 @@ import { TERRAIN_JOBS, TerrainJob } from './terrain';
 import { RESOURCES, ResourceId } from '../data/resources';
 import { WORK_TYPES, WorkType } from '../data/work';
 import { Colonist, DEFAULT_PRIORITY, STANCES, WorkPriority } from './colonist';
-import { GameMap, inBounds, isPassable } from './map';
+import { GameMap, inBounds, isPassable, Prop, PROP_INFO } from './map';
 import { structureCost } from './structures';
 import type { StoragePriority } from './zones';
 import { ALERT_KINDS, GameSpeed, LogEntry, TICKS_PER_DAY, World } from './world';
@@ -106,6 +106,8 @@ export interface SaveData {
   nextVehicleId?: number;
   /** Cadáveres de criaturas (desde 2026-10-19; las anteriores, ninguno). */
   corpses?: { id: number; creature: string; x: number; y: number; diedAt: number }[];
+  /** Fugas de radiación de los barriles saqueados (desde el 2026-10-22; las partidas de antes, ninguna). */
+  radiationLeaks?: { x: number; y: number; until: number; tiles: [number, number][] }[];
   /** Investigación (desde el 2026-10-19; las partidas de antes no tienen nada investigado). */
   research?: { current: string | null; progress: Record<string, number>; done: string[] };
   nextCorpseId?: number;
@@ -304,6 +306,7 @@ export function serializeWorld(world: World, gameVersion?: string, direct = fals
       ...world.colonists.flatMap((k) => (k.job?.corpse?.body ? [{ ...k.job.corpse.body, x: k.tile.x, y: k.tile.y }] : [])),
     ],
     nextCorpseId: world.nextCorpseId,
+    radiationLeaks: world.radiationLeaks.map((l) => ({ x: l.x, y: l.y, until: l.until, tiles: l.tiles.map((t): [number, number] => [t.i, t.rad]) })),
     grenades: world.grenades.map((g) => ({ from: { ...g.from }, to: { ...g.to }, thrownAt: g.thrownAt, explodeAt: g.explodeAt, by: g.by, ...(g.foe ? { foe: true } : {}), ...(g.shell ? { shell: true } : {}) })),
     research: { current: world.research.current, progress: { ...world.research.progress }, done: [...world.research.done] },
     events: world.eventsEnabled,
@@ -402,6 +405,9 @@ function restoreMap(d: SaveData): GameMap {
     trench: u8('trench'), // las partidas de antes de las zanjas no lo tienen: vacío
     start: { x: num(d.map.start?.x, 0), y: num(d.map.start?.y, 0) },
   };
+  // Antes del 2026-10-22 los barriles tóxicos no se saqueaban (no tenían nada dentro): se les da su ☢.
+  const barrel = PROP_INFO[Prop.ToxicBarrel].harvest;
+  if (barrel) for (let i = 0; i < size; i++) if (map.props[i] === Prop.ToxicBarrel && map.stock[i] === 0) map.stock[i] = barrel.amount[0];
   return map;
 }
 
@@ -723,6 +729,15 @@ export function loadWorld(input: string | unknown): World {
     world.corpses.push({ id: num(c.id, 0), creature: c.creature, x, y, diedAt: num(c.diedAt, world.tick) });
   }
   world.nextCorpseId = Math.max(num(d.nextCorpseId, 1), ...world.corpses.map((c) => c.id + 1), 1);
+  for (const l of d.radiationLeaks ?? []) {
+    const x = Math.round(num(l.x, -1));
+    const y = Math.round(num(l.y, -1));
+    if (!inBounds(world.map, x, y) || !Array.isArray(l.tiles)) continue;
+    const tiles = l.tiles
+      .filter((t) => Array.isArray(t) && Number.isInteger(t[0]) && t[0] >= 0 && t[0] < world.map.radiation.length)
+      .map(([i, rad]) => ({ i, rad: Math.max(0, Math.min(1, num(rad, 0))) }));
+    world.radiationLeaks.push({ x, y, until: num(l.until, world.tick), tiles });
+  }
   world.research = loadResearch(d.research);
   for (const g of d.grenades ?? []) {
     const pt = (p: { x: number; y: number } | undefined) => ({ x: Math.round(num(p?.x, -1)), y: Math.round(num(p?.y, -1)) });

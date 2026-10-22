@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-22 (72) — Barriles tóxicos y ☢ uranio
+
+- Primera parte de la última de las cuatro propuestas que eligió Mikel (B): los **barriles tóxicos** de las zonas irradiadas ya se pueden **saquear** (⚒ → Saquear, o al marcar un almacén o un huerto encima) y dan **1–2 ☢ Uranio** (300 de trabajo, como un montón de chatarra). El ☢ es un recurso nuevo: bidones de plomo con tapa amarilla en el almacén, 2 kg, vale 40 chapas; las caravanas no lo venden.
+- Al saquearlo, la casilla **queda irradiada 3 días** con un **charco radiactivo** encima: cuenta como zona irradiada (el huerto da la mitad; atrae a las manadas) y el suelo se ve más verde. Pasados los 3 días, la radiación vuelve a lo que era y el charco se seca.
+- Mikel: «unos días» se ha tomado como 3, y solo la casilla del barril (sin las de alrededor). Los números (☢ por barril, trabajo, días y radio) se cambian en `src/data/radiation.json`.
+- Partidas guardadas: las fugas se guardan; en las partidas de antes, los barriles que ya había traen su ☢ al cargarlas. Los mapas de una misma semilla salen igual que antes.
+- Reglas en `src/sim/radiation.ts` (4 tests nuevos en `tests/uranium.test.ts`).
+- Qué probar: ir a una zona verdosa del mapa, marcar un barril tóxico con ⚒ → Saquear y ver que sale ☢ y que queda un charco brillante; con 🪄 modo Dios, adelantar 3 días y ver que el charco se seca.
+- Qué sigue: la segunda parte de B, el proyecto «Energía nuclear» (24 h) y el reactor pequeño (🔗40 ⚙️10, 3×3, 3 000 W, 1 ☢ cada 2 días).
+- Sin npm en el entorno: tests con Bun (693); los tipos y la build, en GitHub Actions («Probar rama»).
+
 ## 2026-10-22 (71) — Primeros pasos
 
 - Tercera de las cuatro propuestas que eligió Mikel (D): una **guía corta y opcional** al empezar partida nueva, con cinco pasos: **talar**, **almacén**, **huerto**, **cama** y **muro**.

@@ -623,6 +623,7 @@ export class WorldScene extends Phaser.Scene {
         this.view.slope[vi] = this.map.slope[i];
         this.view.terrain[vi] = this.map.terrain[i];
         this.view.trench[vi] = this.map.trench[i];
+        this.view.radiation[vi] = this.map.radiation[i];
       }
       columns.add(v.x);
     }

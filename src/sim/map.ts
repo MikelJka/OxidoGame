@@ -2,6 +2,7 @@ import { Rng } from './rng';
 import { ValueNoise } from './noise';
 import { AmountRange, HarvestJob, ResourceId } from '../data/resources';
 import { RUBBLE_MEDICINE } from '../data/medicine';
+import { TOXIC_BARREL } from '../data/radiation';
 
 /**
  * Suelo de cada casilla. Es la capa base: pocos tipos, con transiciones suaves al dibujar.
@@ -129,7 +130,15 @@ export const PROP_INFO: Record<Prop, PropInfo> = {
       find: { resource: 'medicina', chance: RUBBLE_MEDICINE.chance, amount: RUBBLE_MEDICINE.amount },
     },
   },
-  [Prop.ToxicBarrel]: { name: 'Barril tóxico', blocks: true, moveCost: 1 },
+  [Prop.ToxicBarrel]: {
+    // Se saquea para sacar ☢ uranio (propuesta B de Mikel). El mínimo va en el montón y el resto sale al
+    // azar al saquearlo (así, al crear el mapa, el barril no gasta azar y los mapas de siempre no cambian).
+    name: 'Barril tóxico', blocks: true, moveCost: 1,
+    harvest: {
+      job: 'saquear', resource: 'uranio', amount: [TOXIC_BARREL.uranium[0], TOXIC_BARREL.uranium[0]], work: TOXIC_BARREL.work, leaves: Prop.GlowPuddle,
+      bonus: { resource: 'uranio', amount: [0, TOXIC_BARREL.uranium[1] - TOXIC_BARREL.uranium[0]] },
+    },
+  },
   [Prop.GlowPuddle]: { name: 'Charco radiactivo', blocks: false, moveCost: 1.2 },
   [Prop.Spring]: { name: 'Manantial', blocks: true, moveCost: 1 },
   [Prop.Bones]: { name: 'Huesos', blocks: false, moveCost: 1 },
@@ -370,7 +379,9 @@ export function generateMap(opts: MapOptions): GameMap {
 /** Unidades iniciales de recurso de un objeto (0 si no se aprovecha). */
 export function rollStock(prop: Prop, rng: Rng): number {
   const h = PROP_INFO[prop].harvest;
-  return h ? rng.int(h.amount[0], h.amount[1]) : 0;
+  if (!h) return 0;
+  // Cantidad fija: sin tirar el azar (no cambia los mapas de una semilla).
+  return h.amount[0] === h.amount[1] ? h.amount[0] : rng.int(h.amount[0], h.amount[1]);
 }
 
 function fillStock(map: GameMap, rng: Rng): void {

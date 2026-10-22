@@ -1,7 +1,7 @@
 /** Recursos de la colonia y trabajos para obtenerlos del mapa. Ampliar aquí, no en la lógica. */
 import type { Skill } from './colonists';
 
-export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra', 'metal', 'hormigon', 'comida', 'palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'ballesta', 'lanza_metal', 'flechas', 'pistola', 'escopeta', 'rifle', 'subfusil', 'francotirador', 'lanzallamas', 'balas', 'napalm', 'granadas', 'chaleco_cuero', 'chaleco_chapa', 'chaleco_metal', 'chaleco_tactico', 'casco_chapa', 'casco_metal', 'casco_tactico', 'medicina', 'combustible', 'hierba', 'pescado', 'abrigo', 'carne', 'cuero', 'abono', 'leche', 'huevos', 'kit_barricada_madera', 'kit_barricada_chatarra', 'kit_barricada_metal', 'kit_barricada_hormigon', 'kit_sacos_arena', 'kit_torreta_ligera', 'kit_torreta_pesada', 'kit_torreta_rotativa', 'kit_mortero', 'kit_generador_lena', 'kit_placa_solar', 'kit_molino_viento', 'kit_bateria', 'kit_lampara'] as const;
+export const RESOURCES = ['madera', 'piedra', 'chatarra', 'componentes', 'patata', 'maiz', 'setas', 'fibra', 'metal', 'hormigon', 'comida', 'palo', 'cuchillo', 'tuberia', 'lanza', 'machete', 'arco', 'ballesta', 'lanza_metal', 'flechas', 'pistola', 'escopeta', 'rifle', 'subfusil', 'francotirador', 'lanzallamas', 'balas', 'napalm', 'granadas', 'chaleco_cuero', 'chaleco_chapa', 'chaleco_metal', 'chaleco_tactico', 'casco_chapa', 'casco_metal', 'casco_tactico', 'medicina', 'combustible', 'hierba', 'pescado', 'abrigo', 'carne', 'cuero', 'abono', 'leche', 'huevos', 'kit_barricada_madera', 'kit_barricada_chatarra', 'kit_barricada_metal', 'kit_barricada_hormigon', 'kit_sacos_arena', 'kit_torreta_ligera', 'kit_torreta_pesada', 'kit_torreta_rotativa', 'kit_mortero', 'kit_generador_lena', 'kit_placa_solar', 'kit_molino_viento', 'kit_bateria', 'kit_lampara', 'uranio'] as const;
 
 export type ResourceId = (typeof RESOURCES)[number];
 
@@ -52,6 +52,7 @@ export const RESOURCE_NAMES: Record<ResourceId, string> = {
   abono: 'Abono',
   leche: 'Leche',
   huevos: 'Huevos',
+  uranio: 'Uranio',
   kit_barricada_madera: 'Kit: Barricada de madera',
   kit_barricada_chatarra: 'Kit: Barricada de chatarra',
   kit_barricada_metal: 'Kit: Barricada de metal',
@@ -123,6 +124,7 @@ export const RESOURCE_ICONS: Record<ResourceId, string> = {
   abono: '🟤',
   leche: '🥛',
   huevos: '🥚',
+  uranio: '☢',
   kit_barricada_madera: '📦',
   kit_barricada_chatarra: '📦',
   kit_barricada_metal: '📦',
@@ -215,6 +217,7 @@ export const MAX_STACK: Record<ResourceId, number> = {
   abono: 50,
   leche: 25,
   huevos: 30,
+  uranio: 25,
   kit_barricada_madera: 5,
   kit_barricada_chatarra: 5,
   kit_barricada_metal: 5,

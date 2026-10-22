@@ -45,7 +45,7 @@ describe('designaciones', () => {
     const d = new Designations(map);
     d.designateArea({ x0: 0, y0: 0, x1: 19, y1: 19 }, 'talar');
     expect(d.designateArea({ x0: 0, y0: 0, x1: 19, y1: 19 }, 'talar')).toBe(0);
-    expect(d.add(7, 7, 'saquear')).toBe(false); // barril tóxico
+    expect(d.add(7, 7, 'talar')).toBe(false); // barril tóxico: se saquea, no se tala
     expect(d.add(9, 9, 'talar')).toBe(false); // suelo vacío
     expect(canDesignate(map, 4, 3, 'talar')).toBe(true);
     expect(canDesignate(map, 4, 3, 'minar')).toBe(false);

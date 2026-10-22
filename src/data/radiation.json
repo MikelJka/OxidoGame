@@ -1,0 +1,12 @@
+{
+  "_": "Barriles tóxicos y ☢ uranio (propuesta B, aprobada por Mikel el 2026-10-22; primera parte). Al saquear un barril tóxico salen entre uranium[0] y uranium[1] de ☢ (cuesta `work` de trabajo, como un montón de chatarra) y la casilla queda irradiada `leak.days` días (con `leak.radius` casillas alrededor; 0 = solo la del barril), con un charco radiactivo encima. Irradiada = radiación `leak.level` (por encima de 0,78 cuenta como zona irradiada: el huerto da la mitad y atrae a las manadas). Al pasar esos días, la radiación vuelve a lo que era y el charco se seca. Números puestos por la sesión 72: Mikel puede cambiarlos aquí.",
+  "toxicBarrel": {
+    "uranium": [1, 2],
+    "work": 300
+  },
+  "leak": {
+    "days": 3,
+    "radius": 0,
+    "level": 1
+  }
+}

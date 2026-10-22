@@ -359,6 +359,19 @@ export function paintItemHi(ctx: CanvasRenderingContext2D, r: ResourceId, level:
       }
       break;
     }
+    case 'uranio': {
+      // Bidones pequeños de plomo con la tapa amarilla y el trébol radiactivo; brillo verde en la boca.
+      const cans: [number, number][] = [[4, 9], [14, 9], [9, 3]];
+      for (const [x, y] of take(cans, level, [1, 2, 3])) {
+        can(p, x, y, 9, 10, '#5a5e58');
+        p.px(x + 1, y + 2, 7, 4, '#d8b020');
+        p.px(x + 4, y + 3, 1, 1, OL);
+        p.px(x + 3, y + 4, 1, 1, OL);
+        p.px(x + 5, y + 4, 1, 1, OL);
+        p.px(x + 3, y - 1, 3, 1, '#9cf05a');
+      }
+      break;
+    }
     case 'abono': {
       const sacks: [number, number][] = [[3, 7], [14, 7], [9, 1]];
       for (const [x, y] of take(sacks, level, [1, 2, 3])) {

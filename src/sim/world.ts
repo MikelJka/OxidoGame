@@ -35,6 +35,7 @@ import { AMMO_CARRY, AMMO_LOW, ammoFor, GRENADE, isAmmo, isGear, isWeapon, WEAPO
 import { ARMOR_IDS, ARMORS, armorProtection, isArmor } from '../data/armor';
 import { FINISH_MOOD } from '../data/morale';
 import { Corpse, updateCorpses } from './corpses';
+import { RadiationLeak, startLeak, updateLeaks } from './radiation';
 import { Blast, Grenade, grenadesOf, updateGrenades } from './grenades';
 import { updateMortars } from './mortar';
 import { isLitBonfire, updateBonfireCheer, updateBonfires } from './bonfire';
@@ -187,6 +188,8 @@ export class World implements JobContext {
   nextVehicleId = 1;
   /** Cadáveres de criaturas que se pudren en el mapa (bloque 2). */
   readonly corpses: Corpse[] = [];
+  /** Fugas de radiación de los barriles tóxicos saqueados: la casilla queda irradiada unos días. */
+  readonly radiationLeaks: RadiationLeak[] = [];
   /** Investigación: proyecto en marcha, lo hecho y lo terminado. */
   research: ResearchState = newResearch();
   nextCorpseId = 1;
@@ -354,9 +357,12 @@ export class World implements JobContext {
    * Devuelve lo obtenido, o null si no había nada. Lo usarán los trabajos de talar, picar y saquear.
    */
   harvest(x: number, y: number): Partial<Stockpile> | null {
+    const barrel = this.map.props[y * this.map.width + x] === Prop.ToxicBarrel;
     const gains = harvestTile(this.map, x, y, this.rng);
     if (gains) {
       this.markChanged(y * this.map.width + x);
+      // Un barril tóxico saqueado deja la casilla irradiada unos días.
+      if (barrel) for (const i of startLeak(this.map, this.radiationLeaks, x, y, this.tick, TICKS_PER_DAY)) this.markChanged(i);
       this.items.dropAll(x, y, gains);
       // Lo que queda (p. ej. un tocón) no sigue designado: hay que volver a marcarlo.
       this.designations.remove(x, y);
@@ -474,6 +480,9 @@ export class World implements JobContext {
     if (this.tick % RESCUE_TICKS === 0) this.rescueTrapped();
     if (this.tick % TICKS_PER_SECOND === 0) this.medicalPriority();
     // Cadáveres: se pudren y a quien los ve cerca le pesa.
+    if (this.tick % TICKS_PER_SECOND === 0 && this.radiationLeaks.length > 0) {
+      for (const i of updateLeaks(this.map, this.radiationLeaks, this.tick)) this.markChanged(i);
+    }
     if (this.tick % TICKS_PER_SECOND === 0 && this.corpses.length > 0) updateCorpses(this.corpses, this.colonists, this.tick, TICKS_PER_HOUR, TICKS_PER_DAY);
     // Electricidad: cada segundo se reparte la corriente y se encienden o apagan las lámparas.
     if (this.tick % TICKS_PER_SECOND === 0) {
