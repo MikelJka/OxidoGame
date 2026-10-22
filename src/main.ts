@@ -6,6 +6,7 @@ import Phaser from 'phaser';
 import { WorldScene } from './render/WorldScene';
 import { northLabel, Rotation } from './render/rotation';
 import { DEFAULT_TILT, TILTS } from './render/projection';
+import { graphicsQuality, nextGraphicsQuality, setGraphicsQuality } from './render/graphics';
 import { seedFromString } from './sim/rng';
 import { Colonist, activityLabel, groupSummary, Stance, WorkPriority } from './sim/colonist';
 import { isFood, moodOf, STARVING } from './sim/needs';
@@ -1415,6 +1416,16 @@ else game.events.once('map-ready', () => window.setTimeout(() => mainMenu.open()
 {
   const soundBtn = $('sound-btn');
   const focusBtn = $('focus-btn');
+  const gfxBtn = $('gfx-btn');
+  const gfxLabel = () => {
+    gfxBtn.innerHTML = `<span class="mi">🖼</span><span>Gráficos: ${graphicsQuality()}</span>`;
+  };
+  gfxLabel();
+  gfxBtn.addEventListener('click', () => {
+    setGraphicsQuality(nextGraphicsQuality());
+    scene()?.applyGraphics();
+    gfxLabel();
+  });
   const soundLabel = () => {
     const v = scene()?.sfx.volume ?? 1;
     soundBtn.innerHTML = v >= 1 ? '<span class="mi">🔊</span><span>Sonido alto</span>' : v > 0 ? '<span class="mi">🔉</span><span>Sonido bajo</span>' : '<span class="mi">🔇</span><span>Sin sonido</span>';

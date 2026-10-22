@@ -1,4 +1,5 @@
 import { ambientAt, Atmosphere } from './atmosphere';
+import { graphics } from './graphics';
 import { Effects } from './effects';
 import { WaterLife } from './waterLife';
 import { Sound } from '../audio/sound';
@@ -768,6 +769,13 @@ export class WorldScene extends Phaser.Scene {
   private centerOnTile(tx: number, ty: number): void {
     const v = this.viewTile(tx, ty);
     this.cameras.main.centerOn((v.x + 0.5) * TILE, rowY(v.y + 0.5) - liftOf(this.view, v.x, v.y));
+  }
+
+  /** Aplica la calidad gráfica elegida en ☰ (`graphics.ts`): redibuja el mapa y los edificios. */
+  applyGraphics(): void {
+    if (!this.atmosphere) return; // la escena aún no está lista
+    this.atmosphere.applyGraphics();
+    this.changeView(() => {});
   }
 
   /** Gira la vista un cuarto de vuelta (+1 horario, −1 antihorario) manteniendo centrado lo que se miraba. */
@@ -2288,8 +2296,10 @@ export class WorldScene extends Phaser.Scene {
     // Los muros tienen 4 variantes de aparejo según dónde estén (una muralla larga no se ve repetida).
     const variant = def.category === 'muro' ? (((tiles[0].x * 7 + tiles[0].y * 13) ^ this.map.seed) >>> 0) % 4 : 0;
     // Muebles, talleres, defensas, electricidad, agua y cantera a doble resolución: se dibujan al doble y se ponen a la mitad.
-    const hd = isHiResFurniture(def) || isHiResDefense(def) || isHiResPower(def) || isHiResUtility(def);
-    const key = `build-${def.id}${raised ? '-alzado' : ''}${links ? `-l${links}` : ''}${variant ? `-v${variant}` : ''}${hd ? '-hd' : ''}-${TILE_H}-${unitH}-${vw}x${vh}`;
+    // En calidad gráfica baja se dibujan igual pero se guardan a la resolución normal («-ld»).
+    const art = isHiResFurniture(def) || isHiResDefense(def) || isHiResPower(def) || isHiResUtility(def);
+    const hd = art && graphics().hiRes;
+    const key = `build-${def.id}${raised ? '-alzado' : ''}${links ? `-l${links}` : ''}${variant ? `-v${variant}` : ''}${hd ? '-hd' : art ? '-ld' : ''}-${TILE_H}-${unitH}-${vw}x${vh}`;
     if (!this.textures.exists(key)) drawBuildingTexture(this, key, def, unitH, vw, vh, raised, links, variant);
     const top = vy0 * TILE_H - liftOf(this.view, vx0, vy0);
     const img = this.add.image(vx0 * TILE, top - faceHeight(def, LIFT), key).setOrigin(0, 0);
@@ -2559,13 +2569,31 @@ function drawBuildingTexture(scene: Phaser.Scene, key: string, def: BuildingDef,
     const W = TILE * vw * 2;
     const TH = TILE_H * vh * 2;
     const F = unitH * def.height * 2;
+    const paint = (ctx: CanvasRenderingContext2D) => {
+      if (defense) drawDefenseHi(ctx, def, W, TH, F);
+      else if (power) drawPowerHi(ctx, def, W, TH, F);
+      else if (utility) drawUtilityHi(ctx, def, W, TH, F);
+      else drawFurnitureHi(ctx, def, W, TH, F);
+      weatherBuilding(ctx, W, TH + F, TH, def.id);
+    };
+    if (!graphics().hiRes) {
+      // Calidad baja: se dibuja al doble aparte y se guarda a la mitad (menos memoria en la tarjeta gráfica).
+      const big = document.createElement('canvas');
+      big.width = W;
+      big.height = TH + F;
+      const bctx = big.getContext('2d');
+      const lo = scene.textures.createCanvas(key, W / 2, (TH + F) / 2);
+      if (!bctx || !lo) return;
+      paint(bctx);
+      const ctx = lo.getContext();
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(big, 0, 0, W / 2, (TH + F) / 2);
+      lo.refresh();
+      return;
+    }
     const hd = scene.textures.createCanvas(key, W, TH + F);
     if (!hd) return;
-    if (defense) drawDefenseHi(hd.getContext(), def, W, TH, F);
-    else if (power) drawPowerHi(hd.getContext(), def, W, TH, F);
-    else if (utility) drawUtilityHi(hd.getContext(), def, W, TH, F);
-    else drawFurnitureHi(hd.getContext(), def, W, TH, F);
-    weatherBuilding(hd.getContext(), W, TH + F, TH, def.id);
+    paint(hd.getContext());
     hd.refresh();
     return;
   }

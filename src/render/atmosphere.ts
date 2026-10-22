@@ -12,6 +12,7 @@ import { eventDef } from '../data/events';
 import { isWinter } from '../sim/seasons';
 import { footprint } from '../sim/structures';
 import type { World } from '../sim/world';
+import { graphics } from './graphics';
 import { TILE, TILE_H } from './projection';
 
 const LIGHT_TEX = 'atmo-light';
@@ -20,9 +21,7 @@ const DROP_TEX = 'atmo-drop';
 const PUFF_TEX = 'atmo-puff';
 const LIGHTMAP_TEX = 'atmo-lightmap';
 const VIGNETTE_TEX = 'atmo-vignette';
-const MAX_LIGHTS = 160;
-/** El mapa de luz se dibuja a un cuarto de la resolución de la pantalla (es suave, no hace falta más). */
-const LIGHTMAP_RES = 0.25;
+// Cuántas luces y a qué resolución el mapa de luz: según la calidad gráfica (`graphics.ts`).
 const OVERLAY_DEPTH = 900;
 
 /** Dónde se dibuja una casilla del mapa (la escena sabe girar la vista y la altura). */
@@ -130,6 +129,21 @@ export class Atmosphere {
       emitting: false, emitZone: zone, lifespan: 6000, speedX: { min: -3, max: 3 }, speedY: { min: -4, max: -1 },
       scale: { min: 0.25, max: 0.5 }, alpha: { start: 0, end: 0.5, ease: 'Sine.easeInOut' }, tint: 0xf0e0b0, quantity: 1, frequency: 260,
     }).setDepth(OVERLAY_DEPTH + 1);
+    this.applyGraphics();
+  }
+
+  /** Aplica la calidad gráfica elegida: cuántas partículas del tiempo salen. */
+  applyGraphics(): void {
+    const k = graphics().weather;
+    if (k <= 0) {
+      for (const e of [this.rain, this.snow, this.dust, this.motes]) e.stop();
+      return;
+    }
+    // A menos calidad, salen la mitad de veces.
+    this.rain.setFrequency(16 / k, 6);
+    this.snow.setFrequency(30 / k, 2);
+    this.dust.setFrequency(20 / k, 4);
+    this.motes.setFrequency(260 / k, 1);
   }
 
   destroy(): void {
@@ -176,11 +190,13 @@ export class Atmosphere {
     this.vignette.setPosition(v.x - pad, v.y - pad).setDisplaySize(v.width + pad * 2, v.height + pad * 2);
     this.vignette.setAlpha(0.1 + 0.32 * need);
 
-    setEmitting(this.rain, storm || acid);
+    // En calidad baja no hay partículas del tiempo.
+    const particles = graphics().weather > 0;
+    setEmitting(this.rain, particles && (storm || acid));
     this.rain.setParticleTint(acid ? 0xa8e070 : 0xc0d0e0);
-    setEmitting(this.snow, cold || (isWinter(world) && amb.dark > 0.5));
-    setEmitting(this.dust, dustStorm);
-    setEmitting(this.motes, amb.dark < 0.3 && !storm && !acid && !dustStorm);
+    setEmitting(this.snow, particles && (cold || (isWinter(world) && amb.dark > 0.5)));
+    setEmitting(this.dust, particles && dustStorm);
+    setEmitting(this.motes, particles && amb.dark < 0.3 && !storm && !acid && !dustStorm);
 
     const t = this.scene.time.now;
     this.flashes = this.flashes.filter((f) => t - f.born < f.ms);
@@ -208,8 +224,10 @@ export class Atmosphere {
     const cam = this.scene.cameras.main;
     const worldW = v.width + pad * 2;
     const worldH = v.height + pad * 2;
-    const w = Math.max(16, Math.ceil(cam.width * LIGHTMAP_RES));
-    const h = Math.max(16, Math.ceil(cam.height * LIGHTMAP_RES));
+    // Calidad baja: sin mapa de luz, solo la capa del color del ambiente (las luces, con su halo encima).
+    const res = graphics().lightmapRes;
+    const w = res > 0 ? Math.max(16, Math.ceil(cam.width * res)) : 16;
+    const h = res > 0 ? Math.max(16, Math.ceil(cam.height * res)) : 16;
     if (rt.width !== w || rt.height !== h) {
       rt.resize(w, h);
       rt.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
@@ -219,13 +237,14 @@ export class Atmosphere {
     const ky = h / worldH;
     rt.clear();
     rt.fill(color, 1);
-    if (need <= 0.02) return;
+    if (need <= 0.02 || res <= 0) return;
+    const maxLights = graphics().maxLights;
     // Las luces caen sobre el suelo inclinado: se aplastan como él.
     const squash = TILE_H / TILE;
     const add = Phaser.BlendModes.ADD;
     let n = 0;
     for (const s of sources) {
-      if (n++ >= MAX_LIGHTS) break;
+      if (n++ >= maxLights) break;
       const wob = s.flicker ? flickerAt(t, s.x, s.y) : 1;
       const size = (s.radius * TILE * 2 * wob) / 128;
       rt.stamp(LIGHTMAP_TEX, undefined, (s.x - v.x + pad) * kx, (s.y - v.y + pad) * ky, {
@@ -253,7 +272,7 @@ export class Atmosphere {
     let n = 0;
     const t = this.scene.time.now;
     for (const s of sources) {
-      if (n >= MAX_LIGHTS) break;
+      if (n >= graphics().maxLights) break;
       const strength = Math.max(dark, s.flicker ? 0.35 : 0) * (s.small ? 0.45 : 0.55);
       if (strength <= 0.02) continue;
       let img = this.lights[n];

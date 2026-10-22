@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-22 (70) — Gráficos: alta, media o baja
+
+- Segunda de las cuatro propuestas que eligió Mikel (C): en ☰ → «Vista y más», el botón **🖼 Gráficos** cambia entre **alta**, **media** y **baja** (se recuerda en este navegador; no va en la partida guardada). Se aplica al momento, sin recargar.
+- **Alta**: como hasta ahora.
+- **Media**: el mapa de luz a la mitad de resolución y con la mitad de luces, y la mitad de gotas de lluvia, copos, polvo y motas. Mikel: la media no estaba decidida; si la quieres distinta, se cambia en `src/render/graphics.ts`.
+- **Baja**: muebles, talleres, defensas, electricidad, pozo, depuradora, cantera y muelle se guardan a la resolución normal en vez de al doble (menos memoria en la tarjeta gráfica); sin lluvia, nieve, polvo ni motas de partículas (la tormenta y el polvo siguen oscureciendo y tiñendo la pantalla); y sin mapa de luz: de noche, una capa oscura con el halo de cada luz encima, como antes de la sesión 68.
+- Sin cambios en las reglas ni en la partida guardada.
+- Qué probar: en el móvil, ☰ → 🖼 Gráficos hasta «baja», y ver que va más fluido de noche y con tormenta (🪄 modo Dios); volver a «alta».
+- Qué sigue: la propuesta D, «Primeros pasos» (guía corta y opcional al empezar partida nueva).
+- Sin npm en el entorno: tests con Bun (684); los tipos y la build, en GitHub Actions («Probar rama»).
+
 ## 2026-10-22 (69) — Cama de hospital
 
 - Primera de las cuatro propuestas que eligió Mikel (A): la **cama de hospital** (🪵15 🔩6 🧵4, 2×1, en 🏗 → Muebles). Se dibuja a doble resolución: armazón de tubo con ruedas y barandillas, sábana con la cruz roja, manivela y gotero.

@@ -6,7 +6,7 @@ Escribe aquí lo que quieras, o usa el botón 🐞 del juego: abre una incidenci
 
 - [ ] **Cama de hospital, gráficos para móviles, primeros pasos y uranio** (2026-10-22, **elegidas por Mikel en el chat las cuatro propuestas A, B, C y D**). Se hacen en este orden, cada una en su sesión (por partes si es grande):
   - [x] **A. Cama de hospital**: 🪵15 🔩6 🧵4, 2×1, en 🏗 → Muebles; el herido va antes a ella que a su cama, sus heridas se cierran un 50 % antes y se infectan la mitad. *Hecha (sesión 69, 2026-10-22)*: «un 50 % antes» se ha tomado como «en la mitad de tiempo» (×2 de velocidad; se cambia en `medicine.json` → `hospitalBed.healFactor`). Los sanos no duermen en ella.
-  - [ ] **C. Calidad gráfica para móviles**: en ☰, «Gráficos: alta / media / baja»; la baja quita la doble resolución, la lluvia de partículas y el mapa de luz. Sin cambios en las reglas.
+  - [x] **C. Calidad gráfica para móviles**: en ☰, «Gráficos: alta / media / baja»; la baja quita la doble resolución, la lluvia de partículas y el mapa de luz. Sin cambios en las reglas. *Hecha (sesión 70, 2026-10-22)*: la **media** se ha tomado como «a medias» (mapa de luz a la mitad de resolución y con la mitad de luces, y la mitad de lluvia, nieve, polvo y motas); en la **baja** tampoco hay nieve, polvo ni motas de partículas. Se cambia en `src/render/graphics.ts`.
   - [ ] **D. Primeros pasos**: guía corta y opcional al empezar partida nueva (talar, almacén, huerto, cama, muro), con flechas en la pantalla; se puede saltar.
   - [ ] **B. Barriles tóxicos y ☢ uranio**: al saquear un barril tóxico sale ☢ y la casilla queda irradiada unos días; con «Energía nuclear» (proyecto nuevo, 24 h), un reactor pequeño (🔗40 ⚙️10, 3×3) de 3 000 W que gasta 1 ☢ cada 2 días y, si le dan, irradia lo de alrededor.
 
