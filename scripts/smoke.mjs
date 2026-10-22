@@ -114,10 +114,13 @@ try {
     // Primeros pasos: la guía con su flecha (abriendo ⚒ Órdenes), y saltarla.
     await page.evaluate(() => window.oxidoPrueba.primerosPasos());
     await sleep(700);
+    await page.evaluate(() => document.querySelectorAll('#alerts .alert-card').forEach((e) => e.remove()));
     await page.click('#orders-btn');
     await sleep(700);
     await page.screenshot({ path: `smoke/${d.name}-primeros-pasos.png` });
+    await page.evaluate(() => document.querySelectorAll('#alerts .alert-card').forEach((e) => e.remove()));
     await page.click('#orders-btn');
+    await page.evaluate(() => document.querySelectorAll('#alerts .alert-card').forEach((e) => e.remove()));
     await page.click('#tutorial button');
     // Errores que el propio juego ha registrado (botón 🐞).
     const flagged = await page.$('#report-btn .badge.error');
