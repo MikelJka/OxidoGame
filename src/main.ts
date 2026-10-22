@@ -19,6 +19,7 @@ import { installErrorCapture, mountReportPanel, onNewError, recordError } from '
 import { mountDevPanel } from './ui/devPanel';
 import { mountPeople } from './ui/people';
 import { mountMainMenu } from './ui/mainMenu';
+import { mountTutorial, tutorialWanted } from './ui/tutorial';
 import { mountGodMode } from './ui/godMode';
 import { makePrisoner, offerWanderer, startRaid, startTrader } from './sim/people';
 import { healthLabel, infectionLabel } from './sim/health';
@@ -210,6 +211,7 @@ $('dev-btn').addEventListener('click', () => {
 mountDevPanel(devPanel, $('dev-btn'));
 function startNewMap(): void {
   seed = Math.floor(Math.random() * 1_000_000);
+  if (tutorialWanted()) tutorial.startOnNextMap();
   menu.hidden = true;
   tile.textContent = '';
   scene().scene.restart({ seed });
@@ -231,6 +233,7 @@ game.events.on('map-ready', (map: GameMap) => {
   url.searchParams.delete('nueva');
   window.history.replaceState(null, '', url);
   renderRoster();
+  tutorial.mapReady(seed);
   saveNow(false); // así, recargar la página nunca vuelve a un mapa anterior
 });
 
@@ -427,6 +430,13 @@ function refreshBuildLocks(): void {
   }
 }
 setBuildCategory(buildCategory);
+// Primeros pasos: guía opcional al empezar partida nueva (src/ui/tutorial.ts).
+const tutorial = mountTutorial({
+  getWorld: () => (game.scene.getScene('world') as WorldScene | null)?.world ?? null,
+  buildCategory: () => buildCategory,
+});
+// La primera vez que se abre el juego (sin partida guardada), el primer mapa también lleva la guía.
+if (!wantsNew && !storedSave && tutorialWanted()) tutorial.startOnNextMap();
 const modeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('#order-modes button[data-mode], #build-modes button[data-mode]'));
 
 const DESIGN_HINTS: Record<Exclude<DesignMode, null>, string> = {
@@ -1335,8 +1345,9 @@ function setGod(on: boolean): void {
 god.setEnabled(godOn);
 const mainMenu = mountMainMenu({
   getWorld: currentWorld,
-  newGame: ({ seed: s, colonists, events, difficulty }) => {
+  newGame: ({ seed: s, colonists, events, difficulty, tutorial: guide }) => {
     seed = s;
+    if (guide) tutorial.startOnNextMap();
     menu.hidden = true;
     tile.textContent = '';
     scene().scene.restart({ seed: s, colonists, events, difficulty });
@@ -1371,6 +1382,10 @@ else game.events.once('map-ready', () => window.setTimeout(() => mainMenu.open()
     return r?.name;
   },
   abrirGente: (c: Colonist) => people.openFor(c),
+  primerosPasos: () => {
+    tutorial.startOnNextMap();
+    tutorial.mapReady(scene().world.map.seed);
+  },
   // Para las capturas de muestra (scripts/vitrina.mjs): mover la cámara y empezar una batalla ya.
   mirar: (x: number, y: number, zoom = 2) => {
     const sc = scene();

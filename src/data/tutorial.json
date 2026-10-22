@@ -1,0 +1,39 @@
+{
+  "steps": [
+    {
+      "id": "talar",
+      "title": "Tala unos árboles",
+      "text": "Toca ⚒ Órdenes → 🪓 Talar y arrastra sobre unos árboles: los colonos irán a por madera.",
+      "check": { "designation": "talar" },
+      "target": { "menu": "orders", "mode": "talar" }
+    },
+    {
+      "id": "almacen",
+      "title": "Marca un almacén",
+      "text": "⚒ Órdenes → 📦 Almacén y arrastra un rectángulo cerca de la gente: ahí llevarán lo que recojan.",
+      "check": { "storageZone": true },
+      "target": { "menu": "orders", "mode": "almacen" }
+    },
+    {
+      "id": "huerto",
+      "title": "Planta un huerto",
+      "text": "⚒ Órdenes → 🌱 Huerto y arrastra sobre tierra (mejor la oscura): sembrarán y cosecharán comida.",
+      "check": { "growZone": true },
+      "target": { "menu": "orders", "mode": "cultivo" }
+    },
+    {
+      "id": "cama",
+      "title": "Pon una cama",
+      "text": "🏗 Construir → Muebles → Cama y colócala: dormir en el suelo baja el ánimo.",
+      "check": { "buildings": ["cama"] },
+      "target": { "menu": "build", "category": "mueble", "build": "cama" }
+    },
+    {
+      "id": "muro",
+      "title": "Levanta un muro",
+      "text": "🏗 Construir → Muros → Muro de madera y arrastra un rectángulo: cierra un cuarto alrededor de la cama.",
+      "check": { "category": "muro" },
+      "target": { "menu": "build", "category": "muro", "build": "muro_madera" }
+    }
+  ]
+}

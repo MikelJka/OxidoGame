@@ -845,3 +845,42 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
 .cine-top { top: 0; transform: translateY(-100%); }
 .cine-bottom { bottom: 0; transform: translateY(100%); }
 .cine-bar.cine-on { transform: translateY(0); }
+
+/* --- Primeros pasos: tarjeta con el paso en curso y flecha al botón que toca ---------------- */
+#tutorial {
+  z-index: 6;
+  left: 8px;
+  top: 114px;
+  width: min(320px, calc(100% - 16px));
+  padding: 8px 10px;
+  border-color: #c8a040;
+  font-size: 13px;
+  line-height: 1.35;
+}
+#tutorial .tu-head { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+#tutorial .tu-head strong { color: #e8c060; font-size: 13px; }
+#tutorial .tu-head button { flex: none; font-size: 12px; padding: 4px 8px; }
+#tutorial .tu-text { margin-top: 4px; }
+#tutorial-arrow {
+  position: fixed;
+  z-index: 13; /* por encima de las hojas de órdenes y construcción */
+  width: 0;
+  height: 0;
+  margin-left: -11px;
+  margin-top: -16px;
+  border-left: 11px solid transparent;
+  border-right: 11px solid transparent;
+  border-top: 16px solid #f0c040;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.9));
+  pointer-events: none;
+  animation: tu-bounce 0.9s ease-in-out infinite;
+}
+#tutorial-arrow.up {
+  margin-top: 0;
+  border-top: none;
+  border-bottom: 16px solid #f0c040;
+  animation-name: tu-bounce-up;
+}
+#tutorial-arrow[hidden] { display: none; }
+@keyframes tu-bounce { 50% { transform: translateY(-6px); } }
+@keyframes tu-bounce-up { 50% { transform: translateY(6px); } }

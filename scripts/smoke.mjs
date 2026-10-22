@@ -111,6 +111,14 @@ try {
     await sleep(500);
     await page.screenshot({ path: `smoke/${d.name}-dios.png` });
     await page.click('#gp-close');
+    // Primeros pasos: la guía con su flecha (abriendo ⚒ Órdenes), y saltarla.
+    await page.evaluate(() => window.oxidoPrueba.primerosPasos());
+    await sleep(700);
+    await page.click('#orders-btn');
+    await sleep(700);
+    await page.screenshot({ path: `smoke/${d.name}-primeros-pasos.png` });
+    await page.click('#orders-btn');
+    await page.click('#tutorial button');
     // Errores que el propio juego ha registrado (botón 🐞).
     const flagged = await page.$('#report-btn .badge.error');
     if (flagged) errors.push(`el juego registró errores (🐞): ${(await flagged.textContent())?.trim()}`);

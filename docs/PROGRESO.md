@@ -2,6 +2,17 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-22 (71) — Primeros pasos
+
+- Tercera de las cuatro propuestas que eligió Mikel (D): una **guía corta y opcional** al empezar partida nueva, con cinco pasos: **talar**, **almacén**, **huerto**, **cama** y **muro**.
+- Una tarjeta (abajo a la izquierda, o donde no tape la hoja abierta) dice el paso («Primeros pasos 2/5 · Marca un almacén») y cómo hacerlo; una **flecha amarilla** que bota señala el botón que hay que tocar: primero ⚒ o 🏗, luego la orden o la pestaña (Muebles, Muros) y por último la construcción. Mientras se marca en el mapa, la flecha se quita.
+- Cada paso cuenta en cuanto existe lo que pide (marcar árboles, una zona de almacén, un huerto, un plano de cama, un plano de cualquier muro), así que se puede hacer en otro orden; al acabar, «✅ ¡Primeros pasos hechos!» unos segundos.
+- **Se puede saltar** con «Saltar guía». Sale con 🏠 Inicio → Nueva partida (casilla nueva «Guía de primeros pasos», marcada por defecto; se recuerda), con ✚ Mapa nuevo (si la casilla está marcada) y la primera vez que se abre el juego. No va en la partida guardada: el avance se recuerda en el navegador con la semilla del mapa.
+- Reglas: `src/sim/tutorial.ts` solo lee la partida (5 tests); textos y pasos en `src/data/tutorial.json`; la tarjeta y la flecha en `src/ui/tutorial.ts`. La prueba de humo saca una captura de la guía.
+- Qué probar: en el móvil y en el PC, 🏠 Inicio → Nueva partida → Empezar, y seguir la flecha hasta el final; en otra partida, «Saltar guía».
+- Qué sigue: la propuesta B, barriles tóxicos y ☢ uranio (por partes).
+- Sin npm en el entorno: tests con Bun (689); los tipos y la build, en GitHub Actions («Probar rama»).
+
 ## 2026-10-22 (70) — Gráficos: alta, media o baja
 
 - Segunda de las cuatro propuestas que eligió Mikel (C): en ☰ → «Vista y más», el botón **🖼 Gráficos** cambia entre **alta**, **media** y **baja** (se recuerda en este navegador; no va en la partida guardada). Se aplica al momento, sin recargar.

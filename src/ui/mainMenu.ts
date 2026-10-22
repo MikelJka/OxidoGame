@@ -1,6 +1,7 @@
 // Menú principal: aparece al abrir el juego (con la partida en pausa detrás) y desde ☰.
 // Continuar, nueva partida con opciones, cargar desde archivo, modo Dios y progreso.
 import type { World } from '../sim/world';
+import { setTutorialWanted, tutorialWanted } from './tutorial';
 import { DIFFICULTIES, Difficulty, DifficultyLevel, isDifficultyLevel, MAX_GRACE_DAYS } from '../sim/storyteller';
 
 export interface NewGameOptions {
@@ -8,6 +9,8 @@ export interface NewGameOptions {
   colonists: number;
   events: boolean;
   difficulty: Difficulty;
+  /** Empezar con la guía de primeros pasos. */
+  tutorial: boolean;
 }
 
 interface Options {
@@ -44,6 +47,7 @@ export function mountMainMenu(opts: Options): MainMenu {
   graceInput.max = String(MAX_GRACE_DAYS);
   const godInput = document.getElementById('mm-god-new') as HTMLInputElement;
   const godBtn = document.getElementById('mm-god') as HTMLButtonElement;
+  const tutorialInput = document.getElementById('mm-tutorial') as HTMLInputElement;
   let speedBefore: World['speed'] = 1;
 
   const renderGod = () => {
@@ -79,6 +83,7 @@ export function mountMainMenu(opts: Options): MainMenu {
   document.getElementById('mm-new-btn')!.addEventListener('click', () => {
     randomSeed();
     godInput.checked = opts.isGod();
+    tutorialInput.checked = tutorialWanted();
     home.hidden = true;
     form.hidden = false;
   });
@@ -119,12 +124,14 @@ export function mountMainMenu(opts: Options): MainMenu {
       seed %= 1_000_000;
     }
     opts.setGod(godInput.checked);
+    setTutorialWanted(tutorialInput.checked);
     root.hidden = true;
     opts.newGame({
       seed: Math.floor(Math.abs(seed)),
       colonists: Number(colInput.value),
       events: eventsInput.checked,
       difficulty: { level, graceDays: Number(graceInput.value) },
+      tutorial: tutorialInput.checked,
     });
   });
   document.getElementById('mm-load')!.addEventListener('click', () => {
