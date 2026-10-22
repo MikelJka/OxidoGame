@@ -40,7 +40,7 @@ import { updateMortars } from './mortar';
 import { isLitBonfire, updateBonfireCheer, updateBonfires } from './bonfire';
 import { CREATURES, flies, MACHINES } from '../data/creatures';
 import { addResearch, isResearched, trenchesFlood, batteryMultiplier, infectionChanceFactor, machinePartsMultiplier, woundHealTimeFactor, unlocked, unlockedBy, chooseResearch, newResearch, ResearchState } from './research';
-import { BED_REST, SELF_CARE_WORK } from '../data/medicine';
+import { BED_REST, HOSPITAL_BED, HOSPITAL_BED_ID, SELF_CARE_WORK } from '../data/medicine';
 import { absorbHit, anchorFor, besideTiles, defOf, nextTo, occupant, updateVehicle, Vehicle, vehicleCenter, vehiclePath, VehicleSeat, covers } from './vehicles';
 import { prepName, theName, usesFuel, vehicleDef } from '../data/vehicles';
 import { TRAPPED_TILES } from './diagnostics';
@@ -143,6 +143,14 @@ export interface Tribute {
 
 /** Daño medio de un puñetazo (los golpes quitan de 0,08 a 0,18 de salud): la mina casera pega ×4. */
 const MINE_FIST_DAMAGE = 0.13;
+
+/** Al buscar cama para un herido, una normal cuenta como si estuviera así de lejos más: antes la de hospital. */
+const HOSPITAL_FIRST = 1_000_000;
+
+/** Herido o enfermo: con heridas sin cerrar o con infección (va antes a una cama de hospital). */
+function isPatient(c: Colonist): boolean {
+  return c.wounds.length > 0 || !!c.infection;
+}
 
 export class World implements JobContext {
   readonly map: GameMap;
@@ -439,12 +447,16 @@ export class World implements JobContext {
       const infChance = infectionChanceFactor(this.research);
       for (const c of [...this.colonists, ...this.others]) {
         const ours = c.role === 'colono' || c.role === 'prisionero';
-        const r = tickHealth(c, TICKS_PER_SECOND, TICKS_PER_DAY, c.activity === 'sleeping', ours ? healTime : 1);
+        // En una cama de hospital, las heridas de un colono se cierran antes y se infectan menos.
+        const hospital = c.role === 'colono' && this.inHospitalBed(c);
+        const r = tickHealth(c, TICKS_PER_SECOND, TICKS_PER_DAY, c.activity === 'sleeping',
+          (ours ? healTime : 1) / (hospital ? HOSPITAL_BED.healFactor : 1));
         if (r.died) {
           this.killPawn(c, r.cause ?? 'heridas');
           continue;
         }
-        const inf = tickInfection(c, TICKS_PER_SECOND, TICKS_PER_DAY, this.rng, ours ? infChance : 1);
+        const inf = tickInfection(c, TICKS_PER_SECOND, TICKS_PER_DAY, this.rng,
+          (ours ? infChance : 1) * (hospital ? HOSPITAL_BED.infectionFactor : 1));
         const mine = c.role === 'colono';
         if (inf.recovered && mine) this.addLog(`💪 ${c.name} vence la infección sin medicina.`, 'bueno');
         if (inf.died) this.killPawn(c, 'infección');
@@ -1264,12 +1276,19 @@ export class World implements JobContext {
     return c.needs.food >= STARVING && c.needs.water >= DEHYDRATED;
   }
 
-  /** Va a la cama libre más cercana; si no hay, duerme (o reposa) donde está. */
+  /**
+   * Va a la cama libre más cercana; si no hay, duerme (o reposa) donde está. El herido (con heridas,
+   * infectado o guardando cama) va antes a una cama de hospital; el sano no la ocupa.
+   */
   private startSleeping(c: Colonist, type: 'dormir' | 'reposar' = 'dormir'): boolean {
+    const patient = type === 'reposar' || isPatient(c);
+    const dist = (s: { x: number; y: number }) => Math.abs(s.x - c.tile.x) + Math.abs(s.y - c.tile.y);
+    const rank = (s: { def: { id: string } }) => (patient && s.def.id === HOSPITAL_BED_ID ? 0 : 1);
     const beds = this.structures
       .all()
-      .filter((s) => s.built && s.def.id === 'cama' && this.reservations.holder(s.x, s.y) === undefined && !this.bedTaken(s.x, s.y, c))
-      .sort((a, b) => Math.abs(a.x - c.tile.x) + Math.abs(a.y - c.tile.y) - (Math.abs(b.x - c.tile.x) + Math.abs(b.y - c.tile.y)));
+      .filter((s) => s.built && (s.def.id === 'cama' || (patient && s.def.id === HOSPITAL_BED_ID)) &&
+        this.reservations.holder(s.x, s.y) === undefined && !this.bedTaken(s.x, s.y, c))
+      .sort((a, b) => rank(a) - rank(b) || dist(a) - dist(b));
     if (c.job) this.dropJob(c);
     for (const b of beds.slice(0, 4)) {
       const route = this.routeTo(c, [{ x: b.x, y: b.y }]);
@@ -1680,10 +1699,22 @@ export class World implements JobContext {
     return this.structures.all().some((s) => s.built && s.def.id === 'radio' && !lacksPower(s));
   }
 
-  /** En la casilla hay una cama (de colono) construida. */
+  /** En la casilla hay una cama (de colono o de hospital) construida. */
   isBedTile(x: number, y: number): boolean {
     const s = this.structures.at(x, y);
-    return !!s && s.built && s.def.id === 'cama';
+    return !!s && s.built && (s.def.id === 'cama' || s.def.id === HOSPITAL_BED_ID);
+  }
+
+  /** En la casilla hay una cama de hospital construida. */
+  isHospitalBedTile(x: number, y: number): boolean {
+    const s = this.structures.at(x, y);
+    return !!s && s.built && s.def.id === HOSPITAL_BED_ID;
+  }
+
+  /** Está tumbado (en el suelo o durmiendo) en una cama de hospital: sus heridas se cierran antes y se infectan menos. */
+  inHospitalBed(c: Colonist): boolean {
+    if (c.carriedBy !== undefined || !(c.downed || c.activity === 'sleeping')) return false;
+    return this.isHospitalBedTile(c.tile.x, c.tile.y);
   }
 
   /** La cama la ocupa otro: un herido tumbado en ella o al que llevan a ella. */
@@ -1694,13 +1725,16 @@ export class World implements JobContext {
       (k.job?.kind === 'curar' && !!k.job.escorting && k.job.x === x && k.job.y === y && k.job.pid !== except?.id)));
   }
 
-  /** La cama libre más cercana para un herido (sin nadie durmiendo, tumbado ni de camino a ella). */
+  /**
+   * La cama libre más cercana para un herido (sin nadie durmiendo, tumbado ni de camino a ella):
+   * antes una de hospital que una normal, aunque esté más lejos.
+   */
   private restBedFor(p: Colonist): Point | null {
     let best: Point | null = null;
     let bestD = Infinity;
     for (const s of this.structures.all()) {
-      if (!s.built || s.def.id !== 'cama' || this.reservations.holder(s.x, s.y) !== undefined || this.bedTaken(s.x, s.y, p)) continue;
-      const d = Math.abs(s.x - p.tile.x) + Math.abs(s.y - p.tile.y);
+      if (!s.built || (s.def.id !== 'cama' && s.def.id !== HOSPITAL_BED_ID) || this.reservations.holder(s.x, s.y) !== undefined || this.bedTaken(s.x, s.y, p)) continue;
+      const d = Math.abs(s.x - p.tile.x) + Math.abs(s.y - p.tile.y) + (s.def.id === HOSPITAL_BED_ID ? 0 : HOSPITAL_FIRST);
       if (d < bestD) {
         bestD = d;
         best = { x: s.x, y: s.y };
@@ -1841,7 +1875,8 @@ export class World implements JobContext {
       o.carriedBy = undefined;
       o.tile = { x: j.x, y: j.y };
       o.pos = { x: j.x + 0.5, y: j.y + 0.5 };
-      this.addLog(`🛏 ${c.name} deja a ${o.name} en una cama para que se recupere.`, 'bueno');
+      const where = this.isHospitalBedTile(j.x, j.y) ? 'una cama de hospital' : 'una cama';
+      this.addLog(`🛏 ${c.name} deja a ${o.name} en ${where} para que se recupere.`, 'bueno');
       this.dropJob(c);
       return;
     }

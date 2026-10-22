@@ -1141,6 +1141,31 @@
     }
   },
   {
+    "id": "cama_hospital",
+    "movable": true,
+    "name": "Cama de hospital",
+    "category": "mueble",
+    "cost": {
+      "madera": 15,
+      "chatarra": 6,
+      "fibra": 4
+    },
+    "work": 340,
+    "hp": 90,
+    "blocks": false,
+    "moveCost": 1.2,
+    "height": 0,
+    "size": [
+      2,
+      1
+    ],
+    "colors": {
+      "top": "#c8ccd0",
+      "face": "#e8eaec",
+      "dark": "#7a828a"
+    }
+  },
+  {
     "id": "hoguera",
     "name": "Hoguera",
     "category": "mueble",

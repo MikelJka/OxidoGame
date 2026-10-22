@@ -2,6 +2,16 @@
 
 Diario de sesiones, la más reciente arriba.
 
+## 2026-10-22 (69) — Cama de hospital
+
+- Primera de las cuatro propuestas que eligió Mikel (A): la **cama de hospital** (🪵15 🔩6 🧵4, 2×1, en 🏗 → Muebles). Se dibuja a doble resolución: armazón de tubo con ruedas y barandillas, sábana con la cruz roja, manivela y gotero.
+- **El herido va antes a ella**: el caído al que llevan a cuestas tras el combate, el herido en pie que guarda cama y quien se va a dormir con heridas o infección eligen una cama de hospital libre antes que una normal, aunque esté más lejos. Los sanos no duermen en ella (si solo hay camas de hospital, duermen en el suelo).
+- **Tumbado en ella** (en el suelo de la cama o durmiendo), sus heridas se cierran en la **mitad de tiempo** y se infectan la **mitad**. Mikel: «un 50 % antes» se ha tomado como la mitad de tiempo; si prefería un 50 % más deprisa, es cambiar `hospitalBed.healFactor` de 2 a 1,5 en `src/data/medicine.json`.
+- Partidas guardadas: sin cambios (es un mueble nuevo).
+- Qué probar: construir una cama normal y una de hospital lejos de ella; herir a un colono con 🪄 modo Dios y ver que, tras curarle, le llevan a la de hospital («… en una cama de hospital para que se recupere»).
+- Qué sigue: la propuesta C, «Gráficos: alta / media / baja» en ☰.
+- Sin npm en el entorno: tests con Bun (684); los tipos y la build, en GitHub Actions («Probar rama»).
+
 ## 2026-10-21 (68) — La luz, pulida
 
 - Última parte del salto de calidad del 2D (pedido por Mikel): la **luz** (`src/render/atmosphere.ts`). Con esto, el salto del 2D queda terminado.

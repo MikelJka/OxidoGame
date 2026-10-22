@@ -27,3 +27,8 @@ export const SELF_CARE_WORK: number = data.selfCare.work;
 
 /** El herido en pie tras el combate se acuesta por debajo de `startBelow` y se queda hasta `untilHealth`. */
 export const BED_REST = { startBelow: data.bedRest.startBelow, untilHealth: data.bedRest.untilHealth } as const;
+
+/** Id de la cama de hospital: el herido va antes a ella que a una cama normal. */
+export const HOSPITAL_BED_ID = 'cama_hospital';
+/** Tumbado en una cama de hospital, las heridas se cierran `healFactor` veces más deprisa y se infectan × `infectionFactor`. */
+export const HOSPITAL_BED = { healFactor: data.hospitalBed.healFactor, infectionFactor: data.hospitalBed.infectionFactor } as const;

@@ -35,5 +35,10 @@
     "startBelow": 0.5,
     "untilHealth": 0.8
   },
+  "hospitalBed": {
+    "_": "Cama de hospital (aprobada por Mikel el 2026-10-22, propuesta A): el herido va antes a ella que a una cama normal; tumbado en ella, sus heridas se cierran un 50 % antes (en la mitad de tiempo: ×healFactor) y se infectan la mitad (×infectionFactor)",
+    "healFactor": 2,
+    "infectionFactor": 0.5
+  },
   "_equilibrio": "Equilibrio (2026-10-21, partidas simuladas): sin 💊 la infección mataba siempre a los 3 días y era la primera causa de muerte en las colonias que empiezan. Ahora mata al 4.º día sin dosis y cada día, bien comido y bebido, el cuerpo la vence solo con un 30 %."
 }

@@ -9,6 +9,7 @@ import type { BuildingDef } from '../data/buildings';
 export const HI_RES_IDS: ReadonlySet<string> = new Set([
   'cama',
   'cama_prision',
+  'cama_hospital',
   'mesa',
   'mesa_juego',
   'silla',
@@ -126,6 +127,8 @@ export function drawFurnitureHi(ctx: CanvasRenderingContext2D, def: BuildingDef,
     case 'cama':
     case 'cama_prision':
       return bed(k, c, def.id === 'cama_prision');
+    case 'cama_hospital':
+      return hospitalBed(k, c);
     case 'mesa':
     case 'mesa_juego':
       return table(k, c, def.id === 'mesa_juego');
@@ -238,6 +241,104 @@ function bed(k: Kit, c: Colors, prison: boolean): void {
     px(wide ? fx - 12 : fx + 6, wide ? fy - 5 : fy - 1, 4, 4, '#5a5e64');
     px(wide ? fx - 11 : fx + 7, wide ? fy - 4 : fy, 2, 2, '#b0b4b8');
   }
+}
+
+/**
+ * Cama de hospital: armazón de tubo metálico con barandillas, colchón blanco, sábana con la cruz roja,
+ * almohada, la manivela para incorporarla a los pies y un gotero con su bolsa junto al cabecero.
+ */
+function hospitalBed(k: Kit, c: Colors): void {
+  const { px, W, TH, wide } = k;
+  const tube = c.dark;
+  const hi = shade(tube, 1.5);
+  floorShadow(k, 1, 1, W - 4, TH - 4);
+  px(1, 1, W - 4, TH - 4, OL);
+  px(2, 2, W - 6, TH - 6, tube);
+  px(2, 2, W - 6, 1, hi);
+  // Ruedas en las esquinas.
+  for (const [x, y] of [[1, 1], [W - 6, 1], [1, TH - 6], [W - 6, TH - 6]]) {
+    px(x, y, 3, 3, '#2a2e32');
+    px(x + 1, y + 1, 1, 1, '#8a9096');
+  }
+  // Cabecero y piecero de tubo (los dos lados cortos).
+  if (wide) {
+    for (const x of [2, W - 7]) {
+      px(x, 2, 3, TH - 6, shade(tube, 1.2));
+      px(x + 1, 3, 1, TH - 8, hi);
+    }
+  } else {
+    for (const y of [2, TH - 7]) {
+      px(2, y, W - 6, 3, shade(tube, 1.2));
+      px(3, y + 1, W - 8, 1, hi);
+    }
+  }
+  // Colchón blanco.
+  const mx = wide ? 5 : 4;
+  const my = wide ? 4 : 5;
+  const mw = wide ? W - 12 : W - 10;
+  const mh = wide ? TH - 10 : TH - 12;
+  px(mx, my, mw, mh, '#f2f4f6');
+  // Barandillas a los lados largos.
+  if (wide) {
+    px(mx + 4, 2, mw - 8, 2, '#b8c0c8');
+    px(mx + 4, TH - 6, mw - 8, 2, '#b8c0c8');
+    for (let x = mx + 6; x < mx + mw - 4; x += 5) {
+      px(x, 2, 1, 2, hi);
+      px(x, TH - 6, 1, 2, hi);
+    }
+  } else {
+    px(2, my + 4, 2, mh - 8, '#b8c0c8');
+    px(W - 6, my + 4, 2, mh - 8, '#b8c0c8');
+    for (let y = my + 6; y < my + mh - 4; y += 5) {
+      px(2, y, 2, 1, hi);
+      px(W - 6, y, 2, 1, hi);
+    }
+  }
+  // Almohada.
+  const pl = wide ? { x: mx + 1, y: my + 2, w: Math.min(8, mw / 3), h: mh - 4 } : { x: mx + 2, y: my + 1, w: mw - 4, h: Math.min(6, mh / 3) };
+  px(pl.x, pl.y, pl.w, pl.h, '#ffffff');
+  px(pl.x, pl.y + pl.h - 1, pl.w, 1, '#c8d0d8');
+  // Sábana azul claro con el embozo blanco doblado y pliegues.
+  const sheet = '#cfe0ea';
+  const bx = wide ? pl.x + pl.w + 2 : mx;
+  const by = wide ? my : pl.y + pl.h + 2;
+  const bw = wide ? mx + mw - bx : mw;
+  const bh = wide ? mh : my + mh - by;
+  px(bx, by, bw, bh, sheet);
+  if (wide) {
+    px(bx, by, 3, bh, '#ffffff');
+    px(bx + 3, by, 1, bh, shade(sheet, 0.8));
+    for (let i = 1; i < 4; i++) px(bx + Math.floor((bw * i) / 4) + 2, by + 1, 1, bh - 2, shade(sheet, 0.9));
+  } else {
+    px(bx, by, bw, 3, '#ffffff');
+    px(bx, by + 3, bw, 1, shade(sheet, 0.8));
+    for (let i = 1; i < 4; i++) px(bx + 1, by + Math.floor((bh * i) / 4) + 2, bw - 2, 1, shade(sheet, 0.9));
+  }
+  // Cruz roja en la sábana.
+  const cx = bx + Math.floor(bw / 2) + (wide ? 1 : 0);
+  const cy = by + Math.floor(bh / 2) + (wide ? 0 : 1);
+  px(cx - 1, cy - 4, 3, 9, '#c0392b');
+  px(cx - 4, cy - 1, 9, 3, '#c0392b');
+  px(cx, cy - 3, 1, 7, '#e05a48');
+  // Manivela a los pies.
+  if (wide) {
+    px(W - 5, Math.floor(TH / 2) - 1, 3, 2, '#8a9096');
+    px(W - 3, Math.floor(TH / 2) - 2, 1, 4, '#5a6066');
+  } else {
+    px(Math.floor(W / 2) - 1, TH - 5, 2, 3, '#8a9096');
+    px(Math.floor(W / 2) - 2, TH - 3, 4, 1, '#5a6066');
+  }
+  // Gotero junto al cabecero: pie, barra, bolsa de suero y el tubo hasta la cama.
+  const ix = wide ? 3 : W - 9;
+  const iy = wide ? TH - 9 : 6;
+  px(ix - 1, iy + 3, 5, 2, OL);
+  px(ix, iy + 3, 3, 1, '#8a9096');
+  px(ix + 1, iy - 1, 1, 5, '#b8c0c8');
+  px(ix, iy - 4, 3, 4, OL);
+  px(ix, iy - 4, 3, 3, '#e8f4f8');
+  px(ix + 1, iy - 3, 1, 1, '#ffffff');
+  px(ix + 2, iy - 1, 1, 1, '#c8e0e8');
+  px(wide ? ix + 3 : ix - 2, wide ? iy - 1 : iy + 1, 2, 1, '#c8e0e8');
 }
 
 /** Mesa de tablones con su faldón y patas; la de juego, con tapete, cartas y fichas. */
